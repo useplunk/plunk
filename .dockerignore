@@ -1,0 +1,7 @@
+.env
+.yarn/
+.next/
+.github/
+dist/
+assets/
+node_modules/

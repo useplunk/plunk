@@ -1,0 +1,12 @@
+node_modules
+dist
+.idea
+.vscode
+*.log
+.env
+.tscache
+.next
+.out
+build
+.DS_Store
+.yarn/install-state.gz

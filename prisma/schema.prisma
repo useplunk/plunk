@@ -1,0 +1,329 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id String @id @default(uuid())
+
+  // Credentials
+  email    String  @unique
+  password String?
+
+  // Relations
+  memberships ProjectMembership[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Project {
+  id String @id @default(uuid())
+
+  // Details
+  name String
+  url  String
+
+  // Verified domain
+  verified Boolean @default(false)
+  email    String?
+  from     String?
+
+  // API access
+  public String @unique
+  secret String @unique
+
+  // Relations
+  memberships ProjectMembership[]
+  contacts    Contact[]
+  campaigns   Campaign[]
+  actions     Action[]
+  events      Event[]
+  templates   Template[]
+  emails      Email[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("projects")
+}
+
+// Table to maintain many-to-many relationship between Account and Project
+model ProjectMembership {
+  role Role @default(MEMBER)
+
+  // Relations
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id(fields: [userId, projectId])
+  @@map("projectmemberhips")
+}
+
+model Event {
+  id String @id @default(uuid())
+
+  // Details
+  name String
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  template   Template? @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId String?
+
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String?
+
+  actions    Action[]  @relation("ActionToEvent")
+  notActions Action[]  @relation("ActionToNotEvent")
+  triggers   Trigger[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index(fields: [projectId, templateId, campaignId])
+  @@map("events")
+}
+
+model Template {
+  id String @id @default(uuid())
+
+  // Details
+  subject String
+  body    String
+
+  type  TemplateType
+  style TemplateStyle
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  events    Event[]
+  actions   Action[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index(fields: [projectId])
+  @@map("templates")
+}
+
+model Action {
+  id String @id @default(uuid())
+
+  // Details
+  name    String
+  runOnce Boolean @default(false)
+  delay   Int     @default(0)
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  template   Template @relation(fields: [templateId], references: [id])
+  templateId String
+
+  events    Event[] @relation("ActionToEvent")
+  notevents Event[] @relation("ActionToNotEvent")
+
+  triggers Trigger[]
+  emails   Email[]
+  tasks    Task[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index(fields: [projectId, templateId])
+  @@map("actions")
+}
+
+model Campaign {
+  id String @id @default(uuid())
+
+  subject   String
+  body      String
+  status    CampaignStatus @default(DRAFT)
+  delivered DateTime?
+
+  style      TemplateStyle
+  // Relations
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  emails     Email[]
+  tasks      Task[]
+  recipients Contact[]
+  events     Event[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index(fields: [projectId])
+  @@map("campaigns")
+}
+
+model Trigger {
+  id String @id @default(uuid())
+
+  // Relations
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+
+  event    Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId  String?
+  action   Action? @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actionId String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index(fields: [contactId, eventId, actionId, createdAt])
+  @@map("triggers")
+}
+
+model Contact {
+  id String @id @default(uuid())
+
+  // Details
+  email      String
+  subscribed Boolean @default(true)
+  data       String?
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  emails    Email[]
+  triggers  Trigger[]
+  tasks     Task[]
+  campaigns Campaign[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index(fields: [projectId])
+  @@map("contacts")
+}
+
+model Email {
+  id String @id @default(uuid())
+
+  messageId String      @unique
+  subject   String?
+  body      String?
+  status    EmailStatus @default(SENT)
+
+  // Relations
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?
+
+  action   Action? @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actionId String?
+
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String?
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+
+  clicks Click[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index(fields: [projectId, actionId, campaignId, contactId, createdAt])
+  @@map("emails")
+}
+
+model Click {
+  id String @id @default(uuid())
+
+  link String
+
+  // Relations
+  email   Email  @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  emailId String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([emailId, createdAt])
+  @@map("clicks")
+}
+
+model Task {
+  id String @id @default(uuid())
+
+  // Details
+  runBy DateTime @default(now())
+
+  // Relations
+  action   Action? @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actionId String?
+
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String?
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([runBy, createdAt])
+  @@map("tasks")
+}
+
+enum TemplateType {
+  MARKETING
+  TRANSACTIONAL
+}
+
+enum TemplateStyle {
+  PLUNK
+  HTML
+}
+
+enum EmailStatus {
+  SENT
+  DELIVERED
+  BOUNCED
+  OPENED
+  COMPLAINT
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  DELIVERED
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}

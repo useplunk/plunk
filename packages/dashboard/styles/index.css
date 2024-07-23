@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+#nprogress .bar {
+    background: #171717 !important;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    @apply text-neutral-400;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+.ProseMirror progress {
+    @apply rounded-xl w-full h-8
+}
+
+.ProseMirror progress::-webkit-progress-bar {
+    @apply bg-blue-100 rounded-xl
+}
+
+.ProseMirror progress::-webkit-progress-value {
+    @apply bg-blue-500 rounded-xl
+}
+
+.tippy-box[data-theme~="custom"] {
+    @apply border border-neutral-300 bg-neutral-50 text-neutral-800 shadow-xl
+}
+
+circle {
+    animation: moveCircle 10s linear infinite;
+}
+
+@keyframes moveCircle {
+    from {
+        stroke-dashoffset: 100%;
+    }
+
+    to {
+        stroke-dashoffset: 0%;
+    }
+}
+
+.revert-tailwind {
+    all: initial;
+}
+
+.revert-tailwind > * {
+    all: revert;
+}
