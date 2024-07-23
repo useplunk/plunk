@@ -10,7 +10,7 @@ import { type NextFunction, type Request, type Response, json } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import signale from "signale";
-import { API_URI, NODE_ENV, PORT } from "./app/constants";
+import { API_URI, NODE_ENV } from "./app/constants";
 import { task } from "./app/cron";
 import { Auth } from "./controllers/Auth";
 import { Identities } from "./controllers/Identities";
