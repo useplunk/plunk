@@ -100,9 +100,9 @@ server.app.use(
 );
 
 void prisma.$connect().then(() => {
-	server.app.listen(PORT, () => {
+	server.app.listen(4000, () => {
 		task.start();
 
-		signale.success("[HTTPS] Ready on", PORT);
+		signale.success("[HTTPS] Ready on", 4000);
 	});
 });

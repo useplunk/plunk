@@ -21,7 +21,6 @@ export function validateEnv<T extends string = string>(
 
 // ENV
 export const JWT_SECRET = validateEnv("JWT_SECRET");
-export const PORT = validateEnv<`${number}`>("PORT", "4000");
 export const NODE_ENV = validateEnv<"development" | "production">(
 	"NODE_ENV",
 	"production",
