@@ -83,7 +83,7 @@ export default function WithProviders(props: AppProps) {
 					}
 					title={"Plunk Dashboard | The Open-Source Email Platform for AWS"}
 					description={
-						"Plunk is the open-source, developer-friendly email platform for AWS that brings together marketing, transactional and broadcast emails into one single, complete solution"
+						"Plunk is the open-source, affordable email platform for AWS that brings together marketing, transactional and broadcast emails into one single, complete solution"
 					}
 					twitter={{
 						cardType: "summary_large_image",

@@ -472,7 +472,7 @@ ${
               <mj-divider border-width="2px" border-color="#f5f5f5"></mj-divider>
               <mj-text align="center">
                 <p style="color: #a3a3a3; text-decoration: none; font-size: 12px; line-height: 1.7142857;">
-                  You received this email because you agreed to receive emails from ${project.name}. If you no longer wish to receive emails like this, please <a style="text-decoration: underline" href="https://${APP_URI}/unsubscribe/${contact.id}" target="_blank">update your preferences</a>.
+                  You received this email because you agreed to receive emails from ${project.name}. If you no longer wish to receive emails like this, please <a style="text-decoration: underline" href="${APP_URI}/unsubscribe/${contact.id}" target="_blank">update your preferences</a>.
                 </p>
               </mj-text>
             `
