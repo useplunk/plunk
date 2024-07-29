@@ -3,7 +3,7 @@
 <h1 align="center">Plunk</h1>
 
 <p align="center">
-    The Open-Source Email Platform for AWS
+    The Open-Source Email Platform
 </p>
 
 <p align="center">
