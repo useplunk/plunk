@@ -50,7 +50,7 @@ function App({ Component, pageProps }: AppProps) {
 	return (
 		<>
 			<Head>
-				<title>Plunk Dashboard | The Open-Source Email Platform for AWS</title>
+				<title>Plunk Dashboard | The Open-Source Email Platform</title>
 				<meta
 					name="viewport"
 					content="width=device-width, initial-scale=1.0"
@@ -78,12 +78,10 @@ export default function WithProviders(props: AppProps) {
 		>
 			<JotaiProvider>
 				<DefaultSeo
-					defaultTitle={
-						"Plunk Dashboard | The Open-Source Email Platform for AWS"
-					}
-					title={"Plunk Dashboard | The Open-Source Email Platform for AWS"}
+					defaultTitle={"Plunk Dashboard | The Open-Source Email Platform"}
+					title={"Plunk Dashboard | The Open-Source Email Platform"}
 					description={
-						"Plunk is the open-source, affordable email platform for AWS that brings together marketing, transactional and broadcast emails into one single, complete solution"
+						"Plunk is the open-source, affordable email platform that brings together marketing, transactional and broadcast emails into one single, complete solution"
 					}
 					twitter={{
 						cardType: "summary_large_image",
@@ -91,9 +89,9 @@ export default function WithProviders(props: AppProps) {
 						site: "@useplunk",
 					}}
 					openGraph={{
-						title: "Plunk Dashboard | The Open-Source Email Platform for AWS",
+						title: "Plunk Dashboard | The Open-Source Email Platform",
 						description:
-							"Plunk is the open-source, developer-friendly email platform for AWS that brings together marketing, transactional and broadcast emails into one single, complete solution",
+							"Plunk is the open-source, developer-friendly email platform that brings together marketing, transactional and broadcast emails into one single, complete solution",
 						images: [
 							{ url: "https://www.useplunk.com/assets/card.png", alt: "Plunk" },
 						],
