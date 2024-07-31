@@ -29,7 +29,7 @@ export const NODE_ENV = validateEnv<"development" | "production">(
 export const REDIS_URL = validateEnv("REDIS_URL");
 
 // URLs
-export const API_URI = validateEnv("API_URI", "http://localhost:8080");
+export const API_URI = validateEnv("API_URI", "http://localhost:4000");
 export const APP_URI = validateEnv("APP_URI", "http://localhost:3000");
 
 // AWS

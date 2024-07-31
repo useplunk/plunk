@@ -10,7 +10,7 @@ import { type NextFunction, type Request, type Response, json } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import signale from "signale";
-import { API_URI, NODE_ENV } from "./app/constants";
+import { APP_URI, NODE_ENV } from "./app/constants";
 import { task } from "./app/cron";
 import { Auth } from "./controllers/Auth";
 import { Identities } from "./controllers/Identities";
@@ -53,7 +53,7 @@ const server = new (class extends Server {
 
 		this.app.use(
 			cors({
-				origin: [API_URI],
+				origin: [APP_URI],
 				credentials: true,
 			}),
 		);

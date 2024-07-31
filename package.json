@@ -4,9 +4,7 @@
 	"private": true,
 	"license": "MIT",
 	"workspaces": {
-		"packages": [
-			"packages/*"
-		]
+		"packages": ["packages/*"]
 	},
 	"engines": {
 		"npm": ">=6.14.x",
@@ -33,6 +31,8 @@
 		"preinstall": "node tools/preinstall.js",
 		"migrate": "prisma migrate dev",
 		"migrate:deploy": "prisma migrate deploy",
-		"generate": "prisma generate"
+		"generate": "prisma generate",
+		"services:up": "docker compose -f docker-compose.dev.yml up -d",
+		"services:down": "docker compose -f docker-compose.dev.yml down"
 	}
 }
