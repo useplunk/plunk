@@ -2,7 +2,7 @@
 	"name": "plunk",
 	"version": "1.0.0",
 	"private": true,
-	"license": "MIT",
+	"license": "agpl-3.0",
 	"workspaces": {
 		"packages": ["packages/*"]
 	},
