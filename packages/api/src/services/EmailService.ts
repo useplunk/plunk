@@ -467,8 +467,8 @@ ${
      <mj-section>
       <mj-column>
         ${
-					footer.unsubscribe
-						? `
+									footer.unsubscribe
+										? `
               <mj-divider border-width="2px" border-color="#f5f5f5"></mj-divider>
               <mj-text align="center">
                 <p style="color: #a3a3a3; text-decoration: none; font-size: 12px; line-height: 1.7142857;">
@@ -476,8 +476,8 @@ ${
                 </p>
               </mj-text>
             `
-						: ""
-				}
+										: ""
+								}
       </mj-column>
     </mj-section>
   </mj-body>
@@ -485,22 +485,14 @@ ${
 		).html.replace(/^\s+|\s+$/g, "");
 	}
 
-	public static format({
-		subject,
-		body,
-		data,
-	}: { subject: string; body: string; data: Record<string, string> }) {
+	public static format({ subject, body, data }: { subject: string; body: string; data: Record<string, string> }) {
 		return {
 			subject: subject.replace(/\{\{(.*?)}}/g, (match, key) => {
-				const [mainKey, defaultValue] = key
-					.split("??")
-					.map((s: string) => s.trim());
+				const [mainKey, defaultValue] = key.split("??").map((s: string) => s.trim());
 				return data[mainKey] ?? defaultValue ?? "";
 			}),
 			body: body.replace(/\{\{(.*?)}}/g, (match, key) => {
-				const [mainKey, defaultValue] = key
-					.split("??")
-					.map((s: string) => s.trim());
+				const [mainKey, defaultValue] = key.split("??").map((s: string) => s.trim());
 				if (Array.isArray(data[mainKey])) {
 					return data[mainKey].map((e: string) => `<li>${e}</li>`).join("\n");
 				}

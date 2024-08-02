@@ -54,11 +54,9 @@ export class ActionService {
 	 */
 	public static event(eventId: string) {
 		return wrapRedis(Keys.Action.event(eventId), async () => {
-			return prisma.event
-				.findUniqueOrThrow({ where: { id: eventId } })
-				.actions({
-					include: { events: true, template: true, notevents: true },
-				});
+			return prisma.event.findUniqueOrThrow({ where: { id: eventId } }).actions({
+				include: { events: true, template: true, notevents: true },
+			});
 		});
 	}
 
@@ -68,52 +66,35 @@ export class ActionService {
 	 * @param event
 	 * @param project
 	 */
-	public static async trigger({
-		event,
-		contact,
-		project,
-	}: { event: Event; contact: Contact; project: Project }) {
+	public static async trigger({ event, contact, project }: { event: Event; contact: Contact; project: Project }) {
 		const actions = await ActionService.event(event.id);
 
 		const triggers = await ContactService.triggers(contact.id);
 
 		for (const action of actions) {
-			const hasTriggeredAction = !!triggers.find(
-				(t) => t.actionId === action.id,
-			);
+			const hasTriggeredAction = !!triggers.find((t) => t.actionId === action.id);
 
 			if (action.runOnce && hasTriggeredAction) {
 				// User has already triggered this run once action
 				continue;
 			}
 
-			if (
-				action.notevents.length > 0 &&
-				action.notevents.some((e) => triggers.some((t) => t.eventId === e.id))
-			) {
+			if (action.notevents.length > 0 && action.notevents.some((e) => triggers.some((t) => t.eventId === e.id))) {
 				continue;
 			}
 
 			let triggeredEvents = triggers.filter((t) => t.eventId === event.id);
 
 			if (hasTriggeredAction) {
-				const lastActionTrigger = triggers.filter(
-					(t) => t.contactId === contact.id && t.actionId === action.id,
-				)[0];
+				const lastActionTrigger = triggers.filter((t) => t.contactId === contact.id && t.actionId === action.id)[0];
 
-				triggeredEvents = triggeredEvents.filter(
-					(e) => e.createdAt > lastActionTrigger.createdAt,
-				);
+				triggeredEvents = triggeredEvents.filter((e) => e.createdAt > lastActionTrigger.createdAt);
 			}
 
-			const updatedTriggers = [
-				...new Set(triggeredEvents.map((t) => t.eventId)),
-			];
+			const updatedTriggers = [...new Set(triggeredEvents.map((t) => t.eventId))];
 			const requiredTriggers = action.events.map((e) => e.id);
 
-			if (
-				updatedTriggers.sort().join(",") !== requiredTriggers.sort().join(",")
-			) {
+			if (updatedTriggers.sort().join(",") !== requiredTriggers.sort().join(",")) {
 				// Not all required events have been triggered
 				continue;
 			}
@@ -140,10 +121,7 @@ export class ActionService {
 				const { messageId } = await EmailService.send({
 					from: {
 						name: project.from ?? project.name,
-						email:
-							project.verified && project.email
-								? project.email
-								: "no-reply@useplunk.dev",
+						email: project.verified && project.email ? project.email : "no-reply@useplunk.dev",
 					},
 					to: [contact.email],
 					content: {

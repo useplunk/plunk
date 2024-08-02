@@ -3,10 +3,7 @@
  * @param key The key
  * @param defaultValue An optional default value if the environment variable does not exist
  */
-export function validateEnv<T extends string = string>(
-	key: keyof NodeJS.ProcessEnv,
-	defaultValue?: T,
-): T {
+export function validateEnv<T extends string = string>(key: keyof NodeJS.ProcessEnv, defaultValue?: T): T {
 	const value = process.env[key] as T | undefined;
 
 	if (!value) {
@@ -21,10 +18,7 @@ export function validateEnv<T extends string = string>(
 
 // ENV
 export const JWT_SECRET = validateEnv("JWT_SECRET");
-export const NODE_ENV = validateEnv<"development" | "production">(
-	"NODE_ENV",
-	"production",
-);
+export const NODE_ENV = validateEnv<"development" | "production">("NODE_ENV", "production");
 
 export const REDIS_URL = validateEnv("REDIS_URL");
 
@@ -36,6 +30,4 @@ export const APP_URI = validateEnv("APP_URI", "http://localhost:3000");
 export const AWS_REGION = validateEnv("AWS_REGION");
 export const AWS_ACCESS_KEY_ID = validateEnv("AWS_ACCESS_KEY_ID");
 export const AWS_SECRET_ACCESS_KEY = validateEnv("AWS_SECRET_ACCESS_KEY");
-export const AWS_SES_CONFIGURATION_SET = validateEnv(
-	"AWS_SES_CONFIGURATION_SET",
-);
+export const AWS_SES_CONFIGURATION_SET = validateEnv("AWS_SES_CONFIGURATION_SET");

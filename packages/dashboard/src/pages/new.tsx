@@ -91,20 +91,13 @@ export default function Index() {
 				<div className="flex flex-1 flex-col justify-center px-4 py-12 sm:border-r-2 sm:border-neutral-100 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
 					<div className="mx-auto w-full max-w-sm lg:w-96">
 						<div>
-							<h2 className="mt-6 text-3xl font-extrabold text-neutral-800">
-								Create a new project
-							</h2>
-							<p className={"text-sm text-neutral-500"}>
-								Get ready to take your emails to the next level.
-							</p>
+							<h2 className="mt-6 text-3xl font-extrabold text-neutral-800">Create a new project</h2>
+							<p className={"text-sm text-neutral-500"}>Get ready to take your emails to the next level.</p>
 						</div>
 
 						<div className="mt-8">
 							<div className="mt-6">
-								<form
-									onSubmit={handleSubmit(create)}
-									className="relative mt-2 w-full"
-								>
+								<form onSubmit={handleSubmit(create)} className="relative mt-2 w-full">
 									<div className="mt-4 flex flex-col">
 										<label htmlFor="name" className="text-xs font-light">
 											Project name
@@ -182,9 +175,7 @@ export default function Index() {
 										type="submit"
 										disabled={!isValid || submitted}
 										className={` ${
-											isValid
-												? "bg-neutral-800 text-white"
-												: "bg-neutral-200 text-white"
+											isValid ? "bg-neutral-800 text-white" : "bg-neutral-200 text-white"
 										} mt-5 flex w-full items-center justify-center rounded py-2.5 text-sm font-medium transition`}
 									>
 										{submitted ? (
@@ -194,14 +185,7 @@ export default function Index() {
 												fill="none"
 												viewBox="0 0 24 24"
 											>
-												<circle
-													className="opacity-25"
-													cx="12"
-													cy="12"
-													r="10"
-													stroke="currentColor"
-													strokeWidth="4"
-												/>
+												<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 												<path
 													className="opacity-75"
 													fill="currentColor"
@@ -209,9 +193,7 @@ export default function Index() {
 												/>
 											</svg>
 										) : (
-											<span
-												className={"flex items-center justify-center gap-x-2"}
-											>
+											<span className={"flex items-center justify-center gap-x-2"}>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
 													width="24"
@@ -250,11 +232,7 @@ export default function Index() {
 					</div>
 				</div>
 				<div className="relative hidden w-0 flex-1 items-center justify-center bg-gradient-to-br from-blue-50 to-white lg:flex">
-					<div
-						className={
-							"w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-9"
-						}
-					>
+					<div className={"w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-9"}>
 						<Shared />
 					</div>
 				</div>

@@ -9,17 +9,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import { toast } from "sonner";
-import {
-	Alert,
-	Badge,
-	Card,
-	Empty,
-	FullscreenLoader,
-	Input,
-	Modal,
-	Skeleton,
-	Table,
-} from "../../components";
+import { Alert, Badge, Card, Empty, FullscreenLoader, Input, Modal, Skeleton, Table } from "../../components";
 import { Dashboard } from "../../layouts";
 import { useContactsCount } from "../../lib/hooks/contacts";
 import { useEvents } from "../../lib/hooks/events";
@@ -57,16 +47,11 @@ export default function Index() {
 
 	const create = (data: EventValues) => {
 		toast.promise(
-			network.mock<Template, typeof EventSchemas.post>(
-				project.secret,
-				"POST",
-				"/v1",
-				{
-					...data,
-					email: user.email,
-					subscribed: true,
-				},
-			),
+			network.mock<Template, typeof EventSchemas.post>(project.secret, "POST", "/v1", {
+				...data,
+				email: user.email,
+				subscribed: true,
+			}),
 			{
 				loading: "Creating new event",
 				success: () => {
@@ -83,14 +68,9 @@ export default function Index() {
 
 	const remove = (id: string) => {
 		toast.promise(
-			network.mock<Event, typeof UtilitySchemas.id>(
-				project.secret,
-				"DELETE",
-				"/v1/events",
-				{
-					id,
-				},
-			),
+			network.mock<Event, typeof UtilitySchemas.id>(project.secret, "DELETE", "/v1/events", {
+				id,
+			}),
 			{
 				loading: "Deleting your event",
 				success: () => {
@@ -114,24 +94,12 @@ export default function Index() {
 				description={"Trigger a new event to send out emails to your contacts"}
 				icon={
 					<>
-						<rect
-							strokeWidth={2}
-							width="14.5"
-							height="14.5"
-							x="4.75"
-							y="4.75"
-							rx="2"
-						/>
+						<rect strokeWidth={2} width="14.5" height="14.5" x="4.75" y="4.75" rx="2" />
 						<path strokeWidth={2} d="M8.75 10.75L11.25 13L8.75 15.25" />
 					</>
 				}
 			>
-				<Input
-					register={register("event")}
-					label={"Event"}
-					placeholder={"user-signup"}
-					error={errors.event}
-				/>
+				<Input register={register("event")} label={"Event"} placeholder={"user-signup"} error={errors.event} />
 			</Modal>
 
 			<Dashboard>
@@ -139,8 +107,7 @@ export default function Index() {
 					<Alert type={"info"} title={"Need a hand?"}>
 						<div className={"mt-3 grid items-center sm:grid-cols-4"}>
 							<p className={"sm:col-span-3"}>
-								Want us to help you get started? We can help you build your
-								first action in less than 5 minutes.
+								Want us to help you get started? We can help you build your first action in less than 5 minutes.
 							</p>
 
 							<Link
@@ -175,21 +142,14 @@ export default function Index() {
 					}
 				>
 					{events && contacts ? (
-						events.filter((event) => !event.templateId && !event.campaignId)
-							.length > 0 ? (
+						events.filter((event) => !event.templateId && !event.campaignId).length > 0 ? (
 							<Table
 								values={events
 									.filter((event) => !event.templateId && !event.campaignId)
 									.sort((a, b) => {
-										const aTrigger =
-											a.triggers.length > 0
-												? a.triggers.sort()[0].createdAt
-												: a.createdAt;
+										const aTrigger = a.triggers.length > 0 ? a.triggers.sort()[0].createdAt : a.createdAt;
 
-										const bTrigger =
-											b.triggers.length > 0
-												? b.triggers.sort()[0].createdAt
-												: b.createdAt;
+										const bTrigger = b.triggers.length > 0 ? b.triggers.sort()[0].createdAt : b.createdAt;
 
 										return bTrigger > aTrigger ? 1 : -1;
 									})
@@ -199,15 +159,7 @@ export default function Index() {
 											"Triggered by users": (
 												<Badge type={"info"}>{`${
 													e.triggers.length > 0
-														? Math.round(
-																([
-																	...new Map(
-																		e.triggers.map((t) => [t.contactId, t]),
-																	).values(),
-																].length /
-																	contacts) *
-																	100,
-															)
+														? Math.round(([...new Map(e.triggers.map((t) => [t.contactId, t])).values()].length / contacts) * 100)
 														: 0
 												}%`}</Badge>
 											),
@@ -221,9 +173,7 @@ export default function Index() {
 															data={Object.entries(
 																e.triggers.reduce(
 																	(acc, cur) => {
-																		const date = dayjs(cur.createdAt).format(
-																			"MM/YYYY",
-																		);
+																		const date = dayjs(cur.createdAt).format("MM/YYYY");
 
 																		if (acc[date]) {
 																			acc[date] += 1;
@@ -256,41 +206,15 @@ export default function Index() {
 															}}
 														>
 															<defs>
-																<linearGradient
-																	id="gradientFill"
-																	x1="0"
-																	y1="0"
-																	x2="0"
-																	y2="1"
-																>
-																	<stop
-																		offset="100%"
-																		stopColor="#2563eb"
-																		stopOpacity={0.4}
-																	/>
-																	<stop
-																		offset="100%"
-																		stopColor="#93c5fd"
-																		stopOpacity={0}
-																	/>
+																<linearGradient id="gradientFill" x1="0" y1="0" x2="0" y2="1">
+																	<stop offset="100%" stopColor="#2563eb" stopOpacity={0.4} />
+																	<stop offset="100%" stopColor="#93c5fd" stopOpacity={0} />
 																</linearGradient>
 															</defs>
 
-															<YAxis
-																axisLine={false}
-																fill={"#fff"}
-																tickSize={0}
-																width={5}
-																interval={0}
-															/>
+															<YAxis axisLine={false} fill={"#fff"} tickSize={0} width={5} interval={0} />
 
-															<Area
-																type="monotone"
-																dataKey="count"
-																stroke="#2563eb"
-																fill="url(#gradientFill)"
-																strokeWidth={2}
-															/>
+															<Area type="monotone" dataKey="count" stroke="#2563eb" fill="url(#gradientFill)" strokeWidth={2} />
 														</AreaChart>
 													</ResponsiveContainer>
 												</>
@@ -308,16 +232,11 @@ export default function Index() {
 												<button
 													onClick={() => {
 														toast.promise(
-															network.mock<true, typeof EventSchemas.post>(
-																project.secret,
-																"POST",
-																"/v1",
-																{
-																	email: user.email,
-																	event: e.name,
-																	subscribed: true,
-																},
-															),
+															network.mock<true, typeof EventSchemas.post>(project.secret, "POST", "/v1", {
+																email: user.email,
+																event: e.name,
+																subscribed: true,
+															}),
 															{
 																loading: "Creating new trigger",
 																success: () => {
@@ -328,9 +247,7 @@ export default function Index() {
 															},
 														);
 													}}
-													className={
-														"flex items-center text-center text-sm font-medium transition hover:text-neutral-800"
-													}
+													className={"flex items-center text-center text-sm font-medium transition hover:text-neutral-800"}
 												>
 													<TerminalSquare size={18} />
 												</button>
@@ -339,9 +256,7 @@ export default function Index() {
 											Remove: !e.templateId ? (
 												<button
 													onClick={() => remove(e.id)}
-													className={
-														"flex items-center text-center text-sm font-medium transition hover:text-neutral-800"
-													}
+													className={"flex items-center text-center text-sm font-medium transition hover:text-neutral-800"}
 												>
 													<Trash size={18} />
 												</button>
@@ -352,34 +267,22 @@ export default function Index() {
 									})}
 							/>
 						) : (
-							<Empty
-								title={"No events"}
-								description={"You have not yet posted an event to Plunk"}
-							/>
+							<Empty title={"No events"} description={"You have not yet posted an event to Plunk"} />
 						)
 					) : (
 						<Skeleton type={"table"} />
 					)}
 				</Card>
-				<Card
-					title={"Template events"}
-					description={"Events linked to your templates"}
-				>
+				<Card title={"Template events"} description={"Events linked to your templates"}>
 					{events && contacts ? (
 						events.filter((event) => event.templateId).length > 0 ? (
 							<Table
 								values={events
 									.filter((event) => event.templateId)
 									.sort((a, b) => {
-										const aTrigger =
-											a.triggers.length > 0
-												? a.triggers.sort()[0].createdAt
-												: a.createdAt;
+										const aTrigger = a.triggers.length > 0 ? a.triggers.sort()[0].createdAt : a.createdAt;
 
-										const bTrigger =
-											b.triggers.length > 0
-												? b.triggers.sort()[0].createdAt
-												: b.createdAt;
+										const bTrigger = b.triggers.length > 0 ? b.triggers.sort()[0].createdAt : b.createdAt;
 
 										return bTrigger > aTrigger ? 1 : -1;
 									})
@@ -389,15 +292,7 @@ export default function Index() {
 											"Triggered by users": (
 												<Badge type={"info"}>{`${
 													e.triggers.length > 0
-														? Math.round(
-																([
-																	...new Map(
-																		e.triggers.map((t) => [t.contactId, t]),
-																	).values(),
-																].length /
-																	contacts) *
-																	100,
-															)
+														? Math.round(([...new Map(e.triggers.map((t) => [t.contactId, t])).values()].length / contacts) * 100)
 														: 0
 												}%`}</Badge>
 											),
@@ -415,12 +310,7 @@ export default function Index() {
 									})}
 							/>
 						) : (
-							<Empty
-								title={"No template events"}
-								description={
-									"All delivery tracking for templates can be found here"
-								}
-							/>
+							<Empty title={"No template events"} description={"All delivery tracking for templates can be found here"} />
 						)
 					) : (
 						<Skeleton type={"table"} />

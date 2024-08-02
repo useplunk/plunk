@@ -33,9 +33,7 @@ export default function Index() {
 	});
 
 	const resetPassword = async (data: ResetValues) => {
-		const schema = UtilitySchemas.id.merge(
-			UserSchemas.credentials.pick({ password: true }),
-		);
+		const schema = UtilitySchemas.id.merge(UserSchemas.credentials.pick({ password: true }));
 
 		setSubmitted(true);
 		await network.fetch<
@@ -55,13 +53,7 @@ export default function Index() {
 		<main className={"flex h-screen w-screen items-center justify-center"}>
 			<div className={"space-y-6"}>
 				<div>
-					<svg
-						className={
-							"mx-auto h-14 w-14 rounded-full bg-blue-100 p-2 text-blue-900"
-						}
-						fill="none"
-						viewBox="0 0 24 24"
-					>
+					<svg className={"mx-auto h-14 w-14 rounded-full bg-blue-100 p-2 text-blue-900"} fill="none" viewBox="0 0 24 24">
 						<path
 							stroke="currentColor"
 							strokeLinecap="round"
@@ -76,19 +68,12 @@ export default function Index() {
 					</svg>
 				</div>
 				<div className={"space-y-3 text-center"}>
-					<h1 className={"text-4xl font-bold text-neutral-800"}>
-						Reset password
-					</h1>
-					<p className={"text-neutral-700"}>
-						Please enter your new password and confirm it.
-					</p>
+					<h1 className={"text-4xl font-bold text-neutral-800"}>Reset password</h1>
+					<p className={"text-neutral-700"}>Please enter your new password and confirm it.</p>
 				</div>
 				<form onSubmit={handleSubmit(resetPassword)} className="space-y-6">
 					<div>
-						<label
-							htmlFor={"password"}
-							className="block text-sm font-semibold text-neutral-600"
-						>
+						<label htmlFor={"password"} className="block text-sm font-semibold text-neutral-600">
 							New password
 						</label>
 						<div className="relative mt-1">
@@ -162,14 +147,7 @@ export default function Index() {
 									fill="none"
 									viewBox="0 0 24 24"
 								>
-									<circle
-										className="opacity-25"
-										cx="12"
-										cy="12"
-										r="10"
-										stroke="currentColor"
-										strokeWidth="4"
-									/>
+									<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 									<path
 										className="opacity-75"
 										fill="currentColor"

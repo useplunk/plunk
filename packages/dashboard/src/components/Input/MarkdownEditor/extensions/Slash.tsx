@@ -16,14 +16,7 @@ import {
 	Quote,
 	Strikethrough,
 } from "lucide-react";
-import React, {
-	type ReactNode,
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useRef,
-	useState,
-} from "react";
+import React, { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import tippy from "tippy.js";
 
 interface CommandItemProps {
@@ -43,11 +36,7 @@ const Command = Extension.create({
 		return {
 			suggestion: {
 				char: "/",
-				command: ({
-					editor,
-					range,
-					props,
-				}: { editor: Editor; range: Range; props: any }) => {
+				command: ({ editor, range, props }: { editor: Editor; range: Range; props: any }) => {
 					props.command({ editor, range });
 				},
 			},
@@ -70,12 +59,7 @@ const getSuggestionItems = ({ query }: { query: string }) => {
 			description: "Big section heading.",
 			icon: <Heading1 size={18} />,
 			command: ({ editor, range }: Command) => {
-				editor
-					.chain()
-					.focus()
-					.deleteRange(range)
-					.setNode("heading", { level: 1 })
-					.run();
+				editor.chain().focus().deleteRange(range).setNode("heading", { level: 1 }).run();
 			},
 		},
 		{
@@ -83,12 +67,7 @@ const getSuggestionItems = ({ query }: { query: string }) => {
 			description: "Medium section heading.",
 			icon: <Heading2 size={18} />,
 			command: ({ editor, range }: Command) => {
-				editor
-					.chain()
-					.focus()
-					.deleteRange(range)
-					.setNode("heading", { level: 2 })
-					.run();
+				editor.chain().focus().deleteRange(range).setNode("heading", { level: 2 }).run();
 			},
 		},
 		{
@@ -96,12 +75,7 @@ const getSuggestionItems = ({ query }: { query: string }) => {
 			description: "Small section heading.",
 			icon: <Heading3 size={18} />,
 			command: ({ editor, range }: Command) => {
-				editor
-					.chain()
-					.focus()
-					.deleteRange(range)
-					.setNode("heading", { level: 3 })
-					.run();
+				editor.chain().focus().deleteRange(range).setNode("heading", { level: 3 }).run();
 			},
 		},
 		{

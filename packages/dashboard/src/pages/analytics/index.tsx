@@ -65,36 +65,23 @@ export default function Index() {
 								<div>
 									<p className={"font-medium text-neutral-600"}>Bounce Rate</p>
 									<p className={"text-2xl font-semibold text-neutral-800"}>
-										<>
-											{(
-												(analytics.emails.bounced / analytics.emails.total) *
-												100
-											).toFixed(2)}
-											%
-										</>
+										<>{((analytics.emails.bounced / analytics.emails.total) * 100).toFixed(2)}%</>
 									</p>
 								</div>
 								<div className={"flex flex-1 justify-end"}>
 									{analytics.emails.bounced / analytics.emails.total >
 									analytics.emails.bouncedPrev / analytics.emails.totalPrev ? (
 										<>
-											<span
-												className={
-													"flex items-center gap-1 text-sm font-medium text-neutral-500"
-												}
-											>
+											<span className={"flex items-center gap-1 text-sm font-medium text-neutral-500"}>
 												{Number.isNaN(
 													(analytics.emails.bounced / analytics.emails.total -
-														analytics.emails.bouncedPrev /
-															analytics.emails.totalPrev) *
+														analytics.emails.bouncedPrev / analytics.emails.totalPrev) *
 														100,
 												)
 													? 0
 													: (
-															(analytics.emails.bounced /
-																analytics.emails.total -
-																analytics.emails.bouncedPrev /
-																	analytics.emails.totalPrev) *
+															(analytics.emails.bounced / analytics.emails.total -
+																analytics.emails.bouncedPrev / analytics.emails.totalPrev) *
 															100
 														).toFixed(2)}
 												%
@@ -103,23 +90,16 @@ export default function Index() {
 										</>
 									) : (
 										<>
-											<span
-												className={
-													"flex items-center gap-1 text-sm font-medium text-neutral-500"
-												}
-											>
+											<span className={"flex items-center gap-1 text-sm font-medium text-neutral-500"}>
 												{Number.isNaN(
 													(analytics.emails.bounced / analytics.emails.total -
-														analytics.emails.bouncedPrev /
-															analytics.emails.totalPrev) *
+														analytics.emails.bouncedPrev / analytics.emails.totalPrev) *
 														100,
 												)
 													? 0
 													: (
-															(analytics.emails.bounced /
-																analytics.emails.total -
-																analytics.emails.bouncedPrev /
-																	analytics.emails.totalPrev) *
+															(analytics.emails.bounced / analytics.emails.total -
+																analytics.emails.bouncedPrev / analytics.emails.totalPrev) *
 															100
 														).toFixed(2)}
 												%
@@ -143,37 +123,23 @@ export default function Index() {
 								<div>
 									<p className={"font-medium text-neutral-600"}>Spam Rate</p>
 									<p className={"text-2xl font-semibold text-neutral-800"}>
-										<>
-											{(
-												(analytics.emails.complaint / analytics.emails.total) *
-												100
-											).toFixed(2)}
-											%
-										</>
+										<>{((analytics.emails.complaint / analytics.emails.total) * 100).toFixed(2)}%</>
 									</p>
 								</div>
 								<div className={"flex flex-1 justify-end"}>
 									{analytics.emails.complaint / analytics.emails.total >
-									analytics.emails.complaintPrev /
-										analytics.emails.totalPrev ? (
+									analytics.emails.complaintPrev / analytics.emails.totalPrev ? (
 										<>
-											<span
-												className={
-													"flex items-center gap-1 text-sm font-medium text-neutral-500"
-												}
-											>
+											<span className={"flex items-center gap-1 text-sm font-medium text-neutral-500"}>
 												{Number.isNaN(
 													(analytics.emails.complaint / analytics.emails.total -
-														analytics.emails.complaintPrev /
-															analytics.emails.totalPrev) *
+														analytics.emails.complaintPrev / analytics.emails.totalPrev) *
 														100,
 												)
 													? 0
 													: (
-															(analytics.emails.complaint /
-																analytics.emails.total -
-																analytics.emails.complaintPrev /
-																	analytics.emails.totalPrev) *
+															(analytics.emails.complaint / analytics.emails.total -
+																analytics.emails.complaintPrev / analytics.emails.totalPrev) *
 															100
 														).toFixed(2)}
 												%
@@ -182,23 +148,16 @@ export default function Index() {
 										</>
 									) : (
 										<>
-											<span
-												className={
-													"flex items-center gap-1 text-sm font-medium text-neutral-500"
-												}
-											>
+											<span className={"flex items-center gap-1 text-sm font-medium text-neutral-500"}>
 												{Number.isNaN(
 													(analytics.emails.complaint / analytics.emails.total -
-														analytics.emails.complaintPrev /
-															analytics.emails.totalPrev) *
+														analytics.emails.complaintPrev / analytics.emails.totalPrev) *
 														100,
 												)
 													? 0
 													: (
-															(analytics.emails.complaint /
-																analytics.emails.total -
-																analytics.emails.complaintPrev /
-																	analytics.emails.totalPrev) *
+															(analytics.emails.complaint / analytics.emails.total -
+																analytics.emails.complaintPrev / analytics.emails.totalPrev) *
 															100
 														).toFixed(2)}
 												%
@@ -225,9 +184,7 @@ export default function Index() {
 										height={300}
 										data={analytics.contacts.timeseries
 											.sort((a, b) => {
-												return (
-													new Date(a.day).getTime() - new Date(b.day).getTime()
-												);
+												return new Date(a.day).getTime() - new Date(b.day).getTime();
 											})
 											.map((i) => {
 												return {
@@ -244,23 +201,9 @@ export default function Index() {
 									>
 										<CartesianGrid strokeDasharray="4 5" />
 										<defs>
-											<linearGradient
-												id="gradientFill"
-												x1="0"
-												y1="0"
-												x2="0"
-												y2="1"
-											>
-												<stop
-													offset="100%"
-													stopColor="#2563eb"
-													stopOpacity={0.4}
-												/>
-												<stop
-													offset="100%"
-													stopColor="#93c5fd"
-													stopOpacity={0}
-												/>
+											<linearGradient id="gradientFill" x1="0" y1="0" x2="0" y2="1">
+												<stop offset="100%" stopColor="#2563eb" stopOpacity={0.4} />
+												<stop offset="100%" stopColor="#93c5fd" stopOpacity={0} />
 											</linearGradient>
 										</defs>
 
@@ -270,9 +213,7 @@ export default function Index() {
 												0,
 												analytics.contacts.timeseries.length === 0
 													? 10
-													: analytics.contacts.timeseries[
-															analytics.contacts.timeseries.length - 1
-														].count * 1.1,
+													: analytics.contacts.timeseries[analytics.contacts.timeseries.length - 1].count * 1.1,
 											]}
 											fill={"#fff"}
 											tickSize={0}
@@ -311,9 +252,7 @@ export default function Index() {
 													return (
 														<div className="rounded border border-neutral-100 bg-white px-5 py-3 shadow-sm">
 															<p className="font-medium text-neutral-800">{`${label}`}</p>
-															<p className="text-neutral-600">
-																{valueFormatter(dataPoint.value as number)}
-															</p>
+															<p className="text-neutral-600">{valueFormatter(dataPoint.value as number)}</p>
 														</div>
 													);
 												}
@@ -322,13 +261,7 @@ export default function Index() {
 											}}
 										/>
 
-										<Area
-											type="basis"
-											dataKey="count"
-											stroke="#2563eb"
-											fill="url(#gradientFill)"
-											strokeWidth={2}
-										/>
+										<Area type="basis" dataKey="count" stroke="#2563eb" fill="url(#gradientFill)" strokeWidth={2} />
 									</AreaChart>
 								</ResponsiveContainer>
 							</>
@@ -353,9 +286,7 @@ export default function Index() {
 													return (
 														<div className="rounded border border-neutral-100 bg-white px-5 py-3 shadow-sm">
 															<p className="font-medium text-neutral-800">{`${dataPoint.name}`}</p>
-															<p className="text-neutral-600">
-																{valueFormatter(dataPoint.value as number)}
-															</p>
+															<p className="text-neutral-600">{valueFormatter(dataPoint.value as number)}</p>
 														</div>
 													);
 												}
@@ -378,20 +309,10 @@ export default function Index() {
 											cx="50%"
 											cy="50%"
 											labelLine={false}
-											label={({
-												cx,
-												cy,
-												midAngle,
-												innerRadius,
-												outerRadius,
-												percent,
-											}) => {
-												const radius =
-													innerRadius + (outerRadius - innerRadius) * 0.5;
-												const x =
-													cx + radius * Math.cos((-midAngle * Math.PI) / 180);
-												const y =
-													cy + radius * Math.sin((-midAngle * Math.PI) / 180);
+											label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+												const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+												const x = cx + radius * Math.cos((-midAngle * Math.PI) / 180);
+												const y = cy + radius * Math.sin((-midAngle * Math.PI) / 180);
 
 												if (percent < 0.1) {
 													return null;
@@ -424,11 +345,7 @@ export default function Index() {
 													value: analytics.contacts.unsubscribed,
 												},
 											].map((entry, index) => (
-												<Cell
-													style={{ outline: "none" }}
-													key={`cell-${entry.name}`}
-													fill={["#3b82f6", "#e5e5e5"][index % 2]}
-												/>
+												<Cell style={{ outline: "none" }} key={`cell-${entry.name}`} fill={["#3b82f6", "#e5e5e5"][index % 2]} />
 											))}
 										</Pie>
 									</PieChart>
@@ -455,9 +372,7 @@ export default function Index() {
 													return (
 														<div className="rounded border border-neutral-100 bg-white px-5 py-3 shadow-sm">
 															<p className="font-medium text-neutral-800">{`${dataPoint.name}`}</p>
-															<p className="text-neutral-600">
-																{valueFormatter(dataPoint.value as number)}
-															</p>
+															<p className="text-neutral-600">{valueFormatter(dataPoint.value as number)}</p>
 														</div>
 													);
 												}
@@ -473,29 +388,16 @@ export default function Index() {
 												{
 													name: "Unopened",
 													value:
-														analytics.emails.total -
-														analytics.emails.opened -
-														analytics.emails.bounced -
-														analytics.emails.complaint,
+														analytics.emails.total - analytics.emails.opened - analytics.emails.bounced - analytics.emails.complaint,
 												},
 											]}
 											cx="50%"
 											cy="50%"
 											labelLine={false}
-											label={({
-												cx,
-												cy,
-												midAngle,
-												innerRadius,
-												outerRadius,
-												percent,
-											}) => {
-												const radius =
-													innerRadius + (outerRadius - innerRadius) * 0.5;
-												const x =
-													cx + radius * Math.cos((-midAngle * Math.PI) / 180);
-												const y =
-													cy + radius * Math.sin((-midAngle * Math.PI) / 180);
+											label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+												const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+												const x = cx + radius * Math.cos((-midAngle * Math.PI) / 180);
+												const y = cy + radius * Math.sin((-midAngle * Math.PI) / 180);
 
 												if (percent < 0.1) {
 													return null;
@@ -524,17 +426,10 @@ export default function Index() {
 												{
 													name: "Unopened",
 													value:
-														analytics.emails.total -
-														analytics.emails.opened -
-														analytics.emails.bounced -
-														analytics.emails.complaint,
+														analytics.emails.total - analytics.emails.opened - analytics.emails.bounced - analytics.emails.complaint,
 												},
 											].map((entry, index) => (
-												<Cell
-													style={{ outline: "none" }}
-													key={`cell-${entry.name}`}
-													fill={["#3b82f6", "#e5e5e5"][index % 2]}
-												/>
+												<Cell style={{ outline: "none" }} key={`cell-${entry.name}`} fill={["#3b82f6", "#e5e5e5"][index % 2]} />
 											))}
 										</Pie>
 									</PieChart>

@@ -87,26 +87,15 @@ export default function Index() {
 		<>
 			<div className="bg-off-white flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8">
 				<div className="flex flex-col items-center sm:mx-auto sm:w-full sm:max-w-md">
-					<Image
-						src={logo}
-						placeholder={"blur"}
-						width={35}
-						height={35}
-						alt={"Plunk Logo"}
-					/>
-					<h2 className="mt-4 text-center text-3xl font-bold text-neutral-800">
-						Sign in to your account
-					</h2>
+					<Image src={logo} placeholder={"blur"} width={35} height={35} alt={"Plunk Logo"} />
+					<h2 className="mt-4 text-center text-3xl font-bold text-neutral-800">Sign in to your account</h2>
 				</div>
 
 				<div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
 					<div className="rounded border border-neutral-200 bg-white px-4 py-8 sm:px-10">
 						<form onSubmit={handleSubmit(login)} className="space-y-6">
 							<div>
-								<label
-									htmlFor={"email"}
-									className="block text-sm font-medium text-neutral-700"
-								>
+								<label htmlFor={"email"} className="block text-sm font-medium text-neutral-700">
 									Email
 								</label>
 								<div className="mt-1">
@@ -135,10 +124,7 @@ export default function Index() {
 							</div>
 
 							<div>
-								<label
-									htmlFor={"password"}
-									className="block text-sm font-semibold text-neutral-600"
-								>
+								<label htmlFor={"password"} className="block text-sm font-semibold text-neutral-600">
 									Password
 								</label>
 								<div className="relative mt-1">
@@ -212,14 +198,7 @@ export default function Index() {
 											fill="none"
 											viewBox="0 0 24 24"
 										>
-											<circle
-												className="opacity-25"
-												cx="12"
-												cy="12"
-												r="10"
-												stroke="currentColor"
-												strokeWidth="4"
-											/>
+											<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 											<path
 												className="opacity-75"
 												fill="currentColor"
@@ -249,9 +228,7 @@ export default function Index() {
 						<Link
 							href={"/auth/signup"}
 							passHref
-							className={
-								"text-sm text-neutral-500 underline transition ease-in-out hover:text-neutral-500"
-							}
+							className={"text-sm text-neutral-500 underline transition ease-in-out hover:text-neutral-500"}
 						>
 							Want to create an account instead?
 						</Link>

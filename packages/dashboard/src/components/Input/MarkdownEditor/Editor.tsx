@@ -9,7 +9,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import React, { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { API_URI } from "../../../lib/constants";
 import { Modal } from "../../Overlay";
 import "tippy.js/animations/scale.css";
 import HTMLEditor from "@monaco-editor/react";
@@ -18,15 +17,7 @@ import { Dropcursor } from "@tiptap/extension-dropcursor";
 import FontFamily from "@tiptap/extension-font-family";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
-import {
-	AlignCenter,
-	AlignLeft,
-	AlignRight,
-	ImageIcon,
-	Inspect,
-	LinkIcon,
-} from "lucide-react";
-import { toast } from "sonner";
+import { AlignCenter, AlignLeft, AlignRight, ImageIcon, Inspect, LinkIcon } from "lucide-react";
 import { Dropdown } from "../Dropdown";
 import { Button } from "./extensions/Button";
 import { EditorBubbleMenu } from "./extensions/EditorBubbleMenu";
@@ -48,19 +39,12 @@ export interface MarkdownEditorProps {
  * @param root0.value
  * @param root0.onChange
  */
-export default function Editor({
-	value,
-	onChange,
-	mode,
-	modeSwitcher,
-}: MarkdownEditorProps) {
+export default function Editor({ value, onChange, mode, modeSwitcher }: MarkdownEditorProps) {
 	const [imageModal, setImageModal] = useState(false);
 	const [urlModal, setUrlModal] = useState(false);
 	const [barModal, setBarModal] = useState(false);
 	const [buttonModal, setButtonModal] = useState(false);
 	const [confirmModal, setConfirmModal] = useState(false);
-
-	const fileInput = useRef<HTMLInputElement>(null);
 
 	const editor = useEditor({
 		extensions: [
@@ -144,9 +128,7 @@ export default function Editor({
 			z.object({
 				url: z
 					.string()
-					.regex(
-						/^(?:https?:\/\/)?(?:\{\{[\w-]+}}|(?:[\w-]+\.)+[a-z]{2,})(?:\/\S*)?(?:\?\S*)?$/,
-					)
+					.regex(/^(?:https?:\/\/)?(?:\{\{[\w-]+}}|(?:[\w-]+\.)+[a-z]{2,})(?:\/\S*)?(?:\?\S*)?$/)
 					.transform((u) => {
 						if (u.startsWith("{{") && u.endsWith("}}")) {
 							return u;
@@ -171,23 +153,8 @@ export default function Editor({
 	}>({
 		resolver: zodResolver(
 			z.object({
-				percent: z.preprocess(
-					(a) => Number.parseInt(z.string().parse(a), 10),
-					z.number().positive().max(100),
-				),
-				color: z
-					.enum([
-						"red",
-						"yellow",
-						"green",
-						"blue",
-						"indigo",
-						"purple",
-						"pink",
-						"orange",
-						"black",
-					])
-					.default("blue"),
+				percent: z.preprocess((a) => Number.parseInt(z.string().parse(a), 10), z.number().positive().max(100)),
+				color: z.enum(["red", "yellow", "green", "blue", "indigo", "purple", "pink", "orange", "black"]).default("blue"),
 			}),
 		),
 		defaultValues: {
@@ -210,9 +177,7 @@ export default function Editor({
 			z.object({
 				link: z
 					.string()
-					.regex(
-						/^(?:https?:\/\/)?(?:\{\{[\w-]+}}|(?:[\w-]+\.)+[a-z]{2,})(?:\/\S*)?$/,
-					)
+					.regex(/^(?:https?:\/\/)?(?:\{\{[\w-]+}}|(?:[\w-]+\.)+[a-z]{2,})(?:\/\S*)?$/)
 					.transform((u) => {
 						if (u.startsWith("{{") && u.endsWith("}}")) {
 							return u;
@@ -220,19 +185,7 @@ export default function Editor({
 
 						return u.startsWith("http") ? u : `https://${u}`;
 					}),
-				color: z
-					.enum([
-						"red",
-						"yellow",
-						"green",
-						"blue",
-						"indigo",
-						"purple",
-						"pink",
-						"orange",
-						"black",
-					])
-					.default("blue"),
+				color: z.enum(["red", "yellow", "green", "blue", "indigo", "purple", "pink", "orange", "black"]).default("blue"),
 			}),
 		),
 		defaultValues: {
@@ -250,11 +203,7 @@ export default function Editor({
 
 	const addBar = useCallback(
 		(data: { percent: number; color: colors }) => {
-			editor
-				?.chain()
-				.focus()
-				.setProgress({ percent: data.percent, color: data.color })
-				.run();
+			editor?.chain().focus().setProgress({ percent: data.percent, color: data.color }).run();
 			setBarModal(false);
 			resetBar();
 		},
@@ -263,11 +212,7 @@ export default function Editor({
 
 	const addButton = useCallback(
 		(data: { link: string; color: colors }) => {
-			editor
-				?.chain()
-				.focus()
-				.setButton({ href: data.link, color: data.color })
-				.run();
+			editor?.chain().focus().setButton({ href: data.link, color: data.color }).run();
 			setButtonModal(false);
 			resetButton();
 		},
@@ -276,11 +221,7 @@ export default function Editor({
 
 	const addUrl = useCallback(
 		(data: { url: string }) => {
-			editor
-				?.chain()
-				.focus()
-				.setLink({ href: data.url, target: "_blank" })
-				.run();
+			editor?.chain().focus().setLink({ href: data.url, target: "_blank" }).run();
 			setUrlModal(false);
 			resetUrl();
 		},
@@ -311,9 +252,8 @@ export default function Editor({
 			>
 				<div className={"flex flex-col gap-3"}>
 					<p className={"text-sm text-neutral-700"}>
-						Are you sure you want to switch to{" "}
-						{mode === "PLUNK" ? "HTML" : "the Plunk Editor"}? <br /> This will
-						clear your current content.
+						Are you sure you want to switch to {mode === "PLUNK" ? "HTML" : "the Plunk Editor"}? <br /> This will clear your
+						current content.
 					</p>
 				</div>
 			</Modal>
@@ -358,15 +298,9 @@ export default function Editor({
 					</>
 				}
 			>
-				<form
-					onSubmit={handleSubmitUrl(addImage)}
-					className="grid gap-6 sm:grid-cols-2"
-				>
+				<form onSubmit={handleSubmitUrl(addImage)} className="grid gap-6 sm:grid-cols-2">
 					<div className={"sm:col-span-2"}>
-						<label
-							htmlFor={"url"}
-							className="block text-sm font-medium text-neutral-700"
-						>
+						<label htmlFor={"url"} className="block text-sm font-medium text-neutral-700">
 							Image URL
 						</label>
 						<div className="mt-1 flex rounded-md shadow-sm">
@@ -422,10 +356,7 @@ export default function Editor({
 					className="grid gap-6 sm:grid-cols-2"
 				>
 					<div className={"sm:col-span-2"}>
-						<label
-							htmlFor={"url"}
-							className="block text-sm font-medium text-neutral-700"
-						>
+						<label htmlFor={"url"} className="block text-sm font-medium text-neutral-700">
 							URL
 						</label>
 						<div className="mt-1 flex rounded-md shadow-sm">
@@ -485,10 +416,7 @@ export default function Editor({
 					className="grid gap-6 sm:grid-cols-2"
 				>
 					<div className={"sm:col-span-2"}>
-						<label
-							htmlFor={"percentage"}
-							className="block text-sm font-medium text-neutral-700"
-						>
+						<label htmlFor={"percentage"} className="block text-sm font-medium text-neutral-700">
 							Percentage
 						</label>
 						<div className="mt-1">
@@ -519,10 +447,7 @@ export default function Editor({
 					</div>
 
 					<div className={"sm:col-span-2"}>
-						<label
-							htmlFor={"style"}
-							className="flex items-center text-sm font-medium text-neutral-700"
-						>
+						<label htmlFor={"style"} className="flex items-center text-sm font-medium text-neutral-700">
 							Color
 						</label>
 						<Dropdown
@@ -587,10 +512,7 @@ export default function Editor({
 					className="grid gap-6 sm:grid-cols-2"
 				>
 					<div className={"sm:col-span-2"}>
-						<label
-							htmlFor={"percentage"}
-							className="block text-sm font-medium text-neutral-700"
-						>
+						<label htmlFor={"percentage"} className="block text-sm font-medium text-neutral-700">
 							Link
 						</label>
 						<div className="mt-1 flex rounded-md shadow-sm">
@@ -622,10 +544,7 @@ export default function Editor({
 					</div>
 
 					<div className={"sm:col-span-2"}>
-						<label
-							htmlFor={"style"}
-							className="flex items-center text-sm font-medium text-neutral-700"
-						>
+						<label htmlFor={"style"} className="flex items-center text-sm font-medium text-neutral-700">
 							Color
 						</label>
 						<Dropdown
@@ -668,9 +587,7 @@ export default function Editor({
 									editor.chain().focus().run();
 								}}
 							>
-								<label className="block text-sm font-medium text-neutral-700">
-									Email Body
-								</label>
+								<label className="block text-sm font-medium text-neutral-700">Email Body</label>
 								<div className="mt-1 h-full">
 									<div
 										className={
@@ -712,11 +629,7 @@ export default function Editor({
 														}
 														onClick={(e) => {
 															e.preventDefault();
-															editor
-																.chain()
-																.focus()
-																.setTextAlign("center")
-																.run();
+															editor.chain().focus().setTextAlign("center").run();
 														}}
 													>
 														<AlignCenter
@@ -737,11 +650,7 @@ export default function Editor({
 														}
 														onClick={(e) => {
 															e.preventDefault();
-															editor
-																.chain()
-																.focus()
-																.setTextAlign("right")
-																.run();
+															editor.chain().focus().setTextAlign("right").run();
 														}}
 													>
 														<AlignRight
@@ -787,11 +696,7 @@ export default function Editor({
 											</div>
 										</div>
 										<>
-											<div
-												className={
-													"prose prose-sm prose-neutral space-y-4 break-words p-4"
-												}
-											>
+											<div className={"prose prose-sm prose-neutral space-y-4 break-words p-4"}>
 												<div className={"w-full"} style={{ width: "600px" }}>
 													<EditorContent editor={editor} />
 													<EditorBubbleMenu
@@ -821,9 +726,7 @@ export default function Editor({
 						<>
 							<div className={"mb-3 grid gap-3 md:grid-cols-1"}>
 								<div>
-									<label className="block text-sm font-medium text-neutral-700">
-										Email Body
-									</label>
+									<label className="block text-sm font-medium text-neutral-700">Email Body</label>
 									<div className="mt-1 h-full">
 										<HTMLEditor
 											height={400}
@@ -846,15 +749,9 @@ export default function Editor({
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-neutral-700">
-										Preview
-									</label>
+									<label className="block text-sm font-medium text-neutral-700">Preview</label>
 
-									<div
-										className={
-											"mt-1 h-full rounded border border-neutral-300 p-3"
-										}
-									>
+									<div className={"mt-1 h-full rounded border border-neutral-300 p-3"}>
 										<div
 											className={"revert-tailwind"}
 											dangerouslySetInnerHTML={{

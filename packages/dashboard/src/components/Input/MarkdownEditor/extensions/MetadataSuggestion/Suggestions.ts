@@ -8,23 +8,15 @@ import MentionList from "./SuggestionList";
 
 export default {
 	items: async ({ query }: { query: string }) => {
-		const activeProject =
-			typeof window !== "undefined"
-				? window.localStorage.getItem("project")
-				: null;
+		const activeProject = typeof window !== "undefined" ? window.localStorage.getItem("project") : null;
 
 		if (!activeProject) {
 			return [];
 		}
 
-		const keys = await network.fetch<string[]>(
-			"GET",
-			`/projects/id/${activeProject}/contacts/metadata`,
-		);
+		const keys = await network.fetch<string[]>("GET", `/projects/id/${activeProject}/contacts/metadata`);
 
-		return keys.filter((key) =>
-			key.toLowerCase().includes(query.toLowerCase()),
-		);
+		return keys.filter((key) => key.toLowerCase().includes(query.toLowerCase()));
 	},
 
 	render: () => {

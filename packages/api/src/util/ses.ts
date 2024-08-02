@@ -1,9 +1,5 @@
 import { SES } from "@aws-sdk/client-ses";
-import {
-	AWS_ACCESS_KEY_ID,
-	AWS_REGION,
-	AWS_SECRET_ACCESS_KEY,
-} from "../app/constants";
+import { AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY } from "../app/constants";
 
 export const ses = new SES({
 	apiVersion: "2010-12-01",

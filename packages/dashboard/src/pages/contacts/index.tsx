@@ -9,15 +9,7 @@ import React, { useState } from "react";
 import { type FieldError, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import {
-	Card,
-	Empty,
-	FullscreenLoader,
-	Modal,
-	Skeleton,
-	Table,
-	Toggle,
-} from "../../components";
+import { Card, Empty, FullscreenLoader, Modal, Skeleton, Table, Toggle } from "../../components";
 import { Dashboard } from "../../layouts";
 import { searchContacts, useContacts } from "../../lib/hooks/contacts";
 import { useActiveProject } from "../../lib/hooks/projects";
@@ -27,7 +19,6 @@ import { network } from "../../lib/network";
 interface ContactValues {
 	email: string;
 	data?:
-		| undefined
 		| {
 				[x: string]: string | string[];
 		  }
@@ -86,42 +77,28 @@ export default function Index() {
 		},
 	});
 
-	const {
-		fields,
-		append: fieldAppend,
-		remove: fieldRemove,
-	} = useFieldArray({ control, name: "data" });
+	const { fields, append: fieldAppend, remove: fieldRemove } = useFieldArray({ control, name: "data" });
 
 	if (!project || !user) {
 		return <FullscreenLoader />;
 	}
 
 	const create = (data: ContactValues) => {
-		const entries = getDataValues().data.map(({ value }) => [
-			value.key,
-			value.value,
-		]);
+		const entries = getDataValues().data.map(({ value }) => [value.key, value.value]);
 		let dataObject = {};
 
 		entries.forEach(([key, value]) => {
 			Object.assign(dataObject, { [key]: value });
 		});
 
-		dataObject = Object.fromEntries(
-			Object.entries(dataObject).filter(([, value]) => value !== ""),
-		);
+		dataObject = Object.fromEntries(Object.entries(dataObject).filter(([, value]) => value !== ""));
 
 		toast.promise(
-			network.mock<Template, typeof ContactSchemas.create>(
-				project.secret,
-				"POST",
-				"/v1/contacts",
-				{
-					...data,
-					subscribed: true,
-					data: dataObject,
-				},
-			),
+			network.mock<Template, typeof ContactSchemas.create>(project.secret, "POST", "/v1/contacts", {
+				...data,
+				subscribed: true,
+				data: dataObject,
+			}),
 			{
 				loading: "Creating new contact",
 				success: () => {
@@ -155,15 +132,9 @@ export default function Index() {
 						<Table
 							values={search.contacts
 								.sort((a, b) => {
-									const aTrigger =
-										a.triggers.length > 0
-											? a.triggers.sort()[0].createdAt
-											: a.createdAt;
+									const aTrigger = a.triggers.length > 0 ? a.triggers.sort()[0].createdAt : a.createdAt;
 
-									const bTrigger =
-										b.triggers.length > 0
-											? b.triggers.sort()[0].createdAt
-											: b.createdAt;
+									const bTrigger = b.triggers.length > 0 ? b.triggers.sort()[0].createdAt : b.createdAt;
 
 									return bTrigger > aTrigger ? 1 : -1;
 								})
@@ -181,10 +152,7 @@ export default function Index() {
 											.toString(),
 										Subscribed: u.subscribed,
 										Edit: (
-											<Link
-												href={`/contacts/${u.id}`}
-												className={"transition hover:text-neutral-800"}
-											>
+											<Link href={`/contacts/${u.id}`} className={"transition hover:text-neutral-800"}>
 												<Edit2 size={18} />
 											</Link>
 										),
@@ -222,15 +190,9 @@ export default function Index() {
 						<Table
 							values={contacts.contacts
 								.sort((a, b) => {
-									const aTrigger =
-										a.triggers.length > 0
-											? a.triggers.sort()[0].createdAt
-											: a.createdAt;
+									const aTrigger = a.triggers.length > 0 ? a.triggers.sort()[0].createdAt : a.createdAt;
 
-									const bTrigger =
-										b.triggers.length > 0
-											? b.triggers.sort()[0].createdAt
-											: b.createdAt;
+									const bTrigger = b.triggers.length > 0 ? b.triggers.sort()[0].createdAt : b.createdAt;
 
 									return bTrigger > aTrigger ? 1 : -1;
 								})
@@ -248,25 +210,19 @@ export default function Index() {
 											.toString(),
 										Subscribed: u.subscribed,
 										Edit: (
-											<Link
-												href={`/contacts/${u.id}`}
-												className={"transition hover:text-neutral-800"}
-											>
+											<Link href={`/contacts/${u.id}`} className={"transition hover:text-neutral-800"}>
 												<Edit2 size={18} />
 											</Link>
 										),
 									};
 								})}
 						/>
-						<nav
-							className="flex items-center justify-between py-3"
-							aria-label="Pagination"
-						>
+						<nav className="flex items-center justify-between py-3" aria-label="Pagination">
 							<div className="hidden sm:block">
 								<p className="text-sm text-neutral-700">
-									Showing <span className="font-medium">{(page - 1) * 20}</span>{" "}
-									to <span className="font-medium">{page * 20}</span> of{" "}
-									<span className="font-medium">{contacts.count}</span> contacts
+									Showing <span className="font-medium">{(page - 1) * 20}</span> to{" "}
+									<span className="font-medium">{page * 20}</span> of <span className="font-medium">{contacts.count}</span>{" "}
+									contacts
 								</p>
 							</div>
 							<div className="flex flex-1 justify-between gap-1 sm:justify-end">
@@ -297,12 +253,7 @@ export default function Index() {
 			}
 			return (
 				<>
-					<Empty
-						title={"No contacts"}
-						description={
-							"New contacts will automatically be added when they trigger an event"
-						}
-					/>
+					<Empty title={"No contacts"} description={"New contacts will automatically be added when they trigger an event"} />
 				</>
 			);
 		}
@@ -319,10 +270,7 @@ export default function Index() {
 				title={"Create new contact"}
 			>
 				<div>
-					<label
-						htmlFor={"email"}
-						className="block text-sm font-medium text-neutral-700"
-					>
+					<label htmlFor={"email"} className="block text-sm font-medium text-neutral-700">
 						Email
 					</label>
 					<div className="mt-1">
@@ -353,10 +301,7 @@ export default function Index() {
 				<div className={"my-6"}>
 					<div className={"grid sm:col-span-2"}>
 						<div className={"grid items-center gap-3 sm:grid-cols-9"}>
-							<label
-								htmlFor={"data"}
-								className="block text-sm font-medium text-neutral-700 sm:col-span-8"
-							>
+							<label htmlFor={"data"} className="block text-sm font-medium text-neutral-700 sm:col-span-8">
 								Metadata
 							</label>
 							<button
@@ -395,10 +340,7 @@ export default function Index() {
 										<div>
 											<div className="grid w-full grid-cols-9 items-end gap-3">
 												<div className={"col-span-4"}>
-													<label
-														htmlFor={"data"}
-														className="text-xs font-light"
-													>
+													<label htmlFor={"data"} className="text-xs font-light">
 														Key
 													</label>
 													<input
@@ -412,10 +354,7 @@ export default function Index() {
 													/>
 												</div>
 												<div className={"col-span-4"}>
-													<label
-														htmlFor={"data"}
-														className="text-xs font-light"
-													>
+													<label htmlFor={"data"} className="text-xs font-light">
 														Value
 													</label>
 													<input
@@ -437,12 +376,7 @@ export default function Index() {
 														fieldRemove(index);
 													}}
 												>
-													<svg
-														width="24"
-														height="24"
-														fill="none"
-														viewBox="0 0 24 24"
-													>
+													<svg width="24" height="24" fill="none" viewBox="0 0 24 24">
 														<path
 															stroke="currentColor"
 															strokeLinecap="round"

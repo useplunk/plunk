@@ -35,12 +35,7 @@ export class Auth {
 			return res.json({ success: false, data: "Incorrect email or password" });
 		}
 
-		await redis.set(
-			Keys.User.id(user.id),
-			JSON.stringify(user),
-			"EX",
-			REDIS_ONE_MINUTE * 60,
-		);
+		await redis.set(Keys.User.id(user.id), JSON.stringify(user), "EX", REDIS_ONE_MINUTE * 60);
 
 		const token = jwt.sign(user.id);
 		const cookie = UserService.cookieOptions();
@@ -70,12 +65,7 @@ export class Auth {
 			},
 		});
 
-		await redis.set(
-			Keys.User.id(created_user.id),
-			JSON.stringify(created_user),
-			"EX",
-			REDIS_ONE_MINUTE * 60,
-		);
+		await redis.set(Keys.User.id(created_user.id), JSON.stringify(created_user), "EX", REDIS_ONE_MINUTE * 60);
 
 		const token = jwt.sign(created_user.id);
 		const cookie = UserService.cookieOptions();
@@ -88,9 +78,7 @@ export class Auth {
 
 	@Post("reset")
 	public async reset(req: Request, res: Response) {
-		const { id, password } = UtilitySchemas.id
-			.merge(UserSchemas.credentials.pick({ password: true }))
-			.parse(req.body);
+		const { id, password } = UtilitySchemas.id.merge(UserSchemas.credentials.pick({ password: true })).parse(req.body);
 
 		const user = await UserService.id(id);
 
@@ -115,11 +103,7 @@ export class Auth {
 
 	@Get("logout")
 	public logout(req: Request, res: Response) {
-		res.cookie(
-			UserService.COOKIE_NAME,
-			"",
-			UserService.cookieOptions(new Date()),
-		);
+		res.cookie(UserService.COOKIE_NAME, "", UserService.cookieOptions(new Date()));
 		return res.json(true);
 	}
 }

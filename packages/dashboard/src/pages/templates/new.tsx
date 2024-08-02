@@ -6,14 +6,7 @@ import { useRouter } from "next/router";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import {
-	Card,
-	Dropdown,
-	Editor,
-	FullscreenLoader,
-	Input,
-	Tooltip,
-} from "../../components";
+import { Card, Dropdown, Editor, FullscreenLoader, Input, Tooltip } from "../../components";
 import { Dashboard } from "../../layouts";
 import { useActiveProject } from "../../lib/hooks/projects";
 import { useTemplates } from "../../lib/hooks/templates";
@@ -63,14 +56,9 @@ export default function Index() {
 
 	const create = async (data: TemplateValues) => {
 		toast.promise(
-			network.mock<Template, typeof TemplateSchemas.create>(
-				project.secret,
-				"POST",
-				"/v1/templates",
-				{
-					...data,
-				},
-			),
+			network.mock<Template, typeof TemplateSchemas.create>(project.secret, "POST", "/v1/templates", {
+				...data,
+			}),
 			{
 				loading: "Creating new template",
 				success: () => {
@@ -88,14 +76,8 @@ export default function Index() {
 	return (
 		<>
 			<Dashboard>
-				<Card
-					title={"Create a new template"}
-					description={"Reusable blueprints of your emails"}
-				>
-					<form
-						onSubmit={handleSubmit(create)}
-						className="grid gap-6 sm:grid-cols-6"
-					>
+				<Card title={"Create a new template"} description={"Reusable blueprints of your emails"}>
+					<form onSubmit={handleSubmit(create)} className="grid gap-6 sm:grid-cols-6">
 						<Input
 							className={"sm:col-span-4"}
 							label={"Subject"}
@@ -105,36 +87,25 @@ export default function Index() {
 						/>
 
 						<div className={"sm:col-span-2"}>
-							<label
-								htmlFor={"type"}
-								className="flex items-center text-sm font-medium text-neutral-700"
-							>
+							<label htmlFor={"type"} className="flex items-center text-sm font-medium text-neutral-700">
 								Type
 								<Tooltip
 									content={
 										<>
-											<p className={"mb-2 text-base font-semibold"}>
-												What type of email is this?
-											</p>
+											<p className={"mb-2 text-base font-semibold"}>What type of email is this?</p>
 											<ul className={"list-inside"}>
 												<li className={"mb-6"}>
 													<span className={"font-semibold"}>Marketing</span>
 													<br />
-													Promotional emails with a Plunk-hosted unsubscribe
-													link
+													Promotional emails with a Plunk-hosted unsubscribe link
 													<br />
-													<span className={"text-neutral-400"}>
-														(e.g. welcome emails, promotions)
-													</span>
+													<span className={"text-neutral-400"}>(e.g. welcome emails, promotions)</span>
 												</li>
 												<li>
 													<span className={"font-semibold"}>Transactional</span>
 													<br />
 													Mission critical emails <br />
-													<span className={"text-neutral-400"}>
-														{" "}
-														(e.g. email verification, password reset)
-													</span>
+													<span className={"text-neutral-400"}> (e.g. email verification, password reset)</span>
 												</li>
 											</ul>
 										</>
@@ -149,9 +120,7 @@ export default function Index() {
 								/>
 							</label>
 							<Dropdown
-								onChange={(t) =>
-									setValue("type", t as "MARKETING" | "TRANSACTIONAL")
-								}
+								onChange={(t) => setValue("type", t as "MARKETING" | "TRANSACTIONAL")}
 								values={[
 									{ name: "Marketing", value: "MARKETING" },
 									{ name: "Transactional", value: "TRANSACTIONAL" },

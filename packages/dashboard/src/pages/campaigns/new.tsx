@@ -9,15 +9,7 @@ import { useRouter } from "next/router";
 import React, { useState } from "react";
 import { type FieldError, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import {
-	Alert,
-	Card,
-	Dropdown,
-	Editor,
-	FullscreenLoader,
-	Input,
-	MultiselectDropdown,
-} from "../../components";
+import { Alert, Card, Dropdown, Editor, FullscreenLoader, Input, MultiselectDropdown } from "../../components";
 import { Dashboard } from "../../layouts";
 import { useCampaigns } from "../../lib/hooks/campaigns";
 import { useContacts } from "../../lib/hooks/contacts";
@@ -58,7 +50,6 @@ export default function Index() {
 		notevents?: string[];
 		notlast?: "day" | "week" | "month";
 	}>({});
-	const [paymentModal, setPaymentModal] = useState(false);
 	const [advancedSelector, setSelector] = useState(false);
 
 	const {
@@ -89,9 +80,7 @@ export default function Index() {
 
 		if (query.events && query.events.length > 0) {
 			query.events.map((e) => {
-				filteredContacts = filteredContacts.filter((c) =>
-					c.triggers.some((t) => t.eventId === e),
-				);
+				filteredContacts = filteredContacts.filter((c) => c.triggers.some((t) => t.eventId === e));
 			});
 		}
 
@@ -101,17 +90,13 @@ export default function Index() {
 					return false;
 				}
 
-				const lastTrigger = c.triggers.sort((a, b) =>
-					a.createdAt > b.createdAt ? -1 : 1,
-				);
+				const lastTrigger = c.triggers.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
 
 				if (lastTrigger.length === 0) {
 					return false;
 				}
 
-				return dayjs(lastTrigger[0].createdAt).isAfter(
-					dayjs().subtract(1, query.last),
-				);
+				return dayjs(lastTrigger[0].createdAt).isAfter(dayjs().subtract(1, query.last));
 			});
 		}
 
@@ -122,24 +107,18 @@ export default function Index() {
 						return true;
 					}
 
-					const lastTrigger = c.triggers
-						.filter((t) => t.eventId === e)
-						.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+					const lastTrigger = c.triggers.filter((t) => t.eventId === e).sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
 
 					if (lastTrigger.length === 0) {
 						return true;
 					}
 
-					return dayjs(lastTrigger[0].createdAt).isAfter(
-						dayjs().subtract(1, query.last),
-					);
+					return dayjs(lastTrigger[0].createdAt).isAfter(dayjs().subtract(1, query.last));
 				});
 			});
 		} else if (query.notevents && query.notevents.length > 0) {
 			query.notevents.map((e) => {
-				filteredContacts = filteredContacts.filter((c) =>
-					c.triggers.every((t) => t.eventId !== e),
-				);
+				filteredContacts = filteredContacts.filter((c) => c.triggers.every((t) => t.eventId !== e));
 			});
 		} else if (query.notlast) {
 			filteredContacts = filteredContacts.filter((c) => {
@@ -147,17 +126,13 @@ export default function Index() {
 					return true;
 				}
 
-				const lastTrigger = c.triggers.sort((a, b) =>
-					a.createdAt > b.createdAt ? -1 : 1,
-				);
+				const lastTrigger = c.triggers.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
 
 				if (lastTrigger.length === 0) {
 					return true;
 				}
 
-				return !dayjs(lastTrigger[0].createdAt).isAfter(
-					dayjs().subtract(1, query.notlast),
-				);
+				return !dayjs(lastTrigger[0].createdAt).isAfter(dayjs().subtract(1, query.notlast));
 			});
 		}
 
@@ -195,8 +170,7 @@ export default function Index() {
 				project.secret,
 				"POST",
 				"/v1/campaigns",
-				data.recipients.length ===
-					contacts?.contacts.filter((c) => c.subscribed).length
+				data.recipients.length === contacts?.contacts.filter((c) => c.subscribed).length
 					? { ...data, recipients: ["all"] }
 					: {
 							...data,
@@ -219,10 +193,7 @@ export default function Index() {
 		<>
 			<Dashboard>
 				<Card title={"Create a new campaign"}>
-					<form
-						onSubmit={handleSubmit(create)}
-						className="space-6 grid gap-6 sm:grid-cols-6"
-					>
+					<form onSubmit={handleSubmit(create)} className="space-6 grid gap-6 sm:grid-cols-6">
 						<Input
 							className={"sm:col-span-6"}
 							label={"Subject"}
@@ -233,10 +204,7 @@ export default function Index() {
 						{contacts ? (
 							<>
 								<div className={"sm:col-span-3"}>
-									<label
-										htmlFor={"recipients"}
-										className="block text-sm font-medium text-neutral-700"
-									>
+									<label htmlFor={"recipients"} className="block text-sm font-medium text-neutral-700">
 										Recipients
 									</label>
 									<MultiselectDropdown
@@ -273,23 +241,15 @@ export default function Index() {
 
 											setValue(
 												"recipients",
-												contacts.contacts
-													.filter((c) => c.subscribed)
-													.map((c) => c.id),
+												contacts.contacts.filter((c) => c.subscribed).map((c) => c.id),
 											);
 										}}
 										className={
 											"mt-6 flex items-center justify-center gap-x-1 rounded border border-neutral-300 bg-white px-8 py-1 text-center text-sm font-medium text-neutral-800 transition ease-in-out hover:bg-neutral-100"
 										}
 									>
-										{watch("recipients").length === 0 ? (
-											<Users2 size={18} />
-										) : (
-											<XIcon size={18} />
-										)}
-										{watch("recipients").length === 0
-											? "All contacts"
-											: "Clear selection"}
+										{watch("recipients").length === 0 ? <Users2 size={18} /> : <XIcon size={18} />}
+										{watch("recipients").length === 0 ? "All contacts" : "Clear selection"}
 									</button>
 									<button
 										onClick={(e) => {
@@ -300,11 +260,7 @@ export default function Index() {
 											"mt-6 flex items-center justify-center gap-x-1 rounded border border-neutral-300 bg-white px-8 py-1 text-center text-sm font-medium text-neutral-800 transition ease-in-out hover:bg-neutral-100"
 										}
 									>
-										{advancedSelector ? (
-											<XIcon size={18} />
-										) : (
-											<Search size={18} />
-										)}
+										{advancedSelector ? <XIcon size={18} /> : <Search size={18} />}
 										{advancedSelector ? "Close" : "Advanced selector"}
 									</button>
 								</div>
@@ -321,10 +277,7 @@ export default function Index() {
 											}
 										>
 											<div className={"sm:col-span-2"}>
-												<label
-													htmlFor={"event"}
-													className="block text-sm font-medium text-neutral-700"
-												>
+												<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
 													Has triggers for events
 												</label>
 												<MultiselectDropdown
@@ -350,10 +303,7 @@ export default function Index() {
 																	return 1;
 																}
 
-																if (
-																	a.name.includes("delivered") &&
-																	!b.name.includes("delivered")
-																) {
+																if (a.name.includes("delivered") && !b.name.includes("delivered")) {
 																	return -1;
 																}
 
@@ -364,11 +314,7 @@ export default function Index() {
 																	name: e.name,
 																	value: e.id,
 																	tag:
-																		e.templateId ?? e.campaignId
-																			? e.name.includes("opened")
-																				? "On Open"
-																				: "On Delivery"
-																			: undefined,
+																		e.templateId ?? e.campaignId ? (e.name.includes("opened") ? "On Open" : "On Delivery") : undefined,
 																};
 															}),
 													]}
@@ -379,21 +325,14 @@ export default function Index() {
 											<div className={"sm:col-span-2"}>
 												{query.events && query.events.length > 0 && (
 													<>
-														<label
-															htmlFor={"event"}
-															className="block text-sm font-medium text-neutral-700"
-														>
-															Has triggered {query.events.length} selected
-															events
+														<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
+															Has triggered {query.events.length} selected events
 														</label>
 														<Dropdown
 															onChange={(e) =>
 																setQuery({
 																	...query,
-																	last:
-																		(e as "" | "day" | "week" | "month") === ""
-																			? undefined
-																			: (e as "day" | "week" | "month"),
+																	last: (e as "" | "day" | "week" | "month") === "" ? undefined : (e as "day" | "week" | "month"),
 																})
 															}
 															values={[
@@ -409,10 +348,7 @@ export default function Index() {
 											</div>
 
 											<div className={"sm:col-span-2"}>
-												<label
-													htmlFor={"event"}
-													className="block text-sm font-medium text-neutral-700"
-												>
+												<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
 													No triggers for events
 												</label>
 												<MultiselectDropdown
@@ -438,10 +374,7 @@ export default function Index() {
 																	return 1;
 																}
 
-																if (
-																	a.name.includes("delivered") &&
-																	!b.name.includes("delivered")
-																) {
+																if (a.name.includes("delivered") && !b.name.includes("delivered")) {
 																	return -1;
 																}
 
@@ -452,11 +385,7 @@ export default function Index() {
 																	name: e.name,
 																	value: e.id,
 																	tag:
-																		e.templateId ?? e.campaignId
-																			? e.name.includes("opened")
-																				? "On Open"
-																				: "On Delivery"
-																			: undefined,
+																		e.templateId ?? e.campaignId ? (e.name.includes("opened") ? "On Open" : "On Delivery") : undefined,
 																};
 															}),
 													]}
@@ -467,21 +396,14 @@ export default function Index() {
 											<div className={"sm:col-span-2"}>
 												{query.notevents && query.notevents.length > 0 && (
 													<>
-														<label
-															htmlFor={"event"}
-															className="block text-sm font-medium text-neutral-700"
-														>
-															Not triggered {query.notevents.length} selected
-															events
+														<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
+															Not triggered {query.notevents.length} selected events
 														</label>
 														<Dropdown
 															onChange={(e) =>
 																setQuery({
 																	...query,
-																	notlast:
-																		(e as "" | "day" | "week" | "month") === ""
-																			? undefined
-																			: (e as "day" | "week" | "month"),
+																	notlast: (e as "" | "day" | "week" | "month") === "" ? undefined : (e as "day" | "week" | "month"),
 																})
 															}
 															values={[
@@ -497,10 +419,7 @@ export default function Index() {
 											</div>
 
 											<div className={"sm:col-span-2"}>
-												<label
-													htmlFor={"event"}
-													className="block text-sm font-medium text-neutral-700"
-												>
+												<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
 													All contacts with parameter
 												</label>
 												<Dropdown
@@ -516,15 +435,11 @@ export default function Index() {
 															contacts.contacts
 																.filter((c) => c.data)
 																.map((c) => {
-																	return Object.keys(
-																		JSON.parse(c.data ?? "{}"),
-																	);
+																	return Object.keys(JSON.parse(c.data ?? "{}"));
 																})
 																.reduce((acc, val) => acc.concat(val), []),
 														),
-													].map((k) =>
-														typeof k === "string" ? { name: k, value: k } : k,
-													)}
+													].map((k) => (typeof k === "string" ? { name: k, value: k } : k))}
 													selectedValue={query.data ?? ""}
 												/>
 											</div>
@@ -532,10 +447,7 @@ export default function Index() {
 											<div className={"sm:col-span-2"}>
 												{query.data && (
 													<>
-														<label
-															htmlFor={"event"}
-															className="block text-sm font-medium text-neutral-700"
-														>
+														<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
 															All contacts where parameter {query.data} is
 														</label>
 
@@ -550,15 +462,9 @@ export default function Index() {
 																{ name: "Any value", value: "" },
 																...new Set(
 																	contacts.contacts
-																		.filter(
-																			(c) =>
-																				c.data &&
-																				JSON.parse(c.data)[query.data ?? ""],
-																		)
+																		.filter((c) => c.data && JSON.parse(c.data)[query.data ?? ""])
 																		.map((c) => {
-																			return JSON.parse(c.data ?? "{}")[
-																				query.data ?? ""
-																			];
+																			return JSON.parse(c.data ?? "{}")[query.data ?? ""];
 																		})
 																		.reduce((acc, val) => acc.concat(val), []),
 																),
@@ -591,12 +497,7 @@ export default function Index() {
 														"ml-auto flex items-center justify-center gap-x-0.5 rounded bg-neutral-800 px-8 py-2 text-center text-sm font-medium text-white"
 													}
 												>
-													<svg
-														width="24"
-														height="24"
-														fill="none"
-														viewBox="0 0 24 24"
-													>
+													<svg width="24" height="24" fill="none" viewBox="0 0 24 24">
 														<path
 															stroke="currentColor"
 															strokeLinecap="round"
@@ -621,20 +522,13 @@ export default function Index() {
 							</>
 						) : (
 							<>
-								<div
-									className={
-										"flex items-center gap-6 rounded border border-neutral-300 px-8 py-3 sm:col-span-6"
-									}
-								>
+								<div className={"flex items-center gap-6 rounded border border-neutral-300 px-8 py-3 sm:col-span-6"}>
 									<Ring size={20} />
 									<div>
-										<h1 className={"text-lg font-semibold text-neutral-800"}>
-											Hang on!
-										</h1>
+										<h1 className={"text-lg font-semibold text-neutral-800"}>Hang on!</h1>
 										<p className={"text-sm text-neutral-600"}>
-											We're still loading your contacts. This might take up to a
-											minute. You can already start writing your campaign in the
-											editor below.
+											We're still loading your contacts. This might take up to a minute. You can already start writing your
+											campaign in the editor below.
 										</p>
 									</div>
 								</div>
@@ -650,14 +544,8 @@ export default function Index() {
 									className={"relative z-10 sm:col-span-6"}
 								>
 									<Alert type={"info"} title={"Automatic batching"}>
-										Your campaign will be sent out in batches of 80 recipients
-										each. It will be delivered to all contacts{" "}
-										{dayjs().to(
-											dayjs().add(
-												Math.ceil(watch("recipients").length / 80),
-												"minutes",
-											),
-										)}
+										Your campaign will be sent out in batches of 80 recipients each. It will be delivered to all contacts{" "}
+										{dayjs().to(dayjs().add(Math.ceil(watch("recipients").length / 80), "minutes"))}
 									</Alert>
 								</motion.div>
 							)}
@@ -687,9 +575,7 @@ export default function Index() {
 							</AnimatePresence>
 						</div>
 
-						<div
-							className={"ml-auto mt-6 flex justify-end gap-3 sm:col-span-6"}
-						>
+						<div className={"ml-auto mt-6 flex justify-end gap-3 sm:col-span-6"}>
 							<motion.button
 								whileHover={{ scale: 1.05 }}
 								whileTap={{ scale: 0.9 }}

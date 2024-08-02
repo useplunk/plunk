@@ -6,54 +6,45 @@ import { redis, wrapRedis } from "./redis";
 
 export class MembershipService {
 	public static async isMember(projectId: string, userId: string) {
-		return wrapRedis(
-			Keys.ProjectMembership.isMember(projectId, userId),
-			async () => {
-				if (NODE_ENV === "development") {
-					return true;
-				}
+		return wrapRedis(Keys.ProjectMembership.isMember(projectId, userId), async () => {
+			if (NODE_ENV === "development") {
+				return true;
+			}
 
-				const membership = await prisma.projectMembership.findFirst({
-					where: { projectId, userId },
-				});
+			const membership = await prisma.projectMembership.findFirst({
+				where: { projectId, userId },
+			});
 
-				return !!membership;
-			},
-		);
+			return !!membership;
+		});
 	}
 
 	public static async isAdmin(projectId: string, userId: string) {
-		return wrapRedis(
-			Keys.ProjectMembership.isAdmin(projectId, userId),
-			async () => {
-				if (NODE_ENV === "development") {
-					return true;
-				}
+		return wrapRedis(Keys.ProjectMembership.isAdmin(projectId, userId), async () => {
+			if (NODE_ENV === "development") {
+				return true;
+			}
 
-				const membership = await prisma.projectMembership.findFirst({
-					where: { projectId, userId, role: { in: ["ADMIN", "OWNER"] } },
-				});
+			const membership = await prisma.projectMembership.findFirst({
+				where: { projectId, userId, role: { in: ["ADMIN", "OWNER"] } },
+			});
 
-				return !!membership;
-			},
-		);
+			return !!membership;
+		});
 	}
 
 	public static async isOwner(projectId: string, userId: string) {
-		return wrapRedis(
-			Keys.ProjectMembership.isOwner(projectId, userId),
-			async () => {
-				if (NODE_ENV === "development") {
-					return true;
-				}
+		return wrapRedis(Keys.ProjectMembership.isOwner(projectId, userId), async () => {
+			if (NODE_ENV === "development") {
+				return true;
+			}
 
-				const membership = await prisma.projectMembership.findFirst({
-					where: { projectId, userId, role: "OWNER" },
-				});
+			const membership = await prisma.projectMembership.findFirst({
+				where: { projectId, userId, role: "OWNER" },
+			});
 
-				return !!membership;
-			},
-		);
+			return !!membership;
+		});
 	}
 
 	public static async kick(projectId: string, userId: string) {

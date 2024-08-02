@@ -19,11 +19,7 @@ export default function Index() {
 		return <FullscreenLoader />;
 	}
 
-	const {
-		data: contact,
-		error,
-		mutate,
-	} = useContact({ id: router.query.id as string, withProject: true });
+	const { data: contact, error, mutate } = useContact({ id: router.query.id as string, withProject: true });
 	const [submitted, setSubmitted] = useState(false);
 
 	if (error) {
@@ -73,23 +69,10 @@ export default function Index() {
 					},
 				]}
 			/>
-			<div
-				className={
-					"flex h-screen w-full flex-col items-center justify-center bg-neutral-50"
-				}
-			>
-				<div
-					className={
-						"w-3/4 rounded border border-neutral-200 bg-white p-12 shadow-sm md:w-2/4 xl:w-2/6"
-					}
-				>
-					<h1
-						className={
-							"text-center text-2xl font-bold leading-tight text-neutral-800"
-						}
-					>
-						{contact.subscribed ? "Unsubscribe from" : "Subscribe to"}{" "}
-						{contact.project.name}
+			<div className={"flex h-screen w-full flex-col items-center justify-center bg-neutral-50"}>
+				<div className={"w-3/4 rounded border border-neutral-200 bg-white p-12 shadow-sm md:w-2/4 xl:w-2/6"}>
+					<h1 className={"text-center text-2xl font-bold leading-tight text-neutral-800"}>
+						{contact.subscribed ? "Unsubscribe from" : "Subscribe to"} {contact.project.name}
 					</h1>
 					<p className={"mt-4 text-center text-sm text-neutral-500"}>
 						{contact.subscribed
@@ -112,14 +95,7 @@ export default function Index() {
 									fill="none"
 									viewBox="0 0 24 24"
 								>
-									<circle
-										className="opacity-25"
-										cx="12"
-										cy="12"
-										r="10"
-										stroke="currentColor"
-										strokeWidth="4"
-									/>
+									<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 									<path
 										className="opacity-75"
 										fill="currentColor"

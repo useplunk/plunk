@@ -1,12 +1,7 @@
 import { Controller, Middleware, Post } from "@overnightjs/core";
 import { MembershipSchemas, UtilitySchemas } from "@plunk/shared";
 import type { Request, Response } from "express";
-import {
-	HttpException,
-	NotAllowed,
-	NotAuthenticated,
-	NotFound,
-} from "../exceptions";
+import { HttpException, NotAllowed, NotAuthenticated, NotFound } from "../exceptions";
 import { type IJwt, isAuthenticated } from "../middleware/auth";
 import { MembershipService } from "../services/MembershipService";
 import { ProjectService } from "../services/ProjectService";
@@ -38,16 +33,10 @@ export class Memberships {
 		const invitedUser = await UserService.email(email);
 
 		if (!invitedUser) {
-			throw new HttpException(
-				404,
-				"We could not find that user, please ask them to sign up first.",
-			);
+			throw new HttpException(404, "We could not find that user, please ask them to sign up first.");
 		}
 
-		const alreadyMember = await MembershipService.isMember(
-			project.id,
-			invitedUser.id,
-		);
+		const alreadyMember = await MembershipService.isMember(project.id, invitedUser.id);
 
 		if (alreadyMember) {
 			throw new NotAllowed();
@@ -91,10 +80,7 @@ export class Memberships {
 			throw new NotFound("user");
 		}
 
-		const isMember = await MembershipService.isMember(
-			project.id,
-			kickedUser.id,
-		);
+		const isMember = await MembershipService.isMember(project.id, kickedUser.id);
 
 		if (!isMember) {
 			throw new NotAllowed();

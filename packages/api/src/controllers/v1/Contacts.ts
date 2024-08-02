@@ -1,22 +1,10 @@
-import {
-	Controller,
-	Delete,
-	Get,
-	Middleware,
-	Post,
-	Put,
-} from "@overnightjs/core";
+import { Controller, Delete, Get, Middleware, Post, Put } from "@overnightjs/core";
 import { ContactSchemas, UtilitySchemas } from "@plunk/shared";
 import type { Request, Response } from "express";
 import z from "zod";
 import { prisma } from "../../database/prisma";
 import { HttpException, NotFound } from "../../exceptions";
-import {
-	type IKey,
-	type ISecret,
-	isValidKey,
-	isValidSecretKey,
-} from "../../middleware/auth";
+import { type IKey, type ISecret, isValidKey, isValidSecretKey } from "../../middleware/auth";
 import { ActionService } from "../../services/ActionService";
 import { ContactService } from "../../services/ContactService";
 import { EventService } from "../../services/EventService";
@@ -150,9 +138,7 @@ export class Contacts {
 		await redis.del(Keys.Contact.id(contact.id));
 		await redis.del(Keys.Contact.email(project.id, contact.email));
 
-		return res
-			.status(200)
-			.json({ success: true, contact: contact.id, subscribed: false });
+		return res.status(200).json({ success: true, contact: contact.id, subscribed: false });
 	}
 
 	@Post("subscribe")
@@ -203,9 +189,7 @@ export class Contacts {
 		await redis.del(Keys.Contact.id(contact.id));
 		await redis.del(Keys.Contact.email(project.id, contact.email));
 
-		return res
-			.status(200)
-			.json({ success: true, contact: contact.id, subscribed: true });
+		return res.status(200).json({ success: true, contact: contact.id, subscribed: true });
 	}
 
 	@Post()
@@ -262,9 +246,7 @@ export class Contacts {
 			throw new NotFound("project");
 		}
 
-		const { id, email, subscribed, data } = ContactSchemas.update.parse(
-			req.body,
-		);
+		const { id, email, subscribed, data } = ContactSchemas.update.parse(req.body);
 
 		let contact = await ContactService.id(id);
 

@@ -5,22 +5,10 @@ import { Copy, Unlink } from "lucide-react";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import {
-	Alert,
-	Badge,
-	Card,
-	FullscreenLoader,
-	Input,
-	SettingTabs,
-	Table,
-} from "../../components";
+import { Alert, Badge, Card, FullscreenLoader, Input, SettingTabs, Table } from "../../components";
 import { Dashboard } from "../../layouts";
 import { AWS_REGION } from "../../lib/constants";
-import {
-	useActiveProject,
-	useActiveProjectVerifiedIdentity,
-	useProjects,
-} from "../../lib/hooks/projects";
+import { useActiveProject, useActiveProjectVerifiedIdentity, useProjects } from "../../lib/hooks/projects";
 import { network } from "../../lib/network";
 
 interface EmailValues {
@@ -37,8 +25,7 @@ interface FromValues {
 export default function Index() {
 	const activeProject = useActiveProject();
 	const { mutate: projectsMutate } = useProjects();
-	const { data: identity, mutate: identityMutate } =
-		useActiveProjectVerifiedIdentity();
+	const { data: identity, mutate: identityMutate } = useActiveProjectVerifiedIdentity();
 
 	const {
 		register,
@@ -143,9 +130,7 @@ export default function Index() {
 
 				<Card
 					title={"Domain"}
-					description={
-						"By sending emails from your own domain you build up domain authority and trust."
-					}
+					description={"By sending emails from your own domain you build up domain authority and trust."}
 					actions={
 						activeProject.email && (
 							<>
@@ -165,12 +150,10 @@ export default function Index() {
 					{activeProject.email && !activeProject.verified ? (
 						<>
 							<Alert type={"warning"} title={"Waiting for DNS verification"}>
-								Please add the following records to{" "}
-								{activeProject.email.split("@")[1]} to verify{" "}
-								{activeProject.email}, this may take up to 15 minutes to
-								register. <br />
-								In the meantime you can already start sending emails, we will
-								automatically switch to your domain once it is verified.
+								Please add the following records to {activeProject.email.split("@")[1]} to verify {activeProject.email}, this
+								may take up to 15 minutes to register. <br />
+								In the meantime you can already start sending emails, we will automatically switch to your domain once it is
+								verified.
 							</Alert>
 
 							<div className="mt-6">
@@ -194,16 +177,11 @@ export default function Index() {
 												<div
 													className={"flex cursor-pointer items-center gap-3"}
 													onClick={() => {
-														void navigator.clipboard.writeText(
-															"v=spf1 include:amazonses.com ~all",
-														);
+														void navigator.clipboard.writeText("v=spf1 include:amazonses.com ~all");
 														toast.success("Copied value to clipboard");
 													}}
 												>
-													<p className={"font-mono text-sm"}>
-														v=spf1 include:amazonses.com ~all
-													</p>{" "}
-													<Copy size={14} />
+													<p className={"font-mono text-sm"}>v=spf1 include:amazonses.com ~all</p> <Copy size={14} />
 												</div>
 											),
 										},
@@ -225,15 +203,11 @@ export default function Index() {
 												<div
 													className={"flex cursor-pointer items-center gap-3"}
 													onClick={() => {
-														void navigator.clipboard.writeText(
-															`10 feedback-smtp.${AWS_REGION}.amazonses.com`,
-														);
+														void navigator.clipboard.writeText(`10 feedback-smtp.${AWS_REGION}.amazonses.com`);
 														toast.success("Copied value to clipboard");
 													}}
 												>
-													<p className={"font-mono text-sm"}>
-														10 feedback-smtp.{AWS_REGION}.amazonses.com
-													</p>
+													<p className={"font-mono text-sm"}>10 feedback-smtp.{AWS_REGION}.amazonses.com</p>
 													<Copy size={14} />
 												</div>
 											),
@@ -245,15 +219,11 @@ export default function Index() {
 													<div
 														className={"flex cursor-pointer items-center gap-3"}
 														onClick={() => {
-															void navigator.clipboard.writeText(
-																`${token}._domainkey`,
-															);
+															void navigator.clipboard.writeText(`${token}._domainkey`);
 															toast.success("Copied key to clipboard");
 														}}
 													>
-														<p className={"font-mono text-sm"}>
-															{token}._domainkey
-														</p>
+														<p className={"font-mono text-sm"}>{token}._domainkey</p>
 														<Copy size={14} />
 													</div>
 												),
@@ -261,15 +231,11 @@ export default function Index() {
 													<div
 														className={"flex cursor-pointer items-center gap-3"}
 														onClick={() => {
-															void navigator.clipboard.writeText(
-																`${token}.dkim.amazonses.com`,
-															);
+															void navigator.clipboard.writeText(`${token}.dkim.amazonses.com`);
 															toast.success("Copied value to clipboard");
 														}}
 													>
-														<p className={"font-mono text-sm"}>
-															{token}.dkim.amazonses.com
-														</p>
+														<p className={"font-mono text-sm"}>{token}.dkim.amazonses.com</p>
 														<Copy size={14} />
 													</div>
 												),
@@ -282,19 +248,13 @@ export default function Index() {
 					) : activeProject.email && activeProject.verified ? (
 						<>
 							<Alert type={"success"} title={"Domain verified"}>
-								You have confirmed {activeProject.email} as your domain. Any
-								emails sent by Plunk will now use this address.
+								You have confirmed {activeProject.email} as your domain. Any emails sent by Plunk will now use this address.
 							</Alert>
 						</>
 					) : (
 						<>
 							<form onSubmit={handleSubmit(create)} className="space-y-6">
-								<Input
-									register={register("email")}
-									error={errors.email}
-									placeholder={"hello@example.com"}
-									label={"Email"}
-								/>
+								<Input register={register("email")} error={errors.email} placeholder={"hello@example.com"} label={"Email"} />
 								<motion.button
 									whileHover={{ scale: 1.05 }}
 									whileTap={{ scale: 0.9 }}

@@ -2,21 +2,9 @@ import dayjs from "dayjs";
 import { Book, Eye, Frown, LineChart, Send } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
-import {
-	Badge,
-	Card,
-	Empty,
-	FullscreenLoader,
-	Redirect,
-	Skeleton,
-	Table,
-} from "../components";
+import { Badge, Card, Empty, FullscreenLoader, Redirect, Skeleton, Table } from "../components";
 import { Dashboard } from "../layouts";
-import {
-	useActiveProject,
-	useActiveProjectFeed,
-	useProjects,
-} from "../lib/hooks/projects";
+import { useActiveProject, useActiveProjectFeed, useProjects } from "../lib/hooks/projects";
 
 /**
  *
@@ -51,17 +39,12 @@ export default function Index() {
 									</div>
 									<div className="mt-8">
 										<h3 className="text-lg font-medium">
-											<Link
-												href={"/campaigns/new"}
-												className="focus:outline-none"
-											>
+											<Link href={"/campaigns/new"} className="focus:outline-none">
 												<span className="absolute inset-0" aria-hidden="true" />
 												Send a campaign
 											</Link>
 										</h3>
-										<p className="mt-2 text-sm text-neutral-500">
-											Send a broadcast to your contacts
-										</p>
+										<p className="mt-2 text-sm text-neutral-500">Send a broadcast to your contacts</p>
 									</div>
 								</>
 							) : (
@@ -105,17 +88,12 @@ export default function Index() {
 									<div className="mt-8">
 										<Badge type={"danger"}>Important</Badge>
 										<h3 className="mt-3 text-lg font-medium">
-											<Link
-												href={"/settings/identity"}
-												className="focus:outline-none"
-											>
+											<Link href={"/settings/identity"} className="focus:outline-none">
 												<span className="absolute inset-0" aria-hidden="true" />
 												Verify your domain
 											</Link>
 										</h3>
-										<p className="mt-2 text-sm text-neutral-500">
-											Verify your domain before you send emails
-										</p>
+										<p className="mt-2 text-sm text-neutral-500">Verify your domain before you send emails</p>
 									</div>
 								</>
 							)}
@@ -124,12 +102,7 @@ export default function Index() {
 								className="pointer-events-none absolute right-6 top-6 text-neutral-300 transition group-hover:text-neutral-400"
 								aria-hidden="true"
 							>
-								<svg
-									className="h-6 w-6"
-									xmlns="http://www.w3.org/2000/svg"
-									fill="currentColor"
-									viewBox="0 0 24 24"
-								>
+								<svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
 									<path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
 								</svg>
 							</span>
@@ -143,29 +116,18 @@ export default function Index() {
 							</div>
 							<div className="mt-2 flex h-4/6 flex-col justify-end">
 								<h3 className="text-lg font-medium">
-									<Link
-										href={"/analytics"}
-										passHref
-										className="focus:outline-none"
-									>
+									<Link href={"/analytics"} passHref className="focus:outline-none">
 										<span className="absolute inset-0" aria-hidden="true" />
 										Analytics
 									</Link>
 								</h3>
-								<p className="mt-2 text-sm text-neutral-500">
-									Discover insights about your emails
-								</p>
+								<p className="mt-2 text-sm text-neutral-500">Discover insights about your emails</p>
 							</div>
 							<span
 								className="pointer-events-none absolute right-6 top-6 text-neutral-300 transition group-hover:text-neutral-400"
 								aria-hidden="true"
 							>
-								<svg
-									className="h-6 w-6"
-									xmlns="http://www.w3.org/2000/svg"
-									fill="currentColor"
-									viewBox="0 0 24 24"
-								>
+								<svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
 									<path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
 								</svg>
 							</span>
@@ -179,30 +141,18 @@ export default function Index() {
 							</div>
 							<div className="mt-2 flex h-4/6 flex-col justify-end">
 								<h3 className="text-lg font-medium">
-									<a
-										href={"https://docs.useplunk.com"}
-										target={"_blank"}
-										className="focus:outline-none"
-										rel="noreferrer"
-									>
+									<a href={"https://docs.useplunk.com"} target={"_blank"} className="focus:outline-none" rel="noreferrer">
 										<span className="absolute inset-0" aria-hidden="true" />
 										Documentation
 									</a>
 								</h3>
-								<p className="mt-2 text-sm text-neutral-500">
-									Discover how to use Plunk
-								</p>
+								<p className="mt-2 text-sm text-neutral-500">Discover how to use Plunk</p>
 							</div>
 							<span
 								className="pointer-events-none absolute right-6 top-6 text-neutral-300 transition group-hover:text-neutral-400"
 								aria-hidden="true"
 							>
-								<svg
-									className="h-6 w-6"
-									xmlns="http://www.w3.org/2000/svg"
-									fill="currentColor"
-									viewBox="0 0 24 24"
-								>
+								<svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
 									<path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
 								</svg>
 							</span>
@@ -216,9 +166,7 @@ export default function Index() {
 									<Empty
 										icon={<Frown size={24} />}
 										title={"No feed yet"}
-										description={
-											"Send an email or track an event to see it here"
-										}
+										description={"Send an email or track an event to see it here"}
 									/>
 								</>
 							) : (
@@ -230,9 +178,7 @@ export default function Index() {
 													Email: f.contact.email,
 													Activity: (
 														<Badge type={"info"}>
-															{f.createdAt === f.updatedAt
-																? "Email delivered"
-																: `Email ${f.status.toLowerCase()}`}
+															{f.createdAt === f.updatedAt ? "Email delivered" : `Email ${f.status.toLowerCase()}`}
 														</Badge>
 													),
 													Type: <Badge type={"success"}>Email</Badge>,
@@ -247,9 +193,7 @@ export default function Index() {
 											if (f.action) {
 												return {
 													Email: f.contact.email,
-													Activity: (
-														<Badge type={"info"}>{f.action.name}</Badge>
-													),
+													Activity: <Badge type={"info"}>{f.action.name}</Badge>,
 													Type: <Badge type={"info"}>Action</Badge>,
 													Time: dayjs().to(dayjs(f.createdAt)),
 													View: (
