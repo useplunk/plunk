@@ -3,14 +3,7 @@ import { motion } from "framer-motion";
 import { Plus, Workflow } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-import {
-	Alert,
-	Badge,
-	Card,
-	Empty,
-	FullscreenLoader,
-	Skeleton,
-} from "../../components";
+import { Alert, Badge, Card, Empty, FullscreenLoader, Skeleton } from "../../components";
 import { Dashboard } from "../../layouts";
 import { useActions } from "../../lib/hooks/actions";
 import { useActiveProject } from "../../lib/hooks/projects";
@@ -33,8 +26,7 @@ export default function Index() {
 					<Alert type={"info"} title={"Need a hand?"}>
 						<div className={"mt-3 grid items-center sm:grid-cols-4"}>
 							<p className={"sm:col-span-3"}>
-								Want us to help you get started? We can help you build your
-								first action in less than 5 minutes.
+								Want us to help you get started? We can help you build your first action in less than 5 minutes.
 							</p>
 
 							<Link
@@ -51,9 +43,7 @@ export default function Index() {
 
 				<Card
 					title={"Actions"}
-					description={
-						"Repeatable automations that can be triggered by your applications"
-					}
+					description={"Repeatable automations that can be triggered by your applications"}
 					actions={
 						<>
 							<Link href={"actions/new"} passHref>
@@ -100,52 +90,25 @@ export default function Index() {
 															</span>
 															<div className="flex-1 truncate">
 																<div className="flex items-center space-x-3">
-																	<h3 className="truncate text-lg font-bold text-neutral-800">
-																		{a.name}
-																	</h3>
+																	<h3 className="truncate text-lg font-bold text-neutral-800">{a.name}</h3>
 																</div>
 																<div className={"mb-6"}>
-																	<h2
-																		className={
-																			"text col-span-2 truncate font-semibold text-neutral-700"
-																		}
-																	>
-																		Quick stats
-																	</h2>
+																	<h2 className={"text col-span-2 truncate font-semibold text-neutral-700"}>Quick stats</h2>
 																	<div className={"grid grid-cols-2 gap-3"}>
 																		<div>
-																			<label
-																				className={
-																					"text-xs font-medium text-neutral-500"
-																				}
-																			>
-																				Total triggers
-																			</label>
-																			<p className="mt-1 truncate text-sm text-neutral-500">
-																				{a.triggers.length}
-																			</p>
+																			<label className={"text-xs font-medium text-neutral-500"}>Total triggers</label>
+																			<p className="mt-1 truncate text-sm text-neutral-500">{a.triggers.length}</p>
 																		</div>
 
 																		<div>
-																			<label
-																				className={
-																					"text-xs font-medium text-neutral-500"
-																				}
-																			>
-																				Last activity
-																			</label>
+																			<label className={"text-xs font-medium text-neutral-500"}>Last activity</label>
 																			<p className="mt-1 truncate text-sm text-neutral-500">
-																				{a.triggers.length > 0
-																					? "Last triggered"
-																					: "Created"}{" "}
+																				{a.triggers.length > 0 ? "Last triggered" : "Created"}{" "}
 																				{dayjs()
 																					.to(
 																						a.triggers.length > 0
 																							? a.triggers.sort((a, b) => {
-																									return a.createdAt >
-																										b.createdAt
-																										? -1
-																										: 1;
+																									return a.createdAt > b.createdAt ? -1 : 1;
 																								})[0].createdAt
 																							: a.createdAt,
 																					)
@@ -153,83 +116,37 @@ export default function Index() {
 																			</p>
 																		</div>
 																		<div>
-																			<label
-																				className={
-																					"text-xs font-medium text-neutral-500"
-																				}
-																			>
-																				Open rate
-																			</label>
+																			<label className={"text-xs font-medium text-neutral-500"}>Open rate</label>
 																			<p className="mt-1 truncate text-sm text-neutral-500">
 																				{a.emails.length > 0
-																					? Math.round(
-																							(a.emails.filter(
-																								(e) => e.status === "OPENED",
-																							).length /
-																								a.emails.length) *
-																								100,
-																						)
+																					? Math.round((a.emails.filter((e) => e.status === "OPENED").length / a.emails.length) * 100)
 																					: 0}
 																				%
 																			</p>
 																		</div>
 																		{a.delay > 0 && (
 																			<div>
-																				<label
-																					className={
-																						"text-xs font-medium text-neutral-500"
-																					}
-																				>
-																					Emails in queue
-																				</label>
-																				<p className="mt-1 truncate text-sm text-neutral-500">
-																					{a.tasks.length}
-																				</p>
+																				<label className={"text-xs font-medium text-neutral-500"}>Emails in queue</label>
+																				<p className="mt-1 truncate text-sm text-neutral-500">{a.tasks.length}</p>
 																			</div>
 																		)}
 																	</div>
 																</div>
 																<div className={"my-4"}>
-																	<h2
-																		className={
-																			"col-span-2 truncate font-semibold text-neutral-700"
-																		}
-																	>
-																		Properties
-																	</h2>
+																	<h2 className={"col-span-2 truncate font-semibold text-neutral-700"}>Properties</h2>
 																	<div className={"grid grid-cols-2 gap-3"}>
 																		<div>
-																			<label
-																				className={
-																					"text-xs font-medium text-neutral-500"
-																				}
-																			>
-																				Repeats
-																			</label>
+																			<label className={"text-xs font-medium text-neutral-500"}>Repeats</label>
 																			<p className="mt-1 truncate text-sm text-neutral-500">
-																				<Badge
-																					type={a.runOnce ? "success" : "info"}
-																				>
-																					{a.runOnce
-																						? "Runs once per user"
-																						: "Recurring"}
+																				<Badge type={a.runOnce ? "success" : "info"}>
+																					{a.runOnce ? "Runs once per user" : "Recurring"}
 																				</Badge>
 																			</p>
 																		</div>
 																		<div>
-																			<label
-																				className={
-																					"text-xs font-medium text-neutral-500"
-																				}
-																			>
-																				Delay
-																			</label>
+																			<label className={"text-xs font-medium text-neutral-500"}>Delay</label>
 																			<p className="mt-1 truncate text-sm text-neutral-500">
-																				<Badge
-																					type={
-																						a.delay === 0 ? "info" : "success"
-																					}
-																				>
+																				<Badge type={a.delay === 0 ? "info" : "success"}>
 																					{a.delay === 0
 																						? "Instant"
 																						: a.delay % 1440 === 0
@@ -252,12 +169,7 @@ export default function Index() {
 																		passHref
 																		className="relative inline-flex w-0 flex-1 items-center justify-center rounded-bl rounded-br py-4 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 hover:text-neutral-700"
 																	>
-																		<svg
-																			width="24"
-																			height="24"
-																			fill="none"
-																			viewBox="0 0 24 24"
-																		>
+																		<svg width="24" height="24" fill="none" viewBox="0 0 24 24">
 																			<path
 																				stroke="currentColor"
 																				strokeLinecap="round"
@@ -287,10 +199,7 @@ export default function Index() {
 							</>
 						) : (
 							<>
-								<Empty
-									title={"No actions here"}
-									description={"Set up a new automation in a few clicks"}
-								/>
+								<Empty title={"No actions here"} description={"Set up a new automation in a few clicks"} />
 							</>
 						)
 					) : (

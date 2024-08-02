@@ -1,11 +1,4 @@
-import {
-	Controller,
-	Delete,
-	Get,
-	Middleware,
-	Post,
-	Put,
-} from "@overnightjs/core";
+import { Controller, Delete, Get, Middleware, Post, Put } from "@overnightjs/core";
 import { IdentitySchemas, ProjectSchemas, UtilitySchemas } from "@plunk/shared";
 import type { Request, Response } from "express";
 import z from "zod";
@@ -197,10 +190,7 @@ export class Projects {
 		const contacts = await prisma.contact.findMany({
 			where: {
 				projectId: project.id,
-				OR: [
-					{ email: { contains: query, mode: "insensitive" } },
-					{ data: { contains: query, mode: "insensitive" } },
-				],
+				OR: [{ email: { contains: query, mode: "insensitive" } }, { data: { contains: query, mode: "insensitive" } }],
 			},
 			select: {
 				id: true,

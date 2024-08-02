@@ -86,22 +86,12 @@ export default function Index() {
 				<div className="flex flex-1 flex-col justify-center px-4 py-12 sm:border-r-2 sm:border-neutral-100 sm:px-6 lg:flex-none lg:px-20 xl:px-32">
 					<div className="mx-auto w-full max-w-sm">
 						<div>
-							<Image
-								width={35}
-								height={35}
-								src={logo}
-								alt={"Plunk logo"}
-								placeholder={"blur"}
-							/>
-							<h2 className="mt-6 text-3xl font-extrabold text-neutral-800">
-								Create a Plunk account
-							</h2>
+							<Image width={35} height={35} src={logo} alt={"Plunk logo"} placeholder={"blur"} />
+							<h2 className="mt-6 text-3xl font-extrabold text-neutral-800">Create a Plunk account</h2>
 							<div>
 								<Link
 									href={"/auth/login"}
-									className={
-										"text-sm text-neutral-500 underline transition ease-in-out hover:text-neutral-600"
-									}
+									className={"text-sm text-neutral-500 underline transition ease-in-out hover:text-neutral-600"}
 								>
 									Already have an account?
 								</Link>
@@ -112,10 +102,7 @@ export default function Index() {
 							<div className="mt-6">
 								<form onSubmit={handleSubmit(signup)} className="space-y-6">
 									<div>
-										<label
-											htmlFor={"email"}
-											className="block text-sm font-medium text-neutral-700"
-										>
+										<label htmlFor={"email"} className="block text-sm font-medium text-neutral-700">
 											Your Email
 										</label>
 										<div className="mt-1">
@@ -144,18 +131,13 @@ export default function Index() {
 									</div>
 
 									<div>
-										<label
-											htmlFor={"password"}
-											className="block text-sm font-semibold text-neutral-600"
-										>
+										<label htmlFor={"password"} className="block text-sm font-semibold text-neutral-600">
 											A Strong Password
 										</label>
 										<div className="relative mt-1">
 											<input
 												type={hidePassword ? "password" : "text"}
-												placeholder={
-													hidePassword ? "•••••••••••••" : "Password"
-												}
+												placeholder={hidePassword ? "•••••••••••••" : "Password"}
 												autoComplete={"new-password"}
 												className={
 													"block w-full rounded border-neutral-300 transition ease-in-out focus:border-neutral-800 focus:ring-neutral-800 sm:text-sm"
@@ -223,14 +205,7 @@ export default function Index() {
 													fill="none"
 													viewBox="0 0 24 24"
 												>
-													<circle
-														className="opacity-25"
-														cx="12"
-														cy="12"
-														r="10"
-														stroke="currentColor"
-														strokeWidth="4"
-													/>
+													<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 													<path
 														className="opacity-75"
 														fill="currentColor"

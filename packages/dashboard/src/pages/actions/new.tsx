@@ -6,14 +6,7 @@ import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { type FieldError, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import {
-	Card,
-	Dropdown,
-	FullscreenLoader,
-	Input,
-	MultiselectDropdown,
-	Toggle,
-} from "../../components";
+import { Card, Dropdown, FullscreenLoader, Input, MultiselectDropdown, Toggle } from "../../components";
 import { Dashboard } from "../../layouts";
 import { useActions } from "../../lib/hooks/actions";
 import { useEvents } from "../../lib/hooks/events";
@@ -84,14 +77,9 @@ export default function Index() {
 
 	const create = async (data: ActionValues) => {
 		toast.promise(
-			network.mock<Template, typeof ActionSchemas.create>(
-				project.secret,
-				"POST",
-				"/v1/actions",
-				{
-					...data,
-				},
-			),
+			network.mock<Template, typeof ActionSchemas.create>(project.secret, "POST", "/v1/actions", {
+				...data,
+			}),
 			{
 				loading: "Creating new action",
 				success: () => {
@@ -109,30 +97,17 @@ export default function Index() {
 		<>
 			<Dashboard>
 				<Card title={"Create a new action"}>
-					<form
-						onSubmit={handleSubmit(create)}
-						className="mx-auto my-3 max-w-xl space-y-6"
-					>
-						<Input
-							label={"Name"}
-							placeholder={"Onboarding Flow"}
-							register={register("name")}
-							error={errors.name}
-						/>
+					<form onSubmit={handleSubmit(create)} className="mx-auto my-3 max-w-xl space-y-6">
+						<Input label={"Name"} placeholder={"Onboarding Flow"} register={register("name")} error={errors.name} />
 
 						<div>
-							<label
-								htmlFor={"events"}
-								className="block text-sm font-medium text-neutral-700"
-							>
+							<label htmlFor={"events"} className="block text-sm font-medium text-neutral-700">
 								Run on triggers
 							</label>
 							<MultiselectDropdown
 								onChange={(e) => setValue("events", e)}
 								values={events
-									.filter(
-										(e) => !e.campaignId && !watch("notevents").includes(e.id),
-									)
+									.filter((e) => !e.campaignId && !watch("notevents").includes(e.id))
 									.sort((a, b) => {
 										if (a.templateId && !b.templateId) {
 											return 1;
@@ -150,10 +125,7 @@ export default function Index() {
 											return -1;
 										}
 
-										if (
-											a.name.includes("delivered") &&
-											!b.name.includes("delivered")
-										) {
+										if (a.name.includes("delivered") && !b.name.includes("delivered")) {
 											return -1;
 										}
 
@@ -189,18 +161,13 @@ export default function Index() {
 						</div>
 
 						<div>
-							<label
-								htmlFor={"events"}
-								className="block text-sm font-medium text-neutral-700"
-							>
+							<label htmlFor={"events"} className="block text-sm font-medium text-neutral-700">
 								Exclude contacts with triggers
 							</label>
 							<MultiselectDropdown
 								onChange={(e) => setValue("notevents", e)}
 								values={events
-									.filter(
-										(e) => !e.campaignId && !watch("events").includes(e.id),
-									)
+									.filter((e) => !e.campaignId && !watch("events").includes(e.id))
 									.sort((a, b) => {
 										if (a.templateId && !b.templateId) {
 											return 1;
@@ -218,10 +185,7 @@ export default function Index() {
 											return -1;
 										}
 
-										if (
-											a.name.includes("delivered") &&
-											!b.name.includes("delivered")
-										) {
+										if (a.name.includes("delivered") && !b.name.includes("delivered")) {
 											return -1;
 										}
 
@@ -257,10 +221,7 @@ export default function Index() {
 						</div>
 
 						<div>
-							<label
-								htmlFor={"template"}
-								className="block text-sm font-medium text-neutral-700"
-							>
+							<label htmlFor={"template"} className="block text-sm font-medium text-neutral-700">
 								Template
 							</label>
 							<Dropdown
@@ -285,10 +246,7 @@ export default function Index() {
 						</div>
 
 						<div>
-							<label
-								htmlFor={"template"}
-								className="block text-sm font-medium text-neutral-800"
-							>
+							<label htmlFor={"template"} className="block text-sm font-medium text-neutral-800">
 								Delay before sending
 							</label>
 							<div className={"grid grid-cols-6 gap-4"}>
@@ -332,9 +290,7 @@ export default function Index() {
 						<div>
 							<Toggle
 								title={"Run once"}
-								description={
-									"Toggle this on if you want to run this action only once per contact."
-								}
+								description={"Toggle this on if you want to run this action only once per contact."}
 								toggled={watch("runOnce")}
 								onToggle={() => setValue("runOnce", !watch("runOnce"))}
 							/>

@@ -20,8 +20,7 @@ export default function Index() {
 					<Alert type={"info"} title={"Need a hand?"}>
 						<div className={"mt-3 grid items-center sm:grid-cols-4"}>
 							<p className={"sm:col-span-3"}>
-								Want us to help you get started? We can help you build your
-								first action in less than 5 minutes.
+								Want us to help you get started? We can help you build your first action in less than 5 minutes.
 							</p>
 
 							<Link
@@ -59,11 +58,7 @@ export default function Index() {
 					{templates ? (
 						templates.length > 0 ? (
 							<>
-								<div
-									className={
-										"grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-									}
-								>
+								<div className={"grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"}>
 									{templates
 										.sort((a, b) => {
 											if (a.actions.length > 0 && b.actions.length === 0) {
@@ -93,16 +88,10 @@ export default function Index() {
 															</span>
 															<div className="flex-1 truncate">
 																<div className="flex items-center space-x-3">
-																	<h3 className="truncate text-sm font-medium text-neutral-800">
-																		{t.subject}
-																	</h3>
-																	{t.actions.length > 0 && (
-																		<Badge type={"success"}>Active</Badge>
-																	)}
+																	<h3 className="truncate text-sm font-medium text-neutral-800">{t.subject}</h3>
+																	{t.actions.length > 0 && <Badge type={"success"}>Active</Badge>}
 																</div>
-																<p className="mt-1 truncate text-sm text-neutral-500">
-																	Last edited {dayjs().to(t.updatedAt)}
-																</p>
+																<p className="mt-1 truncate text-sm text-neutral-500">Last edited {dayjs().to(t.updatedAt)}</p>
 															</div>
 														</div>
 														<div>
@@ -112,12 +101,7 @@ export default function Index() {
 																		href={`/templates/${t.id}`}
 																		className="relative -mr-px inline-flex w-0 flex-1 items-center justify-center rounded-bl border border-transparent py-4 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 hover:text-neutral-700"
 																	>
-																		<svg
-																			width="24"
-																			height="24"
-																			fill="none"
-																			viewBox="0 0 24 24"
-																		>
+																		<svg width="24" height="24" fill="none" viewBox="0 0 24 24">
 																			<path
 																				stroke="currentColor"
 																				strokeLinecap="round"
@@ -147,12 +131,7 @@ export default function Index() {
 							</>
 						) : (
 							<>
-								<Empty
-									title={"No templates here"}
-									description={
-										"Try creating a new email blueprint for your actions"
-									}
-								/>
+								<Empty title={"No templates here"} description={"Try creating a new email blueprint for your actions"} />
 							</>
 						)
 					) : (

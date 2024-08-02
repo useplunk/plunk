@@ -46,13 +46,7 @@ export class Tasks {
 
 				if (notevents.length > 0) {
 					const triggers = await ContactService.triggers(contact.id);
-					if (
-						notevents.some((e) =>
-							triggers.some(
-								(t) => t.contactId === contact.id && t.eventId === e.id,
-							),
-						)
-					) {
+					if (notevents.some((e) => triggers.some((t) => t.contactId === contact.id && t.eventId === e.id))) {
 						await prisma.task.delete({ where: { id: task.id } });
 						continue;
 					}
@@ -82,10 +76,7 @@ export class Tasks {
 			const { messageId } = await EmailService.send({
 				from: {
 					name: project.from ?? project.name,
-					email:
-						project.verified && project.email
-							? project.email
-							: "no-reply@useplunk.dev",
+					email: project.verified && project.email ? project.email : "no-reply@useplunk.dev",
 				},
 				to: [contact.email],
 				content: {
@@ -93,9 +84,7 @@ export class Tasks {
 					html: EmailService.compile({
 						content: body,
 						footer: {
-							unsubscribe: campaign
-								? true
-								: !!action && action.template.type === "MARKETING",
+							unsubscribe: campaign ? true : !!action && action.template.type === "MARKETING",
 						},
 						contact: {
 							id: contact.id,
@@ -103,9 +92,7 @@ export class Tasks {
 						project: {
 							name: project.name,
 						},
-						isHtml:
-							(campaign && campaign.style === "HTML") ??
-							(!!action && action.template.style === "HTML"),
+						isHtml: (campaign && campaign.style === "HTML") ?? (!!action && action.template.style === "HTML"),
 					}),
 				},
 			});
@@ -130,9 +117,7 @@ export class Tasks {
 
 			await prisma.task.delete({ where: { id: task.id } });
 
-			signale.success(
-				`Task completed for ${contact.email} from ${project.name}`,
-			);
+			signale.success(`Task completed for ${contact.email} from ${project.name}`);
 		}
 
 		return res.status(200).json({ success: true });

@@ -1,11 +1,6 @@
 // @ts-nocheck
 
-import React, {
-	forwardRef,
-	useEffect,
-	useImperativeHandle,
-	useState,
-} from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 export default forwardRef((props, ref) => {
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -19,9 +14,7 @@ export default forwardRef((props, ref) => {
 	};
 
 	const upHandler = () => {
-		setSelectedIndex(
-			(selectedIndex + props.items.length - 1) % props.items.length,
-		);
+		setSelectedIndex((selectedIndex + props.items.length - 1) % props.items.length);
 	};
 
 	const downHandler = () => {

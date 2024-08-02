@@ -6,19 +6,9 @@ import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import {
-	Card,
-	FullscreenLoader,
-	Input,
-	Modal,
-	SettingTabs,
-} from "../../components";
+import { Card, FullscreenLoader, Input, Modal, SettingTabs } from "../../components";
 import { Dashboard } from "../../layouts";
-import {
-	useActiveProject,
-	useActiveProjectMemberships,
-	useProjects,
-} from "../../lib/hooks/projects";
+import { useActiveProject, useActiveProjectMemberships, useProjects } from "../../lib/hooks/projects";
 import { useUser } from "../../lib/hooks/users";
 
 interface ProjectValues {
@@ -132,24 +122,11 @@ export default function Index() {
 			/>
 			<Dashboard>
 				<SettingTabs />
-				<Card
-					title={"Project details"}
-					description={"Manage your project details"}
-				>
+				<Card title={"Project details"} description={"Manage your project details"}>
 					<form onSubmit={handleSubmit(update)} className="space-y-6">
 						<div className={"grid gap-5 sm:grid-cols-2"}>
-							<Input
-								register={register("name")}
-								label={"Name"}
-								placeholder={"ACME Inc."}
-								error={errors.name}
-							/>
-							<Input
-								register={register("url")}
-								label={"URL"}
-								placeholder={"https://useplunk.com"}
-								error={errors.url}
-							/>
+							<Input register={register("name")} label={"Name"} placeholder={"ACME Inc."} error={errors.name} />
+							<Input register={register("url")} label={"URL"} placeholder={"https://useplunk.com"} error={errors.url} />
 						</div>
 						<motion.button
 							whileHover={{ scale: 1.05 }}
@@ -162,22 +139,14 @@ export default function Index() {
 						</motion.button>
 					</form>
 				</Card>
-				{memberships.find((membership) => membership.userId === user.id)
-					?.role === "OWNER" ? (
-					<Card
-						title={"Danger zone"}
-						description={"Better watch out here"}
-						className={"mt-4"}
-					>
+				{memberships.find((membership) => membership.userId === user.id)?.role === "OWNER" ? (
+					<Card title={"Danger zone"} description={"Better watch out here"} className={"mt-4"}>
 						<div className={"flex"}>
 							<div className={"w-2/3"}>
-								<p className={"text-sm font-bold text-neutral-500"}>
-									Delete your project
-								</p>
+								<p className={"text-sm font-bold text-neutral-500"}>Delete your project</p>
 								<p className={"text-sm text-neutral-400"}>
-									Deleting your project may have unwanted consequences. All data
-									associated with this project will get deleted and can not be
-									recovered!{" "}
+									Deleting your project may have unwanted consequences. All data associated with this project will get deleted
+									and can not be recovered!{" "}
 								</p>
 							</div>
 							<button

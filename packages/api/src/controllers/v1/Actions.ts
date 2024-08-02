@@ -1,21 +1,9 @@
-import {
-	Controller,
-	Delete,
-	Get,
-	Middleware,
-	Post,
-	Put,
-} from "@overnightjs/core";
+import { Controller, Delete, Get, Middleware, Post, Put } from "@overnightjs/core";
 import { ActionSchemas, UtilitySchemas } from "@plunk/shared";
 import type { Request, Response } from "express";
 import { prisma } from "../../database/prisma";
 import { NotFound } from "../../exceptions";
-import {
-	type IJwt,
-	type ISecret,
-	isAuthenticated,
-	isValidSecretKey,
-} from "../../middleware/auth";
+import { type IJwt, type ISecret, isAuthenticated, isValidSecretKey } from "../../middleware/auth";
 import { ActionService } from "../../services/ActionService";
 import { EventService } from "../../services/EventService";
 import { MembershipService } from "../../services/MembershipService";
@@ -83,14 +71,7 @@ export class Actions {
 			throw new NotFound("project");
 		}
 
-		const {
-			name,
-			runOnce,
-			delay,
-			template: templateId,
-			events,
-			notevents,
-		} = ActionSchemas.create.parse(req.body);
+		const { name, runOnce, delay, template: templateId, events, notevents } = ActionSchemas.create.parse(req.body);
 
 		const template = await TemplateService.id(templateId);
 
@@ -160,15 +141,7 @@ export class Actions {
 			throw new NotFound("project");
 		}
 
-		const {
-			id,
-			template: templateId,
-			events,
-			notevents,
-			name,
-			runOnce,
-			delay,
-		} = ActionSchemas.update.parse(req.body);
+		const { id, template: templateId, events, notevents, name, runOnce, delay } = ActionSchemas.update.parse(req.body);
 
 		let action = await ActionService.id(id);
 

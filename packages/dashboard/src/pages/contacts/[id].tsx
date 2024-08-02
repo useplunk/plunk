@@ -2,11 +2,7 @@
 // React Hook Form messes up our types, ignore the entire file
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	ContactSchemas,
-	EventSchemas,
-	type UtilitySchemas,
-} from "@plunk/shared";
+import { ContactSchemas, EventSchemas, type UtilitySchemas } from "@plunk/shared";
 import type { Contact, Email, Template } from "@prisma/client";
 import dayjs from "dayjs";
 import { motion } from "framer-motion";
@@ -16,14 +12,7 @@ import React, { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import {
-	Card,
-	Empty,
-	FullscreenLoader,
-	Input,
-	Modal,
-	Toggle,
-} from "../../components";
+import { Card, Empty, FullscreenLoader, Input, Modal, Toggle } from "../../components";
 import { Dashboard } from "../../layouts";
 import { useContact } from "../../lib/hooks/contacts";
 import { useActiveProject } from "../../lib/hooks/projects";
@@ -67,11 +56,9 @@ export default function Index() {
 		reset: dataReset,
 	} = useForm({
 		defaultValues: {
-			data: Object.entries(JSON.parse(contact?.data ? contact.data : "{}")).map(
-				([key]) => ({
-					value: { key },
-				}),
-			),
+			data: Object.entries(JSON.parse(contact?.data ? contact.data : "{}")).map(([key]) => ({
+				value: { key },
+			})),
 		},
 		resolver: zodResolver(
 			z.object({
@@ -86,11 +73,7 @@ export default function Index() {
 		),
 	});
 
-	const {
-		fields,
-		append: fieldAppend,
-		remove: fieldRemove,
-	} = useFieldArray({ control, name: "data" });
+	const { fields, append: fieldAppend, remove: fieldRemove } = useFieldArray({ control, name: "data" });
 
 	const {
 		register: eventRegister,
@@ -108,11 +91,9 @@ export default function Index() {
 
 		reset(contact);
 		dataReset({
-			data: Object.entries(JSON.parse(contact.data ? contact.data : "{}")).map(
-				([key, value]) => ({
-					value: { key, value },
-				}),
-			),
+			data: Object.entries(JSON.parse(contact.data ? contact.data : "{}")).map(([key, value]) => ({
+				value: { key, value },
+			})),
 		});
 	}, [dataReset, reset, contact]);
 
@@ -122,15 +103,10 @@ export default function Index() {
 
 	const create = (data: EventValues) => {
 		toast.promise(
-			network.mock<Template, typeof EventSchemas.post>(
-				project.secret,
-				"POST",
-				"/v1",
-				{
-					...data,
-					email: contact.email,
-				},
-			),
+			network.mock<Template, typeof EventSchemas.post>(project.secret, "POST", "/v1", {
+				...data,
+				email: contact.email,
+			}),
 			{
 				loading: "Creating new event",
 				success: () => {
@@ -146,31 +122,21 @@ export default function Index() {
 	};
 
 	const update = (data: ContactValues) => {
-		const entries = getDataValues().data.map(({ value }) => [
-			value.key,
-			value.value,
-		]);
+		const entries = getDataValues().data.map(({ value }) => [value.key, value.value]);
 		let dataObject = {};
 
 		entries.forEach(([key, value]) => {
 			Object.assign(dataObject, { [key]: value });
 		});
 
-		dataObject = Object.fromEntries(
-			Object.entries(dataObject).filter(([, value]) => value !== ""),
-		);
+		dataObject = Object.fromEntries(Object.entries(dataObject).filter(([, value]) => value !== ""));
 
 		toast.promise(
-			network.mock<Contact, typeof ContactSchemas.update>(
-				project.secret,
-				"PUT",
-				"/v1/contacts",
-				{
-					id: contact.id,
-					...data,
-					data: dataObject,
-				},
-			),
+			network.mock<Contact, typeof ContactSchemas.update>(project.secret, "PUT", "/v1/contacts", {
+				id: contact.id,
+				...data,
+				data: dataObject,
+			}),
 			{
 				loading: "Saving your changes",
 				success: () => {
@@ -185,14 +151,9 @@ export default function Index() {
 	const remove = async (e: { preventDefault: () => void }) => {
 		e.preventDefault();
 		toast.promise(
-			network.mock<Contact, typeof UtilitySchemas.id>(
-				project.secret,
-				"DELETE",
-				"/v1/contacts",
-				{
-					id: contact.id,
-				},
-			),
+			network.mock<Contact, typeof UtilitySchemas.id>(project.secret, "DELETE", "/v1/contacts", {
+				id: contact.id,
+			}),
 			{
 				loading: "Deleting contact",
 				success: "Deleted contact",
@@ -215,24 +176,12 @@ export default function Index() {
 				description={`Trigger an event for ${contact.email}`}
 				icon={
 					<>
-						<rect
-							strokeWidth={2}
-							width="14.5"
-							height="14.5"
-							x="4.75"
-							y="4.75"
-							rx="2"
-						/>
+						<rect strokeWidth={2} width="14.5" height="14.5" x="4.75" y="4.75" rx="2" />
 						<path strokeWidth={2} d="M8.75 10.75L11.25 13L8.75 15.25" />
 					</>
 				}
 			>
-				<Input
-					register={eventRegister("event")}
-					label={"Event"}
-					placeholder={"signup"}
-					error={eventErrors.event}
-				/>
+				<Input register={eventRegister("event")} label={"Event"} placeholder={"signup"} error={eventErrors.event} />
 			</Modal>
 			<Dashboard>
 				<Card
@@ -288,28 +237,17 @@ export default function Index() {
 										strokeWidth="1.5"
 										d="M9.75 7.5V6.75C9.75 5.64543 10.6454 4.75 11.75 4.75H12.25C13.3546 4.75 14.25 5.64543 14.25 6.75V7.5"
 									/>
-									<path
-										stroke="currentColor"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth="1.5"
-										d="M5 7.75H19"
-									/>
+									<path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 7.75H19" />
 								</svg>
 								Delete
 							</button>
 						</>
 					}
 				>
-					<form
-						onSubmit={handleSubmit(update)}
-						className="grid gap-x-5 space-y-9 sm:grid-cols-2"
-					>
+					<form onSubmit={handleSubmit(update)} className="grid gap-x-5 space-y-9 sm:grid-cols-2">
 						<div className={"col-span-2 flex items-center gap-6"}>
 							<span className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100">
-								<span className="text-xl font-semibold leading-none text-neutral-800">
-									{contact.email[0].toUpperCase()}
-								</span>
+								<span className="text-xl font-semibold leading-none text-neutral-800">{contact.email[0].toUpperCase()}</span>
 							</span>
 							<h1 className={"text-2xl font-semibold text-neutral-800"}>
 								{contact.email[0].toUpperCase()}
@@ -319,10 +257,7 @@ export default function Index() {
 
 						<div className={"grid sm:col-span-2"}>
 							<div className={"grid items-center gap-3 sm:grid-cols-9"}>
-								<label
-									htmlFor={"data"}
-									className="block text-sm font-medium text-neutral-700 sm:col-span-8"
-								>
+								<label htmlFor={"data"} className="block text-sm font-medium text-neutral-700 sm:col-span-8">
 									Metadata
 								</label>
 								<button
@@ -361,10 +296,7 @@ export default function Index() {
 											<div key={field.id}>
 												<div className="grid w-full grid-cols-9 items-end gap-3">
 													<div className={"col-span-4"}>
-														<label
-															htmlFor={"data"}
-															className="text-xs font-light"
-														>
+														<label htmlFor={"data"} className="text-xs font-light">
 															Key
 														</label>
 														<input
@@ -379,10 +311,7 @@ export default function Index() {
 													</div>
 
 													<div className={"col-span-4"}>
-														<label
-															htmlFor={"data"}
-															className="text-xs font-light"
-														>
+														<label htmlFor={"data"} className="text-xs font-light">
 															Value
 														</label>
 														<input
@@ -404,12 +333,7 @@ export default function Index() {
 															fieldRemove(index);
 														}}
 													>
-														<svg
-															width="24"
-															height="24"
-															fill="none"
-															viewBox="0 0 24 24"
-														>
+														<svg width="24" height="24" fill="none" viewBox="0 0 24 24">
 															<path
 																stroke="currentColor"
 																strokeLinecap="round"
@@ -475,11 +399,7 @@ export default function Index() {
 						<div className="scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-neutral-100 scrollbar-thumb-rounded-full scrollbar-track-rounded-full flow-root h-96 max-h-96 overflow-y-auto pr-6">
 							<ul className="-mb-8">
 								{[...contact.triggers, ...contact.emails]
-									.sort(
-										(a, b) =>
-											new Date(b.createdAt).getTime() -
-											new Date(a.createdAt).getTime(),
-									)
+									.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 									.map((t, index) => {
 										if (t.messageId) {
 											const email = t as Email;
@@ -487,14 +407,8 @@ export default function Index() {
 											return (
 												<li>
 													<div className="relative pb-8">
-														{contact.triggers.length +
-															contact.emails.length -
-															1 !==
-															index && (
-															<span
-																className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-neutral-200"
-																aria-hidden="true"
-															/>
+														{contact.triggers.length + contact.emails.length - 1 !== index && (
+															<span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-neutral-200" aria-hidden="true" />
 														)}
 
 														<div className="relative flex space-x-3">
@@ -511,18 +425,8 @@ export default function Index() {
 																		strokeLinejoin="round"
 																	>
 																		<>
-																			<path
-																				stroke="none"
-																				d="M0 0h24v24H0z"
-																				fill="none"
-																			/>
-																			<rect
-																				x="3"
-																				y="5"
-																				width="18"
-																				height="14"
-																				rx="2"
-																			/>
+																			<path stroke="none" d="M0 0h24v24H0z" fill="none" />
+																			<rect x="3" y="5" width="18" height="14" rx="2" />
 																			<polyline points="3 7 12 13 21 7" />
 																		</>
 																	</svg>
@@ -530,19 +434,10 @@ export default function Index() {
 															</div>
 															<div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
 																<div>
-																	<p className="text-sm text-neutral-500">
-																		Transactional email {email.subject}{" "}
-																		delivered
-																	</p>
+																	<p className="text-sm text-neutral-500">Transactional email {email.subject} delivered</p>
 																</div>
 																<div className="whitespace-nowrap text-right text-sm text-neutral-500">
-																	<time
-																		dateTime={dayjs(t.createdAt).format(
-																			"YYYY-MM-DD",
-																		)}
-																	>
-																		{dayjs().to(t.createdAt)}
-																	</time>
+																	<time dateTime={dayjs(t.createdAt).format("YYYY-MM-DD")}>{dayjs().to(t.createdAt)}</time>
 																</div>
 															</div>
 														</div>
@@ -555,14 +450,8 @@ export default function Index() {
 											return (
 												<li>
 													<div className="relative pb-8">
-														{contact.triggers.length +
-															contact.emails.length -
-															1 !==
-															index && (
-															<span
-																className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-neutral-200"
-																aria-hidden="true"
-															/>
+														{contact.triggers.length + contact.emails.length - 1 !== index && (
+															<span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-neutral-200" aria-hidden="true" />
 														)}
 
 														<div className="relative flex space-x-3">
@@ -588,18 +477,10 @@ export default function Index() {
 															</div>
 															<div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
 																<div>
-																	<p className="text-sm text-neutral-500">
-																		{t.action.name} triggered
-																	</p>
+																	<p className="text-sm text-neutral-500">{t.action.name} triggered</p>
 																</div>
 																<div className="whitespace-nowrap text-right text-sm text-neutral-500">
-																	<time
-																		dateTime={dayjs(t.createdAt).format(
-																			"YYYY-MM-DD",
-																		)}
-																	>
-																		{dayjs().to(t.createdAt)}
-																	</time>
+																	<time dateTime={dayjs(t.createdAt).format("YYYY-MM-DD")}>{dayjs().to(t.createdAt)}</time>
 																</div>
 															</div>
 														</div>
@@ -612,14 +493,8 @@ export default function Index() {
 											return (
 												<li>
 													<div className="relative pb-8">
-														{contact.triggers.length +
-															contact.emails.length -
-															1 !==
-															index && (
-															<span
-																className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-neutral-200"
-																aria-hidden="true"
-															/>
+														{contact.triggers.length + contact.emails.length - 1 !== index && (
+															<span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-neutral-200" aria-hidden="true" />
 														)}
 														<div className="relative flex space-x-3">
 															<div>
@@ -637,36 +512,17 @@ export default function Index() {
 																		>
 																			{t.event.name.includes("delivered") ? (
 																				<>
-																					<path
-																						stroke="none"
-																						d="M0 0h24v24H0z"
-																						fill="none"
-																					/>
-																					<rect
-																						x="3"
-																						y="5"
-																						width="18"
-																						height="14"
-																						rx="2"
-																					/>
+																					<path stroke="none" d="M0 0h24v24H0z" fill="none" />
+																					<rect x="3" y="5" width="18" height="14" rx="2" />
 																					<polyline points="3 7 12 13 21 7" />
 																				</>
 																			) : (
 																				<>
-																					<path
-																						stroke="none"
-																						d="M0 0h24v24H0z"
-																						fill="none"
-																					/>
+																					<path stroke="none" d="M0 0h24v24H0z" fill="none" />
 																					<polyline points="3 9 12 15 21 9 12 3 3 9" />
 																					<path d="M21 9v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10" />
 																					<line x1="3" y1="19" x2="9" y2="13" />
-																					<line
-																						x1="15"
-																						y1="13"
-																						x2="21"
-																						y2="19"
-																					/>
+																					<line x1="15" y1="13" x2="21" y2="19" />
 																				</>
 																			)}
 																		</svg>
@@ -685,20 +541,8 @@ export default function Index() {
 																			<path d="M13 9h5" />
 																			<path d="M13 15h8" />
 																			<path d="M13 19h5" />
-																			<rect
-																				x="3"
-																				y="4"
-																				width="6"
-																				height="6"
-																				rx="1"
-																			/>
-																			<rect
-																				x="3"
-																				y="14"
-																				width="6"
-																				height="6"
-																				rx="1"
-																			/>
+																			<rect x="3" y="4" width="6" height="6" rx="1" />
+																			<rect x="3" y="14" width="6" height="6" rx="1" />
 																		</svg>
 																	) : (
 																		<svg
@@ -713,13 +557,7 @@ export default function Index() {
 																		>
 																			<path d="M8 9l3 3l-3 3" />
 																			<line x1="13" y1="15" x2="16" y2="15" />
-																			<rect
-																				x="3"
-																				y="4"
-																				width="18"
-																				height="16"
-																				rx="2"
-																			/>
+																			<rect x="3" y="4" width="18" height="16" rx="2" />
 																		</svg>
 																	)}
 																</span>
@@ -745,13 +583,7 @@ export default function Index() {
 																	</p>
 																</div>
 																<div className="whitespace-nowrap text-right text-sm text-neutral-500">
-																	<time
-																		dateTime={dayjs(t.createdAt).format(
-																			"YYYY-MM-DD",
-																		)}
-																	>
-																		{dayjs().to(t.createdAt)}
-																	</time>
+																	<time dateTime={dayjs(t.createdAt).format("YYYY-MM-DD")}>{dayjs().to(t.createdAt)}</time>
 																</div>
 															</div>
 														</div>
@@ -763,12 +595,7 @@ export default function Index() {
 							</ul>
 						</div>
 					) : (
-						<Empty
-							title={"No triggers"}
-							description={
-								"This contact has not yet triggered any events or actions"
-							}
-						/>
+						<Empty title={"No triggers"} description={"This contact has not yet triggered any events or actions"} />
 					)}
 				</Card>
 			</Dashboard>

@@ -25,11 +25,7 @@ export interface IKey {
  * @param res
  * @param next
  */
-export const isAuthenticated = (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-) => {
+export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
 	res.locals.auth = { type: "jwt", userId: parseJwt(req) };
 
 	next();
@@ -41,11 +37,7 @@ export const isAuthenticated = (
  * @param res
  * @param next
  */
-export const isValidSecretKey = (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-) => {
+export const isValidSecretKey = (req: Request, res: Response, next: NextFunction) => {
 	res.locals.auth = { type: "secret", sk: parseBearer(req, "secret") };
 
 	next();
@@ -118,10 +110,7 @@ export function parseJwt(request: Request): string {
  * @param request The express request object
  * @param type
  */
-export function parseBearer(
-	request: Request,
-	type?: "secret" | "public",
-): string {
+export function parseBearer(request: Request, type?: "secret" | "public"): string {
 	const bearer: string | undefined = request.headers.authorization;
 
 	if (!bearer) {
@@ -135,17 +124,11 @@ export function parseBearer(
 	const split = bearer.split(" ");
 
 	if (!(split[0] === "Bearer") || split.length > 2) {
-		throw new HttpException(
-			401,
-			"Your authorization header is malformed. Please pass your API key as Bearer sk_...",
-		);
+		throw new HttpException(401, "Your authorization header is malformed. Please pass your API key as Bearer sk_...");
 	}
 
 	if (!type && !split[1].startsWith("sk_") && !split[1].startsWith("pk_")) {
-		throw new HttpException(
-			401,
-			"Your API key could not be parsed. API keys start with sk_ or pk_",
-		);
+		throw new HttpException(401, "Your API key could not be parsed. API keys start with sk_ or pk_");
 	}
 
 	if (!type) {
@@ -153,10 +136,7 @@ export function parseBearer(
 	}
 
 	if (type === "secret" && split[1].startsWith("pk_")) {
-		throw new HttpException(
-			401,
-			"You attached a public key but this route may only be accessed with a secret key",
-		);
+		throw new HttpException(401, "You attached a public key but this route may only be accessed with a secret key");
 	}
 
 	if (type === "secret" && !split[1].startsWith("sk_")) {

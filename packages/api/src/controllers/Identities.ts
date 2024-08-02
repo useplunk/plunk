@@ -8,12 +8,7 @@ import { type IJwt, isAuthenticated } from "../middleware/auth";
 import { ProjectService } from "../services/ProjectService";
 import { Keys } from "../services/keys";
 import { redis } from "../services/redis";
-import {
-	getIdentities,
-	getIdentityVerificationAttributes,
-	ses,
-	verifyIdentity,
-} from "../util/ses";
+import { getIdentities, getIdentityVerificationAttributes, ses, verifyIdentity } from "../util/ses";
 
 @Controller("identities")
 export class Identities {
@@ -117,14 +112,10 @@ export class Identities {
 				take: 99,
 			});
 
-			const awsIdentities = await getIdentities(
-				dbIdentities.map((i) => i.email as string),
-			);
+			const awsIdentities = await getIdentities(dbIdentities.map((i) => i.email as string));
 
 			for (const identity of awsIdentities) {
-				const projectId = dbIdentities.find((i) =>
-					i.email?.endsWith(identity.email),
-				);
+				const projectId = dbIdentities.find((i) => i.email?.endsWith(identity.email));
 
 				const project = await ProjectService.id(projectId?.id as string);
 

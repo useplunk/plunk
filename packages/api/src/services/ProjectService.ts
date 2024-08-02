@@ -51,11 +51,7 @@ export class ProjectService {
 			return wrapRedis(Keys.Project.emails(id), async () => {
 				return prisma.email.findMany({
 					where: {
-						OR: [
-							{ action: { projectId: id } },
-							{ campaign: { projectId: id } },
-							{ projectId: id },
-						],
+						OR: [{ action: { projectId: id } }, { campaign: { projectId: id } }, { projectId: id }],
 					},
 					orderBy: { createdAt: "desc" },
 				});
@@ -107,9 +103,7 @@ export class ProjectService {
 
 	public static memberships(id: string) {
 		return wrapRedis(Keys.Project.memberships(id), async () => {
-			const memberships = await prisma.project
-				.findUnique({ where: { id } })
-				.memberships({ include: { user: true } });
+			const memberships = await prisma.project.findUnique({ where: { id } }).memberships({ include: { user: true } });
 
 			if (!memberships) {
 				return [];
@@ -127,31 +121,23 @@ export class ProjectService {
 
 	public static metadata(id: string) {
 		return wrapRedis(Keys.Project.metadata(id), async () => {
-			const contacts = await prisma.project
-				.findUnique({ where: { id } })
-				.contacts({
-					where: {
-						data: {
-							not: null,
-						},
+			const contacts = await prisma.project.findUnique({ where: { id } }).contacts({
+				where: {
+					data: {
+						not: null,
 					},
-					distinct: ["data"],
-					select: {
-						data: true,
-					},
-				});
+				},
+				distinct: ["data"],
+				select: {
+					data: true,
+				},
+			});
 
 			if (!contacts) {
 				return [];
 			}
 
-			return [
-				...new Set(
-					contacts
-						.filter((c) => c.data)
-						.flatMap((c) => Object.keys(JSON.parse(c.data as string))),
-				),
-			];
+			return [...new Set(contacts.filter((c) => c.data).flatMap((c) => Object.keys(JSON.parse(c.data as string))))];
 		});
 	}
 

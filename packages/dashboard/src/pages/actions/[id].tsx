@@ -11,22 +11,9 @@ import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { type FieldError, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import {
-	Badge,
-	Card,
-	Dropdown,
-	Empty,
-	FullscreenLoader,
-	Input,
-	MultiselectDropdown,
-	Toggle,
-} from "../../components";
+import { Badge, Card, Dropdown, Empty, FullscreenLoader, Input, MultiselectDropdown, Toggle } from "../../components";
 import { Dashboard } from "../../layouts";
-import {
-	useAction,
-	useActions,
-	useRelatedActions,
-} from "../../lib/hooks/actions";
+import { useAction, useActions, useRelatedActions } from "../../lib/hooks/actions";
 import { useActiveProject } from "../../lib/hooks/projects";
 import { network } from "../../lib/network";
 
@@ -120,15 +107,10 @@ export default function Index() {
 
 	const updateAction = (data: ActionValues) => {
 		toast.promise(
-			network.mock<Action, typeof ActionSchemas.update>(
-				project.secret,
-				"PUT",
-				"/v1/actions",
-				{
-					id: action.id,
-					...data,
-				},
-			),
+			network.mock<Action, typeof ActionSchemas.update>(project.secret, "PUT", "/v1/actions", {
+				id: action.id,
+				...data,
+			}),
 			{
 				loading: "Saving your action",
 				success: () => {
@@ -143,14 +125,9 @@ export default function Index() {
 	const remove = async (e: { preventDefault: () => void }) => {
 		e.preventDefault();
 		toast.promise(
-			network.mock<Action, typeof UtilitySchemas.id>(
-				project.secret,
-				"DELETE",
-				"/v1/actions",
-				{
-					id: action.id,
-				},
-			),
+			network.mock<Action, typeof UtilitySchemas.id>(project.secret, "DELETE", "/v1/actions", {
+				id: action.id,
+			}),
 			{
 				loading: "Deleting your action",
 				success: () => {
@@ -192,43 +169,24 @@ export default function Index() {
 										strokeWidth="1.5"
 										d="M9.75 7.5V6.75C9.75 5.64543 10.6454 4.75 11.75 4.75H12.25C13.3546 4.75 14.25 5.64543 14.25 6.75V7.5"
 									/>
-									<path
-										stroke="currentColor"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth="1.5"
-										d="M5 7.75H19"
-									/>
+									<path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 7.75H19" />
 								</svg>
 								Delete
 							</button>
 						</>
 					}
 				>
-					<form
-						onSubmit={handleSubmit(updateAction)}
-						className="mx-auto my-3 max-w-xl space-y-6"
-					>
-						<Input
-							label={"Name"}
-							placeholder={"Onboarding Flow"}
-							register={register("name")}
-							error={errors.name}
-						/>
+					<form onSubmit={handleSubmit(updateAction)} className="mx-auto my-3 max-w-xl space-y-6">
+						<Input label={"Name"} placeholder={"Onboarding Flow"} register={register("name")} error={errors.name} />
 
 						<div>
-							<label
-								htmlFor={"events"}
-								className="block text-sm font-medium text-neutral-800"
-							>
+							<label htmlFor={"events"} className="block text-sm font-medium text-neutral-800">
 								Run on triggers
 							</label>
 							<MultiselectDropdown
 								onChange={(e) => setValue("events", e)}
 								values={events
-									.filter(
-										(e) => !e.campaignId && !watch("notevents").includes(e.id),
-									)
+									.filter((e) => !e.campaignId && !watch("notevents").includes(e.id))
 									.sort((a, b) => {
 										if (a.templateId && !b.templateId) {
 											return 1;
@@ -246,10 +204,7 @@ export default function Index() {
 											return -1;
 										}
 
-										if (
-											a.name.includes("delivered") &&
-											!b.name.includes("delivered")
-										) {
+										if (a.name.includes("delivered") && !b.name.includes("delivered")) {
 											return -1;
 										}
 
@@ -285,18 +240,13 @@ export default function Index() {
 						</div>
 
 						<div>
-							<label
-								htmlFor={"events"}
-								className="block text-sm font-medium text-neutral-800"
-							>
+							<label htmlFor={"events"} className="block text-sm font-medium text-neutral-800">
 								Exclude contacts with triggers
 							</label>
 							<MultiselectDropdown
 								onChange={(e) => setValue("notevents", e)}
 								values={events
-									.filter(
-										(e) => !e.campaignId && !watch("events").includes(e.id),
-									)
+									.filter((e) => !e.campaignId && !watch("events").includes(e.id))
 									.sort((a, b) => {
 										if (a.templateId && !b.templateId) {
 											return 1;
@@ -314,10 +264,7 @@ export default function Index() {
 											return -1;
 										}
 
-										if (
-											a.name.includes("delivered") &&
-											!b.name.includes("delivered")
-										) {
+										if (a.name.includes("delivered") && !b.name.includes("delivered")) {
 											return -1;
 										}
 
@@ -353,10 +300,7 @@ export default function Index() {
 						</div>
 
 						<div>
-							<label
-								htmlFor={"template"}
-								className="block text-sm font-medium text-neutral-800"
-							>
+							<label htmlFor={"template"} className="block text-sm font-medium text-neutral-800">
 								Template
 							</label>
 							<div className={"grid gap-6 sm:grid-cols-6"}>
@@ -381,11 +325,7 @@ export default function Index() {
 										)}
 									</AnimatePresence>
 								</div>
-								<Link
-									href={`/templates/${action.templateId}`}
-									passHref
-									className={"sm:col-span-2"}
-								>
+								<Link href={`/templates/${action.templateId}`} passHref className={"sm:col-span-2"}>
 									<motion.button
 										whileHover={{ scale: 1.05 }}
 										whileTap={{ scale: 0.9 }}
@@ -416,10 +356,7 @@ export default function Index() {
 						</div>
 
 						<div>
-							<label
-								htmlFor={"template"}
-								className="block text-sm font-medium text-neutral-800"
-							>
+							<label htmlFor={"template"} className="block text-sm font-medium text-neutral-800">
 								Delay before sending
 							</label>
 							<div className={"grid grid-cols-6 gap-4"}>
@@ -463,9 +400,7 @@ export default function Index() {
 						<div>
 							<Toggle
 								title={"Run once"}
-								description={
-									"Toggle this on if you want to run this action only once per contact."
-								}
+								description={"Toggle this on if you want to run this action only once per contact."}
 								toggled={watch("runOnce")}
 								onToggle={() => setValue("runOnce", !watch("runOnce"))}
 							/>
@@ -515,11 +450,7 @@ export default function Index() {
 								.map((r) => {
 									return (
 										<Link href={`/actions/${r.id}`} key={r.id}>
-											<div
-												className={
-													"flex items-center gap-6 rounded border border-solid border-neutral-200 bg-white px-8 py-4"
-												}
-											>
+											<div className={"flex items-center gap-6 rounded border border-solid border-neutral-200 bg-white px-8 py-4"}>
 												<div>
 													<span className="inline-flex rounded bg-neutral-100 p-4 text-neutral-800 ring-4 ring-white">
 														<svg
@@ -534,48 +465,24 @@ export default function Index() {
 																strokeWidth={"1.5"}
 																d="M16 21h3c.81 0 1.48 -.67 1.48 -1.48l.02 -.02c0 -.82 -.69 -1.5 -1.5 -1.5h-3v3z"
 															/>
-															<path
-																strokeWidth={"1.5"}
-																d="M16 15h2.5c.84 -.01 1.5 .66 1.5 1.5s-.66 1.5 -1.5 1.5h-2.5v-3z"
-															/>
-															<path
-																strokeWidth={"1.5"}
-																d="M4 9v-4c0 -1.036 .895 -2 2 -2s2 .964 2 2v4"
-															/>
-															<path
-																strokeWidth={"1.5"}
-																d="M2.99 11.98a9 9 0 0 0 9 9m9 -9a9 9 0 0 0 -9 -9"
-															/>
+															<path strokeWidth={"1.5"} d="M16 15h2.5c.84 -.01 1.5 .66 1.5 1.5s-.66 1.5 -1.5 1.5h-2.5v-3z" />
+															<path strokeWidth={"1.5"} d="M4 9v-4c0 -1.036 .895 -2 2 -2s2 .964 2 2v4" />
+															<path strokeWidth={"1.5"} d="M2.99 11.98a9 9 0 0 0 9 9m9 -9a9 9 0 0 0 -9 -9" />
 															<path strokeWidth={"1.5"} d="M8 7h-4" />
 														</svg>
 													</span>
 												</div>
 												<div className={"text-sm"}>
-													<p
-														className={
-															"text-base font-semibold leading-tight text-neutral-800"
-														}
-													>
-														{r.name}
-													</p>
+													<p className={"text-base font-semibold leading-tight text-neutral-800"}>{r.name}</p>
 													<p className={"text-neutral-500"}>
 														Runs after{" "}
 														{r.events
-															.filter(
-																(e) =>
-																	action.events.filter(
-																		(a: { id: string }) => a.id === e.id,
-																	).length > 0,
-															)
+															.filter((e) => action.events.filter((a: { id: string }) => a.id === e.id).length > 0)
 															.map((e) => e.name)}{" "}
 														and{" "}
 														{
 															r.events.filter((e) => {
-																return (
-																	action.events.filter(
-																		(a: { id: string }) => a.id === e.id,
-																	).length === 0
-																);
+																return action.events.filter((a: { id: string }) => a.id === e.id).length === 0;
 															}).length
 														}{" "}
 														other events
@@ -600,10 +507,7 @@ export default function Index() {
 								})
 						) : (
 							<div className={"sm:col-span-3"}>
-								<Empty
-									title={"No related actions"}
-									description={"Easy access to all actions that share events"}
-								/>
+								<Empty title={"No related actions"} description={"Easy access to all actions that share events"} />
 							</div>
 						)}
 					</div>

@@ -18,9 +18,7 @@ export default function Index() {
 	const project = useActiveProject();
 	const { data: user } = useUser();
 	const { data: emails, mutate } = useEmailsCount();
-	const [language, setLanguage] = useState<
-		"javascript" | "python" | "curl" | "PHP" | "ruby"
-	>("curl");
+	const [language, setLanguage] = useState<"javascript" | "python" | "curl" | "PHP" | "ruby">("curl");
 
 	if (!project || !user || emails === undefined) {
 		return <FullscreenLoader />;
@@ -28,11 +26,7 @@ export default function Index() {
 
 	return (
 		<>
-			<div
-				className={
-					"flex min-h-screen w-screen flex-col items-center justify-center gap-6"
-				}
-			>
+			<div className={"flex min-h-screen w-screen flex-col items-center justify-center gap-6"}>
 				<div>
 					{emails > 0 ? (
 						<>
@@ -41,9 +35,7 @@ export default function Index() {
 								initial={{ opacity: 0, x: 100 }}
 								animate={{ opacity: 1, x: 0 }}
 								exit={{ opacity: 0, x: -100 }}
-								className={
-									"flex h-96 flex-col items-center justify-center text-center"
-								}
+								className={"flex h-96 flex-col items-center justify-center text-center"}
 							>
 								<motion.span
 									animate={{
@@ -55,15 +47,11 @@ export default function Index() {
 									🏎
 								</motion.span>
 								<h2 className={"my-4 text-2xl font-bold"}>Wasn't that easy?</h2>
-								<p className={"font-medium text-neutral-500"}>
-									Just like that you've sent your first email with Plunk!
-								</p>
+								<p className={"font-medium text-neutral-500"}>Just like that you've sent your first email with Plunk!</p>
 								<motion.button
 									whileHover={{ scale: 1.05 }}
 									whileTap={{ scale: 0.9 }}
-									className={
-										"mt-9 rounded-md bg-neutral-800 px-24 py-3 text-sm font-medium text-white"
-									}
+									className={"mt-9 rounded-md bg-neutral-800 px-24 py-3 text-sm font-medium text-white"}
 									onClick={async () => {
 										await router.push("/");
 									}}
@@ -93,22 +81,15 @@ export default function Index() {
 									</motion.span>
 									<h2 className={"my-4 text-4xl font-bold"}>Send it!</h2>
 									<div className={"max-w-2xl font-medium text-neutral-500"}>
-										<p>
-											Are you ready to send a transactional email with Plunk?
-										</p>
+										<p>Are you ready to send a transactional email with Plunk?</p>
 
-										<p>
-											Sending a transactional email is as easy as making a
-											single API call.
-										</p>
+										<p>Sending a transactional email is as easy as making a single API call.</p>
 									</div>
 								</div>
 
 								<div className={"w-full max-w-2xl space-y-3"}>
 									<Dropdown
-										onChange={(e) =>
-											setLanguage(e as "javascript" | "python" | "curl")
-										}
+										onChange={(e) => setLanguage(e as "javascript" | "python" | "curl")}
 										values={[
 											{ value: "curl", name: "cURL" },
 											{ name: "JavaScript", value: "javascript" },
@@ -191,21 +172,14 @@ response = https.request(request)`,
 								<motion.button
 									whileHover={{ scale: 1.05 }}
 									whileTap={{ scale: 0.9 }}
-									className={
-										"rounded-md bg-neutral-800 px-24 py-3 text-sm font-medium text-white"
-									}
+									className={"rounded-md bg-neutral-800 px-24 py-3 text-sm font-medium text-white"}
 									onClick={() => {
 										toast.promise(
-											network.mock<boolean, typeof EventSchemas.send>(
-												project.secret,
-												"POST",
-												"/v1/send",
-												{
-													subject: "Your first email",
-													body: "Hello from Plunk!",
-													to: user.email,
-												},
-											),
+											network.mock<boolean, typeof EventSchemas.send>(project.secret, "POST", "/v1/send", {
+												subject: "Your first email",
+												body: "Hello from Plunk!",
+												to: user.email,
+											}),
 											{
 												loading: "Sending the email",
 												success: () => {
@@ -226,9 +200,7 @@ response = https.request(request)`,
 
 				<div className={"fixed bottom-3 w-full bg-white text-center"}>
 					<span
-						className={
-							"cursor-pointer text-sm text-neutral-500 transition ease-in-out hover:text-neutral-700"
-						}
+						className={"cursor-pointer text-sm text-neutral-500 transition ease-in-out hover:text-neutral-700"}
 						onClick={async () => {
 							await router.push("/onboarding");
 						}}

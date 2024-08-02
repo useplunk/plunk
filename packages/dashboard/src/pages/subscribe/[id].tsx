@@ -23,9 +23,7 @@ export default function Index() {
 		id: router.query.id as string,
 		withProject: true,
 	});
-	const [submitted, setSubmitted] = useState<
-		"initial" | "loading" | "submitted"
-	>("initial");
+	const [submitted, setSubmitted] = useState<"initial" | "loading" | "submitted">("initial");
 
 	if (error) {
 		return <Redirect to={"/"} />;
@@ -39,14 +37,9 @@ export default function Index() {
 		setSubmitted("loading");
 
 		toast.promise(
-			network.mock<User, typeof UtilitySchemas.id>(
-				contact.project.public,
-				"POST",
-				"/v1/contacts/subscribe",
-				{
-					id: contact.id,
-				},
-			),
+			network.mock<User, typeof UtilitySchemas.id>(contact.project.public, "POST", "/v1/contacts/subscribe", {
+				id: contact.id,
+			}),
 			{
 				loading: "Subscribing...",
 				success: "Thank you for subscribing!",
@@ -71,16 +64,8 @@ export default function Index() {
 					},
 				]}
 			/>
-			<div
-				className={
-					"flex h-screen w-full flex-col items-center justify-center bg-neutral-50"
-				}
-			>
-				<div
-					className={
-						"w-3/4 rounded border border-neutral-200 bg-white p-12 shadow-sm md:w-2/4 xl:w-2/6"
-					}
-				>
+			<div className={"flex h-screen w-full flex-col items-center justify-center bg-neutral-50"}>
+				<div className={"w-3/4 rounded border border-neutral-200 bg-white p-12 shadow-sm md:w-2/4 xl:w-2/6"}>
 					{submitted === "submitted" ? (
 						<>
 							<motion.div className={"mb-3 flex items-center justify-center"}>
@@ -97,9 +82,7 @@ export default function Index() {
 									initial={{ pathLength: 0 }}
 									animate={{ pathLength: 1 }}
 									transition={{ duration: 0.3, delay: 0.2, ease: "easeInOut" }}
-									className={
-										"h-24 w-24 rounded-full bg-emerald-100 p-6 text-emerald-900"
-									}
+									className={"h-24 w-24 rounded-full bg-emerald-100 p-6 text-emerald-900"}
 								>
 									<motion.path
 										d="M20 6 9 17l-5-5"
@@ -114,26 +97,14 @@ export default function Index() {
 								</motion.svg>
 							</motion.div>
 
-							<h1
-								className={
-									"text-center text-2xl font-bold leading-tight text-neutral-800"
-								}
-							>
-								You have been subscribed!
-							</h1>
+							<h1 className={"text-center text-2xl font-bold leading-tight text-neutral-800"}>You have been subscribed!</h1>
 						</>
 					) : (
 						<>
-							<h1
-								className={
-									"text-center text-2xl font-bold leading-tight text-neutral-800"
-								}
-							>
-								Confirm your subscription?
-							</h1>
+							<h1 className={"text-center text-2xl font-bold leading-tight text-neutral-800"}>Confirm your subscription?</h1>
 							<p className={"mt-4 text-center text-sm text-neutral-500"}>
-								By confirming your subscription to {contact.project.name} for{" "}
-								{contact.email} you agree to receive emails from us.
+								By confirming your subscription to {contact.project.name} for {contact.email} you agree to receive emails from
+								us.
 							</p>
 							<div className="relative mt-2 w-full">
 								<motion.button
@@ -151,14 +122,7 @@ export default function Index() {
 											fill="none"
 											viewBox="0 0 24 24"
 										>
-											<circle
-												className="opacity-25"
-												cx="12"
-												cy="12"
-												r="10"
-												stroke="currentColor"
-												strokeWidth="4"
-											/>
+											<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 											<path
 												className="opacity-75"
 												fill="currentColor"

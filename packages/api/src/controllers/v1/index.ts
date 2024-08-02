@@ -1,21 +1,11 @@
-import {
-	ChildControllers,
-	Controller,
-	Middleware,
-	Post,
-} from "@overnightjs/core";
+import { ChildControllers, Controller, Middleware, Post } from "@overnightjs/core";
 import { EventSchemas } from "@plunk/shared";
 import dayjs from "dayjs";
 import type { Request, Response } from "express";
 import signale from "signale";
 import { prisma } from "../../database/prisma";
 import { HttpException, NotAllowed } from "../../exceptions";
-import {
-	type IKey,
-	type ISecret,
-	isValidKey,
-	isValidSecretKey,
-} from "../../middleware/auth";
+import { type IKey, type ISecret, isValidKey, isValidSecretKey } from "../../middleware/auth";
 import { ActionService } from "../../services/ActionService";
 import { ContactService } from "../../services/ContactService";
 import { EmailService } from "../../services/EmailService";
@@ -30,13 +20,7 @@ import { Events } from "./Events";
 import { Templates } from "./Templates";
 
 @Controller("v1")
-@ChildControllers([
-	new Actions(),
-	new Templates(),
-	new Campaigns(),
-	new Contacts(),
-	new Events(),
-])
+@ChildControllers([new Actions(), new Templates(), new Campaigns(), new Contacts(), new Events()])
 export class V1 {
 	@Post()
 	@Post("track")
@@ -53,14 +37,9 @@ export class V1 {
 		const result = EventSchemas.post.safeParse(req.body);
 
 		if (!result.success) {
-			signale.warn(
-				`${project.name} tried tracking an event with invalid data: ${JSON.stringify(req.body)}`,
-			);
+			signale.warn(`${project.name} tried tracking an event with invalid data: ${JSON.stringify(req.body)}`);
 			if ("unionErrors" in result.error.issues[0]) {
-				throw new HttpException(
-					400,
-					result.error.issues[0].unionErrors[0].errors[0].message,
-				);
+				throw new HttpException(400, result.error.issues[0].unionErrors[0].errors[0].message);
 			}
 
 			throw new HttpException(400, result.error.issues[0].message);
@@ -78,10 +57,7 @@ export class V1 {
 			event = await prisma.event.create({
 				data: { name, projectId: project.id },
 			});
-			redis.set(
-				Keys.Event.event(project.id, event.name),
-				JSON.stringify(event),
-			);
+			redis.set(Keys.Event.event(project.id, event.name), JSON.stringify(event));
 			redis.set(Keys.Event.id(event.id), JSON.stringify(event));
 
 			redis.del(Keys.Project.events(project.id, true));
@@ -139,9 +115,7 @@ export class V1 {
 
 		void ActionService.trigger({ event, contact, project });
 
-		signale.success(
-			`${project.name} triggered ${event.name} for ${contact.email}`,
-		);
+		signale.success(`${project.name} triggered ${event.name} for ${contact.email}`);
 
 		return res.status(200).json({
 			success: true,
@@ -166,30 +140,20 @@ export class V1 {
 
 		if (!result.success) {
 			if ("unionErrors" in result.error.issues[0]) {
-				throw new HttpException(
-					400,
-					result.error.issues[0].unionErrors[0].errors[0].message,
-				);
+				throw new HttpException(400, result.error.issues[0].unionErrors[0].errors[0].message);
 			}
 
 			throw new HttpException(400, result.error.issues[0].message);
 		}
 
-		const { from, name, reply, to, subject, body, subscribed, headers } =
-			result.data;
+		const { from, name, reply, to, subject, body, subscribed, headers } = result.data;
 
 		if (!project.email || !project.verified) {
-			throw new HttpException(
-				401,
-				"Verify your domain before you start sending",
-			);
+			throw new HttpException(401, "Verify your domain before you start sending");
 		}
 
 		if (from && from.split("@")[1] !== project.email?.split("@")[1]) {
-			throw new HttpException(
-				401,
-				"Custom from address must be from a verified domain",
-			);
+			throw new HttpException(401, "Custom from address must be from a verified domain");
 		}
 
 		const emails: {
@@ -231,16 +195,15 @@ export class V1 {
 				}
 			}
 
-			const { subject: enrichedSubject, body: enrichedBody } =
-				EmailService.format({
-					subject,
-					body,
-					data: {
-						plunk_id: contact.id,
-						plunk_email: contact.email,
-						...JSON.parse(contact.data ?? "{}"),
-					},
-				});
+			const { subject: enrichedSubject, body: enrichedBody } = EmailService.format({
+				subject,
+				body,
+				data: {
+					plunk_id: contact.id,
+					plunk_email: contact.email,
+					...JSON.parse(contact.data ?? "{}"),
+				},
+			});
 
 			const { messageId } = await EmailService.send({
 				from: {
@@ -287,12 +250,8 @@ export class V1 {
 		redis.del(Keys.Project.emails(project.id));
 		redis.del(Keys.Project.emails(project.id, { count: true }));
 
-		signale.success(
-			`${project.name} sent a transactional email to ${to.join(", ")}`,
-		);
+		signale.success(`${project.name} sent a transactional email to ${to.join(", ")}`);
 
-		return res
-			.status(200)
-			.json({ success: true, emails, timestamp: dayjs().toISOString() });
+		return res.status(200).json({ success: true, emails, timestamp: dayjs().toISOString() });
 	}
 }

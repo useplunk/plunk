@@ -43,33 +43,24 @@ export class SNSWebhook {
 			// The email was a transactional email
 			if (email.projectId) {
 				if (body.eventType === "Click") {
-					signale.success(
-						`Click received for ${email.contact.email} from ${project.name}`,
-					);
+					signale.success(`Click received for ${email.contact.email} from ${project.name}`);
 					await prisma.click.create({
 						data: { emailId: email.id, link: body.click.link },
 					});
 				}
 
 				if (body.eventType === "Complaint") {
-					signale.warn(
-						`Complaint received for ${email.contact.email} from ${project.name}`,
-					);
+					signale.warn(`Complaint received for ${email.contact.email} from ${project.name}`);
 				}
 
 				if (body.eventType === "Bounce") {
-					signale.warn(
-						`Bounce received for ${email.contact.email} from ${project.name}`,
-					);
+					signale.warn(`Bounce received for ${email.contact.email} from ${project.name}`);
 				}
 
 				await prisma.email.update({
 					where: { messageId: body.mail.messageId },
 					data: {
-						status:
-							eventMap[
-								body.eventType as "Bounce" | "Delivery" | "Open" | "Complaint"
-							],
+						status: eventMap[body.eventType as "Bounce" | "Delivery" | "Open" | "Complaint"],
 					},
 				});
 
@@ -95,9 +86,7 @@ export class SNSWebhook {
 			}
 
 			if (body.eventType === "Click") {
-				signale.success(
-					`Click received for ${email.contact.email} from ${project.name}`,
-				);
+				signale.success(`Click received for ${email.contact.email} from ${project.name}`);
 
 				await prisma.click.create({
 					data: { emailId: email.id, link: body.click.link },
@@ -111,12 +100,7 @@ export class SNSWebhook {
 			if (email.action) {
 				event = email.action.template.events.find((e) =>
 					e.name.includes(
-						(body.eventType as
-							| "Bounce"
-							| "Delivery"
-							| "Open"
-							| "Complaint"
-							| "Click") === "Delivery"
+						(body.eventType as "Bounce" | "Delivery" | "Open" | "Complaint" | "Click") === "Delivery"
 							? "delivered"
 							: "opened",
 					),
@@ -126,12 +110,7 @@ export class SNSWebhook {
 			if (email.campaign) {
 				event = email.campaign.events.find((e) =>
 					e.name.includes(
-						(body.eventType as
-							| "Bounce"
-							| "Delivery"
-							| "Open"
-							| "Complaint"
-							| "Click") === "Delivery"
+						(body.eventType as "Bounce" | "Delivery" | "Open" | "Complaint" | "Click") === "Delivery"
 							? "delivered"
 							: "opened",
 					),
@@ -144,9 +123,7 @@ export class SNSWebhook {
 
 			switch (body.eventType as "Delivery" | "Open") {
 				case "Delivery":
-					signale.success(
-						`Delivery received for ${email.contact.email} from ${project.name}`,
-					);
+					signale.success(`Delivery received for ${email.contact.email} from ${project.name}`);
 					await prisma.email.update({
 						where: { messageId: body.mail.messageId },
 						data: { status: "DELIVERED" },
@@ -158,9 +135,7 @@ export class SNSWebhook {
 
 					break;
 				case "Open":
-					signale.success(
-						`Open received for ${email.contact.email} from ${project.name}`,
-					);
+					signale.success(`Open received for ${email.contact.email} from ${project.name}`);
 					await prisma.email.update({
 						where: { messageId: body.mail.messageId },
 						data: { status: "OPENED" },

@@ -1,22 +1,9 @@
-import { randomBytes } from "node:crypto";
-import {
-	Controller,
-	Delete,
-	Get,
-	Middleware,
-	Post,
-	Put,
-} from "@overnightjs/core";
+import { Controller, Delete, Get, Middleware, Post, Put } from "@overnightjs/core";
 import { TemplateSchemas, UtilitySchemas } from "@plunk/shared";
 import type { Request, Response } from "express";
 import { prisma } from "../../database/prisma";
 import { NotAllowed, NotFound } from "../../exceptions";
-import {
-	type IJwt,
-	type ISecret,
-	isAuthenticated,
-	isValidSecretKey,
-} from "../../middleware/auth";
+import { type IJwt, type ISecret, isAuthenticated, isValidSecretKey } from "../../middleware/auth";
 import { MembershipService } from "../../services/MembershipService";
 import { ProjectService } from "../../services/ProjectService";
 import { TemplateService } from "../../services/TemplateService";
@@ -38,10 +25,7 @@ export class Templates {
 			throw new NotFound("template");
 		}
 
-		const isMember = await MembershipService.isMember(
-			template.projectId,
-			userId,
-		);
+		const isMember = await MembershipService.isMember(template.projectId, userId);
 
 		if (!isMember) {
 			throw new NotFound("template");
@@ -117,9 +101,7 @@ export class Templates {
 			throw new NotFound("project");
 		}
 
-		const { subject, body, type, style } = TemplateSchemas.create.parse(
-			req.body,
-		);
+		const { subject, body, type, style } = TemplateSchemas.create.parse(req.body);
 
 		const template = await prisma.template.create({
 			data: {
@@ -169,9 +151,7 @@ export class Templates {
 			throw new NotFound("project");
 		}
 
-		const { id, subject, body, type, style } = TemplateSchemas.update.parse(
-			req.body,
-		);
+		const { id, subject, body, type, style } = TemplateSchemas.update.parse(req.body);
 
 		let template = await TemplateService.id(id);
 
@@ -238,9 +218,7 @@ export class Templates {
 		const actions = await TemplateService.actions(id);
 
 		if (actions && actions.length > 0) {
-			throw new NotAllowed(
-				"This template is being used by an action. Unlink the action before deleting the template.",
-			);
+			throw new NotAllowed("This template is being used by an action. Unlink the action before deleting the template.");
 		}
 
 		await prisma.template.delete({ where: { id } });

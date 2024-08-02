@@ -1,22 +1,10 @@
-import {
-	Controller,
-	Delete,
-	Get,
-	Middleware,
-	Post,
-	Put,
-} from "@overnightjs/core";
+import { Controller, Delete, Get, Middleware, Post, Put } from "@overnightjs/core";
 import { CampaignSchemas, UtilitySchemas } from "@plunk/shared";
 import dayjs from "dayjs";
 import type { Request, Response } from "express";
 import { prisma } from "../../database/prisma";
 import { HttpException, NotFound } from "../../exceptions";
-import {
-	type IJwt,
-	type ISecret,
-	isAuthenticated,
-	isValidSecretKey,
-} from "../../middleware/auth";
+import { type IJwt, type ISecret, isAuthenticated, isValidSecretKey } from "../../middleware/auth";
 import { CampaignService } from "../../services/CampaignService";
 import { EmailService } from "../../services/EmailService";
 import { MembershipService } from "../../services/MembershipService";
@@ -39,10 +27,7 @@ export class Campaigns {
 			throw new NotFound("campaign");
 		}
 
-		const isMember = await MembershipService.isMember(
-			campaign.projectId,
-			userId,
-		);
+		const isMember = await MembershipService.isMember(campaign.projectId, userId);
 
 		if (!isMember) {
 			throw new NotFound("campaign");
@@ -122,10 +107,7 @@ export class Campaigns {
 			await EmailService.send({
 				from: {
 					name: project.from ?? project.name,
-					email:
-						project.verified && project.email
-							? project.email
-							: "no-reply@useplunk.dev",
+					email: project.verified && project.email ? project.email : "no-reply@useplunk.dev",
 				},
 				to: members.map((m) => m.email),
 				content: {
@@ -197,9 +179,7 @@ export class Campaigns {
 			throw new NotFound("project");
 		}
 
-		let { subject, body, recipients, style } = CampaignSchemas.create.parse(
-			req.body,
-		);
+		let { subject, body, recipients, style } = CampaignSchemas.create.parse(req.body);
 
 		if (recipients.length === 1 && recipients[0] === "all") {
 			const projectContacts = await prisma.contact.findMany({
@@ -251,9 +231,7 @@ export class Campaigns {
 		}
 
 		// eslint-disable-next-line prefer-const
-		let { id, subject, body, recipients, style } = CampaignSchemas.update.parse(
-			req.body,
-		);
+		let { id, subject, body, recipients, style } = CampaignSchemas.update.parse(req.body);
 
 		if (recipients.length === 1 && recipients[0] === "all") {
 			const projectContacts = await prisma.contact.findMany({

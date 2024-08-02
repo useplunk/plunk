@@ -60,9 +60,7 @@ export default function Index() {
 	const [advancedSettings, setAdvancedSettings] = useState(false);
 	const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
 
-	const [language, setLanguage] = useState<
-		"javascript" | "python" | "curl" | "PHP" | "ruby"
-	>("curl");
+	const [language, setLanguage] = useState<"javascript" | "python" | "curl" | "PHP" | "ruby">("curl");
 	const [delay, setDelay] = useState<{
 		delay: number;
 		unit: "MINUTES" | "HOURS" | "DAYS";
@@ -135,16 +133,11 @@ export default function Index() {
 
 	const triggerEvent = (data: EventValues) => {
 		toast.promise(
-			network.mock<boolean, typeof EventSchemas.post>(
-				activeProject.secret,
-				"POST",
-				"/v1/track",
-				{
-					event: data.event,
-					email: user.email,
-					subscribed: true,
-				},
-			),
+			network.mock<boolean, typeof EventSchemas.post>(activeProject.secret, "POST", "/v1/track", {
+				event: data.event,
+				email: user.email,
+				subscribed: true,
+			}),
 			{
 				loading: "Sending your event",
 				success: () => {
@@ -160,14 +153,9 @@ export default function Index() {
 
 	const createTemplate = (data: TemplateValues) => {
 		toast.promise(
-			network.mock<Template, typeof TemplateSchemas.create>(
-				activeProject.secret,
-				"POST",
-				"/v1/templates",
-				{
-					...data,
-				},
-			),
+			network.mock<Template, typeof TemplateSchemas.create>(activeProject.secret, "POST", "/v1/templates", {
+				...data,
+			}),
 			{
 				loading: "Creating new template",
 				success: () => {
@@ -192,23 +180,14 @@ export default function Index() {
 						email: user.email,
 						data: {
 							project: activeProject.name,
-							firstEvent: events.sort(
-								(a, b) =>
-									new Date(a.createdAt).getTime() -
-									new Date(b.createdAt).getTime(),
-							)[0].name,
+							firstEvent: events.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0].name,
 						},
 					}),
 					headers: { "Content-Type": "application/json" },
 				}),
-				network.mock<Template, typeof ActionSchemas.create>(
-					activeProject.secret,
-					"POST",
-					"/v1/actions",
-					{
-						...data,
-					},
-				),
+				network.mock<Template, typeof ActionSchemas.create>(activeProject.secret, "POST", "/v1/actions", {
+					...data,
+				}),
 			]),
 			{
 				loading: "Creating new action",
@@ -231,9 +210,7 @@ export default function Index() {
 							initial={{ opacity: 0, x: 100 }}
 							animate={{ opacity: 1, x: 0 }}
 							exit={{ opacity: 0, x: -100 }}
-							className={
-								"flex h-96 flex-col items-center justify-center text-center"
-							}
+							className={"flex h-96 flex-col items-center justify-center text-center"}
 						>
 							<motion.span
 								animate={{
@@ -249,9 +226,8 @@ export default function Index() {
 								<p>Are you ready to give Plunk Actions a spin?</p>
 
 								<p>
-									In this 3 step tutorial, we'll help you set up your first
-									email action so that you have an example on hand when you are
-									ready to start building your own.
+									In this 3 step tutorial, we'll help you set up your first email action so that you have an example on hand when
+									you are ready to start building your own.
 								</p>
 							</div>
 
@@ -259,9 +235,7 @@ export default function Index() {
 								whileTap={{ scale: 0.9 }}
 								whileHover={{ scale: 1.05 }}
 								onClick={() => setStep(1)}
-								className={
-									"mt-6 rounded bg-neutral-800 px-12 py-4 text-sm font-medium text-white"
-								}
+								className={"mt-6 rounded bg-neutral-800 px-12 py-4 text-sm font-medium text-white"}
 							>
 								Let's get started!
 							</motion.button>
@@ -276,9 +250,7 @@ export default function Index() {
 							initial={{ opacity: 0, x: 100 }}
 							animate={{ opacity: 1, x: 0 }}
 							exit={{ opacity: 0, x: -100 }}
-							className={
-								"flex h-96 flex-col items-center justify-center text-center"
-							}
+							className={"flex h-96 flex-col items-center justify-center text-center"}
 						>
 							<motion.span
 								animate={{
@@ -289,23 +261,11 @@ export default function Index() {
 							>
 								🎉
 							</motion.span>
-							<h2 className={"my-4 text-2xl font-bold"}>
-								Your event has successfully arrived
-							</h2>
+							<h2 className={"my-4 text-2xl font-bold"}>Your event has successfully arrived</h2>
 							<p className={"font-medium text-neutral-500 sm:w-1/2"}>
 								We have received your event{" "}
-								<span
-									className={
-										"rounded bg-neutral-50 px-2 py-0.5 font-mono text-neutral-600"
-									}
-								>
-									{
-										events.sort(
-											(a, b) =>
-												new Date(a.createdAt).getTime() -
-												new Date(b.createdAt).getTime(),
-										)[0].name
-									}
+								<span className={"rounded bg-neutral-50 px-2 py-0.5 font-mono text-neutral-600"}>
+									{events.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0].name}
 								</span>
 								, you are now ready to create your first email template!
 							</p>
@@ -313,9 +273,7 @@ export default function Index() {
 								whileHover={{ scale: 1.05 }}
 								whileTap={{ scale: 0.9 }}
 								onClick={() => setStep(2)}
-								className={
-									"mt-4 rounded-md bg-neutral-800 px-10 py-3 text-sm font-medium text-white"
-								}
+								className={"mt-4 rounded-md bg-neutral-800 px-10 py-3 text-sm font-medium text-white"}
 							>
 								Design an email
 							</motion.button>
@@ -330,29 +288,18 @@ export default function Index() {
 							exit={{ opacity: 0, x: -100 }}
 						>
 							<div className={"mx-auto my-6 max-w-xl text-center"}>
-								<h2 className={"my-2 text-2xl font-bold"}>
-									Track your first event
-								</h2>
+								<h2 className={"my-2 text-2xl font-bold"}>Track your first event</h2>
 								<p className={"font-medium text-neutral-500"}>
-									Actions start from events. You can call them whatever you want
-									and send them from anywhere using an API call.
+									Actions start from events. You can call them whatever you want and send them from anywhere using an API call.
 								</p>
 							</div>
 							<div className={"mt-8 grid gap-6 sm:grid-cols-3"}>
-								<div
-									className={
-										"border-b border-neutral-100 p-4 sm:col-span-2 sm:border-b-0 sm:border-r-2"
-									}
-								>
-									<h3 className={"text-center font-semibold text-neutral-800"}>
-										From your application
-									</h3>
+								<div className={"border-b border-neutral-100 p-4 sm:col-span-2 sm:border-b-0 sm:border-r-2"}>
+									<h3 className={"text-center font-semibold text-neutral-800"}>From your application</h3>
 									<div className={"mt-3 space-y-6"}>
 										<div>
 											<Dropdown
-												onChange={(e) =>
-													setLanguage(e as "javascript" | "python" | "curl")
-												}
+												onChange={(e) => setLanguage(e as "javascript" | "python" | "curl")}
 												values={[
 													{ value: "curl", name: "cURL" },
 													{ name: "JavaScript", value: "javascript" },
@@ -430,24 +377,14 @@ response = https.request(request)`,
 									</div>
 								</div>
 
-								<div
-									className={"flex flex-col items-center justify-center p-4"}
-								>
-									<h3 className={"text-center font-semibold text-neutral-800"}>
-										From Plunk
-									</h3>
-									<div
-										className={
-											"flex flex-1 flex-col items-center justify-center"
-										}
-									>
+								<div className={"flex flex-col items-center justify-center p-4"}>
+									<h3 className={"text-center font-semibold text-neutral-800"}>From Plunk</h3>
+									<div className={"flex flex-1 flex-col items-center justify-center"}>
 										<motion.button
 											whileHover={{ scale: 1.05 }}
 											whileTap={{ scale: 0.9 }}
 											onClick={() => setEventModal(true)}
-											className={
-												"mt-6 rounded-md bg-neutral-800 px-10 py-4 text-sm font-medium text-white"
-											}
+											className={"mt-6 rounded-md bg-neutral-800 px-10 py-4 text-sm font-medium text-white"}
 										>
 											Trigger a demo event
 										</motion.button>
@@ -469,20 +406,13 @@ response = https.request(request)`,
 							<div className={"mx-auto my-6 max-w-4xl text-center"}>
 								<h2 className={"my-2 text-2xl font-bold"}>Design an email</h2>
 								<p className={"font-medium text-neutral-500"}>
-									Our templates are easy to write and automatically transformed
-									into HTML that email clients understand.
+									Our templates are easy to write and automatically transformed into HTML that email clients understand.
 								</p>
 							</div>
 
-							<form
-								onSubmit={templateHandleSubmit(createTemplate)}
-								className={"grid gap-6 sm:grid-cols-6"}
-							>
+							<form onSubmit={templateHandleSubmit(createTemplate)} className={"grid gap-6 sm:grid-cols-6"}>
 								<div className={"sm:col-span-4"}>
-									<label
-										htmlFor={"subject"}
-										className="block text-sm font-medium text-neutral-700"
-									>
+									<label htmlFor={"subject"} className="block text-sm font-medium text-neutral-700">
 										Subject
 									</label>
 									<div className="mt-1">
@@ -511,38 +441,25 @@ response = https.request(request)`,
 								</div>
 
 								<div className={"sm:col-span-2"}>
-									<label
-										htmlFor={"type"}
-										className="block flex items-center text-sm font-medium text-neutral-700"
-									>
+									<label htmlFor={"type"} className="block flex items-center text-sm font-medium text-neutral-700">
 										Type
 										<Tooltip
 											content={
 												<>
-													<p className={"mb-2 text-base font-semibold"}>
-														What type of email is this?
-													</p>
+													<p className={"mb-2 text-base font-semibold"}>What type of email is this?</p>
 													<ul className={"list-inside"}>
 														<li className={"mb-6"}>
 															<span className={"font-semibold"}>Marketing</span>
 															<br />
-															Promotional emails with a Plunk-hosted unsubscribe
-															link
+															Promotional emails with a Plunk-hosted unsubscribe link
 															<br />
-															<span className={"text-neutral-400"}>
-																(e.g. welcome emails, promotions)
-															</span>
+															<span className={"text-neutral-400"}>(e.g. welcome emails, promotions)</span>
 														</li>
 														<li>
-															<span className={"font-semibold"}>
-																Transactional
-															</span>
+															<span className={"font-semibold"}>Transactional</span>
 															<br />
 															Mission critical emails <br />
-															<span className={"text-neutral-400"}>
-																{" "}
-																(e.g. email verification, password reset)
-															</span>
+															<span className={"text-neutral-400"}> (e.g. email verification, password reset)</span>
 														</li>
 													</ul>
 												</>
@@ -557,12 +474,7 @@ response = https.request(request)`,
 										/>
 									</label>
 									<Dropdown
-										onChange={(t) =>
-											templateSetValue(
-												"type",
-												t as "MARKETING" | "TRANSACTIONAL",
-											)
-										}
+										onChange={(t) => templateSetValue("type", t as "MARKETING" | "TRANSACTIONAL")}
 										values={[
 											{ name: "Marketing", value: "MARKETING" },
 											{ name: "Transactional", value: "TRANSACTIONAL" },
@@ -584,11 +496,7 @@ response = https.request(request)`,
 								</div>
 
 								<div className={"sm:col-span-6"}>
-									<Editor
-										value={templateWatch("body")}
-										mode={"PLUNK"}
-										onChange={(val) => templateSetValue("body", val)}
-									/>
+									<Editor value={templateWatch("body")} mode={"PLUNK"} onChange={(val) => templateSetValue("body", val)} />
 									<AnimatePresence>
 										{templateErrors.body?.message && (
 											<motion.p
@@ -640,9 +548,7 @@ response = https.request(request)`,
 							initial={{ opacity: 0, x: 100 }}
 							animate={{ opacity: 1, x: 0 }}
 							exit={{ opacity: 0, x: -100 }}
-							className={
-								"flex h-96 flex-col items-center justify-center text-center"
-							}
+							className={"flex h-96 flex-col items-center justify-center text-center"}
 						>
 							<motion.span
 								animate={{
@@ -653,45 +559,24 @@ response = https.request(request)`,
 							>
 								🏎
 							</motion.span>
-							<h2 className={"my-4 text-2xl font-bold"}>
-								Your action has been created
-							</h2>
+							<h2 className={"my-4 text-2xl font-bold"}>Your action has been created</h2>
 							<p className={"w-1/2 font-medium text-neutral-500"}>
-								Users will now automatically start to receive emails when they
-								complete your event{" "}
-								<span
-									className={
-										"rounded-md bg-neutral-50 px-2 py-0.5 font-mono text-neutral-500"
-									}
-								>
-									{
-										events.sort(
-											(a, b) =>
-												new Date(a.createdAt).getTime() -
-												new Date(b.createdAt).getTime(),
-										)[0].name
-									}
+								Users will now automatically start to receive emails when they complete your event{" "}
+								<span className={"rounded-md bg-neutral-50 px-2 py-0.5 font-mono text-neutral-500"}>
+									{events.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0].name}
 								</span>
-								. There is loads more to discover in Plunk but let's try out
-								your action first!
+								. There is loads more to discover in Plunk but let's try out your action first!
 							</p>
 							<motion.button
 								whileHover={{ scale: 1.05 }}
 								whileTap={{ scale: 0.9 }}
-								className={
-									"mt-9 rounded-md bg-neutral-800 px-24 py-3 text-sm font-medium text-white"
-								}
+								className={"mt-9 rounded-md bg-neutral-800 px-24 py-3 text-sm font-medium text-white"}
 								onClick={async () => {
 									toast.promise(
-										network.mock<boolean, typeof EventSchemas.post>(
-											activeProject.secret,
-											"POST",
-											"/v1/track",
-											{
-												event: eventGetValues("event"),
-												email: user.email,
-											},
-										),
+										network.mock<boolean, typeof EventSchemas.post>(activeProject.secret, "POST", "/v1/track", {
+											event: eventGetValues("event"),
+											email: user.email,
+										}),
 										{
 											loading: "Sending your event",
 											success: `${eventGetValues("event")} delivered`,
@@ -715,23 +600,14 @@ response = https.request(request)`,
 							key={"action"}
 						>
 							<div className={"mx-auto my-6 max-w-2xl text-center"}>
-								<h2 className={"my-2 text-2xl font-bold"}>
-									Creating your first action
-								</h2>
+								<h2 className={"my-2 text-2xl font-bold"}>Creating your first action</h2>
 								<p className={"font-medium text-neutral-500"}>
-									Actions tie together events and templates, they automate your
-									email workflows.
+									Actions tie together events and templates, they automate your email workflows.
 								</p>
 							</div>
-							<form
-								onSubmit={actionHandleSubmit(createAction)}
-								className="grid gap-4 space-y-6 pb-6 sm:grid-cols-2"
-							>
+							<form onSubmit={actionHandleSubmit(createAction)} className="grid gap-4 space-y-6 pb-6 sm:grid-cols-2">
 								<div className={"sm:col-span-2"}>
-									<label
-										htmlFor={"name"}
-										className="block text-sm font-medium text-neutral-700"
-									>
+									<label htmlFor={"name"} className="block text-sm font-medium text-neutral-700">
 										Name
 									</label>
 									<div className="mt-1">
@@ -760,10 +636,7 @@ response = https.request(request)`,
 								</div>
 
 								<div>
-									<label
-										htmlFor={"events"}
-										className="block text-sm font-medium text-neutral-700"
-									>
+									<label htmlFor={"events"} className="block text-sm font-medium text-neutral-700">
 										Events that need to be triggered
 									</label>
 									<MultiselectDropdown
@@ -774,28 +647,21 @@ response = https.request(request)`,
 										selectedValues={actionWatch("events")}
 									/>
 									<AnimatePresence>
-										{(actionErrors.events as FieldError | undefined)
-											?.message && (
+										{(actionErrors.events as FieldError | undefined)?.message && (
 											<motion.p
 												initial={{ height: 0 }}
 												animate={{ height: "auto" }}
 												exit={{ height: 0 }}
 												className="mt-1 text-xs text-red-500"
 											>
-												{
-													(actionErrors.events as FieldError | undefined)
-														?.message
-												}
+												{(actionErrors.events as FieldError | undefined)?.message}
 											</motion.p>
 										)}
 									</AnimatePresence>
 								</div>
 
 								<div>
-									<label
-										htmlFor={"template"}
-										className="block text-sm font-medium text-neutral-700"
-									>
+									<label htmlFor={"template"} className="block text-sm font-medium text-neutral-700">
 										Template that will be sent
 									</label>
 									<Dropdown
@@ -826,13 +692,9 @@ response = https.request(request)`,
 												e.preventDefault();
 												setAdvancedSettings(!advancedSettings);
 											}}
-											className={
-												"text-sm font-medium text-neutral-500 transition hover:text-neutral-700"
-											}
+											className={"text-sm font-medium text-neutral-500 transition hover:text-neutral-700"}
 										>
-											{advancedSettings
-												? "Hide advanced settings"
-												: "Show advanced settings"}
+											{advancedSettings ? "Hide advanced settings" : "Show advanced settings"}
 										</button>
 									</div>
 								}
@@ -847,10 +709,7 @@ response = https.request(request)`,
 											className={"sm:col-span-2"}
 										>
 											<div>
-												<label
-													htmlFor={"template"}
-													className="block text-sm font-medium text-neutral-700"
-												>
+												<label htmlFor={"template"} className="block text-sm font-medium text-neutral-700">
 													Delay before sending
 												</label>
 												<div className={"grid grid-cols-2 gap-4"}>
@@ -900,9 +759,7 @@ response = https.request(request)`,
 															: "This action will run each time the required events are triggered."
 													}
 													toggled={actionWatch("runOnce")}
-													onToggle={() =>
-														actionSetValue("runOnce", !actionWatch("runOnce"))
-													}
+													onToggle={() => actionSetValue("runOnce", !actionWatch("runOnce"))}
 												/>
 											</div>
 										</motion.div>
@@ -953,10 +810,7 @@ response = https.request(request)`,
 				description={"Trigger an event to use in your actions"}
 			>
 				<div>
-					<label
-						htmlFor={"event"}
-						className="block text-sm font-medium text-neutral-700"
-					>
+					<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
 						Event
 					</label>
 					<div className="mt-1">
@@ -1025,24 +879,18 @@ response = https.request(request)`,
 											step >= 3 ? "border-neutral-800" : "border-neutral-200"
 										} group flex flex-col border-l-4 py-2 pl-4 transition md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4`}
 									>
-										<span className="text-sm font-medium">
-											Create an action
-										</span>
+										<span className="text-sm font-medium">Create an action</span>
 									</span>
 								</li>
 							</ol>
 						</nav>
 					</div>
-					<div className={"mx-auto flex h-full flex-col items-center pt-16"}>
-						{renderStep()}
-					</div>
+					<div className={"mx-auto flex h-full flex-col items-center pt-16"}>{renderStep()}</div>
 				</div>
 				{step === 0 && (
 					<div className={"fixed bottom-3 w-full bg-white text-center"}>
 						<span
-							className={
-								"cursor-pointer text-sm text-neutral-500 transition ease-in-out hover:text-neutral-700"
-							}
+							className={"cursor-pointer text-sm text-neutral-500 transition ease-in-out hover:text-neutral-700"}
 							onClick={async () => {
 								await router.push("/onboarding");
 							}}

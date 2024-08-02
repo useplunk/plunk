@@ -82,22 +82,20 @@ server.app.use((req, res, next) => {
 	next();
 });
 
-server.app.use(
-	(error: Error, req: Request, res: Response, _next: NextFunction) => {
-		const code = error instanceof HttpException ? error.code : 500;
+server.app.use((error: Error, req: Request, res: Response, _next: NextFunction) => {
+	const code = error instanceof HttpException ? error.code : 500;
 
-		if (NODE_ENV !== "development") {
-			signale.error(error);
-		}
+	if (NODE_ENV !== "development") {
+		signale.error(error);
+	}
 
-		res.status(code).json({
-			code,
-			error: STATUS_CODES[code],
-			message: error.message,
-			time: Date.now(),
-		});
-	},
-);
+	res.status(code).json({
+		code,
+		error: STATUS_CODES[code],
+		message: error.message,
+		time: Date.now(),
+	});
+});
 
 void prisma.$connect().then(() => {
 	server.app.listen(4000, () => {

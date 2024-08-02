@@ -48,9 +48,7 @@ export default function Index() {
 
 	const project = useActiveProject();
 	const { mutate: campaignsMutate } = useCampaigns();
-	const { data: campaign, mutate: campaignMutate } = useCampaign(
-		router.query.id as string,
-	);
+	const { data: campaign, mutate: campaignMutate } = useCampaign(router.query.id as string);
 	const { data: contacts } = useContacts(0);
 	const { data: events } = useEventsWithoutTriggers();
 
@@ -63,7 +61,6 @@ export default function Index() {
 		notlast?: "day" | "week" | "month";
 	}>({});
 	const [confirmModal, setConfirmModal] = useState(false);
-	const [paymentModal, setPaymentModal] = useState(false);
 	const [advancedSelector, setSelector] = useState(false);
 	const [delay, setDelay] = useState(0);
 
@@ -90,12 +87,7 @@ export default function Index() {
 		});
 	}, [reset, campaign]);
 
-	if (
-		!project ||
-		!campaign ||
-		!events ||
-		(watch("body") as string | undefined) === undefined
-	) {
+	if (!project || !campaign || !events || (watch("body") as string | undefined) === undefined) {
 		return <FullscreenLoader />;
 	}
 
@@ -108,9 +100,7 @@ export default function Index() {
 
 		if (query.events && query.events.length > 0) {
 			query.events.map((e) => {
-				filteredContacts = filteredContacts.filter((c) =>
-					c.triggers.some((t) => t.eventId === e),
-				);
+				filteredContacts = filteredContacts.filter((c) => c.triggers.some((t) => t.eventId === e));
 			});
 		}
 
@@ -120,17 +110,13 @@ export default function Index() {
 					return false;
 				}
 
-				const lastTrigger = c.triggers.sort((a, b) =>
-					a.createdAt > b.createdAt ? -1 : 1,
-				);
+				const lastTrigger = c.triggers.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
 
 				if (lastTrigger.length === 0) {
 					return false;
 				}
 
-				return dayjs(lastTrigger[0].createdAt).isAfter(
-					dayjs().subtract(1, query.last),
-				);
+				return dayjs(lastTrigger[0].createdAt).isAfter(dayjs().subtract(1, query.last));
 			});
 		}
 
@@ -141,24 +127,18 @@ export default function Index() {
 						return true;
 					}
 
-					const lastTrigger = c.triggers
-						.filter((t) => t.eventId === e)
-						.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+					const lastTrigger = c.triggers.filter((t) => t.eventId === e).sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
 
 					if (lastTrigger.length === 0) {
 						return true;
 					}
 
-					return dayjs(lastTrigger[0].createdAt).isAfter(
-						dayjs().subtract(1, query.last),
-					);
+					return dayjs(lastTrigger[0].createdAt).isAfter(dayjs().subtract(1, query.last));
 				});
 			});
 		} else if (query.notevents && query.notevents.length > 0) {
 			query.notevents.map((e) => {
-				filteredContacts = filteredContacts.filter((c) =>
-					c.triggers.every((t) => t.eventId !== e),
-				);
+				filteredContacts = filteredContacts.filter((c) => c.triggers.every((t) => t.eventId !== e));
 			});
 		} else if (query.notlast) {
 			filteredContacts = filteredContacts.filter((c) => {
@@ -166,17 +146,13 @@ export default function Index() {
 					return true;
 				}
 
-				const lastTrigger = c.triggers.sort((a, b) =>
-					a.createdAt > b.createdAt ? -1 : 1,
-				);
+				const lastTrigger = c.triggers.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
 
 				if (lastTrigger.length === 0) {
 					return true;
 				}
 
-				return !dayjs(lastTrigger[0].createdAt).isAfter(
-					dayjs().subtract(1, query.notlast),
-				);
+				return !dayjs(lastTrigger[0].createdAt).isAfter(dayjs().subtract(1, query.notlast));
 			});
 		}
 
@@ -211,17 +187,14 @@ export default function Index() {
 	const send = async (data: CampaignValues) => {
 		setConfirmModal(false);
 
-		toast.success(
-			"Saved your campaign. Starting delivery now, please hold on!",
-		);
+		toast.success("Saved your campaign. Starting delivery now, please hold on!");
 
 		await network.mock<Campaign, typeof CampaignSchemas.update>(
 			project.secret,
 			"PUT",
 			"/v1/campaigns",
 
-			data.recipients.length ===
-				contacts?.contacts.filter((c) => c.subscribed).length
+			data.recipients.length === contacts?.contacts.filter((c) => c.subscribed).length
 				? { id: campaign.id, ...data, recipients: ["all"] }
 				: {
 						id: campaign.id,
@@ -230,16 +203,11 @@ export default function Index() {
 		);
 
 		toast.promise(
-			network.mock<Campaign, typeof CampaignSchemas.send>(
-				project.secret,
-				"POST",
-				"/v1/campaigns/send",
-				{
-					id: campaign.id,
-					live: true,
-					delay,
-				},
-			),
+			network.mock<Campaign, typeof CampaignSchemas.send>(project.secret, "POST", "/v1/campaigns/send", {
+				id: campaign.id,
+				live: true,
+				delay,
+			}),
 
 			{
 				loading: "Starting delivery...",
@@ -257,27 +225,17 @@ export default function Index() {
 	};
 
 	const sendTest = async (data: CampaignValues) => {
-		await network.mock<Campaign, typeof CampaignSchemas.update>(
-			project.secret,
-			"PUT",
-			"/v1/campaigns",
-			{
-				id: campaign.id,
-				...data,
-			},
-		);
+		await network.mock<Campaign, typeof CampaignSchemas.update>(project.secret, "PUT", "/v1/campaigns", {
+			id: campaign.id,
+			...data,
+		});
 
 		toast.promise(
-			network.mock<Campaign, typeof CampaignSchemas.send>(
-				project.secret,
-				"POST",
-				"/v1/campaigns/send",
-				{
-					id: campaign.id,
-					live: false,
-					delay: 0,
-				},
-			),
+			network.mock<Campaign, typeof CampaignSchemas.send>(project.secret, "POST", "/v1/campaigns/send", {
+				id: campaign.id,
+				live: false,
+				delay: 0,
+			}),
 
 			{
 				loading: "Sending you a test campaign",
@@ -289,15 +247,10 @@ export default function Index() {
 
 	const update = (data: CampaignValues) => {
 		toast.promise(
-			network.mock<Campaign, typeof CampaignSchemas.update>(
-				project.secret,
-				"PUT",
-				"/v1/campaigns",
-				{
-					id: campaign.id,
-					...data,
-				},
-			),
+			network.mock<Campaign, typeof CampaignSchemas.update>(project.secret, "PUT", "/v1/campaigns", {
+				id: campaign.id,
+				...data,
+			}),
 			{
 				loading: "Saving your campaign",
 				success: () => {
@@ -313,14 +266,9 @@ export default function Index() {
 	const duplicate = async (e: { preventDefault: () => void }) => {
 		e.preventDefault();
 		toast.promise(
-			network.mock<Template, typeof UtilitySchemas.id>(
-				project.secret,
-				"POST",
-				"/v1/campaigns/duplicate",
-				{
-					id: campaign.id,
-				},
-			),
+			network.mock<Template, typeof UtilitySchemas.id>(project.secret, "POST", "/v1/campaigns/duplicate", {
+				id: campaign.id,
+			}),
 			{
 				loading: "Duplicating your campaign",
 				success: () => {
@@ -338,14 +286,9 @@ export default function Index() {
 	const remove = async (e: { preventDefault: () => void }) => {
 		e.preventDefault();
 		toast.promise(
-			network.mock<Template, typeof UtilitySchemas.id>(
-				project.secret,
-				"DELETE",
-				"/v1/campaigns",
-				{
-					id: campaign.id,
-				},
-			),
+			network.mock<Template, typeof UtilitySchemas.id>(project.secret, "DELETE", "/v1/campaigns", {
+				id: campaign.id,
+			}),
 			{
 				loading: "Deleting your campaign",
 				success: () => {
@@ -370,9 +313,7 @@ export default function Index() {
 				title={"Send campaign"}
 				description={`Once you start sending this campaign to ${watch("recipients").length} contacts, you can no longer make changes or undo it.`}
 			>
-				<label className="block text-sm font-medium text-neutral-700">
-					Delay
-				</label>
+				<label className="block text-sm font-medium text-neutral-700">Delay</label>
 				<Dropdown
 					inModal={true}
 					onChange={(val) => setDelay(Number.parseInt(val))}
@@ -403,9 +344,7 @@ export default function Index() {
 			</Modal>
 			<Dashboard>
 				<Card
-					title={
-						campaign.status !== "DRAFT" ? "View campaign" : "Update campaign"
-					}
+					title={campaign.status !== "DRAFT" ? "View campaign" : "Update campaign"}
 					options={
 						<>
 							<button
@@ -457,23 +396,14 @@ export default function Index() {
 										strokeWidth="1.5"
 										d="M9.75 7.5V6.75C9.75 5.64543 10.6454 4.75 11.75 4.75H12.25C13.3546 4.75 14.25 5.64543 14.25 6.75V7.5"
 									/>
-									<path
-										stroke="currentColor"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth="1.5"
-										d="M5 7.75H19"
-									/>
+									<path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 7.75H19" />
 								</svg>
 								Delete
 							</button>
 						</>
 					}
 				>
-					<form
-						onSubmit={handleSubmit(update)}
-						className="space-6 grid gap-6 sm:grid-cols-6"
-					>
+					<form onSubmit={handleSubmit(update)} className="space-6 grid gap-6 sm:grid-cols-6">
 						<Input
 							className={"sm:col-span-6"}
 							label={"Subject"}
@@ -485,10 +415,7 @@ export default function Index() {
 						{contacts ? (
 							<>
 								<div className={"sm:col-span-3"}>
-									<label
-										htmlFor={"recipients"}
-										className="block text-sm font-medium text-neutral-700"
-									>
+									<label htmlFor={"recipients"} className="block text-sm font-medium text-neutral-700">
 										Recipients
 									</label>
 									<MultiselectDropdown
@@ -528,23 +455,15 @@ export default function Index() {
 
 													setValue(
 														"recipients",
-														contacts.contacts
-															.filter((c) => c.subscribed)
-															.map((c) => c.id),
+														contacts.contacts.filter((c) => c.subscribed).map((c) => c.id),
 													);
 												}}
 												className={
 													"mt-6 flex items-center justify-center gap-x-1 rounded border border-neutral-300 bg-white px-8 py-1 text-center text-sm font-medium text-neutral-800 transition ease-in-out hover:bg-neutral-100"
 												}
 											>
-												{watch("recipients").length === 0 ? (
-													<Users2 size={18} />
-												) : (
-													<XIcon size={18} />
-												)}
-												{watch("recipients").length === 0
-													? "All contacts"
-													: "Clear selection"}
+												{watch("recipients").length === 0 ? <Users2 size={18} /> : <XIcon size={18} />}
+												{watch("recipients").length === 0 ? "All contacts" : "Clear selection"}
 											</button>
 											<button
 												onClick={(e) => {
@@ -555,11 +474,7 @@ export default function Index() {
 													"mt-6 flex items-center justify-center gap-x-1 rounded border border-neutral-300 bg-white px-8 py-1 text-center text-sm font-medium text-neutral-800 transition ease-in-out hover:bg-neutral-100"
 												}
 											>
-												{advancedSelector ? (
-													<XIcon size={18} />
-												) : (
-													<Search size={18} />
-												)}
+												{advancedSelector ? <XIcon size={18} /> : <Search size={18} />}
 												{advancedSelector ? "Close" : "Advanced selector"}
 											</button>
 										</>
@@ -578,10 +493,7 @@ export default function Index() {
 											}
 										>
 											<div className={"sm:col-span-2"}>
-												<label
-													htmlFor={"event"}
-													className="block text-sm font-medium text-neutral-700"
-												>
+												<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
 													Has triggers for events
 												</label>
 												<MultiselectDropdown
@@ -607,10 +519,7 @@ export default function Index() {
 																	return 1;
 																}
 
-																if (
-																	a.name.includes("delivered") &&
-																	!b.name.includes("delivered")
-																) {
+																if (a.name.includes("delivered") && !b.name.includes("delivered")) {
 																	return -1;
 																}
 
@@ -621,11 +530,7 @@ export default function Index() {
 																	name: e.name,
 																	value: e.id,
 																	tag:
-																		e.templateId ?? e.campaignId
-																			? e.name.includes("opened")
-																				? "On Open"
-																				: "On Delivery"
-																			: undefined,
+																		e.templateId ?? e.campaignId ? (e.name.includes("opened") ? "On Open" : "On Delivery") : undefined,
 																};
 															}),
 													]}
@@ -636,21 +541,14 @@ export default function Index() {
 											<div className={"sm:col-span-2"}>
 												{query.events && query.events.length > 0 && (
 													<>
-														<label
-															htmlFor={"event"}
-															className="block text-sm font-medium text-neutral-700"
-														>
-															Has triggered {query.events.length} selected
-															events
+														<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
+															Has triggered {query.events.length} selected events
 														</label>
 														<Dropdown
 															onChange={(e) =>
 																setQuery({
 																	...query,
-																	last:
-																		(e as "" | "day" | "week" | "month") === ""
-																			? undefined
-																			: (e as "day" | "week" | "month"),
+																	last: (e as "" | "day" | "week" | "month") === "" ? undefined : (e as "day" | "week" | "month"),
 																})
 															}
 															values={[
@@ -666,10 +564,7 @@ export default function Index() {
 											</div>
 
 											<div className={"sm:col-span-2"}>
-												<label
-													htmlFor={"event"}
-													className="block text-sm font-medium text-neutral-700"
-												>
+												<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
 													No triggers for events
 												</label>
 												<MultiselectDropdown
@@ -695,10 +590,7 @@ export default function Index() {
 																	return 1;
 																}
 
-																if (
-																	a.name.includes("delivered") &&
-																	!b.name.includes("delivered")
-																) {
+																if (a.name.includes("delivered") && !b.name.includes("delivered")) {
 																	return -1;
 																}
 
@@ -709,11 +601,7 @@ export default function Index() {
 																	name: e.name,
 																	value: e.id,
 																	tag:
-																		e.templateId ?? e.campaignId
-																			? e.name.includes("opened")
-																				? "On Open"
-																				: "On Delivery"
-																			: undefined,
+																		e.templateId ?? e.campaignId ? (e.name.includes("opened") ? "On Open" : "On Delivery") : undefined,
 																};
 															}),
 													]}
@@ -724,21 +612,14 @@ export default function Index() {
 											<div className={"sm:col-span-2"}>
 												{query.notevents && query.notevents.length > 0 && (
 													<>
-														<label
-															htmlFor={"event"}
-															className="block text-sm font-medium text-neutral-700"
-														>
-															Not triggered {query.notevents.length} selected
-															events
+														<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
+															Not triggered {query.notevents.length} selected events
 														</label>
 														<Dropdown
 															onChange={(e) =>
 																setQuery({
 																	...query,
-																	notlast:
-																		(e as "" | "day" | "week" | "month") === ""
-																			? undefined
-																			: (e as "day" | "week" | "month"),
+																	notlast: (e as "" | "day" | "week" | "month") === "" ? undefined : (e as "day" | "week" | "month"),
 																})
 															}
 															values={[
@@ -754,10 +635,7 @@ export default function Index() {
 											</div>
 
 											<div className={"sm:col-span-2"}>
-												<label
-													htmlFor={"event"}
-													className="block text-sm font-medium text-neutral-700"
-												>
+												<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
 													All contacts with parameter
 												</label>
 												<Dropdown
@@ -773,15 +651,11 @@ export default function Index() {
 															contacts.contacts
 																.filter((c) => c.data)
 																.map((c) => {
-																	return Object.keys(
-																		JSON.parse(c.data ?? "{}"),
-																	);
+																	return Object.keys(JSON.parse(c.data ?? "{}"));
 																})
 																.reduce((acc, val) => acc.concat(val), []),
 														),
-													].map((k) =>
-														typeof k === "string" ? { name: k, value: k } : k,
-													)}
+													].map((k) => (typeof k === "string" ? { name: k, value: k } : k))}
 													selectedValue={query.data ?? ""}
 												/>
 											</div>
@@ -789,10 +663,7 @@ export default function Index() {
 											<div className={"sm:col-span-2"}>
 												{query.data && (
 													<>
-														<label
-															htmlFor={"event"}
-															className="block text-sm font-medium text-neutral-700"
-														>
+														<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
 															All contacts where parameter {query.data} is
 														</label>
 
@@ -807,15 +678,9 @@ export default function Index() {
 																{ name: "Any value", value: "" },
 																...new Set(
 																	contacts.contacts
-																		.filter(
-																			(c) =>
-																				c.data &&
-																				JSON.parse(c.data)[query.data ?? ""],
-																		)
+																		.filter((c) => c.data && JSON.parse(c.data)[query.data ?? ""])
 																		.map((c) => {
-																			return JSON.parse(c.data ?? "{}")[
-																				query.data ?? ""
-																			];
+																			return JSON.parse(c.data ?? "{}")[query.data ?? ""];
 																		})
 																		.reduce((acc, val) => acc.concat(val), []),
 																),
@@ -848,12 +713,7 @@ export default function Index() {
 														"ml-auto flex items-center justify-center gap-x-0.5 rounded bg-neutral-800 px-8 py-2 text-center text-sm font-medium text-white"
 													}
 												>
-													<svg
-														width="24"
-														height="24"
-														fill="none"
-														viewBox="0 0 24 24"
-													>
+													<svg width="24" height="24" fill="none" viewBox="0 0 24 24">
 														<path
 															stroke="currentColor"
 															strokeLinecap="round"
@@ -879,20 +739,13 @@ export default function Index() {
 						) : (
 							campaign.status === "DRAFT" && (
 								<>
-									<div
-										className={
-											"flex items-center gap-6 rounded border border-neutral-300 px-8 py-3 sm:col-span-6"
-										}
-									>
+									<div className={"flex items-center gap-6 rounded border border-neutral-300 px-8 py-3 sm:col-span-6"}>
 										<Ring size={20} />
 										<div>
-											<h1 className={"text-lg font-semibold text-neutral-800"}>
-												Hang on!
-											</h1>
+											<h1 className={"text-lg font-semibold text-neutral-800"}>Hang on!</h1>
 											<p className={"text-sm text-neutral-600"}>
-												We're still loading your contacts. This might take up to
-												a minute. You can already start writing your campaign in
-												the editor below.
+												We're still loading your contacts. This might take up to a minute. You can already start writing your
+												campaign in the editor below.
 											</p>
 										</div>
 									</div>
@@ -901,51 +754,35 @@ export default function Index() {
 						)}
 
 						<AnimatePresence>
-							{watch("recipients").length >= 10 &&
-								campaign.status !== "DELIVERED" && (
-									<motion.div
-										initial={{ opacity: 0, height: 0 }}
-										animate={{ opacity: 1, height: "auto" }}
-										exit={{ opacity: 0, height: 0 }}
-										className={"relative z-10 sm:col-span-6"}
-									>
-										<Alert type={"info"} title={"Automatic batching"}>
-											Your campaign will be sent out in batches of 80 recipients
-											each. It will be delivered to all contacts{" "}
-											{dayjs().to(
-												dayjs().add(
-													Math.ceil(watch("recipients").length / 80),
-													"minutes",
-												),
-											)}
-										</Alert>
-									</motion.div>
-								)}
+							{watch("recipients").length >= 10 && campaign.status !== "DELIVERED" && (
+								<motion.div
+									initial={{ opacity: 0, height: 0 }}
+									animate={{ opacity: 1, height: "auto" }}
+									exit={{ opacity: 0, height: 0 }}
+									className={"relative z-10 sm:col-span-6"}
+								>
+									<Alert type={"info"} title={"Automatic batching"}>
+										Your campaign will be sent out in batches of 80 recipients each. It will be delivered to all contacts{" "}
+										{dayjs().to(dayjs().add(Math.ceil(watch("recipients").length / 80), "minutes"))}
+									</Alert>
+								</motion.div>
+							)}
 						</AnimatePresence>
 
 						{campaign.status !== "DRAFT" &&
 							(campaign.emails.length === 0 ? (
-								<div
-									className={
-										"flex items-center gap-6 rounded border border-neutral-300 px-6 py-3 sm:col-span-6"
-									}
-								>
+								<div className={"flex items-center gap-6 rounded border border-neutral-300 px-6 py-3 sm:col-span-6"}>
 									<Ring size={20} />
 									<div>
-										<h1 className={"text-lg font-semibold text-neutral-800"}>
-											Hang on!
-										</h1>
+										<h1 className={"text-lg font-semibold text-neutral-800"}>Hang on!</h1>
 										<p className={"text-sm text-neutral-600"}>
-											We are still sending your campaign. Emails will start
-											appearing here once they are sent.
+											We are still sending your campaign. Emails will start appearing here once they are sent.
 										</p>
 									</div>
 								</div>
 							) : (
 								<div
-									className={
-										"max-h-[400px] overflow-x-hidden overflow-y-scroll rounded border border-neutral-200 sm:col-span-6"
-									}
+									className={"max-h-[400px] overflow-x-hidden overflow-y-scroll rounded border border-neutral-200 sm:col-span-6"}
 								>
 									<Table
 										values={campaign.emails.map(
@@ -956,17 +793,8 @@ export default function Index() {
 												return {
 													Email: e.contact.email,
 													Status: (
-														<Badge
-															type={
-																e.status === "DELIVERED"
-																	? "info"
-																	: e.status === "OPENED"
-																		? "success"
-																		: "danger"
-															}
-														>
-															{e.status.at(0)?.toUpperCase() +
-																e.status.slice(1).toLowerCase()}
+														<Badge type={e.status === "DELIVERED" ? "info" : e.status === "OPENED" ? "success" : "danger"}>
+															{e.status.at(0)?.toUpperCase() + e.status.slice(1).toLowerCase()}
 														</Badge>
 													),
 													View: (
@@ -1005,9 +833,7 @@ export default function Index() {
 							</AnimatePresence>
 						</div>
 
-						<div
-							className={"ml-auto mt-6 flex justify-end gap-x-5 sm:col-span-6"}
-						>
+						<div className={"ml-auto mt-6 flex justify-end gap-x-5 sm:col-span-6"}>
 							{campaign.status === "DRAFT" ? (
 								<>
 									<motion.button
@@ -1018,13 +844,7 @@ export default function Index() {
 											"ml-auto mt-6 flex items-center gap-x-0.5 rounded bg-neutral-800 px-6 py-2 text-center text-sm font-medium text-white"
 										}
 									>
-										<svg
-											width="24"
-											height="24"
-											className={"rotate-45 pb-1"}
-											fill="none"
-											viewBox="0 0 24 24"
-										>
+										<svg width="24" height="24" className={"rotate-45 pb-1"} fill="none" viewBox="0 0 24 24">
 											<path
 												stroke="currentColor"
 												strokeLinecap="round"
@@ -1053,13 +873,7 @@ export default function Index() {
 											"ml-auto mt-6 flex items-center gap-x-0.5 rounded bg-neutral-800 px-6 py-2 text-center text-sm font-medium text-white"
 										}
 									>
-										<svg
-											width="24"
-											height="24"
-											className={"rotate-45 pb-1"}
-											fill="none"
-											viewBox="0 0 24 24"
-										>
+										<svg width="24" height="24" className={"rotate-45 pb-1"} fill="none" viewBox="0 0 24 24">
 											<path
 												stroke="currentColor"
 												strokeLinecap="round"

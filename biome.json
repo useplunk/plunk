@@ -17,5 +17,10 @@
 				"noStaticOnlyClass": "off"
 			}
 		}
+	},
+	"formatter": {
+		"indentStyle": "tab",
+		"indentWidth": 1,
+		"lineWidth": 120
 	}
 }

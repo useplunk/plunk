@@ -66,9 +66,7 @@ export default function Index() {
 				onAction={regenerate}
 				type={"danger"}
 				title={"Are you sure?"}
-				description={
-					"Any applications that use your previously generated keys will stop working!"
-				}
+				description={"Any applications that use your previously generated keys will stop working!"}
 			/>
 			<Dashboard>
 				<SettingTabs />
@@ -95,20 +93,13 @@ export default function Index() {
 							toast.success("Copied your public API key");
 						}}
 					>
-						<label className="block text-sm font-medium text-neutral-700">
-							Public API Key
-						</label>
-						<p
-							className={
-								"cursor-pointer rounded border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm"
-							}
-						>
+						<label className="block text-sm font-medium text-neutral-700">Public API Key</label>
+						<p className={"cursor-pointer rounded border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm"}>
 							{activeProject.public}
 						</p>
 
 						<p className={"text-sm text-neutral-500"}>
-							Use this key for any front-end services. This key can only be used
-							to publish events.
+							Use this key for any front-end services. This key can only be used to publish events.
 						</p>
 					</div>
 
@@ -119,20 +110,13 @@ export default function Index() {
 								toast.success("Copied your secret API key");
 							}}
 						>
-							<label className="block text-sm font-medium text-neutral-700">
-								Secret API Key
-							</label>
-							<p
-								className={
-									"cursor-pointer rounded border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm"
-								}
-							>
+							<label className="block text-sm font-medium text-neutral-700">Secret API Key</label>
+							<p className={"cursor-pointer rounded border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm"}>
 								{activeProject.secret}
 							</p>
 
 							<p className={"text-sm text-neutral-500"}>
-								Use this key for any secure back-end services. This key gives
-								complete access to your Plunk setup.
+								Use this key for any secure back-end services. This key gives complete access to your Plunk setup.
 							</p>
 						</div>
 					</div>

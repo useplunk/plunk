@@ -51,11 +51,7 @@ function App({ Component, pageProps }: AppProps) {
 		<>
 			<Head>
 				<title>Plunk Dashboard | The Open-Source Email Platform</title>
-				<meta
-					name="viewport"
-					content="width=device-width, initial-scale=1.0"
-					key={"viewport"}
-				/>
+				<meta name="viewport" content="width=device-width, initial-scale=1.0" key={"viewport"} />
 			</Head>
 
 			<Toaster position={"bottom-right"} />
@@ -92,9 +88,7 @@ export default function WithProviders(props: AppProps) {
 						title: "Plunk Dashboard | The Open-Source Email Platform",
 						description:
 							"Plunk is the open-source, developer-friendly email platform that brings together marketing, transactional and broadcast emails into one single, complete solution",
-						images: [
-							{ url: "https://www.useplunk.com/assets/card.png", alt: "Plunk" },
-						],
+						images: [{ url: "https://www.useplunk.com/assets/card.png", alt: "Plunk" }],
 					}}
 				/>
 
