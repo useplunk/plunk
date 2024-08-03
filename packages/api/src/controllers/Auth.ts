@@ -1,6 +1,7 @@
 import { Controller, Get, Post } from "@overnightjs/core";
 import { UserSchemas, UtilitySchemas } from "@plunk/shared";
 import type { Request, Response } from "express";
+import { DISABLE_SIGNUPS } from "../app/constants";
 import { prisma } from "../database/prisma";
 import { NotAllowed, NotFound } from "../exceptions";
 import { jwt } from "../middleware/auth";
@@ -47,6 +48,13 @@ export class Auth {
 
 	@Post("signup")
 	public async signup(req: Request, res: Response) {
+		if (DISABLE_SIGNUPS) {
+			return res.json({
+				success: false,
+				data: "Signups are currently disabled",
+			});
+		}
+
 		const { email, password } = UserSchemas.credentials.parse(req.body);
 
 		const user = await UserService.email(email);
