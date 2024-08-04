@@ -6,6 +6,8 @@ WORKDIR /app
 # Copy only package.json and yarn.lock to leverage Docker cache for dependencies
 COPY package.json yarn.lock ./
 
+ARG NEXT_PUBLIC_API_URI=PLUNK_API_URI
+
 # Install dependencies
 RUN yarn install --network-timeout 1000000
 
