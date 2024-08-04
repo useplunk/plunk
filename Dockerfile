@@ -3,11 +3,15 @@ FROM node:alpine AS base
 
 WORKDIR /app
 
+# Copy only package.json and yarn.lock to leverage Docker cache for dependencies
+COPY package.json yarn.lock ./
+
+# Install dependencies
+RUN yarn install --network-timeout 1000000
+
+# Copy the rest of the application files
 COPY . .
 
-ARG NEXT_PUBLIC_API_URI=PLUNK_API_URI
-
-RUN yarn install --network-timeout 1000000
 RUN yarn build:shared
 RUN yarn workspace @plunk/api build
 RUN yarn workspace @plunk/dashboard build
