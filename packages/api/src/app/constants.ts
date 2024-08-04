@@ -21,7 +21,7 @@ export const JWT_SECRET = validateEnv("JWT_SECRET");
 export const NODE_ENV = validateEnv<"development" | "production">("NODE_ENV", "production");
 
 export const REDIS_URL = validateEnv("REDIS_URL");
-export const DISABLE_SIGNUPS = validateEnv<"true" | "false">("DISABLE_SIGNUPS", "false") === "true";
+export const DISABLE_SIGNUPS = validateEnv("DISABLE_SIGNUPS", "false").toLowerCase() === "true";
 
 // URLs
 export const API_URI = validateEnv("API_URI", "http://localhost:4000");
