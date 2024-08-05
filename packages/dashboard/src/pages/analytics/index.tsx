@@ -65,7 +65,12 @@ export default function Index() {
 								<div>
 									<p className={"font-medium text-neutral-600"}>Bounce Rate</p>
 									<p className={"text-2xl font-semibold text-neutral-800"}>
-										<>{((analytics.emails.bounced / analytics.emails.total) * 100).toFixed(2)}%</>
+										<>
+											{Number.isNaN((analytics.emails.bounced / analytics.emails.total) * 100)
+												? 0
+												: ((analytics.emails.bounced / analytics.emails.total) * 100).toFixed(2)}
+											%
+										</>
 									</p>
 								</div>
 								<div className={"flex flex-1 justify-end"}>
@@ -123,7 +128,12 @@ export default function Index() {
 								<div>
 									<p className={"font-medium text-neutral-600"}>Spam Rate</p>
 									<p className={"text-2xl font-semibold text-neutral-800"}>
-										<>{((analytics.emails.complaint / analytics.emails.total) * 100).toFixed(2)}%</>
+										<>
+											{Number.isNaN((analytics.emails.complaint / analytics.emails.total) * 100)
+												? 0
+												: ((analytics.emails.complaint / analytics.emails.total) * 100).toFixed(2)}
+											%
+										</>
 									</p>
 								</div>
 								<div className={"flex flex-1 justify-end"}>
