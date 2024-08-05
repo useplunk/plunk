@@ -32,7 +32,7 @@ jobs:
 
       - name: Extract package version
         id: package_version
-        run: echo 'version=$(node -p "require(\'./package.json\').version")' >> $GITHUB_ENV
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
