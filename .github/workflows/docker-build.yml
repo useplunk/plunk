@@ -23,6 +23,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
+      - name: Get version from package.json
+        id: get_version
+        run: echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_ENV
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -35,7 +39,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: driaug/plunk:latest
+          tags: driaug/plunk:${{ env.VERSION }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
