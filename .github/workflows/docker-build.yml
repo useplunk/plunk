@@ -1,4 +1,4 @@
-name: Version Increment and Build Docker Image
+name: Build and Push Docker image
 
 on:
   push:
@@ -6,71 +6,17 @@ on:
       - main
 
 jobs:
-  increment_version:
+  docker:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Increment version
-        id: version
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Commit version changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b version-bump
-          git add package.json yarn.lock
-          git commit -m "chore: bump version to ${{ env.VERSION }}"
-          git push origin version-bump
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: bump version to ${{ env.VERSION }}"
-          branch: version-bump
-          title: "chore: bump version to ${{ env.VERSION }}"
-          body: "Automatically incremented version based on changes in main."
-          base: main
-
-  build_and_push:
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
-    needs: increment_version
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Get package version
-        id: version
-        run: echo "VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
+      - name: Check out the repo
+        uses: actions/checkout@v2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v1
 
       - name: Cache Docker layers
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
@@ -78,32 +24,25 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: driaug/plunk
-          tags: |
-            type=raw,value=${{ env.VERSION }}
-            type=raw,value=latest
-
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v2
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: driaug/plunk:latest
           platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
       # Temp fix
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
       - name: Move cache
         run: |
           rm -rf /tmp/.buildx-cache
