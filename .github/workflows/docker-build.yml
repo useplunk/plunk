@@ -39,7 +39,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: driaug/plunk:${{ env.VERSION }}
+          tags: |
+            driaug/plunk:${{ env.VERSION }}
+            driaug/plunk:latest
           platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
