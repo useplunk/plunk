@@ -19,12 +19,12 @@ jobs:
           node-version: "16"
 
       - name: Install dependencies
-        run: npm install
+        run: yarn install
 
       - name: Increment version
         id: version
         run: |
-          npm run release
+          yarn release
           VERSION=$(node -p "require('./package.json').version")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -61,7 +61,7 @@ jobs:
           node-version: "16"
 
       - name: Install dependencies
-        run: npm install
+        run: yarn install
 
       - name: Get package version
         id: version
