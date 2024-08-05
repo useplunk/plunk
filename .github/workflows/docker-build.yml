@@ -24,7 +24,6 @@ jobs:
       - name: Increment version
         id: version
         run: |
-          yarn release
           VERSION=$(node -p "require('./package.json').version")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
