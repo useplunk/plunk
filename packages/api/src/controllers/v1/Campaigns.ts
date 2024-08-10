@@ -6,6 +6,7 @@ import { prisma } from "../../database/prisma";
 import { HttpException, NotFound } from "../../exceptions";
 import { type IJwt, type ISecret, isAuthenticated, isValidSecretKey } from "../../middleware/auth";
 import { CampaignService } from "../../services/CampaignService";
+import { ContactService } from "../../services/ContactService";
 import { EmailService } from "../../services/EmailService";
 import { MembershipService } from "../../services/MembershipService";
 import { ProjectService } from "../../services/ProjectService";
@@ -203,11 +204,33 @@ export class Campaigns {
 		for (let i = 0; i < recipients.length; i += chunkSize) {
 			const chunk = recipients.slice(i, i + chunkSize);
 
+			const recipientIds = await Promise.all(
+				chunk.map(async (recipient) => {
+					if (recipient.includes("@")) {
+						let contact = await ContactService.email(recipient, project.id);
+
+						if (!contact) {
+							contact = await prisma.contact.create({
+								data: {
+									email: recipient,
+									projectId: project.id,
+									subscribed: true,
+								},
+							});
+						}
+
+						return contact.id;
+					}
+
+					return recipient;
+				}),
+			);
+
 			await prisma.campaign.update({
 				where: { id: campaign.id },
 				data: {
 					recipients: {
-						connect: chunk.map((r: string) => ({ id: r })),
+						connect: recipientIds.map((id) => ({ id })),
 					},
 				},
 			});
@@ -230,7 +253,6 @@ export class Campaigns {
 			throw new NotFound("project");
 		}
 
-		// eslint-disable-next-line prefer-const
 		let { id, subject, body, recipients, style } = CampaignSchemas.update.parse(req.body);
 
 		if (recipients.length === 1 && recipients[0] === "all") {
@@ -280,11 +302,33 @@ export class Campaigns {
 		for (let i = 0; i < recipients.length; i += chunkSize) {
 			const chunk = recipients.slice(i, i + chunkSize);
 
+			const recipientIds = await Promise.all(
+				chunk.map(async (recipient) => {
+					if (recipient.includes("@")) {
+						let contact = await ContactService.email(recipient, project.id);
+
+						if (!contact) {
+							contact = await prisma.contact.create({
+								data: {
+									email: recipient,
+									projectId: project.id,
+									subscribed: true,
+								},
+							});
+						}
+
+						return contact.id;
+					}
+
+					return recipient;
+				}),
+			);
+
 			await prisma.campaign.update({
-				where: { id },
+				where: { id: campaign.id },
 				data: {
 					recipients: {
-						connect: chunk.map((r: string) => ({ id: r })),
+						connect: recipientIds.map((id) => ({ id })),
 					},
 				},
 			});
