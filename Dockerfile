@@ -11,6 +11,7 @@ RUN yarn install --network-timeout 1000000
 RUN yarn build:shared
 RUN yarn workspace @plunk/api build
 RUN yarn workspace @plunk/dashboard build
+RUN yarn workspace @plunk/smtp build
 
 # Final Stage
 FROM node:alpine
@@ -22,6 +23,7 @@ RUN apk add --no-cache bash nginx
 COPY --from=base /app/packages/api/dist /app/packages/api/
 COPY --from=base /app/packages/dashboard/.next /app/packages/dashboard/.next
 COPY --from=base /app/packages/dashboard/public /app/packages/dashboard/public
+COPY --from=base /app/packages/smtp/dist /app/packages/smtp/
 COPY --from=base /app/node_modules /app/node_modules
 COPY --from=base /app/packages/shared /app/packages/shared
 COPY --from=base /app/prisma /app/prisma
