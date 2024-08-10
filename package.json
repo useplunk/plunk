@@ -4,7 +4,9 @@
 	"private": true,
 	"license": "agpl-3.0",
 	"workspaces": {
-		"packages": ["packages/*"]
+		"packages": [
+			"packages/*"
+		]
 	},
 	"engines": {
 		"npm": ">=6.14.x",
@@ -14,7 +16,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^1.8.3",
 		"lerna": "^8.1.6",
-		"prisma": "^5.17.0",
+		"prisma": "^5.18.0",
 		"rimraf": "^5.0.9"
 	},
 	"dependencies": {
@@ -23,9 +25,11 @@
 	"scripts": {
 		"dev:api": "yarn workspace @plunk/api dev",
 		"dev:dashboard": "yarn workspace @plunk/dashboard dev",
+		"dev:smtp": "yarn workspace @plunk/smtp dev",
 		"dev:shared": "yarn workspace @plunk/shared dev",
 		"build:api": "yarn build:shared && yarn workspace @plunk/api build",
 		"build:dashboard": "yarn build:shared && yarn workspace @plunk/dashboard build",
+		"build:smtp": "yarn build:shared && yarn workspace @plunk/smtp build",
 		"build:shared": "yarn generate && yarn workspace @plunk/shared build",
 		"clean": "rimraf node_modules yarn.lock && yarn add lerna -DW && lerna run clean",
 		"preinstall": "node tools/preinstall.js",
