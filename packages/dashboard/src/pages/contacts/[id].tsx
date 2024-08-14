@@ -46,7 +46,7 @@ export default function Index() {
 	});
 
 	const { handleSubmit, watch, setValue, reset } = useForm<ContactValues>({
-		resolver: zodResolver(ContactSchemas.update),
+		resolver: zodResolver(ContactSchemas.manage),
 	});
 
 	const {
@@ -132,7 +132,7 @@ export default function Index() {
 		dataObject = Object.fromEntries(Object.entries(dataObject).filter(([, value]) => value !== ""));
 
 		toast.promise(
-			network.mock<Contact, typeof ContactSchemas.update>(project.secret, "PUT", "/v1/contacts", {
+			network.mock<Contact, typeof ContactSchemas.manage>(project.secret, "PUT", "/v1/contacts", {
 				id: contact.id,
 				...data,
 				data: dataObject,
