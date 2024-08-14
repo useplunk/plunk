@@ -45,7 +45,7 @@ export default function Index() {
 		id: router.query.id as string,
 	});
 
-	const { handleSubmit, watch, setValue, formState, reset } = useForm<ContactValues>({
+	const { handleSubmit, watch, setValue, reset } = useForm<ContactValues>({
 		resolver: zodResolver(ContactSchemas.manage),
 	});
 
