@@ -45,7 +45,7 @@ export default function Index() {
 		id: router.query.id as string,
 	});
 
-	const { handleSubmit, watch, setValue, reset } = useForm<ContactValues>({
+	const { handleSubmit, watch, setValue, formState, reset } = useForm<ContactValues>({
 		resolver: zodResolver(ContactSchemas.manage),
 	});
 
@@ -89,7 +89,10 @@ export default function Index() {
 			return;
 		}
 
-		reset(contact);
+		reset({
+			email: contact.email,
+			subscribed: contact.subscribed,
+		});
 		dataReset({
 			data: Object.entries(JSON.parse(contact.data ? contact.data : "{}")).map(([key, value]) => ({
 				value: { key, value },
@@ -133,7 +136,6 @@ export default function Index() {
 
 		toast.promise(
 			network.mock<Contact, typeof ContactSchemas.manage>(project.secret, "PUT", "/v1/contacts", {
-				id: contact.id,
 				...data,
 				data: dataObject,
 			}),
