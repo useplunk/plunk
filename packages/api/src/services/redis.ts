@@ -1,7 +1,16 @@
 import Redis from 'ioredis';
 import {REDIS_URL} from '../app/constants';
+import signale from "signale";
 
-export const redis = new Redis(REDIS_URL);
+let redis: Redis;
+try {
+  redis = new Redis(REDIS_URL);
+  const infoString = redis.info();
+  signale.info('Redis initialized: ', infoString);
+} catch (error) {
+  signale.error('Failed to initialize Redis: ', error);
+}
+export {redis};
 
 export const REDIS_ONE_MINUTE = 60;
 export const REDIS_DEFAULT_EXPIRY = REDIS_ONE_MINUTE / 60;

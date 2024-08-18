@@ -27,6 +27,14 @@ export const DISABLE_SIGNUPS = validateEnv("DISABLE_SIGNUPS", "false").toLowerCa
 export const API_URI = validateEnv("API_URI", "http://localhost:4000");
 export const APP_URI = validateEnv("APP_URI", "http://localhost:3000");
 
+if (!API_URI.startsWith("http")) {
+	throw new Error("API_URI must start with 'http'");
+}
+
+if (!APP_URI.startsWith("http")) {
+	throw new Error("APP_URI must start with 'http'");
+}
+
 // AWS
 export const AWS_REGION = validateEnv("AWS_REGION");
 export const AWS_ACCESS_KEY_ID = validateEnv("AWS_ACCESS_KEY_ID");
