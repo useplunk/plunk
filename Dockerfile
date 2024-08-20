@@ -30,6 +30,6 @@ COPY deployment/entry.sh deployment/replace-variables.sh /app/
 
 RUN chmod +x /app/entry.sh /app/replace-variables.sh
 
-EXPOSE 3000
+EXPOSE 3000 4000 5000
 
 CMD ["sh", "/app/entry.sh"]
