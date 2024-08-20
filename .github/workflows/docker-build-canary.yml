@@ -3,7 +3,7 @@ name: Build and Push Docker image (Canary)
 on:
   push:
     branches:
-      - main
+      - canary
 
 jobs:
   docker:
