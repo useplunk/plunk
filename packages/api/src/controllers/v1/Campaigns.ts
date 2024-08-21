@@ -226,14 +226,19 @@ export class Campaigns {
 				}),
 			);
 
-			await prisma.campaign.update({
-				where: { id: campaign.id },
-				data: {
-					recipients: {
-						connect: recipientIds.map((id) => ({ id })),
+			const chunkSize = 500;
+			for (let i = 0; i < recipientIds.length; i += chunkSize) {
+				const chunk = recipientIds.slice(i, i + chunkSize);
+
+				await prisma.campaign.update({
+					where: { id: campaign.id },
+					data: {
+						recipients: {
+							connect: chunk.map((id) => ({ id })),
+						},
 					},
-				},
-			});
+				});
+			}
 		}
 
 		await redis.del(Keys.Campaign.id(campaign.id));
