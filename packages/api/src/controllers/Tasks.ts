@@ -128,8 +128,8 @@ export class Tasks {
 
 				signale.success(`Task completed for ${contact.email} from ${project.name}`);
 			}
-
-			return res.status(200).json({ success: true });
 		}
+
+		return res.status(200).json({ success: true });
 	}
 }
