@@ -2,15 +2,29 @@ import Redis from 'ioredis';
 import {REDIS_URL} from '../app/constants';
 import signale from "signale";
 
-let redis: Redis;
-try {
-  redis = new Redis(REDIS_URL);
-  const infoString = redis.info();
-  signale.info('Redis initialized: ', infoString);
-} catch (error) {
-  signale.error('Failed to initialize Redis: ', error);
-}
-export {redis};
+export let redis: Redis;
+const maxRetries = 5;
+const retryDelay = 2000; // 2 seconds
+
+const connectToRedis = async (attempt = 0) => {
+  try {
+    redis = new Redis(REDIS_URL);
+    await redis.ping();
+    const infoString = await redis.info();
+    signale.info('Redis initialized: ', infoString);
+  } catch (error) {
+    if (attempt < maxRetries) {
+      signale.warn(`Failed to connect to Redis. Retrying in ${retryDelay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      await connectToRedis(attempt + 1);
+    } else {
+      signale.error('Failed to initialize Redis after multiple attempts: ', error);
+      throw error;
+    }
+  }
+};
+
+connectToRedis();
 
 export const REDIS_ONE_MINUTE = 60;
 export const REDIS_DEFAULT_EXPIRY = REDIS_ONE_MINUTE / 60;
