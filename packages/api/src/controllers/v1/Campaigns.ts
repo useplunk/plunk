@@ -12,6 +12,9 @@ import { MembershipService } from "../../services/MembershipService";
 import { ProjectService } from "../../services/ProjectService";
 import { Keys } from "../../services/keys";
 import { redis } from "../../services/redis";
+import { RATE_LIMIT } from '../../app/constants';
+
+const chunkSize = 500;
 
 @Controller("campaigns")
 export class Campaigns {
@@ -89,8 +92,10 @@ export class Campaigns {
 
 			let delay = userDelay ?? 0;
 
+			const rateLimit = parseInt(RATE_LIMIT, 10) || 400;
+
 			const tasks = campaign.recipients.map((r, index) => {
-				if (index % 80 === 0) {
+				if (index % rateLimit === 0) {
 					delay += 1;
 				}
 
@@ -200,7 +205,8 @@ export class Campaigns {
 			},
 		});
 
-		const chunkSize = 500;
+		const allRecipientIds = [];
+
 		for (let i = 0; i < recipients.length; i += chunkSize) {
 			const chunk = recipients.slice(i, i + chunkSize);
 
@@ -226,20 +232,21 @@ export class Campaigns {
 				}),
 			);
 
-			const chunkSize = 500;
-			for (let i = 0; i < recipientIds.length; i += chunkSize) {
-				const chunk = recipientIds.slice(i, i + chunkSize);
-
-				await prisma.campaign.update({
-					where: { id: campaign.id },
-					data: {
-						recipients: {
-							connect: chunk.map((id) => ({ id })),
-						},
-					},
-				});
-			}
+			allRecipientIds.push(...recipientIds);
 		}
+
+		for (let i = 0; i < allRecipientIds.length; i += chunkSize) {
+			const chunk = allRecipientIds.slice(i, i + chunkSize);
+
+			await prisma.campaign.update({
+				where: { id: campaign.id },
+				data: {
+					recipients: {
+						connect: chunk.map(id => ({ id })),
+					},
+				},
+			});
+		};
 
 		await redis.del(Keys.Campaign.id(campaign.id));
 		await redis.del(Keys.Project.campaigns(project.id));
@@ -303,7 +310,7 @@ export class Campaigns {
 			},
 		});
 
-		const chunkSize = 500;
+		const allRecipientIds = [];
 
 		for (let i = 0; i < campaign.recipients.length; i += chunkSize) {
 			const chunk = campaign.recipients.slice(i, i + chunkSize);
@@ -336,11 +343,17 @@ export class Campaigns {
 				}),
 			);
 
+			allRecipientIds.push(...recipientIds);
+		}
+
+		for (let i = 0; i < allRecipientIds.length; i += chunkSize) {
+			const chunk = allRecipientIds.slice(i, i + chunkSize);
+
 			await prisma.campaign.update({
 				where: { id: campaign.id },
 				data: {
 					recipients: {
-						connect: recipientIds.map((id) => ({ id })),
+						connect: chunk.map((id) => ({ id })),
 					},
 				},
 			});

@@ -19,7 +19,7 @@ export function validateEnv<T extends string = string>(key: keyof NodeJS.Process
 // ENV
 export const JWT_SECRET = validateEnv("JWT_SECRET");
 export const NODE_ENV = validateEnv<"development" | "production">("NODE_ENV", "production");
-
+export const RATE_LIMIT = validateEnv("RATE_LIMIT", "100");
 export const REDIS_URL = validateEnv("REDIS_URL");
 export const DISABLE_SIGNUPS = validateEnv("DISABLE_SIGNUPS", "false").toLowerCase() === "true";
 
