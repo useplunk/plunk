@@ -22,7 +22,7 @@ export class Tasks {
 
 		for (const task of tasks) {
 			const lockKey = `task_lock:${task.id}`;
-			const lock = await redis.set(lockKey, 'locked', 'EX', REDIS_ONE_MINUTE * 15, 'NX');
+			const lock = await redis.set(lockKey, 'locked', 'EX', REDIS_ONE_MINUTE * 60, 'NX');
 			if (!lock) {
 				continue; // Skip this task if it's already being processed
 			}
