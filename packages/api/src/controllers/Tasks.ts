@@ -5,7 +5,7 @@ import { prisma } from "../database/prisma";
 import { ContactService } from "../services/ContactService";
 import { EmailService } from "../services/EmailService";
 import { ProjectService } from "../services/ProjectService";
-import { Task } from "@prisma/client";
+import { redis, REDIS_ONE_MINUTE } from "../services/redis";
 
 @Controller("tasks")
 export class Tasks {
@@ -21,6 +21,12 @@ export class Tasks {
 		signale.info(`Found ${tasks.length} tasks to run`);
 
 		for (const task of tasks) {
+			const lockKey = `task_lock:${task.id}`;
+			const lock = await redis.set(lockKey, 'locked', 'EX', REDIS_ONE_MINUTE * 15, 'NX');
+			if (!lock) {
+				continue; // Skip this task if it's already being processed
+			}
+
 			const fullTask = await prisma.task.findUnique({
 				where: { id: task.id },
 				include: {
@@ -106,6 +112,12 @@ export class Tasks {
 					},
 				});
 
+				try {
+					await prisma.task.delete({ where: { id: task.id } });
+				} catch (error) {
+					signale.error(`Failed to delete task for: ${contact.email}`);
+				}
+
 				const emailData: {
 					messageId: string;
 					contactId: string;
@@ -124,7 +136,7 @@ export class Tasks {
 
 				await prisma.email.create({ data: emailData });
 
-				await prisma.task.delete({ where: { id: task.id } });
+				await redis.del(lockKey);
 
 				signale.success(`Task completed for ${contact.email} from ${project.name}`);
 			}
