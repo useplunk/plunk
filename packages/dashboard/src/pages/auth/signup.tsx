@@ -11,6 +11,7 @@ import logo from "../../../public/assets/logo.png";
 import { FullscreenLoader, Redirect } from "../../components";
 import { useUser } from "../../lib/hooks/users";
 import { network } from "../../lib/network";
+import { DISABLE_SIGNUP } from "dashboard/src/lib/constants";
 
 interface AuthValues {
 	password: string;
@@ -53,17 +54,25 @@ export default function Index() {
 	}
 
 	const signup = async (data: AuthValues) => {
+		if (DISABLE_SIGNUP) {
+			setError("auth", { message: "Signups are disabled by admin." });
+
+			setSubmitted(false);
+
+			return;
+		}
+
 		setSubmitted(true);
 
 		const result = await network.fetch<
 			| {
-					success: true;
-					data: User;
-			  }
+				success: true;
+				data: User;
+			}
 			| {
-					success: false;
-					data: string;
-			  },
+				success: false;
+				data: string;
+			},
 			typeof UserSchemas.credentials
 		>("POST", "/auth/signup", {
 			...data,
