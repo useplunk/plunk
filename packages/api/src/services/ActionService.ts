@@ -71,13 +71,6 @@ export class ActionService {
 
 		const triggers = await ContactService.triggers(contact.id);
 
-		// Refetch the contact, as it may have subscribed now
-		contact = await prisma.contact.findUniqueOrThrow({
-			where: {
-				id: contact.id,
-			},
-		});
-
 		for (const action of actions) {
 			const hasTriggeredAction = !!triggers.find((t) => t.actionId === action.id);
 
