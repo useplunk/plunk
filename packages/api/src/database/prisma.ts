@@ -1,4 +1,5 @@
-import {PrismaClient} from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { contacts, rawActionClicks } from '@prisma/client/sql';
 import signale from 'signale';
 
 let prisma: PrismaClient;
@@ -8,4 +9,8 @@ try {
 } catch (error) {
   signale.error('Failed to initialize Prisma: ', error);
 }
-export {prisma};
+const sql = {
+  contacts,
+  rawActionClicks
+}
+export { prisma, sql };

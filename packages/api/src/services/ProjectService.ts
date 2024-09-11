@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { prisma } from "../database/prisma";
+import { prisma, sql } from "../database/prisma";
 import { Keys } from "./keys";
 import { wrapRedis } from "./redis";
 
@@ -300,63 +300,27 @@ export class ProjectService {
 				.subtract(methods[params.method ?? "week"].daysBack, "days")
 				.toDate();
 
-			const contacts = await prisma.$queryRaw`
-WITH date_range AS (
-    SELECT generate_series(
-        (SELECT DATE_TRUNC('day', MIN("createdAt")) FROM contacts),
-        DATE_TRUNC('day', NOW()) + INTERVAL '1 day',
-        INTERVAL '1 day'
-    ) AS day
-)
+			const contacts = await prisma.$queryRawTyped(sql.contacts(params.id));
 
-SELECT
-    dr.day,
-    SUM(COALESCE(ct.count, 0)) OVER (ORDER BY dr.day) as count
-FROM date_range dr
-LEFT JOIN (
-    SELECT
-        DATE_TRUNC('day', c."createdAt") AS day,
-        COUNT(c.id) as count
-    FROM contacts c
-    WHERE "projectId" = ${params.id}
-    GROUP BY DATE_TRUNC('day', c."createdAt")
-) ct ON dr.day = ct.day
-WHERE dr.day < DATE_TRUNC('day', NOW())
-ORDER BY dr.day DESC
-LIMIT 30;
-      
-      `;
+			const rawActionClicks = await prisma.$queryRawTyped(sql.rawActionClicks(start, end, params.id))
 
-			const rawActionClicks = await prisma.$queryRaw`
-SELECT clicks."link", a."name", count(clicks.id)::int FROM clicks
-JOIN emails e on clicks."emailId" = e.id
-JOIN actions a on e."actionId" = a.id
-WHERE clicks."link" NOT LIKE '%unsubscribe%' AND DATE(clicks."createdAt") BETWEEN DATE(${start}) AND DATE(${end}) AND a."projectId" = ${params.id}
-GROUP BY a."name", clicks."link"
-      `;
+			const combinedRoutes: Record<string, { link: string, name: string, count: number }> = {};
 
-			const combinedRoutes = {};
-
-			// @ts-expect-error
 			rawActionClicks.forEach((item) => {
 				const url = new URL(item.link);
 				const route = url.pathname;
-				// @ts-expect-error
 				if (combinedRoutes[route]) {
-					// @ts-expect-error
-					combinedRoutes[route].count += item.count;
+					combinedRoutes[route].count += (item.count ?? 0);
 				} else {
-					// @ts-expect-error
 					combinedRoutes[route] = {
 						link: url.hostname + route,
 						name: item.name,
-						count: item.count,
+						count: item.count ?? 0,
 					};
 				}
 			});
 
 			const formattedActionClicks = Object.values(combinedRoutes).sort(
-				// @ts-expect-error
 				(a, b) => b.count - a.count,
 			);
 
