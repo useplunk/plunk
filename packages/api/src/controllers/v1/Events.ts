@@ -33,6 +33,7 @@ export class Events {
 		await prisma.event.delete({ where: { id } });
 
 		await redis.del(Keys.Event.id(id));
+		await redis.del(Keys.Event.event(project.id, event.name));
 
 		return res.status(200).json(event);
 	}

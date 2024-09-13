@@ -1,40 +1,38 @@
 {
-  "name": "plunk",
-  "version": "1.0.3",
-  "private": true,
-  "license": "agpl-3.0",
-  "workspaces": {
-    "packages": [
-      "packages/*"
-    ]
-  },
-  "engines": {
-    "npm": ">=6.14.x",
-    "yarn": "1.22.x",
-    "node": ">=18.x"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^1.8.3",
-    "lerna": "^8.1.6",
-    "prisma": "^5.17.0",
-    "rimraf": "^5.0.9"
-  },
-  "dependencies": {
-    "@prisma/client": "^5.17.0"
-  },
-  "scripts": {
-    "dev:api": "yarn workspace @plunk/api dev",
-    "dev:dashboard": "yarn workspace @plunk/dashboard dev",
-    "dev:shared": "yarn workspace @plunk/shared dev",
-    "build:api": "yarn build:shared && yarn workspace @plunk/api build",
-    "build:dashboard": "yarn build:shared && yarn workspace @plunk/dashboard build",
-    "build:shared": "yarn generate && yarn workspace @plunk/shared build",
-    "clean": "rimraf node_modules yarn.lock && yarn add lerna -DW && lerna run clean",
-    "preinstall": "node tools/preinstall.js",
-    "migrate": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
-    "generate": "prisma generate",
-    "services:up": "docker compose -f docker-compose.dev.yml up -d",
-    "services:down": "docker compose -f docker-compose.dev.yml down"
-  }
+	"name": "plunk",
+	"version": "1.0.5",
+	"private": true,
+	"license": "agpl-3.0",
+	"workspaces": {
+		"packages": ["packages/*"]
+	},
+	"engines": {
+		"npm": ">=6.14.x",
+		"yarn": "1.22.x",
+		"node": ">=18.x"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.8.3",
+		"lerna": "^8.1.6",
+		"prisma": "^5.17.0",
+		"rimraf": "^5.0.9"
+	},
+	"dependencies": {
+		"@prisma/client": "^5.17.0"
+	},
+	"scripts": {
+		"dev:api": "yarn workspace @plunk/api dev",
+		"dev:dashboard": "yarn workspace @plunk/dashboard dev",
+		"dev:shared": "yarn workspace @plunk/shared dev",
+		"build:api": "yarn build:shared && yarn workspace @plunk/api build",
+		"build:dashboard": "yarn build:shared && yarn workspace @plunk/dashboard build",
+		"build:shared": "yarn generate && yarn workspace @plunk/shared build",
+		"clean": "rimraf node_modules yarn.lock && yarn add lerna -DW && lerna run clean",
+		"preinstall": "node tools/preinstall.js",
+		"migrate": "prisma migrate dev",
+		"migrate:deploy": "prisma migrate deploy",
+		"generate": "prisma generate",
+		"services:up": "docker compose -f docker-compose.dev.yml up -d",
+		"services:down": "docker compose -f docker-compose.dev.yml down"
+	}
 }

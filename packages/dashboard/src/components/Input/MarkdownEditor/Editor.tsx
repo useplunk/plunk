@@ -108,6 +108,22 @@ export default function Editor({ value, onChange, mode, modeSwitcher }: Markdown
 				keydown: (_view, event) => {
 					return event.key === "Enter" && !event.shiftKey;
 				},
+				paste: (view, event) => {
+					const text = event.clipboardData?.getData("text");
+					const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w- ./?%&=]*({{[\w-]+}})?)*$/;
+
+					if (editor && text && urlPattern.test(text)) {
+						event.preventDefault();
+						editor
+							.chain()
+							.focus()
+							.extendMarkRange("link")
+							.setLink({ href: text.startsWith("http") ? text : `https://${text}`, target: "_blank" })
+							.run();
+						editor.commands.insertContent(text);
+					}
+					return true;
+				},
 			},
 		},
 		onUpdate: ({ editor }) => {

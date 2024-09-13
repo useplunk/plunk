@@ -8,8 +8,10 @@
 
 <p align="center">
     <img src="https://img.shields.io/github/contributors/useplunk/plunk"/>
-    <img src="https://img.shields.io/github/actions/workflow/status/driaug/plunk-whitelabel/docker-build.yml"/>
+    <img src="https://img.shields.io/github/actions/workflow/status/driaug/plunk-whitelabel/docker-build-prod.yml"/>
     <img src="https://img.shields.io/docker/pulls/driaug/plunk"/>
+    <img src="https://img.shields.io/github/license/useplunk/plunk"/>
+    <img src="https://img.shields.io/github/stars/useplunk/plunk"/>
 </p>
 
 ## Introduction
