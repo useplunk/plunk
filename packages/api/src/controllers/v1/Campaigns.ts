@@ -161,6 +161,7 @@ export class Campaigns {
 				body: campaign.body,
 				style: campaign.style,
 				email: campaign.email,
+				from: campaign.from,
 			},
 		});
 

@@ -61,6 +61,7 @@ export class Templates {
 				type: template.type,
 				style: template.style,
 				email: template.email,
+				from: template.from,
 			},
 		});
 
