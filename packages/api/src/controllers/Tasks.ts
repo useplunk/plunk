@@ -41,6 +41,9 @@ export class Tasks {
 			let subject = "";
 			let body = "";
 
+			let email = "";
+			let name = "";
+
 			if (action) {
 				const { template, notevents } = action;
 
@@ -52,6 +55,9 @@ export class Tasks {
 					}
 				}
 
+				email = project.verified && project.email ? template.email ?? project.email : "no-reply@useplunk.dev";
+				name = template.from ?? project.from ?? project.name;
+
 				({ subject, body } = EmailService.format({
 					subject: template.subject,
 					body: template.body,
@@ -62,6 +68,9 @@ export class Tasks {
 					},
 				}));
 			} else if (campaign) {
+				email = project.verified && project.email ? campaign.email ?? project.email : "no-reply@useplunk.dev";
+				name = campaign.from ?? project.from ?? project.name;
+
 				({ subject, body } = EmailService.format({
 					subject: campaign.subject,
 					body: campaign.body,
@@ -75,8 +84,8 @@ export class Tasks {
 
 			const { messageId } = await EmailService.send({
 				from: {
-					name: project.from ?? project.name,
-					email: project.verified && project.email ? project.email : "no-reply@useplunk.dev",
+					name,
+					email,
 				},
 				to: [contact.email],
 				content: {

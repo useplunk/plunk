@@ -133,6 +133,8 @@ export const CampaignSchemas = {
 			.min(1, "Subject needs to be at least 1 character long")
 			.max(70, "Subject needs to be less than 70 characters long"),
 		body: z.string().min(1, "Body needs to be at least 1 character long"),
+		email: email.nullish().or(z.literal("")),
+		from: z.string().nullish(),
 		recipients: z.array(z.string()),
 		style: z.nativeEnum(TemplateStyle).default("PLUNK"),
 	}),
@@ -143,6 +145,8 @@ export const CampaignSchemas = {
 			.min(1, "Subject needs to be at least 1 character long")
 			.max(70, "Subject needs to be less than 70 characters long"),
 		body: z.string().min(1, "Body needs to be at least 1 character long"),
+		email: email.nullish().or(z.literal("")),
+		from: z.string().nullish(),
 		recipients: z.array(z.string()),
 		style: z.nativeEnum(TemplateStyle).default("PLUNK"),
 	}),
@@ -208,6 +212,8 @@ export const TemplateSchemas = {
 	create: z.object({
 		subject: z.string().min(1, "Subject can't be empty").max(70, "Subject needs to be less than 70 characters long"),
 		body: z.string().min(1, "Body can't be empty"),
+		email: email.nullish().or(z.literal("")),
+		from: z.string().nullish(),
 		type: z.nativeEnum(TemplateType).default("MARKETING"),
 		style: z.nativeEnum(TemplateStyle).default("PLUNK"),
 	}),
@@ -215,6 +221,8 @@ export const TemplateSchemas = {
 		id,
 		subject: z.string().min(1, "Subject can't be empty").max(70, "Subject needs to be less than 70 characters long"),
 		body: z.string().min(1, "Body can't be empty"),
+		email: email.nullish().or(z.literal("")),
+		from: z.string().nullish(),
 		type: z.nativeEnum(TemplateType).default("MARKETING"),
 		style: z.nativeEnum(TemplateStyle).default("PLUNK"),
 	}),
