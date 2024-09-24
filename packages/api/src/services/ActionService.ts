@@ -120,8 +120,8 @@ export class ActionService {
 
 				const { messageId } = await EmailService.send({
 					from: {
-						name: project.from ?? project.name,
-						email: project.verified && project.email ? project.email : "no-reply@useplunk.dev",
+						name: action.template.from ?? project.from ?? project.name,
+						email: project.verified && project.email ? action.template.email ?? project.email : "no-reply@useplunk.dev",
 					},
 					to: [contact.email],
 					content: {

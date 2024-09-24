@@ -60,6 +60,8 @@ export class Templates {
 				body: template.body,
 				type: template.type,
 				style: template.style,
+				email: template.email,
+				from: template.from,
 			},
 		});
 
@@ -101,7 +103,15 @@ export class Templates {
 			throw new NotFound("project");
 		}
 
-		const { subject, body, type, style } = TemplateSchemas.create.parse(req.body);
+		const { subject, body, type, style, email, from } = TemplateSchemas.create.parse(req.body);
+
+		if (email && !project.verified) {
+			throw new NotAllowed("You need to attach a domain to your project to customize the sender address");
+		}
+
+		if (email && email.split("@")[1] !== project.email?.split("@")[1]) {
+			throw new NotAllowed("The sender address must be the same domain as the project's email address");
+		}
 
 		const template = await prisma.template.create({
 			data: {
@@ -110,6 +120,8 @@ export class Templates {
 				body,
 				type,
 				style,
+				from: from === "" ? null : from,
+				email: email === "" ? null : email,
 			},
 		});
 
@@ -151,7 +163,7 @@ export class Templates {
 			throw new NotFound("project");
 		}
 
-		const { id, subject, body, type, style } = TemplateSchemas.update.parse(req.body);
+		const { id, subject, body, type, style, email, from } = TemplateSchemas.update.parse(req.body);
 
 		let template = await TemplateService.id(id);
 
@@ -159,9 +171,24 @@ export class Templates {
 			throw new NotFound("template");
 		}
 
+		if (email && !project.verified) {
+			throw new NotAllowed("You need to attach a domain to your project to customize the sender address");
+		}
+
+		if (email && email.split("@")[1] !== project.email?.split("@")[1]) {
+			throw new NotAllowed("The sender address must be the same domain as the project's email address");
+		}
+
 		template = await prisma.template.update({
 			where: { id },
-			data: { subject, body, type, style },
+			data: {
+				subject,
+				body,
+				type,
+				style,
+				from: from === "" ? null : from,
+				email: email === "" ? null : email,
+			},
 			include: {
 				actions: true,
 			},

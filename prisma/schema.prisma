@@ -108,6 +108,8 @@ model Template {
   // Details
   subject String
   body    String
+  email   String?
+  from    String?
 
   type  TemplateType
   style TemplateStyle
@@ -159,8 +161,11 @@ model Action {
 model Campaign {
   id String @id @default(uuid())
 
-  subject   String
-  body      String
+  subject String
+  body    String
+  email   String?
+  from    String?
+
   status    CampaignStatus @default(DRAFT)
   delivered DateTime?
 
