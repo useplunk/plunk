@@ -446,7 +446,7 @@ export default function Index() {
 								<Input
 									className={"sm:col-span-3"}
 									label={"Sender Name"}
-									placeholder={`${project.name}`}
+									placeholder={`${project.from ?? project.name}`}
 									register={register("from")}
 									error={errors.from}
 								/>
