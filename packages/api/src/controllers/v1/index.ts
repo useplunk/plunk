@@ -81,7 +81,7 @@ export class V1 {
 			if (subscribed !== undefined && contact.subscribed !== subscribed) {
 				contact = await prisma.contact.update({
 					where: { id: contact.id },
-					data: { subscribed },
+					data: { subscribed: subscribed ?? true },
 				});
 
 				redis.del(Keys.Contact.id(contact.id));
