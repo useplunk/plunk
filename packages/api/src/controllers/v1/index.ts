@@ -70,7 +70,7 @@ export class V1 {
 			contact = await prisma.contact.create({
 				data: {
 					email,
-					subscribed: subscribed ?? false,
+					subscribed: subscribed ?? true,
 					projectId: project.id,
 				},
 			});
