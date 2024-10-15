@@ -8,11 +8,16 @@ Support can be asked in the `#contributions` channel of the [Plunk Discord serve
 
 - Docker needs to be [installed](https://docs.docker.com/engine/install/) on your system.
 
-### 2. Set your environment variables
+### 2. Install dependencies
+
+- Run `yarn install` to install the dependencies.
+
+### 3. Set your environment variables
 
 - Copy the `.env.example` files in the `api`, `dashboard` and `prisma` folder to `.env` in their respective folders.
+- Set AWS credentials in the `api` `.env` file.
 
-### 3. Start resources
+### 4. Start resources
 
 - Run `yarn services:up` to start a local database and a local redis server.
 - Run `yarn migrate` to apply the migrations to the database.

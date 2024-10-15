@@ -70,7 +70,7 @@ export class V1 {
 			contact = await prisma.contact.create({
 				data: {
 					email,
-					subscribed: subscribed ?? true,
+					subscribed: subscribed ?? false,
 					projectId: project.id,
 				},
 			});
@@ -78,7 +78,7 @@ export class V1 {
 			redis.del(Keys.Contact.id(contact.id));
 			redis.del(Keys.Contact.email(project.id, contact.email));
 		} else {
-			if (subscribed && contact.subscribed !== subscribed) {
+			if (subscribed !== undefined && contact.subscribed !== subscribed) {
 				contact = await prisma.contact.update({
 					where: { id: contact.id },
 					data: { subscribed },
