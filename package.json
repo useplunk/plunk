@@ -1,14 +1,16 @@
 {
 	"name": "plunk",
-	"version": "1.0.5",
+	"version": "1.0.9",
 	"private": true,
 	"license": "agpl-3.0",
 	"workspaces": {
-		"packages": ["packages/*"]
+		"packages": [
+			"packages/*"
+		]
 	},
 	"engines": {
 		"npm": ">=6.14.x",
-		"yarn": "1.22.x",
+		"yarn": "4.3.x",
 		"node": ">=18.x"
 	},
 	"devDependencies": {
@@ -34,5 +36,6 @@
 		"generate": "prisma generate",
 		"services:up": "docker compose -f docker-compose.dev.yml up -d",
 		"services:down": "docker compose -f docker-compose.dev.yml down"
-	}
+	},
+	"packageManager": "yarn@4.3.0"
 }

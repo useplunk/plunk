@@ -78,15 +78,12 @@ export class V1 {
 			redis.del(Keys.Contact.id(contact.id));
 			redis.del(Keys.Contact.email(project.id, contact.email));
 		} else {
-			if (subscribed && contact.subscribed !== subscribed) {
-				contact = await prisma.contact.update({
-					where: { id: contact.id },
-					data: { subscribed },
-				});
-
+			if (subscribed !== null && contact.subscribed !== subscribed) {
+				contact = await prisma.contact.update({where: {id: contact.id}, data: {subscribed}});
+		
 				redis.del(Keys.Contact.id(contact.id));
 				redis.del(Keys.Contact.email(project.id, contact.email));
-			}
+			  }
 		}
 
 		if (data) {

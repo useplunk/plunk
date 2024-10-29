@@ -16,6 +16,8 @@ import { network } from "../../lib/network";
 interface TemplateValues {
 	subject: string;
 	body: string;
+	email?: string;
+	from?: string;
 	type: "MARKETING" | "TRANSACTIONAL";
 	style: "PLUNK" | "HTML";
 }
@@ -41,6 +43,8 @@ export default function Index() {
 		watch,
 		setValue,
 		reset,
+		setError,
+		clearErrors,
 	} = useForm<TemplateValues>({
 		resolver: zodResolver(TemplateSchemas.update),
 		defaultValues: {
@@ -55,6 +59,21 @@ export default function Index() {
 
 		reset(template);
 	}, [reset, template]);
+
+	useEffect(() => {
+		watch((value, { name, type }) => {
+			if (name === "email") {
+				if (value.email && project?.email && !value.email.endsWith(project.email.split("@")[1])) {
+					setError("email", {
+						type: "manual",
+						message: `The sender address must end with @${project.email?.split("@")[1]}`,
+					});
+				} else {
+					clearErrors("email");
+				}
+			}
+		});
+	}, [watch, project, setError, clearErrors]);
 
 	if (!project || !template || (watch("body") as string | undefined) === undefined) {
 		return <FullscreenLoader />;
@@ -247,6 +266,26 @@ export default function Index() {
 								)}
 							</AnimatePresence>
 						</div>
+
+						{project.verified && (
+							<Input
+								className={"sm:col-span-3"}
+								label={"Sender Email"}
+								placeholder={`${project.email}`}
+								register={register("email")}
+								error={errors.email}
+							/>
+						)}
+
+						{project.verified && (
+							<Input
+								className={"sm:col-span-3"}
+								label={"Sender Name"}
+								placeholder={`${project.from ?? project.name}`}
+								register={register("from")}
+								error={errors.from}
+							/>
+						)}
 
 						<div className={"sm:col-span-6"}>
 							<Editor
