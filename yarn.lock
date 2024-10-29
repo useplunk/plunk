@@ -4643,11 +4643,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 22.8.2
-  resolution: "@types/node@npm:22.8.2"
+  version: 22.8.3
+  resolution: "@types/node@npm:22.8.3"
   dependencies:
     undici-types: "npm:~6.19.8"
-  checksum: 10c0/c6fa6c54c23e61015cace1517c4101602cae0ff3c4f6604f6cdb89875143921830e5602cabe8b4f90f90363451687a0497f1d07d30be8104fee758d6d44c90ac
+  checksum: 10c0/7c67c1cd19388caf227f3c5aa290c163ddc6587e899fe67d1276a83d8233340dd08a88ef1836e86259cd402494953c5e2d79b175b98f1505afcafa65ec0c43b6
   languageName: node
   linkType: hard
 
