@@ -6,7 +6,7 @@ import Typography from "@tiptap/extension-typography";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { AnimatePresence, motion } from "framer-motion";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Modal } from "../../Overlay";
@@ -129,6 +129,7 @@ export default function Editor({ value, onChange, mode, modeSwitcher }: Markdown
 		onUpdate: ({ editor }) => {
 			onChange(editor.getHTML(), "PLUNK");
 		},
+		immediatelyRender: false
 	});
 
 	const {
@@ -280,9 +281,8 @@ export default function Editor({ value, onChange, mode, modeSwitcher }: Markdown
 							e.preventDefault();
 							setConfirmModal(true);
 						}}
-						className={`w-full flex-1 rounded p-2 text-sm font-medium ${
-							mode === "PLUNK" ? "bg-white" : "hover:bg-neutral-50"
-						} transition ease-in-out`}
+						className={`w-full flex-1 rounded p-2 text-sm font-medium ${mode === "PLUNK" ? "bg-white" : "hover:bg-neutral-50"
+							} transition ease-in-out`}
 					>
 						Plunk Editor
 					</button>
@@ -291,9 +291,8 @@ export default function Editor({ value, onChange, mode, modeSwitcher }: Markdown
 							e.preventDefault();
 							setConfirmModal(true);
 						}}
-						className={`w-full flex-1 rounded p-2 text-sm font-medium ${
-							mode === "HTML" ? "bg-white" : "hover:bg-neutral-50"
-						} transition ease-in-out`}
+						className={`w-full flex-1 rounded p-2 text-sm font-medium ${mode === "HTML" ? "bg-white" : "hover:bg-neutral-50"
+							} transition ease-in-out`}
 					>
 						HTML
 					</button>{" "}
@@ -768,10 +767,26 @@ export default function Editor({ value, onChange, mode, modeSwitcher }: Markdown
 									<label className="block text-sm font-medium text-neutral-700">Preview</label>
 
 									<div className={"mt-1 h-full rounded border border-neutral-300 p-3"}>
-										<div
-											className={"revert-tailwind"}
-											dangerouslySetInnerHTML={{
-												__html: value,
+										{/* injects value into iframe with script to dynamically adjust height based on content */}
+										<iframe
+											className="mb-0 overflow-hidden w-full"
+											srcDoc={`
+												${value}
+												<script>
+													window.addEventListener('load', function() {
+														const height = document.documentElement.offsetHeight;
+														window.parent.postMessage({ type: 'resize-iframe', height: height }, '*');
+													});
+												</script>
+											`}
+											onLoad={(e) => {
+												const handleMessage = (event: MessageEvent) => {
+													if (event.data?.type === 'resize-iframe') {
+														(e.target as HTMLIFrameElement).style.height = `${event.data.height}px`;
+													}
+												};
+												window.addEventListener('message', handleMessage);
+												return () => window.removeEventListener('message', handleMessage);
 											}}
 										/>
 									</div>
