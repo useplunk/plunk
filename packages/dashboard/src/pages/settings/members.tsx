@@ -77,7 +77,10 @@ export default function Index() {
 
 					return "Added new member";
 				},
-				error: "Could not add new member!",
+				error: (error) => {
+					const errorMessage = error?.message || 'We could not find that user, please ask them to sign up first.'
+					return errorMessage
+				},
 			},
 		);
 	};
