@@ -1,5 +1,5 @@
 # Base Stage
-FROM node:20-alpine AS base
+FROM node:20-alpine3.16 AS base
 
 WORKDIR /app
 
@@ -7,14 +7,13 @@ COPY . .
 
 ARG NEXT_PUBLIC_API_URI=PLUNK_API_URI
 
-RUN apk add --no-cache openssl
 RUN yarn install --network-timeout 1000000
 RUN yarn build:shared
 RUN yarn workspace @plunk/api build
 RUN yarn workspace @plunk/dashboard build
 
 # Final Stage
-FROM node:20-alpine
+FROM node:20-alpine3.16
 
 WORKDIR /app
 
