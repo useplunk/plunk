@@ -78,7 +78,8 @@ export default function Index() {
 					return "Added new member";
 				},
 				error: (error) => {
-					return error.message
+					const errorMessage = error?.message || 'We could not find that user, please ask them to sign up first.'
+					return errorMessage
 				},
 			},
 		);
