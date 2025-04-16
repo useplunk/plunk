@@ -94,13 +94,14 @@ export default function Index() {
             }),
             {
                 loading: "Updating your sender name",
-                success: "Updated your sender name",
+                success: () => {
+                    void projectsMutate();
+
+                    return 'Updated your sender name';
+                },
                 error: "Could not update sender name",
             },
         );
-
-        await identityMutate();
-        await projectsMutate();
     };
 
     const unlink = async () => {
@@ -115,12 +116,14 @@ export default function Index() {
             }),
             {
                 loading: "Unlinking your domain",
-                success: "Unlinked your domain",
+                success: () => {
+                    void projectsMutate();
+
+                    return 'Unlinked your domain';
+                },
                 error: "Could not unlink domain",
             },
         );
-
-        window.location.reload();
     };
 
     const domain = activeProject.email?.split("@")[1] ?? "";
