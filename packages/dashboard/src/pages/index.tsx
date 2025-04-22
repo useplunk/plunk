@@ -28,8 +28,8 @@ export default function Index() {
 		<>
 			<Dashboard>
 				<>
-					<div className="divide-y divide-neutral-200 overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid sm:grid-cols-3 sm:gap-px sm:divide-y-0">
-						<div className="group relative rounded-tl rounded-tr bg-white p-6 transition focus-within:ring-2 focus-within:ring-inset focus-within:ring-neutral-800 sm:rounded-tr-none">
+					<div className="divide-y divide-neutral-200 overflow-hidden rounded border border-neutral-200 bg-neutral-200 lg:grid lg:grid-cols-3 lg:gap-px lg:divide-y-0">
+						<div className="group relative rounded-tl rounded-tr bg-white p-6 transition focus-within:ring-2 focus-within:ring-inset focus-within:ring-neutral-800 lg:rounded-tr-none">
 							{activeProject.verified ? (
 								<>
 									<div>
@@ -108,7 +108,7 @@ export default function Index() {
 							</span>
 						</div>
 
-						<div className="group relative bg-white p-6 transition focus-within:ring-2 focus-within:ring-inset focus-within:ring-neutral-800 sm:rounded-tr">
+						<div className="group relative bg-white p-6 transition focus-within:ring-2 focus-within:ring-inset focus-within:ring-neutral-800 lg:rounded-tr">
 							<div>
 								<span className="inline-flex rounded bg-neutral-100 p-3 text-neutral-800 ring-4 ring-white">
 									<LineChart size={20} />
@@ -133,7 +133,7 @@ export default function Index() {
 							</span>
 						</div>
 
-						<div className="group relative bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-neutral-800 sm:rounded-bl">
+						<div className="group relative bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-neutral-800 lg:rounded-bl">
 							<div>
 								<span className="inline-flex rounded bg-neutral-100 p-3 text-neutral-800 ring-4 ring-white">
 									<Book size={20} />
