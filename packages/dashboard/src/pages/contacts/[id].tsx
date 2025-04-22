@@ -246,7 +246,7 @@ export default function Index() {
 						</>
 					}
 				>
-					<form onSubmit={handleSubmit(update)} className="grid gap-x-5 space-y-9 sm:grid-cols-2">
+					<form onSubmit={handleSubmit(update)} className="space-y-6 sm:grid sm:gap-x-5 sm:space-y-9 sm:grid-cols-2">
 						<div className={"col-span-2 flex items-center gap-6"}>
 							<span className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100">
 								<span className="text-xl font-semibold leading-none text-neutral-800">{contact.email[0].toUpperCase()}</span>

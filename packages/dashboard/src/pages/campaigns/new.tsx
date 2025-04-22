@@ -212,8 +212,8 @@ export default function Index() {
 		<>
 			<Dashboard>
 				<Card title={"Create a new campaign"}>
-					<form onSubmit={handleSubmit(create)} className="space-6 grid gap-6 sm:grid-cols-6">
-						<div className={"sm:col-span-6 grid sm:grid-cols-6 gap-6"}>
+					<form onSubmit={handleSubmit(create)} className="space-y-6 sm:grid sm:grid-cols-6 sm:gap-6">
+						<div className={"sm:col-span-6 sm:grid sm:grid-cols-6 sm:gap-6 space-y-6 sm:space-y-0"}>
 							<Input
 								className={"sm:col-span-6"}
 								label={"Subject"}
@@ -626,7 +626,7 @@ export default function Index() {
 									return router.push("/campaigns");
 								}}
 								className={
-									"flex w-full justify-center rounded border border-neutral-300 bg-white px-6 py-2 text-base font-medium text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm"
+									"flex w-fit justify-center rounded border border-neutral-300 bg-white px-6 py-2 text-base font-medium text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm"
 								}
 							>
 								Cancel

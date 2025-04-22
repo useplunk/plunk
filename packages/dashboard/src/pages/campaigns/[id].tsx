@@ -422,7 +422,7 @@ export default function Index() {
 						</>
 					}
 				>
-					<form onSubmit={handleSubmit(update)} className="space-6 grid gap-6 sm:grid-cols-6">
+					<form onSubmit={handleSubmit(update)} className="space-y-6 sm:space-y-0 sm:space-6 sm:grid sm:gap-6 sm:grid-cols-6">
 						<div className={"sm:col-span-6 grid sm:grid-cols-6 gap-6"}>
 							<Input
 								className={"sm:col-span-6"}
@@ -874,7 +874,7 @@ export default function Index() {
 							</AnimatePresence>
 						</div>
 
-						<div className={"ml-auto mt-6 flex justify-end gap-x-5 sm:col-span-6"}>
+						<div className={"ml-auto mt-6 sm:flex justify-end sm:gap-x-5 sm:col-span-6"}>
 							{campaign.status === "DRAFT" ? (
 								<>
 									<motion.button

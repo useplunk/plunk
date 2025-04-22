@@ -203,7 +203,7 @@ export default function Index() {
 						</>
 					}
 				>
-					<form onSubmit={handleSubmit(update)} className="grid gap-6 sm:grid-cols-6">
+					<form onSubmit={handleSubmit(update)} className="space-y-6 sm:space-y-0 sm:grid sm:gap-6 sm:grid-cols-6">
 						<Input
 							className={"sm:col-span-4"}
 							label={"Subject"}
@@ -320,7 +320,7 @@ export default function Index() {
 									return router.push("/templates");
 								}}
 								className={
-									"flex w-full justify-center rounded border border-neutral-300 bg-white px-6 py-2 text-base font-medium text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm"
+									"flex w-fit justify-center rounded border border-neutral-300 bg-white px-6 py-2 text-base font-medium text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm"
 								}
 							>
 								Cancel
