@@ -711,8 +711,8 @@ export default function Editor({ value, onChange, mode, modeSwitcher }: Markdown
 											</div>
 										</div>
 										<>
-											<div className={"prose prose-sm prose-neutral space-y-4 break-words p-4"}>
-												<div className={"w-full"} style={{ width: "600px" }}>
+											<div className={"prose prose-sm prose-neutral space-y-4 break-words p-4 w-full"}>
+												<div className={"w-full lg:w-[600px]"}>
 													<EditorContent editor={editor} />
 													<EditorBubbleMenu
 														editor={editor}
@@ -739,7 +739,7 @@ export default function Editor({ value, onChange, mode, modeSwitcher }: Markdown
 						</>
 					) : (
 						<>
-							<div className={"mb-3 grid gap-3 md:grid-cols-1"}>
+							<div className={"mb-3 sm:grid sm:gap-3 md:grid-cols-1"}>
 								<div>
 									<label className="block text-sm font-medium text-neutral-700">Email Body</label>
 									<div className="mt-1 h-full">

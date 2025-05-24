@@ -94,7 +94,7 @@ export default function Index() {
 						}}
 					>
 						<label className="block text-sm font-medium text-neutral-700">Public API Key</label>
-						<p className={"cursor-pointer rounded border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm"}>
+						<p className={"cursor-pointer rounded border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm truncate"}>
 							{activeProject.public}
 						</p>
 
@@ -111,7 +111,7 @@ export default function Index() {
 							}}
 						>
 							<label className="block text-sm font-medium text-neutral-700">Secret API Key</label>
-							<p className={"cursor-pointer rounded border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm"}>
+							<p className={"cursor-pointer rounded border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm truncate"}>
 								{activeProject.secret}
 							</p>
 
