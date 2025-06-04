@@ -9,7 +9,7 @@ import React, { useState } from "react";
 import { type FieldError, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Card, Empty, FullscreenLoader, Modal, Skeleton, Table, Toggle } from "../../components";
+import { Card, Empty, FullscreenLoader, Modal, Skeleton, Table, Toggle, Dropdown } from "../../components";
 import { Dashboard } from "../../layouts";
 import { searchContacts, useContacts } from "../../lib/hooks/contacts";
 import { useActiveProject } from "../../lib/hooks/projects";
@@ -31,8 +31,9 @@ interface ContactValues {
  *
  */
 export default function Index() {
-	const [page, setPage] = useState(1);
-	const [query, setQuery] = useState<string>();
+        const [page, setPage] = useState(1);
+        const [query, setQuery] = useState<string>();
+        const [statusFilter, setStatusFilter] = useState<string>("all");
 
 	const project = useActiveProject();
 	const { data: user } = useUser();
@@ -125,47 +126,56 @@ export default function Index() {
 			return <Skeleton type={"table"} />;
 		}
 
-		if (search && query !== undefined) {
-			if (search.contacts.length > 0) {
-				return (
-					<>
-						<Table
-							values={search.contacts
-								.sort((a, b) => {
-									const aTrigger = a.triggers.length > 0 ? a.triggers.sort()[0].createdAt : a.createdAt;
+               if (search && query !== undefined) {
+                        const filtered = search.contacts
+                                .filter((c) =>
+                                        statusFilter === "all"
+                                                ? true
+                                                : statusFilter === "subscribed"
+                                                ? c.subscribed
+                                                : !c.subscribed,
+                                );
 
-									const bTrigger = b.triggers.length > 0 ? b.triggers.sort()[0].createdAt : b.createdAt;
+                        if (filtered.length > 0) {
+                                return (
+                                        <>
+                                                <Table
+                                                        values={filtered
+                                                                .sort((a, b) => {
+                                                                        const aTrigger = a.triggers.length > 0 ? a.triggers.sort()[0].createdAt : a.createdAt;
 
-									return bTrigger > aTrigger ? 1 : -1;
-								})
-								.map((u) => {
-									return {
-										Email: u.email,
-										"Last Activity": dayjs()
-											.to(
-												[...u.triggers, ...u.emails].length > 0
-													? [...u.triggers, ...u.emails].sort((a, b) => {
-															return a.createdAt > b.createdAt ? -1 : 1;
-														})[0].createdAt
-													: u.createdAt,
-											)
-											.toString(),
-										Subscribed: u.subscribed,
-										Edit: (
-											<Link href={`/contacts/${u.id}`} className={"transition hover:text-neutral-800"}>
-												<Edit2 size={18} />
-											</Link>
-										),
-									};
-								})}
-						/>
-					</>
-				);
-			}
-			return (
-				<>
-					<Empty
-						icon={
+                                                                        const bTrigger = b.triggers.length > 0 ? b.triggers.sort()[0].createdAt : b.createdAt;
+
+                                                                        return bTrigger > aTrigger ? 1 : -1;
+                                                                })
+                                                                .map((u) => {
+                                                                        return {
+                                                                                Email: u.email,
+                                                                                "Last Activity": dayjs()
+                                                                                        .to(
+                                                                                                [...u.triggers, ...u.emails].length > 0
+                                                                                                        ? [...u.triggers, ...u.emails].sort((a, b) => {
+                                                                                                                return a.createdAt > b.createdAt ? -1 : 1;
+                                                                                                        })[0].createdAt
+                                                                                                        : u.createdAt,
+                                                                                        )
+                                                                                        .toString(),
+                                                                                Subscribed: u.subscribed,
+                                                                                Edit: (
+                                                                                        <Link href={`/contacts/${u.id}`} className={"transition hover:text-neutral-800"}>
+                                                                                                <Edit2 size={18} />
+                                                                                        </Link>
+                                                                                ),
+                                                                        };
+                                                                })}
+                                                />
+                                        </>
+                                );
+                        }
+                        return (
+                                <>
+                                        <Empty
+                                                icon={
 							<svg width="24" height="24" fill="none" viewBox="0 0 24 24">
 								<path
 									stroke="currentColor"
@@ -183,24 +193,32 @@ export default function Index() {
 			);
 		}
 
-		if (contacts) {
-			if (contacts.contacts.length > 0) {
-				return (
-					<>
-						<Table
-							values={contacts.contacts
-								.sort((a, b) => {
-									const aTrigger = a.triggers.length > 0 ? a.triggers.sort()[0].createdAt : a.createdAt;
+               if (contacts) {
+                        const filtered = contacts.contacts.filter((c) =>
+                                statusFilter === "all"
+                                        ? true
+                                        : statusFilter === "subscribed"
+                                        ? c.subscribed
+                                        : !c.subscribed,
+                        );
 
-									const bTrigger = b.triggers.length > 0 ? b.triggers.sort()[0].createdAt : b.createdAt;
+                        if (filtered.length > 0) {
+                                return (
+                                        <>
+                                                <Table
+                                                        values={filtered
+                                                                .sort((a, b) => {
+                                                                        const aTrigger = a.triggers.length > 0 ? a.triggers.sort()[0].createdAt : a.createdAt;
+
+                                                                        const bTrigger = b.triggers.length > 0 ? b.triggers.sort()[0].createdAt : b.createdAt;
 
 									return bTrigger > aTrigger ? 1 : -1;
-								})
-								.map((u) => {
-									return {
-										Email: u.email,
-										"Last Activity": dayjs()
-											.to(
+                                                                })
+                                                                .map((u) => {
+                                                                        return {
+                                                                                Email: u.email,
+                                                                                "Last Activity": dayjs()
+                                                                                        .to(
 												u.triggers.length > 0
 													? u.triggers.sort((a, b) => {
 															return a.createdAt > b.createdAt ? -1 : 1;
@@ -215,16 +233,16 @@ export default function Index() {
 											</Link>
 										),
 									};
-								})}
-						/>
-						<nav className="flex items-center justify-between py-3" aria-label="Pagination">
-							<div className="hidden sm:block">
-								<p className="text-sm text-neutral-700">
-									Showing <span className="font-medium">{(page - 1) * 20}</span> to{" "}
-									<span className="font-medium">{page * 20}</span> of <span className="font-medium">{contacts.count}</span>{" "}
-									contacts
-								</p>
-							</div>
+                                                                })}
+                                                />
+                                                <nav className="flex items-center justify-between py-3" aria-label="Pagination">
+                                                        <div className="hidden sm:block">
+                                                                <p className="text-sm text-neutral-700">
+                                                                        Showing <span className="font-medium">{(page - 1) * 20}</span> to{" "}
+                                                                        <span className="font-medium">{page * 20}</span> of <span className="font-medium">{filtered.length}</span>{" "}
+                                                                        contacts
+                                                                </p>
+                                                        </div>
 							<div className="flex flex-1 justify-between gap-1 sm:justify-end">
 								{page > 1 && (
 									<button
@@ -441,18 +459,28 @@ export default function Index() {
 					title={"Contacts"}
 					description={"View and manage your contacts"}
 					actions={
-						<div className={"grid w-full gap-3 md:w-fit md:grid-cols-2"}>
-							<input
-								onChange={(e) => setQuery(e.target.value)}
-								autoComplete={"off"}
-								type="search"
-								placeholder={"Search email or metadata"}
-								className={
-									"rounded border-neutral-300 transition ease-in-out focus:border-neutral-800 focus:ring-neutral-800 sm:text-sm"
-								}
-							/>
+                                                <div className={"grid w-full gap-3 md:w-fit md:grid-cols-3"}>
+                                                        <input
+                                                                onChange={(e) => setQuery(e.target.value)}
+                                                                autoComplete={"off"}
+                                                                type="search"
+                                                                placeholder={"Search email or metadata"}
+                                                                className={
+                                                                        "rounded border-neutral-300 transition ease-in-out focus:border-neutral-800 focus:ring-neutral-800 sm:text-sm"
+                                                                }
+                                                        />
 
-							<motion.button
+                                                        <Dropdown
+                                                                onChange={(v) => setStatusFilter(v)}
+                                                                values={[
+                                                                        { name: "All", value: "all" },
+                                                                        { name: "Subscribed", value: "subscribed" },
+                                                                        { name: "Unsubscribed", value: "unsubscribed" },
+                                                                ]}
+                                                                selectedValue={statusFilter}
+                                                        />
+
+                                                        <motion.button
 								onClick={() => setContactModal(true)}
 								whileHover={{ scale: 1.05 }}
 								whileTap={{ scale: 0.9 }}
