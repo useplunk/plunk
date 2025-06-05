@@ -248,11 +248,16 @@ export class Contacts {
 
 		const { id, email, subscribed, data } = ContactSchemas.manage.parse(req.body);
 
-		const contact = id ? await ContactService.id(id) : await ContactService.email(project.id, email as string);
+		let contact = id ? await ContactService.id(id) : await ContactService.email(project.id, email as string);
 
 		if (!contact || contact.projectId !== project.id) {
 			throw new NotFound("contact");
 		}
+
+		const updateData: Record<string, unknown> = {
+			email,
+			subscribed: subscribed ?? contact.subscribed,
+		};
 
 		if (data) {
 			const givenUserData = Object.entries(data);
@@ -266,18 +271,12 @@ export class Contacts {
 				}
 			});
 
-			await prisma.contact.update({
-				where: { id: contact.id },
-				data: { data: JSON.stringify(dataToUpdate) },
-			});
+			updateData.data = JSON.stringify(dataToUpdate);
 		}
 
-		await prisma.contact.update({
+		contact = await prisma.contact.update({
 			where: { id: contact.id },
-			data: {
-				email,
-				subscribed: subscribed ?? contact.subscribed,
-			},
+			data: updateData,
 		});
 
 		await redis.del(Keys.Project.contacts(project.id));
