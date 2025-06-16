@@ -35,7 +35,7 @@ Plunk is made possible by the support of our sponsors. If you self-host Plunk, c
     <tr>
       <td align="center" width="120">
         <img src="https://avatars.githubusercontent.com/u/206509599?s=200&v=4" style="width:80px; height:80px; object-fit:contain;"/><br/>
-        <a href="https://every.news/" target="_blank">Everynews</a>
+        <a href="https://every.news/?ref=useplunk.com">Everynews</a>
       </td>
     </tr>
   </table>
