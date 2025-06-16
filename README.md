@@ -35,15 +35,8 @@ Plunk is made possible by the support of our sponsors. If you self-host Plunk, c
     <tr>
       <td align="center" width="120">
         <img src="https://avatars.githubusercontent.com/u/206509599?s=200&v=4" style="width:80px; height:80px; object-fit:contain;"/><br/>
-        <a href="https://every.news/">Everynews</a>
+        <a href="https://every.news/" target="_blank">Everynews</a>
       </td>
-      <!-- Add more sponsors here, up to 5 per row -->
-      <!--
-      <td align="center" width="120">
-        <img src="SPONSOR_LOGO_URL" style="width:80px; height:80px; object-fit:contain;"/><br/>
-        <a href="SPONSOR_LINK">Sponsor Name</a>
-      </td>
-      -->
     </tr>
   </table>
 </div>
