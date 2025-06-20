@@ -1,15 +1,11 @@
-import {API_URI} from './constants';
-import {infer as ZodInfer, ZodSchema} from 'zod';
+import { API_URI } from "./constants";
+import { infer as ZodInfer, ZodType } from "zod/v4";
 
 interface Json {
   [x: string]: string | number | boolean | Date | Json | JsonArray;
 }
 
 type JsonArray = (string | number | boolean | Date | Json | JsonArray)[];
-
-interface TypedSchema extends ZodSchema {
-  _type: any;
-}
 
 export class network {
   /**
@@ -18,48 +14,51 @@ export class network {
    * @param path Request endpoint or path
    * @param body Request body
    */
-  public static async fetch<T, Schema extends TypedSchema | void = void>(
-    method: 'GET' | 'PUT' | 'POST' | 'DELETE',
+  public static async fetch<T, Schema extends ZodType | void = void>(
+    method: "GET" | "PUT" | "POST" | "DELETE",
     path: string,
-    body?: Schema extends TypedSchema ? ZodInfer<Schema> : never,
+    body?: Schema extends ZodType ? ZodInfer<Schema> : never,
   ): Promise<T> {
-    const url = path.startsWith('http') ? path : API_URI + path;
+    const url = path.startsWith("http") ? path : API_URI + path;
     const response = await fetch(url, {
       method,
       body: body && JSON.stringify(body),
-      headers: body && {'Content-Type': 'application/json'},
-      credentials: 'include',
+      headers: body && { "Content-Type": "application/json" },
+      credentials: "include",
     });
 
     const res = await response.json();
 
     if (response.status >= 400) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      throw new Error(res?.message ?? 'Something went wrong!');
+      throw new Error(res?.message ?? "Something went wrong!");
     }
 
     return res;
   }
 
-  public static async mock<T, Schema extends TypedSchema | void = void>(
+  public static async mock<T, Schema extends ZodType | void = void>(
     key: string,
-    method: 'GET' | 'PUT' | 'POST' | 'DELETE',
+    method: "GET" | "PUT" | "POST" | "DELETE",
     path: string,
-    body?: Schema extends TypedSchema ? ZodInfer<Schema> : never,
+    body?: Schema extends ZodType ? ZodInfer<Schema> : never,
   ): Promise<T> {
-    const url = path.startsWith('http') ? path : API_URI + path;
+    const url = path.startsWith("http") ? path : API_URI + path;
     const response = await fetch(url, {
       method,
       body: body && JSON.stringify(body),
-      headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`},
-      credentials: 'include',
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      credentials: "include",
     });
 
     const res = await response.json();
 
     if (response.status >= 400) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      throw new Error(res?.message ?? 'Something went wrong!');
+      throw new Error(res?.message ?? "Something went wrong!");
     }
 
     return res;
