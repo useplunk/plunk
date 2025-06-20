@@ -1963,12 +1963,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^3.9.0":
-  version: 3.9.1
-  resolution: "@hookform/resolvers@npm:3.9.1"
+"@hookform/resolvers@npm:^5.1.1":
+  version: 5.1.1
+  resolution: "@hookform/resolvers@npm:5.1.1"
+  dependencies:
+    "@standard-schema/utils": "npm:^0.3.0"
   peerDependencies:
-    react-hook-form: ^7.0.0
-  checksum: 10c0/8a4056db3860b12ee30921ba352996104d6ae75ac45996d4c8b6df429e07ee73f5b87c82a22a15403789213f6f52f5fead1c2637b26ef624068b68d213362cd1
+    react-hook-form: ^7.55.0
+  checksum: 10c0/74601ba4abb3159bbaa25175af9459a2c0337a28d8c0a5be95c7ae7b0a76ddafcf63c03eea8561fd099fe80b226194ad09e3824c53b9beda38393ff9fd264a03
   languageName: node
   linkType: hard
 
@@ -3010,7 +3012,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@plunk/dashboard@workspace:packages/dashboard"
   dependencies:
-    "@hookform/resolvers": "npm:^3.9.0"
+    "@hookform/resolvers": "npm:^5.1.1"
     "@monaco-editor/react": "npm:^4.6.0"
     "@plunk/shared": "npm:1.0.0"
     "@svgr/webpack": "npm:^8.1.0"
@@ -3056,7 +3058,7 @@ __metadata:
     prosemirror-schema-list: "npm:^1.4.1"
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
-    react-hook-form: "npm:^7.52.1"
+    react-hook-form: "npm:^7.58.1"
     react-syntax-highlighter: "npm:^15.5.0"
     react-window: "npm:^1.8.10"
     recharts: "npm:^2.12.7"
@@ -3066,17 +3068,17 @@ __metadata:
     tailwind-scrollbar: "npm:^3.1.0"
     tailwindcss: "npm:^3.4.6"
     typescript: "npm:5.5.3"
-    zod: "npm:^3.23.8"
+    zod: "npm:^3.25.0"
   languageName: unknown
   linkType: soft
 
-"@plunk/shared@npm:1.0.0, @plunk/shared@npm:^1.0.0, @plunk/shared@workspace:packages/shared":
+"@plunk/shared@npm:1.0.0, @plunk/shared@npm:^1.0.0, @plunk/shared@workspace:^, @plunk/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@plunk/shared@workspace:packages/shared"
   dependencies:
     dayjs: "npm:^1.11.12"
     typescript: "npm:^5.5.3"
-    zod: "npm:^3.23.8"
+    zod: "npm:^3.25.0"
   languageName: unknown
   linkType: soft
 
@@ -3715,6 +3717,13 @@ __metadata:
     "@smithy/types": "npm:^3.6.0"
     tslib: "npm:^2.6.2"
   checksum: 10c0/5394b180145af2d6020965c0f58157b137f3fcf5357de4334373bcb143a58190cffb5cdbc39d08b79968fd51a96b88c75da3bfeb7898bb231db7225ea26efe69
+  languageName: node
+  linkType: hard
+
+"@standard-schema/utils@npm:^0.3.0":
+  version: 0.3.0
+  resolution: "@standard-schema/utils@npm:0.3.0"
+  checksum: 10c0/6eb74cd13e52d5fc74054df51e37d947ef53f3ab9e02c085665dcca3c38c60ece8d735cebbdf18fbb13c775fbcb9becb3f53109b0e092a63f0f7389ce0993fd0
   languageName: node
   linkType: hard
 
@@ -10743,6 +10752,7 @@ __metadata:
   resolution: "plunk@workspace:."
   dependencies:
     "@biomejs/biome": "npm:^1.8.3"
+    "@plunk/shared": "workspace:^"
     "@prisma/client": "npm:^5.17.0"
     lerna: "npm:^8.1.6"
     prisma: "npm:^5.17.0"
@@ -11259,12 +11269,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-hook-form@npm:^7.52.1":
-  version: 7.53.1
-  resolution: "react-hook-form@npm:7.53.1"
+"react-hook-form@npm:^7.58.1":
+  version: 7.58.1
+  resolution: "react-hook-form@npm:7.58.1"
   peerDependencies:
     react: ^16.8.0 || ^17 || ^18 || ^19
-  checksum: 10c0/dd2466359a633f873755b366d367d51ab17100566b687fb3b098f704232bc6ab1c79d29f879151e492880ca5eeac35e9425fbe5a309e2a55f7a4b5baf7826e8d
+  checksum: 10c0/981b9982b7eb497c3afff86c219175fdd4d92a24e3533518035239545dda23f5ebc6ba647fb29a250f768bdf811ba413094ce0103fbf36b436737fc18aa1bb49
   languageName: node
   linkType: hard
 
@@ -13354,9 +13364,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.23.8":
-  version: 3.23.8
-  resolution: "zod@npm:3.23.8"
-  checksum: 10c0/8f14c87d6b1b53c944c25ce7a28616896319d95bc46a9660fe441adc0ed0a81253b02b5abdaeffedbeb23bdd25a0bf1c29d2c12dd919aef6447652dd295e3e69
+"zod@npm:^3.25.0":
+  version: 3.25.67
+  resolution: "zod@npm:3.25.67"
+  checksum: 10c0/80a0cab3033272c4ab9312198081f0c4ea88e9673c059aa36dc32024906363729db54bdb78f3dc9d5529bd1601f74974d5a56c0a23e40c6f04a9270c9ff22336
   languageName: node
   linkType: hard
