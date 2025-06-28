@@ -97,7 +97,6 @@ export default function Index() {
 		toast.promise(
 			network.mock<Template, typeof ContactSchemas.create>(project.secret, "POST", "/v1/contacts", {
 				...data,
-				subscribed: true,
 				data: dataObject,
 			}),
 			{
