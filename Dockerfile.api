@@ -1,0 +1,40 @@
+# Build stage
+FROM public.ecr.aws/docker/library/node:23.11-alpine3.22 AS builder
+
+WORKDIR /app
+
+COPY . .
+
+# Install OpenSSL 3.0.x
+RUN apk add --no-cache openssl openssl-dev
+
+RUN yarn install --network-timeout 1000000
+
+# Update Prisma schema and generate with correct binary targets
+RUN yarn prisma generate
+
+RUN yarn build:shared
+RUN yarn workspace @plunk/api build
+
+# Runtime stage
+FROM public.ecr.aws/docker/library/node:23.11-alpine3.22
+
+WORKDIR /app
+
+# Install required dependencies for Prisma and other tools
+RUN apk add --no-cache bash openssl openssl-dev
+
+COPY --from=builder /app/packages/api/dist /app/packages/api/
+COPY --from=builder /app/packages/shared /app/packages/shared
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/prisma /app/prisma
+COPY deployment/entry.sh /app/
+
+RUN chmod +x /app/entry.sh
+
+EXPOSE 4000
+
+CMD ["sh", "/app/entry.sh"]
+
+
+# docker build -t git.wizewerx.tech/wizewerx/plunk-api:main -f Dockerfile.api . --push 

@@ -1,0 +1,42 @@
+# Build stage
+FROM public.ecr.aws/docker/library/node:23.11-alpine3.22 AS builder
+
+WORKDIR /app
+
+COPY . .
+
+COPY packages/dashboard/.env.production /app/.env
+RUN yarn install --network-timeout 1000000
+RUN yarn build:shared
+RUN yarn workspace @plunk/dashboard build
+
+# Runtime stage
+FROM public.ecr.aws/docker/library/node:23.11-alpine3.22
+
+WORKDIR /app
+
+# Copy package files for dependency resolution
+COPY --from=builder /app/package.json /app/
+COPY --from=builder /app/yarn.lock /app/
+COPY --from=builder /app/.yarnrc.yml /app/
+COPY --from=builder /app/.yarn /app/.yarn/
+COPY --from=builder /app/packages/dashboard/package.json /app/packages/dashboard/
+COPY --from=builder /app/packages/shared/package.json /app/packages/shared/
+
+# Copy built files and dependencies
+COPY --from=builder /app/packages/dashboard/.next /app/packages/dashboard/.next
+COPY --from=builder /app/packages/dashboard/public /app/packages/dashboard/public
+COPY --from=builder /app/packages/shared/dist /app/packages/shared/dist
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/packages/dashboard/next.config.js /app/packages/dashboard/
+
+# Copy environment file for runtime (though Next.js typically bakes these into the build)
+COPY --from=builder /app/packages/dashboard/.env.production /app/packages/dashboard/.env.production
+
+EXPOSE 5000
+
+# Change working directory to the dashboard directory
+WORKDIR /app/packages/dashboard
+
+# Use environment variables directly with Next.js
+CMD ["npx", "next", "start", "-p", "5000", "-H", "0.0.0.0"]

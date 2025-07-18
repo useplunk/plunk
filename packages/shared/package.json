@@ -1,0 +1,20 @@
+{
+	"name": "@plunk/shared",
+	"version": "1.0.0",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"private": true,
+	"dependencies": {
+		"dayjs": "^1.11.12",
+		"zod": "^3.23.8"
+	},
+	"devDependencies": {
+		"typescript": "^5.5.3"
+	},
+	"scripts": {
+		"watch": "tsc && tsc -w",
+		"build": "tsc",
+		"dev": "yarn watch",
+		"clean": "rimraf node_modules dist .turbo"
+	}
+}
