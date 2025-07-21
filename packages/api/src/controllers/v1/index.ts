@@ -143,7 +143,7 @@ export class V1 {
 			throw new HttpException(400, result.error.issues[0].message);
 		}
 
-		const { from, name, reply, to, subject, body, subscribed, headers } = result.data;
+		const { from, name, reply, to, subject, body, subscribed, headers, attachments } = result.data;
 
 		if (!project.email || !project.verified) {
 			throw new HttpException(401, "Verify your domain before you start sending");
@@ -210,6 +210,7 @@ export class V1 {
 				reply: reply ?? from ?? project.email,
 				to: [email],
 				headers,
+				attachments,
 				content: {
 					subject: enrichedSubject,
 					html: EmailService.compile({
