@@ -118,6 +118,11 @@ export const EventSchemas = {
 			required_error: "Body is required. Read more: https://docs.useplunk.com/api-reference/transactional/send",
 		}),
 		headers: z.record(z.string()).nullish(),
+		attachments: z.array(z.object({
+			filename: z.string(),
+			content: z.string(), // Base64 encoded content
+			contentType: z.string(),
+		})).max(5, "You can only include up to 5 attachments").nullish(),
 	}),
 };
 
