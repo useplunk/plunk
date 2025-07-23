@@ -33,7 +33,7 @@ interface EventValues {
  */
 export default function Index() {
 	const router = useRouter();
-
+	const [selectedEmail, setSelectedEmail] = useState(null);
 	if (!router.isReady) {
 		return <FullscreenLoader />;
 	}
@@ -400,53 +400,69 @@ export default function Index() {
 					{contact.triggers.length > 0 || contact.emails.length > 0 ? (
 						<div className="scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-neutral-100 scrollbar-thumb-rounded-full scrollbar-track-rounded-full flow-root h-96 max-h-96 overflow-y-auto pr-6">
 							<ul className="-mb-8">
-								{[...contact.triggers, ...contact.emails]
-									.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-									.map((t, index) => {
-										if (t.messageId) {
-											const email = t as Email;
+{[...contact.triggers, ...contact.emails]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .map((t, index) => {
+        if (t.messageId) {
+            const email = t as Email;
+            const expanded = selectedEmail?.id === email.id;
 
-											return (
-												<li>
-													<div className="relative pb-8">
-														{contact.triggers.length + contact.emails.length - 1 !== index && (
-															<span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-neutral-200" aria-hidden="true" />
-														)}
-
-														<div className="relative flex space-x-3">
-															<div>
-																<span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-800 ring-8 ring-white">
-																	<svg
-																		className={"h-5 w-5"}
-																		xmlns="http://www.w3.org/2000/svg"
-																		viewBox="0 0 24 24"
-																		strokeWidth="1.5"
-																		stroke="currentColor"
-																		fill="none"
-																		strokeLinecap="round"
-																		strokeLinejoin="round"
-																	>
-																		<>
-																			<path stroke="none" d="M0 0h24v24H0z" fill="none" />
-																			<rect x="3" y="5" width="18" height="14" rx="2" />
-																			<polyline points="3 7 12 13 21 7" />
-																		</>
-																	</svg>
-																</span>
-															</div>
-															<div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-																<div>
-																	<p className="text-sm text-neutral-500">Transactional email {email.subject} delivered</p>
-																</div>
-																<div className="whitespace-nowrap text-right text-sm text-neutral-500">
-																	<time dateTime={dayjs(t.createdAt).format("YYYY-MM-DD")}>{dayjs().to(t.createdAt)}</time>
-																</div>
-															</div>
-														</div>
-													</div>
-												</li>
-											);
-										}
+            return (
+                <li key={email.id}>
+                        {contact.triggers.length + contact.emails.length - 1 !== index && (
+                            <span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-neutral-200" aria-hidden="true" />
+                        )}
+                        <div className="relative flex space-x-3">
+                            <div>
+                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-800 ring-8 ring-white">
+                                    <svg className={"h-5 w-5"} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                        <>
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                            <rect x="3" y="5" width="18" height="14" rx="2" />
+                                            <polyline points="3 7 12 13 21 7" />
+                                        </>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                <div className="relative">
+                                    <p
+                                        className="text-sm text-neutral-500 cursor-pointer"
+                                        onClick={() => setSelectedEmail(expanded ? null : email)}
+                                    >
+                                        Transactional email {email.subject} delivered
+                                    </p>
+                                </div>
+                                <div className="whitespace-nowrap text-right text-sm text-neutral-500">
+                                    <time dateTime={dayjs(t.createdAt).format("YYYY-MM-DD")}>{dayjs().to(t.createdAt)}</time>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Expanded panel for all screen sizes */}
+                        {expanded && (
+                            <div className="mt-4 mb-2 ml-10 rounded border border-neutral-200 bg-neutral-50 p-4 text-sm">
+                                <div className="space-y-2">
+                                    <div>
+                                        <span className="font-semibold text-neutral-700">Status:</span>{" "}
+                                        <span className="text-neutral-800">{email.status}</span>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-neutral-700">Sent:</span>{" "}
+                                        <span className="text-neutral-800">{dayjs(email.createdAt).format("YYYY-MM-DD HH:mm")}</span>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-neutral-700">Body:</span>
+                                        <div className="mt-1 rounded bg-white p-3 text-neutral-800 whitespace-pre-line max-h-64 overflow-y-auto">
+                                            {email.body || <span className="text-neutral-400">No body available</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    
+                </li>
+            );
+        }
 
 										if (t.action) {
 											return (
