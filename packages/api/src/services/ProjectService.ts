@@ -54,6 +54,24 @@ export class ProjectService {
 						OR: [{ action: { projectId: id } }, { campaign: { projectId: id } }, { projectId: id }],
 					},
 					orderBy: { createdAt: "desc" },
+					take: 100, // Limit to prevent memory issues
+				});
+			});
+		},
+		paginated: (id: string, page: number, limit: number = 50) => {
+			return wrapRedis(Keys.Project.emails(id, { page, limit }), async () => {
+				return prisma.email.findMany({
+					where: {
+						OR: [{ action: { projectId: id } }, { campaign: { projectId: id } }, { projectId: id }],
+					},
+					include: {
+						contact: { select: { id: true, email: true } },
+						action: { select: { id: true, name: true } },
+						campaign: { select: { id: true, subject: true } },
+					},
+					orderBy: { createdAt: "desc" },
+					take: limit,
+					skip: (page - 1) * limit,
 				});
 			});
 		},
@@ -141,45 +159,46 @@ export class ProjectService {
 		});
 	}
 
-	public static async feed(id: string, page: number) {
-		const itemsPerPage = 10;
-		const skip = (page - 1) * itemsPerPage;
+	public static async feed(id: string, page: number, limit: number = 20) {
+		const skip = (page - 1) * limit;
 
-		const triggers = await prisma.trigger.findMany({
-			where: { contact: { projectId: id } },
-			include: {
-				contact: {
-					select: {
-						id: true,
-						email: true,
-					},
+		// Use more efficient query with proper indexing and pagination
+		const [triggers, emails, totalTriggers, totalEmails] = await Promise.all([
+			prisma.trigger.findMany({
+				where: { contact: { projectId: id } },
+				include: {
+					contact: { select: { id: true, email: true } },
+					event: { select: { name: true } },
 				},
-				event: {
-					select: {
-						name: true,
-					},
+				orderBy: { createdAt: "desc" },
+				take: Math.ceil(limit / 2),
+				skip: Math.floor(skip / 2),
+			}),
+			
+			prisma.email.findMany({
+				where: { contact: { projectId: id } },
+				include: {
+					contact: { select: { id: true, email: true } },
 				},
-			},
-			orderBy: { createdAt: "desc" },
-		});
+				orderBy: { createdAt: "desc" },
+				take: Math.ceil(limit / 2),
+				skip: Math.floor(skip / 2),
+			}),
 
-		const emails = await prisma.email.findMany({
-			where: { contact: { projectId: id } },
-			include: {
-				contact: {
-					select: {
-						id: true,
-						email: true,
-					},
-				},
-			},
-			orderBy: { createdAt: "desc" },
-		});
+			prisma.trigger.count({ where: { contact: { projectId: id } } }),
+			prisma.email.count({ where: { contact: { projectId: id } } })
+		]);
 
 		const combined = [...triggers, ...emails];
 		combined.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-		return combined.slice(skip, skip + itemsPerPage);
+		return {
+			items: combined.slice(0, limit),
+			total: totalTriggers + totalEmails,
+			page,
+			limit,
+			totalPages: Math.ceil((totalTriggers + totalEmails) / limit)
+		};
 	}
 
 	public static usage(id: string) {

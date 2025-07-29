@@ -88,9 +88,10 @@ export class Campaigns {
 			});
 
 			let delay = userDelay ?? 0;
+			const batchSize = parseInt(process.env.CAMPAIGN_BATCH_SIZE || "100");
 
 			const tasks = campaign.recipients.map((r, index) => {
-				if (index % 80 === 0) {
+				if (index % batchSize === 0) {
 					delay += 1;
 				}
 

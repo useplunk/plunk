@@ -257,6 +257,69 @@ export class Projects {
 		return res.status(200).json(metadata);
 	}
 
+	@Get("id/:id/contacts/paginated")
+	@Middleware([isAuthenticated])
+	public async getProjectContactsPaginated(req: Request, res: Response) {
+		const { id: projectId } = UtilitySchemas.id.parse(req.params);
+		const { page, limit = 50, search, subscribed } = z
+			.object({
+				page: z.number().default(1),
+				limit: z.number().max(100).default(50),
+				search: z.string().optional(),
+				subscribed: z.boolean().optional(),
+			})
+			.parse(req.query);
+
+		const { userId } = res.locals.auth as IJwt;
+
+		const project = await ProjectService.id(projectId);
+		if (!project) {
+			throw new NotFound("project");
+		}
+
+		const isMember = await MembershipService.isMember(projectId, userId);
+		if (!isMember) {
+			throw new NotAllowed();
+		}
+
+		const where: any = {
+			projectId,
+			...(subscribed !== undefined && { subscribed }),
+			...(search && {
+				OR: [
+					{ email: { contains: search, mode: "insensitive" } },
+					{ data: { contains: search, mode: "insensitive" } },
+				],
+			}),
+		};
+
+		const [contacts, total] = await Promise.all([
+			prisma.contact.findMany({
+				where,
+				select: {
+					id: true,
+					email: true,
+					subscribed: true,
+					createdAt: true,
+					data: true,
+					triggers: { select: { createdAt: true, eventId: true } },
+				},
+				orderBy: { createdAt: "desc" },
+				take: limit,
+				skip: (page - 1) * limit,
+			}),
+			prisma.contact.count({ where }),
+		]);
+
+		return res.status(200).json({
+			contacts,
+			total,
+			page,
+			limit,
+			totalPages: Math.ceil(total / limit),
+		});
+	}
+
 	@Get("id/:id/contacts")
 	@Middleware([isAuthenticated])
 	public async getProjectContactsByID(req: Request, res: Response) {
@@ -292,7 +355,10 @@ export class Projects {
 	@Middleware([isAuthenticated])
 	public async getProjectFeedByID(req: Request, res: Response) {
 		const { id: projectId } = UtilitySchemas.id.parse(req.params);
-		const { page } = UtilitySchemas.pagination.parse(req.query);
+		const { page, limit = 20 } = z.object({
+			page: z.number().default(1),
+			limit: z.number().max(100).default(20),
+		}).parse(req.query);
 
 		const { userId } = res.locals.auth as IJwt;
 
@@ -308,7 +374,7 @@ export class Projects {
 			throw new NotAllowed();
 		}
 
-		const feed = await ProjectService.feed(projectId, page);
+		const feed = await ProjectService.feed(projectId, page, limit);
 
 		return res.status(200).json(feed);
 	}

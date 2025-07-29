@@ -59,6 +59,45 @@ export function useContacts(page: number) {
 }
 
 /**
+ * Hook for paginated contacts with search functionality
+ * @param page
+ * @param limit
+ * @param search
+ * @param subscribed
+ */
+export function usePaginatedContacts(
+  page: number = 1,
+  limit: number = 50,
+  search?: string,
+  subscribed?: boolean
+) {
+  const activeProject = useActiveProject();
+
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    ...(search && { search }),
+    ...(subscribed !== undefined && { subscribed: subscribed.toString() }),
+  });
+
+  return useSWR<{
+    contacts: (Contact & {
+      triggers: Pick<Trigger, 'createdAt' | 'eventId'>[];
+    })[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>(
+    activeProject ? `/projects/id/${activeProject.id}/contacts/paginated?${queryParams}` : null,
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 0,
+    }
+  );
+}
+
+/**
  *
  */
 export function useContactsCount() {
