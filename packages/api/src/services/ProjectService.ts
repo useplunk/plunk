@@ -264,14 +264,32 @@ export class ProjectService {
 
 	public static campaigns(id: string) {
 		return wrapRedis(Keys.Project.campaigns(id), async () => {
-			return prisma.project.findUnique({ where: { id } }).campaigns({
-				include: {
-					recipients: { select: { id: true } },
-					emails: { select: { id: true, status: true } },
-					tasks: { select: { id: true } },
-				},
-				orderBy: { createdAt: "desc" },
-			});
+			return prisma.$queryRaw`
+			SELECT
+				c.id,
+				c.subject,
+				c.body,
+				c.email,
+				c."from",
+				c.status,
+				c.delivered,
+				c."style",
+				c."projectId",
+				c."createdAt",
+				c."updatedAt",
+				COUNT(DISTINCT e.id)::int AS emails_count,
+				(COUNT(DISTINCT e.id) FILTER (WHERE e.status = 'OPENED'))::int AS opened_emails_count,
+				COUNT(DISTINCT t.id)::int AS tasks_count
+			FROM
+				campaigns c
+				LEFT JOIN emails e ON e. "campaignId" = c.id
+				LEFT JOIN tasks t ON t. "campaignId" = c.id
+			WHERE
+				c. "projectId" = ${id}
+			GROUP BY
+				c.id
+			ORDER by c."createdAt" DESC;
+		`
 		});
 	}
 
