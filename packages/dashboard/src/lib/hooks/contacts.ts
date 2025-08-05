@@ -85,19 +85,13 @@ export function searchContacts(query: string | undefined) {
 
   if (!query) {
     return useSWR<{
-      contacts: (Contact & {
-        triggers: Trigger[];
-        emails: Email[];
-      })[];
+      contacts: Contact[];
       count: number;
     }>(activeProject ? `/projects/id/${activeProject.id}/contacts` : null);
   }
 
   return useSWR<{
-    contacts: (Contact & {
-      triggers: Trigger[];
-      emails: Email[];
-    })[];
+    contacts: Contact[];
     count: number;
   }>(activeProject ? `/projects/id/${activeProject.id}/contacts/search?query=${query}` : null, {
     revalidateOnFocus: false,
