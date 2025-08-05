@@ -187,7 +187,7 @@ export class Projects {
 
 		const { query } = z.object({ query: z.string().min(1) }).parse(req.query);
 		const queryLike = `%${query}%`;
-		const contacts = await prisma.$queryRaw`
+		const contacts = await prisma.$queryRaw<any[]>`
 			SELECT
 				c."id",
 				c."email",

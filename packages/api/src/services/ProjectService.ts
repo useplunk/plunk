@@ -145,7 +145,7 @@ export class ProjectService {
 		const itemsPerPage = 10;
 		const skip = (page - 1) * itemsPerPage;
 
-		const results = await prisma.$queryRaw`
+		const results = await prisma.$queryRaw<{ body: string }[]>`
 			(
 				SELECT
 					to_jsonb (t) || jsonb_build_object (
@@ -176,7 +176,7 @@ export class ProjectService {
 				"createdAt" DESC
 			OFFSET ${skip} LIMIT ${itemsPerPage};
 		`
-		return results.map(row => row.body);
+		return results.map((row: { body: string }) => row.body);
 	}
 
 	public static usage(id: string) {
