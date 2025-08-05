@@ -186,22 +186,23 @@ export class Projects {
 		}
 
 		const { query } = z.object({ query: z.string().min(1) }).parse(req.query);
-
-		const contacts = await prisma.contact.findMany({
-			where: {
-				projectId: project.id,
-				OR: [{ email: { contains: query, mode: "insensitive" } }, { data: { contains: query, mode: "insensitive" } }],
-			},
-			select: {
-				id: true,
-				email: true,
-				subscribed: true,
-				createdAt: true,
-				triggers: { select: { createdAt: true } },
-				emails: { select: { createdAt: true } },
-			},
-			orderBy: [{ createdAt: "desc" }],
-		});
+		const queryLike = `%${query}%`;
+		const contacts = await prisma.$queryRaw`
+			SELECT
+				c."id",
+				c."email",
+				c."subscribed",
+				GREATEST(c."createdAt", MAX(e."createdAt"), MAX(t."createdAt")) AS "createdAt"
+			FROM
+				contacts c
+			LEFT JOIN triggers t on c.id = t."contactId"
+			LEFT JOIN emails e on e.id = e."contactId"
+			WHERE (c."projectId" = ${project.id}
+				AND(c."email" ILIKE ${queryLike} OR c."data" ILIKE ${queryLike}))
+			GROUP BY c.id
+			ORDER BY
+				"createdAt" DESC;
+		`
 
 		return res.status(200).json({
 			contacts,

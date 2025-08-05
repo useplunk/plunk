@@ -140,24 +140,11 @@ export default function Index() {
                                         <>
                                                 <Table
                                                         values={filtered
-                                                                .sort((a, b) => {
-                                                                        const aTrigger = a.triggers.length > 0 ? a.triggers.sort()[0].createdAt : a.createdAt;
-
-                                                                        const bTrigger = b.triggers.length > 0 ? b.triggers.sort()[0].createdAt : b.createdAt;
-
-                                                                        return bTrigger > aTrigger ? 1 : -1;
-                                                                })
                                                                 .map((u) => {
                                                                         return {
                                                                                 Email: u.email,
                                                                                 "Last Activity": dayjs()
-                                                                                        .to(
-                                                                                                [...u.triggers, ...u.emails].length > 0
-                                                                                                        ? [...u.triggers, ...u.emails].sort((a, b) => {
-                                                                                                                return a.createdAt > b.createdAt ? -1 : 1;
-                                                                                                        })[0].createdAt
-                                                                                                        : u.createdAt,
-                                                                                        )
+                                                                                        .to(u.createdAt)
                                                                                         .toString(),
                                                                                 Subscribed: u.subscribed,
                                                                                 Edit: (
@@ -238,7 +225,7 @@ export default function Index() {
                                                         <div className="hidden sm:block">
                                                                 <p className="text-sm text-neutral-700">
                                                                         Showing <span className="font-medium">{(page - 1) * 20}</span> to{" "}
-                                                                        <span className="font-medium">{page * 20}</span> of <span className="font-medium">{filtered.length}</span>{" "}
+                                                                        <span className="font-medium">{page * 20}</span> of <span className="font-medium">{contacts.count}</span>{" "}
                                                                         contacts
                                                                 </p>
                                                         </div>

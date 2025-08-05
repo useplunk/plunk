@@ -145,41 +145,38 @@ export class ProjectService {
 		const itemsPerPage = 10;
 		const skip = (page - 1) * itemsPerPage;
 
-		const triggers = await prisma.trigger.findMany({
-			where: { contact: { projectId: id } },
-			include: {
-				contact: {
-					select: {
-						id: true,
-						email: true,
-					},
-				},
-				event: {
-					select: {
-						name: true,
-					},
-				},
-			},
-			orderBy: { createdAt: "desc" },
-		});
-
-		const emails = await prisma.email.findMany({
-			where: { contact: { projectId: id } },
-			include: {
-				contact: {
-					select: {
-						id: true,
-						email: true,
-					},
-				},
-			},
-			orderBy: { createdAt: "desc" },
-		});
-
-		const combined = [...triggers, ...emails];
-		combined.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-		return combined.slice(skip, skip + itemsPerPage);
+		const results = await prisma.$queryRaw`
+			(
+				SELECT
+					to_jsonb (t) || jsonb_build_object (
+						'contact', jsonb_build_object ('id', c.id, 'email', c.email), 
+						'event', CASE WHEN e.name IS NOT NULL THEN jsonb_build_object ('name', e.name) ELSE NULL END
+					) as body,
+					t."createdAt"
+				FROM
+					triggers t
+					JOIN contacts c ON t. "contactId" = c.id
+					LEFT JOIN events e ON t. "eventId" = e.id
+				WHERE
+					c. "projectId" = ${id}
+			) 
+			UNION ALL (
+				SELECT
+					to_jsonb (e) || jsonb_build_object (
+						'contact', jsonb_build_object ('id', c.id, 'email', c.email)
+					) as body,
+					e."createdAt"
+				FROM
+					emails e
+					JOIN contacts c ON e. "contactId" = c.id
+				WHERE
+					c. "projectId" = ${id}
+			)
+			ORDER BY
+				"createdAt" DESC
+			OFFSET ${skip} LIMIT ${itemsPerPage};
+		`
+		return results.map(row => row.body);
 	}
 
 	public static usage(id: string) {
