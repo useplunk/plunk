@@ -13,7 +13,7 @@ export default async function handler(
       }, 2000);
     });
 
-    const healthPromise = network.fetch("GET", "/health");
+    const healthPromise = network.fetch("GET", "/api/health");
 
     await Promise.race([healthPromise, timeoutPromise]);
 
