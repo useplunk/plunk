@@ -237,8 +237,8 @@ export default function Index() {
                                                 <nav className="flex items-center justify-between py-3" aria-label="Pagination">
                                                         <div className="hidden sm:block">
                                                                 <p className="text-sm text-neutral-700">
-                                                                        Showing <span className="font-medium">{(page - 1) * 20}</span> to{" "}
-                                                                        <span className="font-medium">{page * 20}</span> of <span className="font-medium">{filtered.length}</span>{" "}
+                                                                        Showing <span className="font-medium">{(page - 1) * 100}</span> to{" "}
+                                                                        <span className="font-medium">{page * 100}</span> of <span className="font-medium">{contacts.count}</span>{" "}
                                                                         contacts
                                                                 </p>
                                                         </div>
