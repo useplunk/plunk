@@ -31,6 +31,7 @@
 		"@uiball/loaders": "^1.3.1",
 		"classnames": "^2.5.1",
 		"dayjs": "^1.11.12",
+		"dompurify": "^3.2.6",
 		"framer-motion": "^11.3.7",
 		"jotai": "2.9.0",
 		"lucide-react": "^0.408.0",
