@@ -33,8 +33,8 @@ export class ProjectService {
 						emails: { select: { createdAt: true } },
 					},
 					orderBy: [{ createdAt: "desc" }],
-					take: 20,
-					skip: (page - 1) * 20,
+					take: 100,
+					skip: (page - 1) * 100,
 				});
 			});
 		},
