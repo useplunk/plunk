@@ -145,41 +145,60 @@ export class ProjectService {
 		const itemsPerPage = 10;
 		const skip = (page - 1) * itemsPerPage;
 
-		const triggers = await prisma.trigger.findMany({
-			where: { contact: { projectId: id } },
-			include: {
-				contact: {
-					select: {
-						id: true,
-						email: true,
+		const [triggers, emails] = await Promise.all([
+			prisma.trigger.findMany({
+				where: {
+					contact: {
+						projectId: id
+					}
+				},
+				select: {
+					id: true,
+					createdAt: true,
+					contact: {
+						select: {
+							id: true,
+							email: true,
+						},
+					},
+					event: {
+						select: {
+							name: true,
+						},
 					},
 				},
-				event: {
-					select: {
-						name: true,
+				orderBy: {createdAt: 'desc'},
+				take: itemsPerPage,
+				skip,
+			}),
+			prisma.email.findMany({
+				where: {
+					contact: {
+						projectId: id
+					}
+				},
+				select: {
+					id: true,
+					createdAt: true,
+					messageId: true,
+					status: true,
+					contact: {
+						select: {
+							id: true,
+							email: true,
+						},
 					},
 				},
-			},
-			orderBy: { createdAt: "desc" },
-		});
-
-		const emails = await prisma.email.findMany({
-			where: { contact: { projectId: id } },
-			include: {
-				contact: {
-					select: {
-						id: true,
-						email: true,
-					},
-				},
-			},
-			orderBy: { createdAt: "desc" },
-		});
+				orderBy: {createdAt: 'desc'},
+				take: itemsPerPage,
+				skip,
+			}),
+		]);
 
 		const combined = [...triggers, ...emails];
 		combined.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-		return combined.slice(skip, skip + itemsPerPage);
+		return combined.slice(0, itemsPerPage);
 	}
 
 	public static usage(id: string) {
