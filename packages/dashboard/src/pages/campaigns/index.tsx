@@ -62,17 +62,17 @@ export default function Index() {
 																			<div>
 																				<label className={"text-xs font-medium text-neutral-500"}>Open rate</label>
 																				<p className="mt-1 truncate text-sm text-neutral-500">
-																					{c.emails.length > 0
-																						? Math.round((c.emails.filter((e) => e.status === "OPENED").length / c.emails.length) * 100)
+																					{c.emails_count > 0
+																						? Math.round((c.opened_emails_count / c.emails_count) * 100)
 																						: 0}
 																					%
 																				</p>
 																			</div>
 
-																			{c.tasks.length > 0 && (
+																			{c.tasks_count > 0 && (
 																				<div>
 																					<label className={"text-xs font-medium text-neutral-500"}>Emails in queue</label>
-																					<p className="mt-1 truncate text-sm text-neutral-500">{c.tasks.length}</p>
+																					<p className="mt-1 truncate text-sm text-neutral-500">{c.tasks_count}</p>
 																				</div>
 																			)}
 																		</>
@@ -91,7 +91,7 @@ export default function Index() {
 																<div className={"grid grid-cols-2 gap-3"}>
 																	<div>
 																		<label className={"text-xs font-medium text-neutral-500"}>Recipients</label>
-																		<p className="mt-1 truncate text-sm text-neutral-500">{c.recipients.length}</p>
+																		<p className="mt-1 truncate text-sm text-neutral-500">{c.emails_count}</p>
 																	</div>
 
 																	<div>
@@ -100,8 +100,8 @@ export default function Index() {
 																			{c.status === "DRAFT" ? (
 																				<Badge type={"info"}>Draft</Badge>
 																			) : (
-																				<Badge type={c.tasks.length > 0 ? "info" : "success"}>
-																					{c.tasks.length > 0 ? "Sending" : "Delivered"}
+																				<Badge type={c.tasks_count > 0 ? "info" : "success"}>
+																					{c.tasks_count > 0 ? "Sending" : "Delivered"}
 																				</Badge>
 																			)}
 																		</p>
