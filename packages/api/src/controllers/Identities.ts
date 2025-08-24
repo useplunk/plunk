@@ -100,63 +100,68 @@ export class Identities {
 
 	@Post("update")
 	public async updateIdentities(req: Request, res: Response) {
-		const count = await prisma.project.count({
-			where: { email: { not: null } },
-		});
-
-		for (let i = 0; i < count; i += 99) {
-			const dbIdentities = await prisma.project.findMany({
+		try {
+			const count = await prisma.project.count({
 				where: { email: { not: null } },
-				select: { id: true, email: true },
-				skip: i,
-				take: 99,
 			});
 
-			const awsIdentities = await getIdentities(dbIdentities.map((i) => i.email as string));
-
-			for (const identity of awsIdentities) {
-				const projectId = dbIdentities.find((i) => i.email?.endsWith(identity.email));
-
-				const project = await ProjectService.id(projectId?.id as string);
-
-				if (identity.status === "Failed") {
-					signale.info(`Restarting verification for ${identity.email}`);
-					try {
-						void verifyIdentity(identity.email);
-					} catch (e) {
-						// @ts-ignore
-						if (e.Code === "Throttling") {
-							signale.warn("Throttling detected, waiting 5 seconds");
-							await new Promise((r) => setTimeout(r, 5000));
-						}
-					}
-				}
-
-				await prisma.project.update({
-					where: { id: projectId?.id as string },
-					data: { verified: identity.status === "Success" },
-				});
-
-				if (project && !project.verified && identity.status === "Success") {
-					signale.success(`Successfully verified ${identity.email}`);
-					void ses.setIdentityFeedbackForwardingEnabled({
-						Identity: identity.email,
-						ForwardingEnabled: false,
+			for (let i = 0; i < count; i += 99) {
+				try {
+					const dbIdentities = await prisma.project.findMany({
+						where: { email: { not: null } },
+						select: { id: true, email: true },
+						skip: i,
+						take: 99,
 					});
 
-					await redis.del(Keys.Project.id(project.id));
-					await redis.del(Keys.Project.secret(project.secret));
-					await redis.del(Keys.Project.public(project.public));
-				}
+					const awsIdentities = await getIdentities(dbIdentities.map((i) => i.email as string));
 
-				if (project?.verified && identity.status !== "Success") {
-					await redis.del(Keys.Project.id(project.id));
-					await redis.del(Keys.Project.secret(project.secret));
-					await redis.del(Keys.Project.public(project.public));
+					for (const identity of awsIdentities) {
+						try {
+							const projectId = dbIdentities.find((i) => i.email?.endsWith(identity.email));
+
+							const project = await ProjectService.id(projectId?.id as string);
+
+							if (identity.status === "Failed") {
+								signale.info(`Restarting verification for ${identity.email}`);
+								void verifyIdentity(identity.email);
+							}
+
+							await prisma.project.update({
+								where: { id: projectId?.id as string },
+								data: { verified: identity.status === "Success" },
+							});
+
+							if (project && !project.verified && identity.status === "Success") {
+								signale.success(`Successfully verified ${identity.email}`);
+								void ses.setIdentityFeedbackForwardingEnabled({
+									Identity: identity.email,
+									ForwardingEnabled: false,
+								});
+
+								await redis.del(Keys.Project.id(project.id));
+								await redis.del(Keys.Project.secret(project.secret));
+								await redis.del(Keys.Project.public(project.public));
+							}
+
+							if (project?.verified && identity.status !== "Success") {
+								await redis.del(Keys.Project.id(project.id));
+								await redis.del(Keys.Project.secret(project.secret));
+								await redis.del(Keys.Project.public(project.public));
+							}
+						} catch (identityError) {
+							signale.error(`Error processing identity ${identity.email}:`, identityError);
+						}
+					}
+				} catch (batchError) {
+					signale.error(`Error processing batch ${i}-${i + 99}:`, batchError);
 				}
 			}
-		}
 
-		return res.status(200).json({ success: true });
+			return res.status(200).json({ success: true });
+		} catch (error) {
+			signale.error("Error in updateIdentities:", error);
+			return res.status(500).json({ success: false, error: "Internal server error" });
+		}
 	}
 }
