@@ -9,7 +9,12 @@ import { ProjectService } from "../services/ProjectService";
 @Controller("tasks")
 export class Tasks {
 	@Post()
-	public async handleTasks(req: Request, res: Response) {
+	public async handleTasksApi(req: Request, res: Response) {
+		await (new Tasks().handleTasks());
+		return res.status(200).json({ success: true });
+	}
+
+	public async handleTasks() {
 		// Get all tasks with a runBy data in the past
 		const tasks = await prisma.task.findMany({
 			where: { runBy: { lte: new Date() } },
@@ -128,7 +133,5 @@ export class Tasks {
 
 			signale.success(`Task completed for ${contact.email} from ${project.name}`);
 		}
-
-		return res.status(200).json({ success: true });
 	}
 }
