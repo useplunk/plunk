@@ -44,9 +44,12 @@ export class SNSWebhook {
 			if (email.projectId) {
 				if (body.eventType === "Click") {
 					signale.success(`Click received for ${email.contact.email} from ${project.name}`);
+					
 					await prisma.click.create({
 						data: { emailId: email.id, link: body.click.link },
 					});
+					
+					return res.status(200).json({ success: true });
 				}
 
 				if (body.eventType === "Complaint") {
