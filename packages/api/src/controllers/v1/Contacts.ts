@@ -63,6 +63,42 @@ export class Contacts {
 		return res.status(200).json(contact);
 	}
 
+	@Get("by-email")
+	@Middleware([isValidKey])
+	public async getContactByEmail(req: Request, res: Response) {
+		const { email, withProject } = z
+			.object({
+				email: z.string().email(),
+				withProject: z
+					.boolean()
+					.default(false)
+					.or(z.string().transform((s) => s === "true")),
+			})
+			.parse(req.query);
+
+		const project = await ProjectService.key(res.locals.auth.key);
+		if (!project) {
+			throw new NotFound("project");
+		}
+
+		const contact = await ContactService.email(project.id, email);
+		if (!contact || contact.projectId !== project.id) {
+			throw new NotFound("contact");
+		}
+
+		if (withProject) {
+			const project = await ProjectService.id(contact.projectId);
+			if (!project) {
+				throw new NotFound("project");
+			}
+			return res.status(200).json({
+				...contact,
+				project: { name: project.name, public: project.public },
+			});
+		}
+		return res.status(200).json(contact);
+	}
+
 	@Get()
 	@Middleware([isValidSecretKey])
 	public async getContacts(req: Request, res: Response) {
