@@ -9,7 +9,7 @@ import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { type FieldError, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Alert, Card, Dropdown, Editor, FullscreenLoader, Input, MultiselectDropdown, MetadataFilterEditor, MetadataFilterGroupType, filterContactsByMetadata } from "../../components";
+import { Alert, Card, Dropdown, Editor, FullscreenLoader, Input, MultiselectDropdown, MetadataFilterEditor, MetadataFilterGroupType } from "../../components";
 import { Dashboard } from "../../layouts";
 import { useCampaigns } from "../../lib/hooks/campaigns";
 import { useContacts } from "../../lib/hooks/contacts";

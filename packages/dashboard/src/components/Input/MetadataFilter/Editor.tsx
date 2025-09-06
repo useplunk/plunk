@@ -4,7 +4,12 @@ import Toggle from '../Toggle/Toggle';
 import Filter from './Filter';
 import { MetadataFilterGroupType } from './types';
 
-
+/**
+ * Editor for the metadata filter
+ * @param onChange Callback to call when the metadata filter changes
+ * @param contacts Contacts to filter
+ * @returns Editor for the metadata filter
+ */
 export default function MetadataFilterEditor({ onChange, contacts }: { onChange: (metadataFilter: MetadataFilterGroupType) => void, contacts: Contact[] }) {
     const [group, setGroup] = useState<MetadataFilterGroupType>({
         combination: 'and',
@@ -15,12 +20,9 @@ export default function MetadataFilterEditor({ onChange, contacts }: { onChange:
         onChange(group);
     }, [group]);
 
-
     const parsedContacts = useMemo(() => contacts.map((c) => ({ contact: c, data: JSON.parse(c.data ?? "{}") })), [contacts]);
 
     return (<>
-
-
         <div className={"sm:col-span-4"}>
             <Toggle title="All contacts with parameter" description={group.combination === "and" ? "match all filters" : "match at least one filter"} toggled={group.combination === "and"} onToggle={() => setGroup({ ...group, combination: group.combination === "and" ? "or" : "and" })} />
         </div>

@@ -3,7 +3,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dropdown } from "../Dropdown";
 import { Condition, conditions, MetadataFilterType } from './types';
 
-
+/**
+ * A single filter for the metadata filter editor
+ * @param initialFilter Initial filter
+ * @param onFilterChange Callback to call when the configuration changes
+ * @param contacts Contacts to filter
+ * @param index Index of the filter
+ * @param onFilterRemove Callback to call when the filter is removed
+ */
 export default function Filter({ initialFilter, onFilterChange, contacts, index, onFilterRemove }: { initialFilter: MetadataFilterType, onFilterChange: (filter: MetadataFilterType) => void, contacts: { contact: Contact, data: Record<string, any> }[], index: number, onFilterRemove: (index: number) => void }) {
     const [filter, setFilter] = useState<MetadataFilterType>(initialFilter);
 
