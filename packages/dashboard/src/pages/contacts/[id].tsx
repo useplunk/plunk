@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import {motion} from "framer-motion";
 import {Save} from "lucide-react";
 import {useRouter} from "next/router";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import {useFieldArray, useForm} from "react-hook-form";
 import {toast} from "sonner";
 import {z} from "zod";
@@ -35,10 +35,7 @@ interface EventValues {
 export default function Index() {
     const router = useRouter();
     const [selectedEmail, setSelectedEmail] = useState(null);
-    if (!router.isReady) {
-        return <FullscreenLoader/>;
-    }
-
+  
     const [eventModal, setEventModal] = useState(false);
 
     const project = useActiveProject();
@@ -76,6 +73,8 @@ export default function Index() {
 
     const {fields, append: fieldAppend, remove: fieldRemove} = useFieldArray({control, name: "data"});
 
+  
+
     const {
         register: eventRegister,
         handleSubmit: eventHandleSubmit,
@@ -101,6 +100,45 @@ export default function Index() {
         });
     }, [dataReset, reset, contact]);
 
+    const initialKeys = useMemo(() => Object.keys(JSON.parse(contact?.data ?? "{}")), [contact?.data]);
+
+    if (!router.isReady) {
+        return <FullscreenLoader/>;
+    }
+
+    const update = (data: ContactValues) => {
+        debugger;
+        const entries = getDataValues().data.map(({value}) => [value.key, value.value]);
+        let dataObject = {};
+
+        entries.forEach(([key, value]) => {
+            Object.assign(dataObject, {[key]: value});
+        });
+
+        dataObject = Object.fromEntries(Object.entries(dataObject).filter(([, value]) => value !== ""));
+
+        initialKeys.forEach((key) => {
+            if (!dataObject[key]) {
+                dataObject[key] = null;
+            }
+        });
+
+        toast.promise(
+            network.mock<Contact, typeof ContactSchemas.manage>(project.secret, "PUT", "/v1/contacts", {
+                ...data,
+                data: dataObject,
+            }),
+            {
+                loading: "Saving your changes",
+                success: () => {
+                    void mutate();
+                    return "Saved your changes";
+                },
+                error: "Could not save your changes!",
+            },
+        );
+    };
+
     if (!contact) {
         return <FullscreenLoader/>;
     }
@@ -125,31 +163,6 @@ export default function Index() {
         setEventModal(false);
     };
 
-    const update = (data: ContactValues) => {
-        const entries = getDataValues().data.map(({value}) => [value.key, value.value]);
-        let dataObject = {};
-
-        entries.forEach(([key, value]) => {
-            Object.assign(dataObject, {[key]: value});
-        });
-
-        dataObject = Object.fromEntries(Object.entries(dataObject).filter(([, value]) => value !== ""));
-
-        toast.promise(
-            network.mock<Contact, typeof ContactSchemas.manage>(project.secret, "PUT", "/v1/contacts", {
-                ...data,
-                data: dataObject,
-            }),
-            {
-                loading: "Saving your changes",
-                success: () => {
-                    void mutate();
-                    return "Saved your changes";
-                },
-                error: "Could not save your changes!",
-            },
-        );
-    };
 
     const remove = async (e: { preventDefault: () => void }) => {
         e.preventDefault();
