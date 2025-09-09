@@ -123,6 +123,8 @@ export class Campaigns {
 						},
 						project: {
 							name: project.name,
+							baseTemplate: project.baseTemplate,
+							unsubscribeFooter: project.unsubscribeFooter,
 						},
 					}),
 				},

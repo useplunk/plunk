@@ -5,6 +5,7 @@ import { ContactService } from "./ContactService";
 import { EmailService } from "./EmailService";
 import { Keys } from "./keys";
 import { wrapRedis } from "./redis";
+import { TemplatingLanguage } from "shared/dist";
 
 export class ActionService {
 	/**
@@ -116,6 +117,7 @@ export class ActionService {
 						plunk_email: contact.email,
 						...JSON.parse(contact.data ?? "{}"),
 					},
+					templatingLanguage: project.templatingLanguage as TemplatingLanguage,
 				});
 
 				const { messageId } = await EmailService.send({
@@ -136,6 +138,8 @@ export class ActionService {
 							},
 							project: {
 								name: project.name,
+								baseTemplate: project.baseTemplate,
+								unsubscribeFooter: project.unsubscribeFooter,
 							},
 							isHtml: action.template.style === "HTML",
 						}),

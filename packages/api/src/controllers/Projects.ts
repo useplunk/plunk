@@ -11,6 +11,7 @@ import { UserService } from "../services/UserService";
 import { Keys } from "../services/keys";
 import { redis } from "../services/redis";
 import { generateToken } from "../util/tokens";
+import { EmailService } from "../services/EmailService";
 
 @Controller("projects")
 export class Projects {
@@ -450,6 +451,7 @@ export class Projects {
 				memberships: {
 					create: [{ userId, role: "OWNER" }],
 				},
+				templatingLanguage: "DEFAULT",
 			},
 		});
 
@@ -512,10 +514,51 @@ export class Projects {
 		return res.status(200).json({ success: true, project });
 	}
 
+
+	@Post("preview/template")
+	@Middleware([isAuthenticated])
+	public async previewProjectTemplate(req: Request, res: Response) {
+		const { id: projectId, baseTemplate, unsubscribeFooter } = ProjectSchemas.update.parse(req.body);
+
+		const { userId } = res.locals.auth as IJwt;
+
+		let project = await ProjectService.id(projectId);
+
+		if (!project) {
+			throw new NotFound("project");
+		}
+
+		const isAdmin = await MembershipService.isAdmin(projectId, userId);
+
+		if (!isAdmin) {
+			throw new NotAllowed();
+		}
+
+		try {
+			const html = EmailService.compile({
+				content: "Hello, world!",
+				footer: {
+					unsubscribe: true,
+				},
+				contact: {
+					id: "23",
+				},
+				project: {
+					name: project.name,
+					baseTemplate: baseTemplate as string,
+					unsubscribeFooter: unsubscribeFooter as string,
+				},
+			});
+			return res.status(200).json({ success: true, html });
+		} catch (error) {
+			return res.status(400).json({ success: false, message: (error as Error).message });
+		}
+	}
+
 	@Put("update")
 	@Middleware([isAuthenticated])
 	public async updateProject(req: Request, res: Response) {
-		const { id: projectId, name, url } = ProjectSchemas.update.parse(req.body);
+		const { id: projectId, name, url, baseTemplate, unsubscribeFooter, templatingLanguage } = ProjectSchemas.update.parse(req.body);
 
 		const { userId } = res.locals.auth as IJwt;
 
@@ -536,6 +579,9 @@ export class Projects {
 			data: {
 				name,
 				url,
+				baseTemplate,
+				unsubscribeFooter,
+				templatingLanguage,
 			},
 		});
 

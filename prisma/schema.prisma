@@ -53,6 +53,10 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  baseTemplate String?
+  unsubscribeFooter String?
+  templatingLanguage String? @default("DEFAULT")
+
   @@map("projects")
 }
 

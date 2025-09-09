@@ -1,5 +1,5 @@
 import { ChildControllers, Controller, Middleware, Post } from "@overnightjs/core";
-import { EventSchemas } from "@plunk/shared";
+import { EventSchemas, TemplatingLanguage } from "@plunk/shared";
 import dayjs from "dayjs";
 import type { Request, Response } from "express";
 import signale from "signale";
@@ -200,6 +200,7 @@ export class V1 {
 					plunk_email: contact.email,
 					...JSON.parse(contact.data ?? "{}"),
 				},
+				templatingLanguage: project.templatingLanguage as TemplatingLanguage ?? "DEFAULT",
 			});
 
 			const { messageId } = await EmailService.send({
@@ -224,6 +225,8 @@ export class V1 {
 						},
 						project: {
 							name: project.name,
+							baseTemplate: project.baseTemplate,
+							unsubscribeFooter: project.unsubscribeFooter,
 						},
 					}),
 				},

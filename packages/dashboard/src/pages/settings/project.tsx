@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ProjectSchemas, type UtilitySchemas } from "@plunk/shared";
+import { ProjectSchemas, TemplatingLanguage, type UtilitySchemas } from "@plunk/shared";
 import { network } from "dashboard/src/lib/network";
 import { motion } from "framer-motion";
 import { useRouter } from "next/router";
@@ -58,6 +58,9 @@ export default function Index() {
 				typeof ProjectSchemas.update
 			>("PUT", "/projects/update/", {
 				id: activeProject.id,
+				baseTemplate: activeProject.baseTemplate,
+				unsubscribeFooter: activeProject.unsubscribeFooter,
+				templatingLanguage: activeProject.templatingLanguage as TemplatingLanguage ?? "DEFAULT",
 				...data,
 			}),
 			{
