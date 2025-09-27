@@ -285,7 +285,6 @@ export class ProjectService {
 		return wrapRedis(Keys.Project.campaigns(id), async () => {
 			return prisma.project.findUnique({ where: { id } }).campaigns({
 				include: {
-					recipients: { select: { id: true } },
 					emails: { select: { id: true, status: true } },
 					tasks: { select: { id: true } },
 				},

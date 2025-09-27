@@ -90,11 +90,6 @@ export default function Index() {
 																<h2 className={"col-span-2 truncate font-semibold text-neutral-700"}>Properties</h2>
 																<div className={"grid grid-cols-2 gap-3"}>
 																	<div>
-																		<label className={"text-xs font-medium text-neutral-500"}>Recipients</label>
-																		<p className="mt-1 truncate text-sm text-neutral-500">{c.recipients.length}</p>
-																	</div>
-
-																	<div>
 																		<label className={"text-xs font-medium text-neutral-500"}>Status</label>
 																		<p className="mt-1 truncate text-sm text-neutral-500">
 																			{c.status === "DRAFT" ? (
