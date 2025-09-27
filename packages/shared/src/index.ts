@@ -42,13 +42,19 @@ export const UserSchemas = {
 	}),
 };
 
+const metadataError = "Metadata can only be null, a string, array of strings or a non-persistent object (https://docs.useplunk.com/working-with-contacts/metadata#non-persistent-metadata)";
+
 const zodSchema = z.record(
 	z.union(
 		[
+			z.null({
+				invalid_type_error: metadataError,
+			}).transform(() => {
+				return { persistent: true, value: null };
+			}),
 			z
 				.string({
-					invalid_type_error:
-						"Metadata can only be a string, array of strings or a non-persistent object (https://docs.useplunk.com/working-with-contacts/metadata#non-persistent-metadata)",
+					invalid_type_error: metadataError,
 				})
 				.transform((s) => {
 					return { persistent: true, value: s };
@@ -56,8 +62,7 @@ const zodSchema = z.record(
 			z
 				.array(
 					z.string({
-						invalid_type_error:
-							"Metadata can only be a string, array of strings or a non-persistent object (https://docs.useplunk.com/working-with-contacts/metadata#non-persistent-metadata)",
+						invalid_type_error: metadataError,
 					}),
 				)
 				.transform((s) => {
@@ -67,19 +72,16 @@ const zodSchema = z.record(
 				{
 					persistent: z.boolean({ invalid_type_error: "Persistent should be a boolean" }).optional().default(true),
 					value: z.union([z.string(), z.array(z.string())], {
-						invalid_type_error:
-							"Metadata can only be a string, array of strings or a non-persistent object (https://docs.useplunk.com/working-with-contacts/metadata#non-persistent-metadata)",
+							invalid_type_error: metadataError,
 					}),
 				},
 				{
-					invalid_type_error:
-						"Metadata can only be a string, array of strings or a non-persistent object (https://docs.useplunk.com/working-with-contacts/metadata#non-persistent-metadata)",
+					invalid_type_error: metadataError,
 				},
 			),
 		],
 		{
-			invalid_type_error:
-				"Metadata can only be a string, array of strings or a non-persistent object (https://docs.useplunk.com/working-with-contacts/metadata#non-persistent-metadata)",
+			invalid_type_error: metadataError,
 		},
 	),
 	{ invalid_type_error: "Metadata should be an object (https://docs.useplunk.com/working-with-contacts/metadata)" },

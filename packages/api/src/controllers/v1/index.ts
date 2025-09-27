@@ -94,7 +94,11 @@ export class V1 {
 			givenUserData.forEach(([key, value]) => {
 				userData[key] = value.value;
 				if (value.persistent) {
-					dataToUpdate[key] = value.value;
+					if (!value.value) {
+						delete dataToUpdate[key];
+					} else {
+						dataToUpdate[key] = value.value;
+					}
 				}
 			});
 
