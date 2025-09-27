@@ -25,9 +25,6 @@ export function useCampaigns() {
       tasks: {
         id: string;
       }[];
-      recipients: {
-        id: string;
-      }[];
     })[]
   >(activeProject ? `/projects/id/${activeProject.id}/campaigns` : null);
 }
