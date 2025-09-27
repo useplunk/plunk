@@ -18,16 +18,9 @@ export function useCampaigns() {
 
   return useSWR<
     (Campaign & {
-      emails: {
-        id: string;
-        status: string;
-      }[];
-      tasks: {
-        id: string;
-      }[];
-      recipients: {
-        id: string;
-      }[];
+      emails_count: number,
+      opened_emails_count: number,
+      tasks_count: number
     })[]
   >(activeProject ? `/projects/id/${activeProject.id}/campaigns` : null);
 }
