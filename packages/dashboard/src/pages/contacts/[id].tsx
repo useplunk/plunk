@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import {motion} from "framer-motion";
 import {Save} from "lucide-react";
 import {useRouter} from "next/router";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, useMemo} from "react";
 import {useFieldArray, useForm} from "react-hook-form";
 import {toast} from "sonner";
 import {z} from "zod";
@@ -166,6 +166,22 @@ export default function Index() {
 
         await router.push("/contacts");
     };
+
+    const emailStats = useMemo(() => {
+        const totalEmails = contact.emails.length;
+        const deliveredEmails = contact.emails.filter(email => email.status === 'DELIVERED').length;
+        const openedEmails = contact.emails.filter(email => email.status === 'OPENED').length;
+        const bouncedEmails = contact.emails.filter(email => email.status === 'BOUNCED').length;
+        const complaintEmails = contact.emails.filter(email => email.status === 'COMPLAINT').length;
+
+        return {
+            total: totalEmails,
+            delivered: deliveredEmails,
+            opened: openedEmails,
+            bounced: bouncedEmails,
+            complaint: complaintEmails,
+        };
+    }, [contact.emails]);
 
     return (
         <>
@@ -402,6 +418,56 @@ export default function Index() {
                             </motion.button>
                         </div>
                     </form>
+                </Card>
+                <Card title={'Email Statistics'} description={'Overview of email activity for this contact'}>
+                    {emailStats.total > 0 ? (
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+                            <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-center">
+                                <div className="text-2xl font-bold text-neutral-800">{emailStats.total}</div>
+                                <div className="text-sm text-neutral-600">Total Emails</div>
+                            </div>
+                            <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center">
+                                <div className="text-2xl font-bold text-green-700">{emailStats.delivered}</div>
+                                <div className="text-sm text-green-600">Delivered</div>
+                                {emailStats.total > 0 && (
+                                    <div className="text-xs text-green-500">
+                                        {((emailStats.delivered / emailStats.total) * 100).toFixed(1)}%
+                                    </div>
+                                )}
+                            </div>
+                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
+                                <div className="text-2xl font-bold text-blue-700">{emailStats.opened}</div>
+                                <div className="text-sm text-blue-600">Opened</div>
+                                {emailStats.total > 0 && (
+                                    <div className="text-xs text-blue-500">
+                                        {((emailStats.opened / emailStats.total) * 100).toFixed(1)}%
+                                    </div>
+                                )}
+                            </div>
+                            <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-center">
+                                <div className="text-2xl font-bold text-orange-700">{emailStats.bounced}</div>
+                                <div className="text-sm text-orange-600">Bounced</div>
+                                {emailStats.total > 0 && (
+                                    <div className="text-xs text-orange-500">
+                                        {((emailStats.bounced / emailStats.total) * 100).toFixed(1)}%
+                                    </div>
+                                )}
+                            </div>
+                            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
+                                <div className="text-2xl font-bold text-red-700">{emailStats.complaint}</div>
+                                <div className="text-sm text-red-600">Complaints</div>
+                                {emailStats.total > 0 && (
+                                    <div className="text-xs text-red-500">
+                                        {((emailStats.complaint / emailStats.total) * 100).toFixed(1)}%
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-8 text-center">
+                            <div className="text-neutral-500">No emails sent to this contact yet</div>
+                        </div>
+                    )}
                 </Card>
                 <Card title={"Journey"}>
                     {contact.triggers.length > 0 || contact.emails.length > 0 ? (
