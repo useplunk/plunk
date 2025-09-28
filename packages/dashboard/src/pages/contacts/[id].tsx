@@ -101,6 +101,32 @@ export default function Index() {
         });
     }, [dataReset, reset, contact]);
 
+    const emailStats = useMemo(() => {
+        if (!contact) {
+            return {
+                total: 0,
+                delivered: 0,
+                opened: 0,
+                bounced: 0,
+                complaint: 0,
+            };
+        }
+
+        const totalEmails = contact.emails.length;
+        const deliveredEmails = contact.emails.filter(email => email.status === 'DELIVERED').length;
+        const openedEmails = contact.emails.filter(email => email.status === 'OPENED').length;
+        const bouncedEmails = contact.emails.filter(email => email.status === 'BOUNCED').length;
+        const complaintEmails = contact.emails.filter(email => email.status === 'COMPLAINT').length;
+
+        return {
+            total: totalEmails,
+            delivered: deliveredEmails,
+            opened: openedEmails,
+            bounced: bouncedEmails,
+            complaint: complaintEmails,
+        };
+    }, [contact]);
+
     if (!contact) {
         return <FullscreenLoader/>;
     }
@@ -166,22 +192,6 @@ export default function Index() {
 
         await router.push("/contacts");
     };
-
-    const emailStats = useMemo(() => {
-        const totalEmails = contact.emails.length;
-        const deliveredEmails = contact.emails.filter(email => email.status === 'DELIVERED').length;
-        const openedEmails = contact.emails.filter(email => email.status === 'OPENED').length;
-        const bouncedEmails = contact.emails.filter(email => email.status === 'BOUNCED').length;
-        const complaintEmails = contact.emails.filter(email => email.status === 'COMPLAINT').length;
-
-        return {
-            total: totalEmails,
-            delivered: deliveredEmails,
-            opened: openedEmails,
-            bounced: bouncedEmails,
-            complaint: complaintEmails,
-        };
-    }, [contact.emails]);
 
     return (
         <>
