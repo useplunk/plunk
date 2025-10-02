@@ -5,6 +5,7 @@ import { prisma } from "../database/prisma";
 import { ContactService } from "../services/ContactService";
 import { EmailService } from "../services/EmailService";
 import { ProjectService } from "../services/ProjectService";
+import { TemplatingLanguage } from "@plunk/shared";
 
 @Controller("tasks")
 export class Tasks {
@@ -71,6 +72,7 @@ export class Tasks {
 						plunk_email: contact.email,
 						...JSON.parse(contact.data ?? "{}"),
 					},
+					templatingLanguage: project.templatingLanguage as TemplatingLanguage ?? "DEFAULT",
 				}));
 			} else if (campaign) {
 				email = project.verified && project.email ? campaign.email ?? project.email : "no-reply@useplunk.dev";
@@ -84,6 +86,7 @@ export class Tasks {
 						plunk_email: contact.email,
 						...JSON.parse(contact.data ?? "{}"),
 					},
+					templatingLanguage: project.templatingLanguage as TemplatingLanguage ?? "DEFAULT",
 				}));
 			}
 
@@ -105,6 +108,8 @@ export class Tasks {
 						},
 						project: {
 							name: project.name,
+							baseTemplate: project.baseTemplate,
+							unsubscribeFooter: project.unsubscribeFooter,
 						},
 						isHtml: (campaign && campaign.style === "HTML") ?? (!!action && action.template.style === "HTML"),
 					}),

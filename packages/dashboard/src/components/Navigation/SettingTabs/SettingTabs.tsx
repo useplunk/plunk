@@ -10,6 +10,7 @@ export default function SettingTabs() {
 
   const links = [
     {to: '/settings/project', text: 'Project Settings', active: router.route === '/settings/project'},
+    {to: '/settings/base-template', text: 'Base Template', active: router.route === '/settings/base-template'},
     {to: '/settings/api', text: 'API Keys', active: router.route === '/settings/api'},
     {to: '/settings/identity', text: 'Verified Domain', active: router.route === '/settings/identity'},
     {to: '/settings/members', text: 'Members', active: router.route === '/settings/members'},

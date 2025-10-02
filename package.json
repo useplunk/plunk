@@ -35,7 +35,8 @@
 		"migrate:deploy": "prisma migrate deploy",
 		"generate": "prisma generate",
 		"services:up": "docker compose -f docker-compose.dev.yml up -d",
-		"services:down": "docker compose -f docker-compose.dev.yml down"
+		"services:down": "docker compose -f docker-compose.dev.yml down",
+		"ses-local": "yarn dlx aws-ses-v2-local"
 	},
 	"packageManager": "yarn@4.3.0"
 }

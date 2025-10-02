@@ -1,6 +1,8 @@
 import { TemplateStyle, TemplateType } from "@prisma/client";
 import { z } from "zod";
 
+export * from "./templates";
+
 const email = z
 	.string({ invalid_type_error: "Email needs to be a string", required_error: "Email is required" })
 	.email({ message: "Invalid email address" })
@@ -245,17 +247,22 @@ export const MembershipSchemas = {
 	}),
 };
 
+const templatingLanguage = z.enum(["DEFAULT", "HANDLEBARS"]);
+
+export type TemplatingLanguage = z.infer<typeof templatingLanguage>;
+
+
 export const ProjectSchemas = {
 	secret: z.object({
 		secret: z.string(),
 	}),
 	create: z.object({
 		name: z.string().min(1, "Name can't be empty"),
-
 		url: z
 			.string()
 			.regex(/^(?:(?:https?):\/\/)?(?:[\w-]+\.)+[a-z]{2,}(?:\/[^\s]*)?$/)
 			.transform((u) => (u.startsWith("http") ? u : `https://${u}`)),
+		templatingLanguage: templatingLanguage.default("DEFAULT"),
 	}),
 	update: z.object({
 		id: id,
@@ -265,6 +272,9 @@ export const ProjectSchemas = {
 			.string()
 			.regex(/^(?:(?:https?):\/\/)?(?:[\w-]+\.)+[a-z]{2,}(?:\/[^\s]*)?$/)
 			.transform((u) => (u.startsWith("http") ? u : `https://${u}`)),
+		baseTemplate: z.string().nullish(),
+		unsubscribeFooter: z.string().nullish(),
+		templatingLanguage: templatingLanguage.default("DEFAULT"),
 	}),
 	analytics: z.object({
 		method: z.enum(["week", "month", "year"]).default("week"),
