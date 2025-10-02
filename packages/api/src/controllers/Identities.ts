@@ -53,9 +53,8 @@ export class Identities {
 			throw new NotFound("project");
 		}
 
-		const existingProject = await prisma.project.findFirst({
-			where: { email: { endsWith: email.split("@")[1] } },
-		});
+		const domain = email.split('@')[1];
+		const existingProject = await prisma.project.findFirst({where: {email: {endsWith: `@${domain}`}}});
 
 		if (existingProject) {
 			throw new Error("Domain already attached to another project");
