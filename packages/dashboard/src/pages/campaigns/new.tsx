@@ -4,18 +4,19 @@ import type { Campaign } from "@prisma/client";
 import { Ring } from "@uiball/loaders";
 import dayjs from "dayjs";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, Users2, XIcon } from "lucide-react";
+import {  Search, Users2, XIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { type FieldError, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Alert, Card, Dropdown, Editor, FullscreenLoader, Input, MultiselectDropdown } from "../../components";
+import { Alert, Card, Dropdown, Editor, FullscreenLoader, Input, MultiselectDropdown, MetadataFilterEditor, MetadataFilterGroupType } from "../../components";
 import { Dashboard } from "../../layouts";
 import { useCampaigns } from "../../lib/hooks/campaigns";
 import { useContacts } from "../../lib/hooks/contacts";
 import { useEventsWithoutTriggers } from "../../lib/hooks/events";
 import { useActiveProject } from "../../lib/hooks/projects";
 import { network } from "../../lib/network";
+import useFilterContacts from "./query";
 
 interface CampaignValues {
 	subject: string;
@@ -33,6 +34,7 @@ const templates = {
 	},
 };
 
+
 /**
  *
  */
@@ -47,12 +49,14 @@ export default function Index() {
 	const [query, setQuery] = useState<{
 		events?: string[];
 		last?: "day" | "week" | "month";
-		data?: string;
-		value?: string;
 		notevents?: string[];
 		notlast?: "day" | "week" | "month";
+		metadataFilter?: MetadataFilterGroupType;
 	}>({});
 	const [advancedSelector, setSelector] = useState(false);
+
+
+	const filteredContacts = useFilterContacts(contacts?.contacts ?? [], query);
 
 	const {
 		register,
@@ -89,99 +93,6 @@ export default function Index() {
 	if (!project || !events) {
 		return <FullscreenLoader />;
 	}
-
-	const selectQuery = () => {
-		if (!contacts) {
-			return;
-		}
-
-		let filteredContacts = contacts.contacts;
-
-		if (query.events && query.events.length > 0) {
-			query.events.map((e) => {
-				filteredContacts = filteredContacts.filter((c) => c.triggers.some((t) => t.eventId === e));
-			});
-		}
-
-		if (query.last) {
-			filteredContacts = filteredContacts.filter((c) => {
-				if (c.triggers.length === 0) {
-					return false;
-				}
-
-				const lastTrigger = c.triggers.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
-
-				if (lastTrigger.length === 0) {
-					return false;
-				}
-
-				return dayjs(lastTrigger[0].createdAt).isAfter(dayjs().subtract(1, query.last));
-			});
-		}
-
-		if (query.notevents && query.notevents.length > 0 && query.notlast) {
-			query.notevents.map((e) => {
-				filteredContacts = filteredContacts.filter((c) => {
-					if (c.triggers.length === 0) {
-						return true;
-					}
-
-					const lastTrigger = c.triggers.filter((t) => t.eventId === e).sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
-
-					if (lastTrigger.length === 0) {
-						return true;
-					}
-
-					return dayjs(lastTrigger[0].createdAt).isAfter(dayjs().subtract(1, query.last));
-				});
-			});
-		} else if (query.notevents && query.notevents.length > 0) {
-			query.notevents.map((e) => {
-				filteredContacts = filteredContacts.filter((c) => c.triggers.every((t) => t.eventId !== e));
-			});
-		} else if (query.notlast) {
-			filteredContacts = filteredContacts.filter((c) => {
-				if (c.triggers.length === 0) {
-					return true;
-				}
-
-				const lastTrigger = c.triggers.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
-
-				if (lastTrigger.length === 0) {
-					return true;
-				}
-
-				return !dayjs(lastTrigger[0].createdAt).isAfter(dayjs().subtract(1, query.notlast));
-			});
-		}
-
-		if (query.data) {
-			filteredContacts = filteredContacts.filter((c) => {
-				if (!c.data) {
-					return false;
-				}
-
-				return JSON.parse(c.data)[query.data as string];
-			});
-		}
-
-		if (query.data && query.value) {
-			filteredContacts = filteredContacts.filter((c) => {
-				if (!c.data) {
-					return false;
-				}
-
-				return Array.isArray(JSON.parse(c.data)[query.data as string])
-					? JSON.parse(c.data)[query.data as string].includes(query.value)
-					: JSON.parse(c.data)[query.data as string] === query.value;
-			});
-		}
-
-		setValue(
-			"recipients",
-			filteredContacts.map((c) => c.id),
-		);
-	};
 
 	const create = async (data: CampaignValues) => {
 		toast.promise(
@@ -460,78 +371,19 @@ export default function Index() {
 												)}
 											</div>
 
-											<div className={"sm:col-span-2"}>
-												<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
-													All contacts with parameter
-												</label>
-												<Dropdown
-													onChange={(e) =>
-														setQuery({
-															...query,
-															data: e === "" ? undefined : e,
-														})
-													}
-													values={[
-														{ name: "Any parameter", value: "" },
-														...new Set(
-															contacts.contacts
-																.filter((c) => c.data)
-																.map((c) => {
-																	return Object.keys(JSON.parse(c.data ?? "{}"));
-																})
-																.reduce((acc, val) => acc.concat(val), []),
-														),
-													].map((k) => (typeof k === "string" ? { name: k, value: k } : k))}
-													selectedValue={query.data ?? ""}
-												/>
-											</div>
-
-											<div className={"sm:col-span-2"}>
-												{query.data && (
-													<>
-														<label htmlFor={"event"} className="block text-sm font-medium text-neutral-700">
-															All contacts where parameter {query.data} is
-														</label>
-
-														<Dropdown
-															onChange={(e) =>
-																setQuery({
-																	...query,
-																	value: e === "" ? undefined : e,
-																})
-															}
-															values={[
-																{ name: "Any value", value: "" },
-																...new Set(
-																	contacts.contacts
-																		.filter((c) => c.data && JSON.parse(c.data)[query.data ?? ""])
-																		.map((c) => {
-																			return JSON.parse(c.data ?? "{}")[query.data ?? ""];
-																		})
-																		.reduce((acc, val) => acc.concat(val), []),
-																),
-															].map((k) =>
-																typeof k === "string"
-																	? {
-																			name: k,
-																			value: k,
-																		}
-																	: (k as {
-																			name: string;
-																			value: string;
-																		}),
-															)}
-															selectedValue={query.value ?? ""}
-														/>
-													</>
-												)}
-											</div>
+											<MetadataFilterEditor
+												onChange={(filter) => setQuery({ ...query, metadataFilter: filter })}
+												contacts={contacts.contacts}
+											/>
 
 											<div className={"sm:col-span-4"}>
 												<motion.button
 													onClick={(e) => {
 														e.preventDefault();
-														selectQuery();
+														setValue(
+															"recipients",
+															filteredContacts.map((c) => c.id),
+														);
 													}}
 													whileHover={{ scale: 1.05 }}
 													whileTap={{ scale: 0.9 }}
@@ -555,7 +407,7 @@ export default function Index() {
 															d="M18.25 12L5.75 12"
 														/>
 													</svg>
-													Select contacts
+													Select {filteredContacts.length} contacts
 												</motion.button>
 											</div>
 										</motion.div>
