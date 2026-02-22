@@ -60,10 +60,14 @@ export function Toolbar({editor, onInsertVariable, onInsertImage, canUploadImage
   const addLink = useCallback(() => {
     if (!editor) return;
     if (linkUrl) {
-      // If updating an existing link, extend selection to cover the entire link first
-      if (editor.isActive('link')) {
+      if (editor.isActive('image')) {
+        // Set link on selected image
+        (editor.chain().focus() as any).setImageLink(linkUrl).run();
+      } else if (editor.isActive('link')) {
+        // Update existing text link
         editor.chain().focus().extendMarkRange('link').setLink({href: linkUrl}).run();
       } else {
+        // Set new text link
         editor.chain().focus().setLink({href: linkUrl}).run();
       }
       setLinkUrl('');
@@ -73,7 +77,12 @@ export function Toolbar({editor, onInsertVariable, onInsertImage, canUploadImage
 
   const removeLink = useCallback(() => {
     if (!editor) return;
-    editor.chain().focus().unsetLink().run();
+    if (editor.isActive('image')) {
+      // Remove link from selected image
+      (editor.chain().focus() as any).removeImageLink().run();
+    } else {
+      editor.chain().focus().unsetLink().run();
+    }
     setLinkUrl('');
     setShowLinkInput(false);
   }, [editor]);
@@ -163,8 +172,13 @@ export function Toolbar({editor, onInsertVariable, onInsertImage, canUploadImage
   const handleToggleColorPicker = useCallback(() => setShowColorPicker(!showColorPicker), [showColorPicker]);
   const handleToggleLinkInput = useCallback(() => {
     if (!editor) return;
-    if (editor.isActive('link')) {
-      // Get the current link URL and show the input to edit it
+    if (editor.isActive('image')) {
+      // Get the current image link URL if it exists
+      const imageHref = editor.getAttributes('image').href || '';
+      setLinkUrl(imageHref);
+      setShowLinkInput(true);
+    } else if (editor.isActive('link')) {
+      // Get the current text link URL and show the input to edit it
       const previousUrl = editor.getAttributes('link').href || '';
       setLinkUrl(previousUrl);
       setShowLinkInput(true);
@@ -505,13 +519,16 @@ export function Toolbar({editor, onInsertVariable, onInsertImage, canUploadImage
           size="icon"
           onMouseDown={e => e.preventDefault()}
           onClick={handleToggleLinkInput}
-          data-active={editor.isActive('link')}
+          data-active={editor.isActive('link') || (editor.isActive('image') && !!editor.getAttributes('image').href)}
           className="h-8 w-8 data-[active=true]:bg-neutral-200"
         >
           <Link className="h-4 w-4" />
         </Button>
         {showLinkInput && (
           <div className="absolute top-10 right-0 bg-white border border-neutral-200 rounded-lg shadow-lg p-2 z-50 min-w-max">
+            {editor.isActive('image') && (
+              <p className="text-xs text-neutral-500 mb-1.5 px-1">Add link to image</p>
+            )}
             <div className="flex gap-2 mb-2">
               <input
                 type="url"
@@ -530,10 +547,12 @@ export function Toolbar({editor, onInsertVariable, onInsertImage, canUploadImage
                 autoFocus
               />
               <Button type="button" size="sm" onMouseDown={e => e.preventDefault()} onClick={addLink}>
-                {editor.isActive('link') ? 'Update' : 'Add'}
+                {editor.isActive('link') || (editor.isActive('image') && editor.getAttributes('image').href)
+                  ? 'Update'
+                  : 'Add'}
               </Button>
             </div>
-            {editor.isActive('link') && (
+            {(editor.isActive('link') || (editor.isActive('image') && editor.getAttributes('image').href)) && (
               <div className="flex justify-end">
                 <Button
                   type="button"

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {mergeAttributes, Node} from '@tiptap/core';
 import {NodeViewWrapper, type ReactNodeViewProps, ReactNodeViewRenderer} from '@tiptap/react';
+import {Link as LinkIcon} from 'lucide-react';
 import {useEffect, useRef, useState} from 'react';
 
 interface ImageAttrs {
@@ -9,6 +10,7 @@ interface ImageAttrs {
   title?: string;
   width?: number | string;
   height?: number | string;
+  href?: string | null;
 }
 
 function ResizableImageComponent({node, updateAttributes, selected}: ReactNodeViewProps) {
@@ -82,7 +84,7 @@ function ResizableImageComponent({node, updateAttributes, selected}: ReactNodeVi
     setResizeDirection(direction);
   };
 
-  const {src, alt, title, width, height} = attrs;
+  const {src, alt, title, width, height, href} = attrs;
 
   return (
     <NodeViewWrapper className="resizable-image-wrapper">
@@ -106,6 +108,30 @@ function ResizableImageComponent({node, updateAttributes, selected}: ReactNodeVi
             width: width ? `${width}px` : 'auto',
           }}
         />
+        {/* Link indicator badge */}
+        {href && selected && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '4px',
+              left: '4px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              borderRadius: '4px',
+              padding: '2px 6px',
+              fontSize: '11px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              zIndex: 10,
+              pointerEvents: 'none',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }}
+          >
+            <LinkIcon style={{width: '10px', height: '10px'}} />
+            Linked
+          </div>
+        )}
         {selected && (
           <>
             {/* Resize handles */}
@@ -227,11 +253,41 @@ export const ResizableImage = Node.create({
           };
         },
       },
+      href: {
+        default: null,
+        parseHTML: element => {
+          // When parsing <a href="..."><img></a>, extract href from parent anchor
+          const parent = element.parentElement;
+          if (parent?.tagName === 'A') {
+            return parent.getAttribute('href');
+          }
+          return null;
+        },
+        // href is not rendered as an img attribute — it's handled in renderHTML
+        renderHTML: () => ({}),
+      },
     };
   },
 
   parseHTML() {
     return [
+      {
+        // Match images wrapped in anchor tags (higher priority)
+        tag: 'a img[src]',
+        priority: 60,
+        getAttrs: (element: HTMLElement) => {
+          const img = element as HTMLImageElement;
+          const parent = img.parentElement;
+          return {
+            src: img.getAttribute('src'),
+            alt: img.getAttribute('alt'),
+            title: img.getAttribute('title'),
+            width: img.getAttribute('width') ? parseInt(img.getAttribute('width')!, 10) : null,
+            height: img.getAttribute('height') ? parseInt(img.getAttribute('height')!, 10) : null,
+            href: parent?.tagName === 'A' ? parent.getAttribute('href') : null,
+          };
+        },
+      },
       {
         tag: 'img[src]',
       },
@@ -239,7 +295,14 @@ export const ResizableImage = Node.create({
   },
 
   renderHTML({HTMLAttributes}) {
-    return ['img', mergeAttributes(HTMLAttributes, {class: 'email-image'})];
+    const {href, ...imgAttrs} = HTMLAttributes;
+    const imgAttributes = mergeAttributes(imgAttrs, {class: 'email-image'});
+
+    if (href) {
+      return ['a', {href, target: '_blank', rel: 'noopener noreferrer'}, ['img', imgAttributes]];
+    }
+
+    return ['img', imgAttributes];
   },
 
   addNodeView() {
@@ -255,6 +318,16 @@ export const ResizableImage = Node.create({
             type: this.name,
             attrs: options,
           });
+        },
+      setImageLink:
+        (href: string) =>
+        ({commands}: {commands: {updateAttributes: (name: string, attrs: Record<string, unknown>) => boolean}}) => {
+          return commands.updateAttributes('image', {href});
+        },
+      removeImageLink:
+        () =>
+        ({commands}: {commands: {updateAttributes: (name: string, attrs: Record<string, unknown>) => boolean}}) => {
+          return commands.updateAttributes('image', {href: null});
         },
     };
   },
