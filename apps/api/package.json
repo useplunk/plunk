@@ -37,7 +37,7 @@
     "jsonwebtoken": "^9.0.2",
     "mailchecker": "^6.0.19",
     "morgan": "^1.10.0",
-    "multer": "^2.0.2",
+    "multer": "^2.1.0",
     "signale": "^1.4.0",
     "stripe": "^20.0.0"
   },
