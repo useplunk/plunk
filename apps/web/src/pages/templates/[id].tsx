@@ -128,9 +128,8 @@ export default function TemplateEditorPage() {
     if (!testEmailAddress) return;
     setSendingTestEmail(true);
     try {
-      await network.fetch('POST', `/templates/${id}/test`, {
-        email: testEmailAddress,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await network.fetch('POST', `/templates/${id}/test`, {email: testEmailAddress} as any);
       toast.success(`Test email sent to ${testEmailAddress}`);
       setIsTestEmailDialogOpen(false);
       setTestEmailAddress('');
