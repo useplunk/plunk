@@ -852,28 +852,21 @@ function SettingsDialog({workflow, open, onOpenChange, onSave}: SettingsDialogPr
 
           <div>
             <Label htmlFor="eventName">Trigger Event *</Label>
-            {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0 ? (
-              <Select value={eventName} onValueChange={setEventName} required>
-                <SelectTrigger id="eventName">
-                  <SelectValue placeholder="Select an event" />
-                </SelectTrigger>
-                <SelectContent>
-                  {eventNamesData.eventNames.map(name => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input
-                id="eventName"
-                type="text"
-                value={eventName}
-                onChange={e => setEventName(e.target.value)}
-                placeholder="e.g., contact.created, email.opened"
-                required
-              />
+            <Input
+              id="eventName"
+              type="text"
+              list="eventNameSuggestions"
+              value={eventName}
+              onChange={e => setEventName(e.target.value)}
+              placeholder="e.g., contact.created, email.opened"
+              required
+            />
+            {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0 && (
+              <datalist id="eventNameSuggestions">
+                {eventNamesData.eventNames.map(name => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             )}
             <p className="text-xs text-neutral-500 mt-1">
               The event that triggers this workflow to start for a contact
@@ -1611,34 +1604,25 @@ function AddStepDialog({open, onOpenChange, workflowId, onSuccess}: AddStepDialo
                   <Label htmlFor="eventName" className="text-sm font-medium">
                     Event Name *
                   </Label>
-                  {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0 ? (
-                    <Select value={eventName} onValueChange={setEventName} required>
-                      <SelectTrigger id="eventName" className="mt-1.5">
-                        <SelectValue placeholder="Select an event..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {eventNamesData.eventNames.map(name => (
-                          <SelectItem key={name} value={name}>
-                            {name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id="eventName"
-                      type="text"
-                      value={eventName}
-                      onChange={e => setEventName(e.target.value)}
-                      required
-                      placeholder="e.g., email.clicked, user.upgraded"
-                      className="mt-1.5"
-                    />
+                  <Input
+                    id="eventName"
+                    type="text"
+                    list="waitForEventSuggestions"
+                    value={eventName}
+                    onChange={e => setEventName(e.target.value)}
+                    required
+                    placeholder="e.g., email.clicked, user.upgraded"
+                    className="mt-1.5"
+                  />
+                  {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0 && (
+                    <datalist id="waitForEventSuggestions">
+                      {eventNamesData.eventNames.map(name => (
+                        <option key={name} value={name} />
+                      ))}
+                    </datalist>
                   )}
                   <p className="text-xs text-neutral-500 mt-1.5">
-                    {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0
-                      ? 'The workflow will pause until this event occurs'
-                      : 'Enter the event name to wait for'}
+                    Enter the event name to wait for, or select from previously tracked events
                   </p>
                 </div>
 
@@ -2793,40 +2777,26 @@ function EditStepDialog({step, workflowId, open, onOpenChange, onSuccess}: EditS
               <div className="space-y-4 pl-3">
                 <div>
                   <Label htmlFor="editEventName">Event Name *</Label>
-                  {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0 ? (
-                    <>
-                      <Select value={eventName} onValueChange={setEventName} required>
-                        <SelectTrigger id="editEventName" className="mt-1.5">
-                          <SelectValue placeholder="Select an event..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {eventNamesData.eventNames.map(name => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-neutral-500 mt-1.5">
-                        Select from previously tracked events in your project
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Input
-                        id="editEventName"
-                        type="text"
-                        value={eventName}
-                        onChange={e => setEventName(e.target.value)}
-                        required
-                        placeholder="e.g., email.clicked, user.upgraded"
-                        className="mt-1.5"
-                      />
-                      <p className="text-xs text-neutral-500 mt-1.5">
-                        The workflow will pause until this event is triggered by the contact
-                      </p>
-                    </>
+                  <Input
+                    id="editEventName"
+                    type="text"
+                    list="editEventSuggestions"
+                    value={eventName}
+                    onChange={e => setEventName(e.target.value)}
+                    required
+                    placeholder="e.g., email.clicked, user.upgraded"
+                    className="mt-1.5"
+                  />
+                  {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0 && (
+                    <datalist id="editEventSuggestions">
+                      {eventNamesData.eventNames.map(name => (
+                        <option key={name} value={name} />
+                      ))}
+                    </datalist>
                   )}
+                  <p className="text-xs text-neutral-500 mt-1.5">
+                    Enter the event name to wait for, or select from previously tracked events
+                  </p>
                 </div>
 
                 <div>
