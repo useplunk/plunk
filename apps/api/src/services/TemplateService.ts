@@ -5,6 +5,8 @@ import type {PaginatedResponse} from '@plunk/types';
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
 import {buildEmailFieldsUpdate} from '../utils/modelUpdate.js';
+import {DomainService} from './DomainService.js';
+import {sendRawEmail} from './SESService.js';
 
 export class TemplateService {
   /**
@@ -207,5 +209,59 @@ export class TemplateService {
       workflowSteps: workflowStepsCount,
       emailsSent: emailsCount,
     };
+  }
+
+  /**
+   * Send a test email for a template
+   * Only project members can receive test emails
+   */
+  public static async sendTest(projectId: string, templateId: string, testEmail: string): Promise<void> {
+    const template = await this.get(projectId, templateId);
+
+    // Validate that the test email belongs to a project member
+    const membership = await prisma.membership.findFirst({
+      where: {
+        projectId,
+        user: {
+          email: testEmail,
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!membership) {
+      throw new HttpException(403, 'Test emails can only be sent to project members');
+    }
+
+    // Verify domain is registered and verified before sending
+    await DomainService.verifyEmailDomain(template.from, projectId);
+
+    // Get project for fallback sender name
+    const project = await prisma.project.findUnique({
+      where: {id: projectId},
+    });
+
+    if (!project) {
+      throw new HttpException(404, 'Project not found');
+    }
+
+    await sendRawEmail({
+      from: {
+        name: template.fromName || project.name || 'Plunk',
+        email: template.from,
+      },
+      to: [testEmail],
+      content: {
+        subject: `[TEST] ${template.subject}`,
+        html: template.body,
+      },
+      reply: template.replyTo || undefined,
+      headers: {
+        'X-Plunk-Test': 'true',
+      },
+      tracking: false,
+    });
   }
 }
