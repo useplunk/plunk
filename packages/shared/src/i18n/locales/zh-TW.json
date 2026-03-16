@@ -1,0 +1,45 @@
+{
+  "pages": {
+    "unsubscribe": {
+      "title": "取消訂閱",
+      "description": "確定要取消 {email} 的郵件訂閱嗎？",
+      "button": "取消訂閱",
+      "buttonLoading": "處理中...",
+      "managePreferences": "改為管理偏好設定",
+      "successTitle": "已取消訂閱",
+      "successDescription": "{email} 已取消訂閱，你將不會再收到我們的郵件。",
+      "changedMind": "改變主意了嗎？",
+      "subscribeAgain": "重新訂閱"
+    },
+    "subscribe": {
+      "title": "訂閱最新消息",
+      "description": "要為 {email} 訂閱郵件嗎？",
+      "button": "訂閱",
+      "buttonLoading": "處理中...",
+      "successTitle": "訂閱成功！",
+      "successDescription": "{email} 已訂閱，你將會收到我們的最新消息。"
+    },
+    "manage": {
+      "title": "管理偏好設定",
+      "description": "管理 {email} 的郵件偏好設定",
+      "subscriptionLabel": "郵件訂閱",
+      "subscribedStatus": "目前已訂閱，會收到郵件通知",
+      "unsubscribedStatus": "目前已取消訂閱",
+      "subscribedSuccess": "訂閱成功！",
+      "unsubscribedSuccess": "已取消訂閱！",
+      "unsubscribeCompletely": "取消訂閱",
+      "subscribeToEmails": "訂閱郵件",
+      "disclaimer": "你可以在此管理郵件偏好設定，訂閱狀態會即時更新。"
+    },
+    "common": {
+      "loading": "載入中...",
+      "error": "發生錯誤"
+    }
+  },
+  "email": {
+    "footer": {
+      "unsubscribeText": "你收到這封信是因為你訂閱了 {projectName} 的郵件。如果你不想再收到這類郵件，請",
+      "updatePreferences": "更新你的偏好設定"
+    }
+  }
+}
