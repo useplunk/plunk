@@ -3,18 +3,16 @@ import type {Request, Response} from 'express';
 
 import {
   API_URI,
-  AWS_SES_REGION,
   DASHBOARD_URI,
   GITHUB_OAUTH_ENABLED,
   GOOGLE_OAUTH_ENABLED,
   LANDING_URI,
   NODE_ENV,
-  S3_ENABLED,
+  AZURE_STORAGE_ENABLED,
   SMTP_DOMAIN,
   SMTP_ENABLED,
   SMTP_PORT_SECURE,
   SMTP_PORT_SUBMISSION,
-  STRIPE_ENABLED,
   TRACKING_TOGGLE_ENABLED,
   WIKI_URI,
 } from '../app/constants.js';
@@ -36,11 +34,8 @@ export class Config {
         wiki: WIKI_URI || null,
       },
       features: {
-        billing: {
-          enabled: STRIPE_ENABLED,
-        },
         storage: {
-          s3Enabled: S3_ENABLED,
+          storageEnabled: AZURE_STORAGE_ENABLED,
         },
         authProviders: {
           github: GITHUB_OAUTH_ENABLED,
@@ -59,9 +54,6 @@ export class Config {
               }
             : null,
         },
-      },
-      aws: {
-        sesRegion: AWS_SES_REGION,
       },
     });
   }

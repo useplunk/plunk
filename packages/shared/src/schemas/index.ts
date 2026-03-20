@@ -481,15 +481,6 @@ export const ActionSchemas = {
   }),
 } as const;
 
-export const BillingLimitSchemas = {
-  update: z.object({
-    workflows: z.coerce.number().int().positive().nullable(),
-    campaigns: z.coerce.number().int().positive().nullable(),
-    transactional: z.coerce.number().int().positive().nullable(),
-    inbound: z.coerce.number().int().positive().nullable(),
-  }),
-} as const;
-
 export const MembershipSchemas = {
   addMember: z.object({
     email,

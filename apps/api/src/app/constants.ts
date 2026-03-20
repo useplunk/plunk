@@ -31,14 +31,11 @@ export const DASHBOARD_URI = validateEnv('DASHBOARD_URI');
 export const LANDING_URI = validateEnv('LANDING_URI');
 export const WIKI_URI = validateEnv('WIKI_URI');
 
-// S3-compatible storage (Minio)
-export const S3_ENDPOINT = validateEnv('S3_ENDPOINT', 'http://minio:9000');
-export const S3_ACCESS_KEY_ID = validateEnv('S3_ACCESS_KEY_ID', '');
-export const S3_ACCESS_KEY_SECRET = validateEnv('S3_ACCESS_KEY_SECRET', '');
-export const S3_BUCKET = validateEnv('S3_BUCKET', 'uploads');
-export const S3_PUBLIC_URL = validateEnv('S3_PUBLIC_URL', '');
-export const S3_FORCE_PATH_STYLE = validateEnv('S3_FORCE_PATH_STYLE', 'true') === 'true';
-export const S3_ENABLED = S3_ACCESS_KEY_ID !== '' && S3_ACCESS_KEY_SECRET !== '';
+// Azure Blob Storage
+export const AZURE_STORAGE_CONNECTION_STRING = validateEnv('AZURE_STORAGE_CONNECTION_STRING', '');
+export const AZURE_STORAGE_CONTAINER = validateEnv('AZURE_STORAGE_CONTAINER', 'uploads');
+export const AZURE_STORAGE_PUBLIC_URL = validateEnv('AZURE_STORAGE_PUBLIC_URL', '');
+export const AZURE_STORAGE_ENABLED = AZURE_STORAGE_CONNECTION_STRING !== '';
 
 // AWS SES (required for email sending)
 export const AWS_SES_REGION = validateEnv('AWS_SES_REGION');
@@ -65,16 +62,6 @@ export const GITHUB_OAUTH_ENABLED = GITHUB_OAUTH_CLIENT !== '' && GITHUB_OAUTH_S
 export const GOOGLE_OAUTH_CLIENT = validateEnv('GOOGLE_OAUTH_CLIENT', '');
 export const GOOGLE_OAUTH_SECRET = validateEnv('GOOGLE_OAUTH_SECRET', '');
 export const GOOGLE_OAUTH_ENABLED = GOOGLE_OAUTH_CLIENT !== '' && GOOGLE_OAUTH_SECRET !== '';
-
-// Stripe (optional - if not set, billing features are disabled)
-export const STRIPE_SK = validateEnv('STRIPE_SK', '');
-export const STRIPE_WEBHOOK_SECRET = validateEnv('STRIPE_WEBHOOK_SECRET', '');
-export const STRIPE_ENABLED = STRIPE_SK !== '' && STRIPE_WEBHOOK_SECRET !== '';
-
-// Stripe Pricing Configuration
-export const STRIPE_PRICE_ONBOARDING = validateEnv('STRIPE_PRICE_ONBOARDING', ''); // One-time onboarding fee
-export const STRIPE_PRICE_EMAIL_USAGE = validateEnv('STRIPE_PRICE_EMAIL_USAGE', ''); // Metered usage price for pay-per-email
-export const STRIPE_METER_EVENT_NAME = validateEnv('STRIPE_METER_EVENT_NAME', 'emails'); // Meter event name (API key in Stripe)
 
 // Email Tracking
 export const SES_CONFIGURATION_SET = validateEnv('SES_CONFIGURATION_SET', 'plunk-configuration-set');

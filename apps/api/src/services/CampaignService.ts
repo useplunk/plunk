@@ -8,13 +8,12 @@ import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
 import {buildEmailFieldsUpdate} from '../utils/modelUpdate.js';
 
-import {BillingLimitService} from './BillingLimitService.js';
 import {DomainService} from './DomainService.js';
 import {EmailService} from './EmailService.js';
 import {NtfyService} from './NtfyService.js';
 import {QueueService} from './QueueService.js';
 import {SegmentService} from './SegmentService.js';
-import {DASHBOARD_URI, STRIPE_ENABLED} from '../app/constants.js';
+import {DASHBOARD_URI} from '../app/constants.js';
 import {sendRawEmail} from './SESService.js';
 
 const BATCH_SIZE = 500; // Number of emails to process per batch (increased for better performance)
@@ -299,24 +298,6 @@ export class CampaignService {
 
     if (recipientCount === 0) {
       throw new HttpException(400, 'Campaign has no recipients');
-    }
-
-    // Check billing limits before scheduling/sending the campaign
-    // This ensures users cannot schedule campaigns that would exceed their quota
-    if (STRIPE_ENABLED) {
-      const limitCheck = await BillingLimitService.checkLimit(projectId, EmailSourceType.CAMPAIGN);
-
-      // If there's a limit set, verify the campaign won't exceed it
-      if (limitCheck.limit !== null) {
-        const projectedUsage = limitCheck.usage + recipientCount;
-
-        if (projectedUsage > limitCheck.limit) {
-          throw new HttpException(
-            403,
-            `Cannot ${scheduledFor ? 'schedule' : 'send'} campaign: would exceed billing limit. Current usage: ${limitCheck.usage}/${limitCheck.limit} emails, campaign recipients: ${recipientCount}. Upgrade your plan or reduce campaign recipients.`,
-          );
-        }
-      }
     }
 
     if (scheduledFor) {

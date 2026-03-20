@@ -13,7 +13,7 @@ jobs:
     name: Test Suite
     runs-on: ubuntu-latest
 
-    # Service containers for database, Redis, and Minio
+    # Service containers for database and Redis
     services:
       postgres:
         image: postgres:16-alpine
@@ -38,19 +38,6 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
-
-      minio:
-        image: minio/minio:edge-cicd
-        env:
-          MINIO_ROOT_USER: plunk
-          MINIO_ROOT_PASSWORD: plunkminiopass
-        ports:
-          - 9000:9000
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -80,13 +67,10 @@ jobs:
           # Security
           JWT_SECRET=test-jwt-secret-for-ci-only
 
-          # S3 (Minio)
-          S3_ENDPOINT=http://localhost:9000
-          S3_ACCESS_KEY_ID=plunk
-          S3_ACCESS_KEY_SECRET=plunkminiopass
-          S3_BUCKET=uploads
-          S3_PUBLIC_URL=http://localhost:9000/uploads
-          S3_FORCE_PATH_STYLE=true
+          # Azure Blob Storage (not needed for tests)
+          AZURE_STORAGE_CONNECTION_STRING=
+          AZURE_STORAGE_CONTAINER=uploads
+          AZURE_STORAGE_PUBLIC_URL=
 
           # Application URLs (not needed for tests but required by schema)
           API_URI=http://localhost:8080
@@ -116,13 +100,6 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/plunk_test
           DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/plunk_test
-
-      - name: Create MinIO bucket
-        run: |
-          docker run --rm --network host \
-            --entrypoint /bin/sh minio/mc:latest \
-            -c "mc alias set local http://localhost:9000 plunk plunkminiopass && \
-                mc mb local/uploads --ignore-existing"
 
       - name: Run tests
         run: yarn test:run
@@ -165,13 +142,10 @@ jobs:
           REDIS_URL=redis://localhost:6379
           JWT_SECRET=test
 
-          # S3 (minimal - not needed but schema may require)
-          S3_ENDPOINT=http://localhost:9000
-          S3_ACCESS_KEY_ID=mock
-          S3_ACCESS_KEY_SECRET=mock
-          S3_BUCKET=uploads
-          S3_PUBLIC_URL=http://localhost:9000/uploads
-          S3_FORCE_PATH_STYLE=true
+          # Azure Blob Storage (not needed for lint)
+          AZURE_STORAGE_CONNECTION_STRING=
+          AZURE_STORAGE_CONTAINER=uploads
+          AZURE_STORAGE_PUBLIC_URL=
 
           # Application URLs
           API_URI=http://localhost:8080

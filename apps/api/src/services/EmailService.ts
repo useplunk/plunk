@@ -3,12 +3,11 @@ import {EmailSourceType, EmailStatus, TrackingMode} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
 import signale from 'signale';
 
-import {DASHBOARD_URI, LANDING_URI, STRIPE_ENABLED} from '../app/constants.js';
+import {DASHBOARD_URI, LANDING_URI} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
 import {createTranslatorSync, renderTemplate} from '@plunk/shared';
 
-import {BillingLimitService} from './BillingLimitService.js';
 import {DomainService} from './DomainService.js';
 import {EventService} from './EventService.js';
 import {QueueService} from './QueueService.js';
@@ -73,18 +72,6 @@ export class EmailService {
       }
     }
 
-    // Check billing limit before sending
-    const limitCheck = await BillingLimitService.checkLimit(params.projectId, EmailSourceType.TRANSACTIONAL);
-
-    if (!limitCheck.allowed) {
-      throw new HttpException(429, limitCheck.message || 'Billing limit exceeded for transactional emails');
-    }
-
-    // Log warning if approaching limit (80%)
-    if (limitCheck.warning) {
-      signale.warn(`[BILLING_LIMIT] ${limitCheck.message}`);
-    }
-
     const email = await prisma.email.create({
       data: {
         projectId: params.projectId,
@@ -102,9 +89,6 @@ export class EmailService {
         status: EmailStatus.PENDING,
       },
     });
-
-    // Increment usage counter in cache
-    await BillingLimitService.incrementUsage(params.projectId, EmailSourceType.TRANSACTIONAL);
 
     // Queue email for sending
     await this.queueEmail(email.id);
@@ -132,21 +116,6 @@ export class EmailService {
       }
     }
 
-    // Check billing limit before sending
-    const limitCheck = await BillingLimitService.checkLimit(params.projectId, sourceType);
-
-    if (!limitCheck.allowed) {
-      throw new HttpException(
-        429,
-        limitCheck.message || `Billing limit exceeded for ${sourceType.toLowerCase()} emails`,
-      );
-    }
-
-    // Log warning if approaching limit (80%)
-    if (limitCheck.warning) {
-      signale.warn(`[BILLING_LIMIT] ${limitCheck.message}`);
-    }
-
     const email = await prisma.email.create({
       data: {
         projectId: params.projectId,
@@ -164,9 +133,6 @@ export class EmailService {
         status: EmailStatus.PENDING,
       },
     });
-
-    // Increment usage counter in cache
-    await BillingLimitService.incrementUsage(params.projectId, sourceType);
 
     // Queue email for sending
     await this.queueEmail(email.id);
@@ -231,21 +197,6 @@ export class EmailService {
       }
     }
 
-    // Check billing limit before sending
-    const limitCheck = await BillingLimitService.checkLimit(params.projectId, sourceType);
-
-    if (!limitCheck.allowed) {
-      throw new HttpException(
-        429,
-        limitCheck.message || `Billing limit exceeded for ${sourceType.toLowerCase()} emails`,
-      );
-    }
-
-    // Log warning if approaching limit (80%)
-    if (limitCheck.warning) {
-      signale.warn(`[BILLING_LIMIT] ${limitCheck.message}`);
-    }
-
     // If custom recipient email is provided, store it in headers for later use
     const emailHeaders = params.headers ? {...params.headers} : {};
     if (params.recipientEmail) {
@@ -270,9 +221,6 @@ export class EmailService {
         status: EmailStatus.PENDING,
       },
     });
-
-    // Increment usage counter in cache
-    await BillingLimitService.incrementUsage(params.projectId, sourceType);
 
     // Queue email for sending
     await this.queueEmail(email.id);
@@ -1076,42 +1024,7 @@ export class EmailService {
         })()
       : '';
 
-    // Add Plunk badge if billing is enabled and project has no subscription (free tier)
-    const badgeHtml =
-      STRIPE_ENABLED && project.subscription === null
-        ? `<table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
-          <tbody>
-            <tr>
-              <td style="direction:ltr;font-size:0px;padding:20px 0;text-align:center;">
-                <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
-                  <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
-                    <tbody>
-                      <tr>
-                        <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                          <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0px;">
-                            <tbody>
-                              <tr>
-                                <td style="width:180px;">
-                                  <a href="${LANDING_URI}?ref=badge" target="_blank">
-                                    <img height="auto" src="https://cdn.useplunk.com/badge.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="180" />
-                                  </a>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>`
-        : '';
-
-    // Combine footer and badge
-    const footerHtml = `${unsubscribeHtml}${badgeHtml}`;
+    const footerHtml = unsubscribeHtml;
 
     // Insert before closing body tag if it exists, otherwise append
     if (html.includes('</body>')) {

@@ -18,19 +18,6 @@ services:
     volumes:
       - redis_data:/data
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    ports:
-      - 9000:9000
-      - 9001:9001
-    environment:
-      MINIO_ROOT_USER: plunk
-      MINIO_ROOT_PASSWORD: plunkminiopass
-    volumes:
-      - minio_data:/data
-
 volumes:
   redis_data:
-  minio_data:
   postgres_data:

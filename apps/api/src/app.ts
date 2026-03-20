@@ -16,9 +16,8 @@ import {
   NODE_ENV,
   PLUNK_ENABLED,
   PORT,
-  S3_ENABLED,
+  AZURE_STORAGE_ENABLED,
   SMTP_ENABLED,
-  STRIPE_ENABLED,
   TRACKING_TOGGLE_ENABLED,
   WIKI_URI,
 } from './app/constants.js';
@@ -42,7 +41,7 @@ import {Config} from './controllers/Config.js';
 import {prisma} from './database/prisma.js';
 import {ErrorCode, type FieldError, HttpException, ValidationError} from './exceptions/index.js';
 import {apiRequestCleanupQueue, domainVerificationQueue, segmentCountQueue} from './services/QueueService.js';
-import * as S3Service from './services/S3Service.js';
+import * as AzureBlobService from './services/AzureBlobService.js';
 import {requestIdMiddleware} from './middleware/requestId.js';
 import {databaseRequestLogger} from './middleware/requestLogger.js';
 import {logger, requestLogger} from './utils/logger.js';
@@ -51,18 +50,7 @@ const server = new (class extends Server {
   public constructor() {
     super();
 
-    // Specify that we need raw json for the webhook
-    this.app.use('/webhooks/incoming/stripe', raw({type: 'application/json'}));
-
-    // Set the content-type to JSON for any request coming from AWS SNS
-    this.app.use(function (req, res, next) {
-      if (req.get('x-amz-sns-message-type')) {
-        req.headers['content-type'] = 'application/json';
-      }
-      next();
-    });
-
-    // Parse the rest of our application as json
+    // Parse requests as json
     this.app.use(json({limit: '50mb'}));
     this.app.use(cookies());
     this.app.use(helmet());
@@ -403,14 +391,9 @@ void prisma.$connect().then(async () => {
   // Feature matrix
   const features = [
     {
-      name: 'Billing (Stripe)',
-      enabled: STRIPE_ENABLED,
-      details: STRIPE_ENABLED ? 'Stripe billing enabled' : 'No Stripe keys configured',
-    },
-    {
-      name: 'File uploads (S3)',
-      enabled: S3_ENABLED,
-      details: S3_ENABLED ? 'S3 storage enabled' : 'S3 credentials missing',
+      name: 'File uploads (Azure Blob)',
+      enabled: AZURE_STORAGE_ENABLED,
+      details: AZURE_STORAGE_ENABLED ? 'Azure Blob Storage enabled' : 'Azure Storage not configured',
     },
     {name: 'SMTP relay', enabled: SMTP_ENABLED, details: SMTP_ENABLED ? 'SMTP server enabled' : 'SMTP disabled'},
     {
@@ -444,12 +427,12 @@ void prisma.$connect().then(async () => {
 
   console.table(rows);
 
-  if (S3_ENABLED) {
+  if (AZURE_STORAGE_ENABLED) {
     try {
-      await S3Service.initializeBucket();
+      await AzureBlobService.initializeContainer();
     } catch (error) {
-      signale.error('[S3] Failed to initialize bucket:', error);
-      signale.warn('[S3] File uploads may not work properly');
+      signale.error('[AZURE-BLOB] Failed to initialize container:', error);
+      signale.warn('[AZURE-BLOB] File uploads may not work properly');
     }
   }
 

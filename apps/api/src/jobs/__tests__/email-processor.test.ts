@@ -3,13 +3,6 @@ import {EmailSourceType, EmailStatus, TrackingMode} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
 import {createServiceMocks, factories, getPrismaClient} from '../../../../../test/helpers';
 
-// Mock MeterService
-vi.mock('../../services/MeterService.js', () => ({
-  MeterService: {
-    recordEmailSent: vi.fn().mockResolvedValue(undefined),
-  },
-}));
-
 describe('Email Processor', () => {
   let projectId: string;
   const prisma = getPrismaClient();

@@ -3,16 +3,6 @@ import {CampaignAudienceType, CampaignStatus} from '@plunk/db';
 import {CampaignService} from '../CampaignService';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
 
-// Mock STRIPE_ENABLED for billing limit tests
-vi.mock('../../app/constants.js', async () => {
-  const actual = await vi.importActual('../../app/constants.js');
-  return {
-    ...actual,
-    STRIPE_ENABLED: true,
-    STRIPE_SK: 'sk_test_mock_key_for_testing',
-  };
-});
-
 describe('CampaignService', () => {
   let projectId: string;
   const prisma = getPrismaClient();

@@ -115,36 +115,6 @@ export class NtfyService {
   // ===== Event-specific notification helpers =====
 
   /**
-   * Notify about subscription started
-   */
-  public static async notifySubscriptionStarted(
-    projectName: string,
-    projectId: string,
-    subscriptionId: string,
-  ): Promise<void> {
-    await this.sendHigh(
-      'Subscription Started',
-      `Project "${projectName}" (${projectId}) started a paid subscription (${subscriptionId})`,
-      [NtfyTag.MONEY, NtfyTag.SUCCESS],
-    );
-  }
-
-  /**
-   * Notify about subscription cancelled
-   */
-  public static async notifySubscriptionCancelled(
-    projectName: string,
-    projectId: string,
-    subscriptionId: string,
-  ): Promise<void> {
-    await this.sendHigh(
-      'Subscription Cancelled',
-      `Project "${projectName}" (${projectId}) cancelled their subscription (${subscriptionId})`,
-      [NtfyTag.WARNING, NtfyTag.MONEY],
-    );
-  }
-
-  /**
    * Notify about project disabled due to security risk
    */
   public static async notifyProjectDisabledForSecurity(
@@ -158,40 +128,6 @@ export class NtfyService {
       `Project "${projectName}" (${projectId}) was automatically disabled due to: ${violationText}`,
       [NtfyTag.SHIELD, NtfyTag.ERROR, NtfyTag.SKULL],
     );
-  }
-
-  /**
-   * Notify about payment failure
-   */
-  public static async notifyPaymentFailed(projectName: string, projectId: string): Promise<void> {
-    await this.sendHigh('Payment Failed', `Payment failed for project "${projectName}" (${projectId})`, [
-      NtfyTag.WARNING,
-      NtfyTag.MONEY,
-    ]);
-  }
-
-  /**
-   * Notify about successful invoice payment - MIN priority (routine)
-   */
-  public static async notifyInvoicePaid(projectName: string, projectId: string): Promise<void> {
-    await this.send({
-      title: 'Invoice Paid',
-      message: `Invoice paid for project "${projectName}" (${projectId})`,
-      priority: NtfyPriority.MIN,
-      tags: [NtfyTag.MONEY, NtfyTag.SUCCESS],
-    });
-  }
-
-  /**
-   * Notify about subscription update - LOW priority (minor changes)
-   */
-  public static async notifySubscriptionUpdated(projectName: string, projectId: string): Promise<void> {
-    await this.send({
-      title: 'Subscription Updated',
-      message: `Subscription updated for project "${projectName}" (${projectId})`,
-      priority: NtfyPriority.LOW,
-      tags: [NtfyTag.MONEY, NtfyTag.INFO],
-    });
   }
 
   /**
@@ -575,67 +511,6 @@ export class NtfyService {
       'Domain Removed',
       `Domain "${domain}" was removed from project "${projectName}" (${projectId})`,
       [NtfyTag.INFO],
-    );
-  }
-
-  /**
-   * Notify about billing limit approaching (80% threshold)
-   */
-  public static async notifyBillingLimitApproaching(
-    projectName: string,
-    projectId: string,
-    usage: number,
-    limit: number,
-    percentage: number,
-    sourceType: string,
-  ): Promise<void> {
-    // Import redis at runtime to avoid circular dependencies
-    const {redis} = await import('../database/redis.js');
-
-    const cacheKey = `ntfy:billing:warning:${projectId}:${sourceType}`;
-    const ttl = 86400; // 24 hours
-
-    // Use SETNX to atomically check and set the flag (prevents race conditions)
-    const wasSet = await redis.set(cacheKey, '1', 'EX', ttl, 'NX');
-    if (!wasSet) {
-      return;
-    }
-
-    await this.sendDefault(
-      'Billing Limit Warning',
-      `Email usage at ${Math.round(percentage)}% (${usage}/${limit}) for ${sourceType} in project "${projectName}" (${projectId})`,
-      [NtfyTag.WARNING, NtfyTag.MONEY, NtfyTag.CHART],
-    );
-  }
-
-  // ===== Billing and usage limit notifications =====
-
-  /**
-   * Notify about billing limit exceeded - MAX priority (blocks operations)
-   */
-  public static async notifyBillingLimitExceeded(
-    projectName: string,
-    projectId: string,
-    usage: number,
-    limit: number,
-    sourceType: string,
-  ): Promise<void> {
-    // Import redis at runtime to avoid circular dependencies
-    const {redis} = await import('../database/redis.js');
-
-    const cacheKey = `ntfy:billing:exceeded:${projectId}:${sourceType}`;
-    const ttl = 86400; // 24 hours
-
-    // Use SETNX to atomically check and set the flag (prevents race conditions)
-    const wasSet = await redis.set(cacheKey, '1', 'EX', ttl, 'NX');
-    if (!wasSet) {
-      return;
-    }
-
-    await this.sendUrgent(
-      'Billing Limit Exceeded',
-      `Email usage limit reached (${usage}/${limit}) for ${sourceType} in project "${projectName}" (${projectId}). Further emails are blocked.`,
-      [NtfyTag.ERROR, NtfyTag.MONEY, NtfyTag.SKULL],
     );
   }
 

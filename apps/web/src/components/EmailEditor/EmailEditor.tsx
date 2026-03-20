@@ -84,7 +84,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
   }, [availableFields]);
 
   const {data: config} = useConfig();
-  const canUploadImages = Boolean(config?.features.storage.s3Enabled);
+  const canUploadImages = Boolean(config?.features.storage.storageEnabled);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -217,7 +217,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
       setShowImageDialog(false);
     } else if (imageFile) {
       try {
-        // Upload to S3/Minio
+        // Upload to Azure Blob Storage
         const formData = new FormData();
         formData.append('image', imageFile);
 

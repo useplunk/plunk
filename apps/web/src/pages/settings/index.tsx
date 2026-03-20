@@ -38,15 +38,11 @@ import {
 } from '@plunk/ui';
 import {AnimatePresence, motion} from 'framer-motion';
 import {NextSeo} from 'next-seo';
-import {AlertTriangle, CreditCard, Database, Globe, Mail, Settings as SettingsIcon, Shield, Users} from 'lucide-react';
+import {AlertTriangle, Database, Globe, Mail, Settings as SettingsIcon, Shield, Users} from 'lucide-react';
 import type {z} from 'zod';
 import {useRouter} from 'next/router';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {DomainsSettings} from '../../components/DomainsSettings';
-import {BillingLimits} from '../../components/BillingLimits';
-import {BillingConsumption} from '../../components/BillingConsumption';
-import {BillingInvoices} from '../../components/BillingInvoices';
-import {UnpaidInvoiceBanner} from '../../components/UnpaidInvoiceBanner';
 import {ApiKeyDisplay} from '../../components/ApiKeyDisplay';
 import {SmtpSettings} from '../../components/SmtpSettings';
 import {DataManagementSettings} from '../../components/DataManagementSettings';
@@ -60,7 +56,7 @@ import {useUser} from '../../lib/hooks/useUser';
 import {useProjectSecurity} from '../../lib/hooks/useProjectSecurity';
 import useSWR from 'swr';
 
-type TabId = 'general' | 'billing' | 'domains' | 'smtp' | 'data' | 'team' | 'security';
+type TabId = 'general' | 'domains' | 'smtp' | 'data' | 'team' | 'security';
 
 interface Tab {
   id: TabId;
@@ -69,13 +65,12 @@ interface Tab {
   condition?: boolean;
 }
 
-const buildTabs = (options: {billingEnabled: boolean; smtpEnabled: boolean}): Tab[] => {
-  const {billingEnabled, smtpEnabled} = options;
+const buildTabs = (options: {smtpEnabled: boolean}): Tab[] => {
+  const {smtpEnabled} = options;
   const allTabs: Tab[] = [
     {id: 'general', label: 'General', icon: SettingsIcon},
     {id: 'team', label: 'Team', icon: Users},
     {id: 'security', label: 'Security', icon: Shield},
-    {id: 'billing', label: 'Billing', icon: CreditCard, condition: billingEnabled},
     {id: 'domains', label: 'Domains', icon: Globe},
     {id: 'smtp', label: 'SMTP', icon: Mail, condition: smtpEnabled},
     {id: 'data', label: 'Data', icon: Database},
@@ -96,9 +91,7 @@ export default function Settings() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [resetConfirmText, setResetConfirmText] = useState('');
-  const [isLoadingBilling, setIsLoadingBilling] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('auto');
-  const [showCurrencySelector, setShowCurrencySelector] = useState(false);
+
 
   // Fetch current user's membership for the active project
   const {data: membershipData} = useSWR<{
@@ -111,7 +104,6 @@ export default function Settings() {
 
   const {securityMetrics, isLoading: isLoadingSecurityMetrics} = useProjectSecurity(activeProject?.id);
 
-  const billingEnabled = config?.features.billing.enabled ?? false;
   const smtpEnabled = config?.features.smtp.enabled ?? false;
   const trackingToggleEnabled = config?.features.email.trackingToggleEnabled ?? false;
   const smtpConfig = smtpEnabled
@@ -137,35 +129,6 @@ export default function Settings() {
   const handleTabChange = (newTab: string) => {
     router.push(`/settings?tab=${newTab}`, undefined, {shallow: true});
   };
-
-  // Handle Stripe redirect success/cancel messages
-  useEffect(() => {
-    if (!router.isReady) return;
-
-    if (router.query.success === 'true') {
-      // Use setTimeout to defer state update, avoiding synchronous setState in effect
-      const timer = setTimeout(() => {
-        setSuccessMessage('Subscription activated successfully! It may take a moment to update.');
-        // Clear message and URL after 5 seconds
-        setTimeout(() => {
-          setSuccessMessage(null);
-          router.replace('/settings?tab=billing', undefined, {shallow: true});
-        }, 5000);
-      }, 0);
-      return () => clearTimeout(timer);
-    } else if (router.query.canceled === 'true') {
-      // Use setTimeout to defer state update, avoiding synchronous setState in effect
-      const timer = setTimeout(() => {
-        setErrorMessage('Checkout was canceled. You can try again anytime.');
-        // Clear message and URL after 5 seconds
-        setTimeout(() => {
-          setErrorMessage(null);
-          router.replace('/settings?tab=billing', undefined, {shallow: true});
-        }, 5000);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [router]);
 
   const form = useForm<z.infer<typeof ProjectSchemas.update>>({
     resolver: zodResolver(ProjectSchemas.update),
@@ -248,61 +211,6 @@ export default function Settings() {
     setShowRegenerateDialog(true);
   };
 
-  const handleStartSubscription = async (currency: string = 'auto') => {
-    if (!activeProject) return;
-    if (!billingEnabled) {
-      setErrorMessage('Billing is disabled on this instance.');
-      return;
-    }
-
-    try {
-      setIsLoadingBilling(true);
-      setErrorMessage(null);
-
-      // Build URL with optional currency parameter
-      const url =
-        currency === 'auto'
-          ? `/users/@me/projects/${activeProject.id}/checkout`
-          : `/users/@me/projects/${activeProject.id}/checkout?currency=${currency}`;
-
-      const response = await network.fetch<{url: string}>('POST', url);
-
-      // Redirect to Stripe checkout
-      if (response.url) {
-        window.location.href = response.url;
-      }
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to start checkout');
-      setIsLoadingBilling(false);
-    }
-  };
-
-  const handleManageBilling = async () => {
-    if (!activeProject) return;
-    if (!billingEnabled) {
-      setErrorMessage('Billing is disabled on this instance.');
-      return;
-    }
-
-    try {
-      setIsLoadingBilling(true);
-      setErrorMessage(null);
-
-      const response = await network.fetch<{url: string}>(
-        'POST',
-        `/users/@me/projects/${activeProject.id}/billing-portal`,
-      );
-
-      // Redirect to Stripe billing portal
-      if (response.url) {
-        window.location.href = response.url;
-      }
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to open billing portal');
-      setIsLoadingBilling(false);
-    }
-  };
-
   const handleResetProject = async () => {
     if (!activeProject || resetConfirmText !== 'RESET') return;
 
@@ -381,7 +289,7 @@ export default function Settings() {
           {/* Tabs */}
           <Tabs value={currentTab} onValueChange={handleTabChange} className="max-w-4xl">
             <TabsList>
-              {buildTabs({billingEnabled, smtpEnabled}).map(tab => {
+              {buildTabs({smtpEnabled}).map(tab => {
                 const Icon = tab.icon;
                 return (
                   <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2" title={tab.label}>
@@ -582,7 +490,7 @@ export default function Settings() {
                         </p>
                         <div className="flex items-start gap-2 text-xs text-neutral-500">
                           <span className="font-medium">Preserved:</span>
-                          <span>API keys, domains, billing information</span>
+                          <span>API keys, domains, settings</span>
                         </div>
                       </div>
                       <Button
@@ -607,7 +515,6 @@ export default function Settings() {
                         <p className="text-sm text-red-800 mb-3">
                           Permanently delete this project and all associated data. This action{' '}
                           <strong>cannot be undone</strong>.
-                          {activeProject?.subscription && ' Your subscription will be canceled.'}
                         </p>
                         <div className="flex items-center gap-2 text-xs">
                           <span className="px-2 py-1 bg-red-100 text-red-700 rounded font-medium">
@@ -628,149 +535,6 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* Billing Tab */}
-            <TabsContent value="billing">
-              <div className="space-y-6">
-                {/* Unpaid Invoice Banner */}
-                <UnpaidInvoiceBanner projectId={activeProject.id} hasSubscription={!!activeProject.subscription} />
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Billing & Subscription</CardTitle>
-                    <CardDescription>Manage your subscription and billing information</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {/* Success/Error Messages */}
-                      <AnimatePresence mode="wait">
-                        {successMessage && (
-                          <motion.div
-                            initial={{opacity: 0, y: -10}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0}}
-                            className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800"
-                          >
-                            {successMessage}
-                          </motion.div>
-                        )}
-                        {errorMessage && (
-                          <motion.div
-                            initial={{opacity: 0, y: -10}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0}}
-                            className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800"
-                          >
-                            {errorMessage}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      {activeProject.subscription ? (
-                        // Has subscription - show billing portal button
-                        <div className="space-y-4">
-                          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex items-center gap-2 text-green-800 mb-2">
-                              <CreditCard className="h-5 w-5" />
-                              <span className="font-medium">Active Subscription</span>
-                            </div>
-                            <p className="text-sm text-green-700">
-                              Your subscription is active. Manage your billing details, update payment methods, or
-                              cancel your subscription through the billing portal.
-                            </p>
-                          </div>
-
-                          <div className="flex justify-start">
-                            <Button onClick={handleManageBilling} disabled={isLoadingBilling}>
-                              {isLoadingBilling ? 'Loading...' : 'Manage Billing'}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        // No subscription - show start subscription button
-                        <div className="space-y-4">
-                          <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
-                            <div className="flex items-center gap-2 text-neutral-800 mb-2">
-                              <CreditCard className="h-5 w-5" />
-                              <span className="font-medium">No Active Subscription</span>
-                            </div>
-                            <p className="text-sm text-neutral-600">
-                              Start a subscription and support the development of Plunk. You will be charged a one-time
-                              onboarding fee which will be credited to your first invoice.
-                            </p>
-                          </div>
-
-                          <div className="flex flex-col gap-2">
-                            <div className="flex justify-start">
-                              <Button
-                                onClick={() => handleStartSubscription(selectedCurrency)}
-                                disabled={isLoadingBilling}
-                              >
-                                {isLoadingBilling ? 'Loading...' : 'Start Subscription'}
-                              </Button>
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setShowCurrencySelector(!showCurrencySelector)}
-                                className="text-xs text-neutral-500 hover:text-neutral-700 transition-colors w-fit"
-                              >
-                                {showCurrencySelector ? 'Hide currency options' : 'Select a different currency'}
-                              </button>
-
-                              <AnimatePresence>
-                                {showCurrencySelector && (
-                                  <motion.div
-                                    initial={{opacity: 0, height: 0}}
-                                    animate={{opacity: 1, height: 'auto'}}
-                                    exit={{opacity: 0, height: 0}}
-                                    transition={{duration: 0.2}}
-                                    className="overflow-hidden"
-                                  >
-                                    <div className="flex items-center gap-3 pt-1">
-                                      <label className="text-sm font-medium text-neutral-600">Currency:</label>
-                                      <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                                        <SelectTrigger className="w-[200px]">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="auto">Auto-detect</SelectItem>
-                                          <SelectItem value="usd">USD ($) - US Dollar</SelectItem>
-                                          <SelectItem value="eur">EUR (€) - Euro</SelectItem>
-                                          <SelectItem value="gbp">GBP (£) - British Pound</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Billing Limits */}
-                <BillingLimits
-                  projectId={activeProject.id}
-                  hasSubscription={!!activeProject.subscription}
-                  billingEnabled={billingEnabled}
-                />
-
-                {/* Current Month Consumption */}
-                <BillingConsumption projectId={activeProject.id} hasSubscription={!!activeProject.subscription} />
-
-                {/* Past Invoices */}
-                <BillingInvoices
-                  projectId={activeProject.id}
-                  hasSubscription={!!activeProject.subscription}
-                  onManageBilling={handleManageBilling}
-                />
-              </div>
             </TabsContent>
 
             {/* Team Tab */}
@@ -911,11 +675,6 @@ export default function Settings() {
                   This will <strong className="text-red-600">permanently delete</strong> your entire project and all
                   data. This action cannot be undone.
                 </p>
-                {activeProject?.subscription && (
-                  <p className="text-sm text-red-700 bg-red-50 rounded p-2 border border-red-200">
-                    Your active subscription will be canceled
-                  </p>
-                )}
               </DialogDescription>
             </DialogHeader>
 

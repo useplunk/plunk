@@ -3,15 +3,10 @@ import type {Prisma} from '@plunk/db';
 import {EmailSourceType, EmailStatus} from '@plunk/db';
 import type {Request, Response} from 'express';
 import signale from 'signale';
-import type Stripe from 'stripe';
 
-import {STRIPE_ENABLED, STRIPE_WEBHOOK_SECRET} from '../app/constants.js';
-import {stripe} from '../app/stripe.js';
 import {prisma} from '../database/prisma.js';
-import {BillingLimitService} from '../services/BillingLimitService.js';
 import {ContactService} from '../services/ContactService.js';
 import {EventService} from '../services/EventService.js';
-import {MeterService} from '../services/MeterService.js';
 import {NtfyService} from '../services/NtfyService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
@@ -146,16 +141,6 @@ export class Webhooks {
             for (const domainRecord of domainRecords) {
               signale.info(`[WEBHOOK] Processing inbound email for project: ${domainRecord.project.name}`);
 
-              // Check billing limits before processing inbound email
-              const limitCheck = await BillingLimitService.checkLimit(domainRecord.projectId, EmailSourceType.INBOUND);
-
-              if (!limitCheck.allowed) {
-                signale.warn(
-                  `[WEBHOOK] Inbound email blocked for project ${domainRecord.project.name}: ${limitCheck.message}`,
-                );
-                continue; // Skip this project but continue processing for other projects
-              }
-
               // Find or create a contact for the sender in this project
               let contact;
               if (senderEmail) {
@@ -180,18 +165,6 @@ export class Webhooks {
                   deliveredAt: new Date(body.mail?.timestamp || new Date()),
                 },
               });
-
-              // Increment usage counter in cache
-              await BillingLimitService.incrementUsage(domainRecord.projectId, EmailSourceType.INBOUND);
-
-              // Record Stripe metering if project has customer
-              if (domainRecord.project.customer) {
-                await MeterService.recordEmailSent(
-                  domainRecord.project.customer,
-                  1, // Inbound emails count as 1 credit
-                  `email_${inboundEmail.id}`,
-                );
-              }
 
               // Prepare event data with all inbound email details
               const eventData = {
@@ -427,178 +400,4 @@ export class Webhooks {
     }
   }
 
-  /**
-   * Receive Stripe webhook notifications
-   * Handles subscription and payment events: checkout.session.completed, invoice.paid, etc.
-   */
-  @Post('incoming/stripe')
-  @CatchAsync
-  public async receiveStripeWebhook(req: Request, res: Response) {
-    // Return 404 if billing is disabled
-    if (!STRIPE_ENABLED || !stripe) {
-      signale.warn('[WEBHOOK] Stripe webhook received but billing is disabled');
-      return res.status(404).json({success: false, error: 'Billing is disabled'});
-    }
-
-    try {
-      const sig = req.headers['stripe-signature'];
-
-      if (!sig) {
-        signale.warn('[WEBHOOK] Missing Stripe signature header');
-        return res.status(400).json({success: false, error: 'Missing signature'});
-      }
-
-      // Verify webhook signature using raw body
-      let event: Stripe.Event;
-      try {
-        event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
-      } catch (err) {
-        signale.error('[WEBHOOK] Stripe signature verification failed:', err);
-        return res.status(400).json({success: false, error: 'Invalid signature'});
-      }
-
-      signale.info(`[WEBHOOK] Received Stripe event: ${event.type}`);
-
-      // Handle different event types
-      switch (event.type) {
-        case 'checkout.session.completed': {
-          const session = event.data.object;
-          const customerId = session.customer as string;
-          const subscriptionId = session.subscription as string;
-          const projectId = session.client_reference_id; // Assuming project ID is passed as reference
-
-          if (!projectId) {
-            signale.warn('[WEBHOOK] No client_reference_id in checkout session');
-            break;
-          }
-
-          // Update project with customer and subscription IDs
-          const updatedProject = await prisma.project.update({
-            where: {id: projectId},
-            data: {
-              customer: customerId,
-              subscription: subscriptionId,
-            },
-          });
-
-          // Update Stripe customer name to match project name and add credit for onboarding fee
-          await stripe.customers.update(customerId, {
-            name: updatedProject.name,
-            balance: -100,
-          });
-
-          signale.success(`[WEBHOOK] Checkout completed for project ${projectId}`);
-
-          // Send notification about subscription started
-          await NtfyService.notifySubscriptionStarted(updatedProject.name, projectId, subscriptionId);
-          break;
-        }
-
-        case 'invoice.paid': {
-          const invoice = event.data.object;
-          const customerId = invoice.customer as string;
-
-          // Find project by customer ID
-          const project = await prisma.project.findUnique({
-            where: {customer: customerId},
-          });
-
-          if (!project) {
-            signale.warn(`[WEBHOOK] No project found for customer ${customerId}`);
-            break;
-          }
-
-          signale.success(`[WEBHOOK] Invoice paid for project ${project.name} (${project.id})`);
-
-          // Send notification about invoice payment
-          await NtfyService.notifyInvoicePaid(project.name, project.id);
-          break;
-        }
-
-        case 'invoice.payment_failed': {
-          const invoice = event.data.object;
-          const customerId = invoice.customer as string;
-
-          // Find project by customer ID
-          const project = await prisma.project.findUnique({
-            where: {customer: customerId},
-          });
-
-          if (!project) {
-            signale.warn(`[WEBHOOK] No project found for customer ${customerId}`);
-            break;
-          }
-
-          signale.warn(`[WEBHOOK] Payment failed for project ${project.name} (${project.id})`);
-
-          // Send notification about payment failure
-          await NtfyService.notifyPaymentFailed(project.name, project.id);
-          break;
-        }
-
-        case 'customer.subscription.deleted': {
-          const subscription = event.data.object;
-          const subscriptionId = subscription.id;
-
-          // Find project by subscription ID
-          const project = await prisma.project.findUnique({
-            where: {subscription: subscriptionId},
-          });
-
-          if (!project) {
-            signale.warn(`[WEBHOOK] No project found for subscription ${subscriptionId}`);
-            break;
-          }
-
-          // Clear subscription from project
-          await prisma.project.update({
-            where: {id: project.id},
-            data: {
-              subscription: null,
-            },
-          });
-
-          signale.warn(`[WEBHOOK] Subscription deleted for project ${project.name} (${project.id})`);
-
-          // Send notification about subscription cancellation
-          await NtfyService.notifySubscriptionCancelled(project.name, project.id, subscriptionId);
-          break;
-        }
-
-        case 'customer.subscription.updated': {
-          const subscription = event.data.object;
-          const subscriptionId = subscription.id;
-
-          // Find project by subscription ID
-          const project = await prisma.project.findUnique({
-            where: {subscription: subscriptionId},
-          });
-
-          if (!project) {
-            signale.warn(`[WEBHOOK] No project found for subscription ${subscriptionId}`);
-            break;
-          }
-
-          signale.info(`[WEBHOOK] Subscription updated for project ${project.name} (${project.id})`);
-          signale.info(
-            `[WEBHOOK] Status: ${subscription.status}, Cancel at period end: ${subscription.cancel_at_period_end}`,
-          );
-
-          // Send notification about subscription update
-          await NtfyService.notifySubscriptionUpdated(project.name, project.id);
-          break;
-        }
-
-        // Unhandled events
-        default:
-          signale.info(`[WEBHOOK] Unhandled Stripe event type: ${event.type}`);
-          break;
-      }
-
-      return res.status(200).json({success: true, received: true});
-    } catch (error) {
-      signale.error('[WEBHOOK] Error processing Stripe webhook:', error);
-      return res.status(400).json({success: false, error: 'Webhook processing failed'});
-    }
-  }
 }

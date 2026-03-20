@@ -9,8 +9,7 @@ export interface ConfigResponse {
     wiki: string | null;
   };
   features: {
-    billing: {enabled: boolean};
-    storage: {s3Enabled: boolean};
+    storage: {storageEnabled: boolean};
     authProviders: {github: boolean; google: boolean};
     email: {trackingToggleEnabled: boolean};
     smtp: {
@@ -18,10 +17,6 @@ export interface ConfigResponse {
       domain: string | null;
       ports: {secure: number; submission: number} | null;
     };
-  };
-  aws: {
-    sesRegion: string;
-  };
 }
 
 /**

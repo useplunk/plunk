@@ -92,7 +92,7 @@ The API uses BullMQ (backed by Redis) for asynchronous job processing:
 ## Key Technologies
 
 - **Frontend**: React 19, Next.js 15.3, Tailwind CSS, Framer Motion
-- **Backend**: Express.js, Prisma, Redis (ioredis), Stripe
+- **Backend**: Express.js, Prisma, Redis (ioredis)
 - **UI Library**: Radix UI primitives, ShadCN components
 - **Authentication**: JWT with bcrypt
 
@@ -138,16 +138,14 @@ Required for builds and deployment (see turbo.json and .env.example):
 - Infrastructure: `REDIS_URL`
 - **Application URLs** (injected at runtime into Next.js apps): `API_URI`, `DASHBOARD_URI`, `LANDING_URI`, `WIKI_URI` (
   optional)
-- S3-compatible Storage (Minio): `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_ACCESS_KEY_SECRET`, `S3_BUCKET`,
-  `S3_PUBLIC_URL`, `S3_FORCE_PATH_STYLE`
+- Azure Blob Storage (optional): `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_CONTAINER`,
+  `AZURE_STORAGE_PUBLIC_URL`
 - AWS SES: `AWS_SES_REGION`, `AWS_SES_ACCESS_KEY_ID`, `AWS_SES_SECRET_ACCESS_KEY`, `SES_CONFIGURATION_SET`,
   `SES_CONFIGURATION_SET_NO_TRACKING`
 - OAuth (optional): `GITHUB_OAUTH_CLIENT`, `GITHUB_OAUTH_SECRET`, `GOOGLE_OAUTH_CLIENT`, `GOOGLE_OAUTH_SECRET`
-- Stripe (optional): `STRIPE_SK`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ONBOARDING`, `STRIPE_PRICE_EMAIL_USAGE`,
-  `STRIPE_METER_EVENT_NAME`
 - Notifications (optional): `NTFY_URL` (ntfy.sh topic URL or self-hosted server for system notifications)
 - Platform Email Notifications (optional): `PLUNK_API_KEY` (enables email notifications to users for critical events like
-  project disabled, billing limits, etc. If not set, only ntfy notifications are sent)
+  project disabled, etc. If not set, only ntfy notifications are sent)
 - Self-hosting User Management (optional):
   - `DISABLE_SIGNUPS` (default: false) - When set to true, prevents new user signups via the API
   - `VERIFY_EMAIL_ON_SIGNUP` (default: false) - When set to true, validates emails on signup for disposable domains,

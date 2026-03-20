@@ -12,36 +12,22 @@ import {DASHBOARD_URI, EMAIL_RATE_LIMIT_PER_SECOND} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {EmailService} from '../services/EmailService.js';
 import {EventService} from '../services/EventService.js';
-import {MeterService} from '../services/MeterService.js';
 import {emailQueue} from '../services/QueueService.js';
-import {getSendingQuota, sendRawEmail} from '../services/SESService.js';
+import {sendRawEmail} from '../services/SESService.js';
 
 /**
  * Determine the email sending rate limit (emails per second)
- * Priority: ENV variable > AWS SES quota > Safe default (14)
+ * Uses ENV variable or a safe default (14)
  */
 async function getEmailRateLimit(): Promise<number> {
-  const DEFAULT_RATE_LIMIT = 14; // AWS SES sandbox limit - safe default
+  const DEFAULT_RATE_LIMIT = 14; // Safe default
 
-  // If env variable is set, use it (override)
   if (EMAIL_RATE_LIMIT_PER_SECOND !== undefined) {
     signale.info(`[EMAIL-PROCESSOR] Using rate limit from environment: ${EMAIL_RATE_LIMIT_PER_SECOND} emails/second`);
     return EMAIL_RATE_LIMIT_PER_SECOND;
   }
 
-  // Try to fetch from AWS SES
-  signale.info('[EMAIL-PROCESSOR] Fetching rate limit from AWS SES...');
-  const quota = await getSendingQuota();
-
-  if (quota) {
-    signale.info(
-      `[EMAIL-PROCESSOR] AWS SES quota: ${quota.maxSendRate} emails/second (${quota.sentLast24Hours}/${quota.max24HourSend} emails sent today)`,
-    );
-    return quota.maxSendRate;
-  }
-
-  // Fallback to safe default
-  signale.warn(`[EMAIL-PROCESSOR] Failed to fetch AWS quota, using safe default: ${DEFAULT_RATE_LIMIT} emails/second`);
+  signale.info(`[EMAIL-PROCESSOR] Using default rate limit: ${DEFAULT_RATE_LIMIT} emails/second`);
   return DEFAULT_RATE_LIMIT;
 }
 
@@ -166,15 +152,6 @@ export async function createEmailWorker() {
             messageId: result.messageId,
           },
         });
-
-        // Record usage for billing (pay-per-email)
-        // Uses email ID as idempotency key to prevent double-charging on retries
-        // Charge 2 emails if attachments are present
-        if (email.project.customer) {
-          const hasAttachments = email.attachments && Array.isArray(email.attachments) && email.attachments.length > 0;
-          const emailCount = hasAttachments ? 2 : 1;
-          await MeterService.recordEmailSent(email.project.customer, emailCount, `email_${emailId}`);
-        }
 
         // Track event (this will trigger workflows)
         await EventService.trackEvent(email.projectId, 'email.sent', email.contactId, email.id, {

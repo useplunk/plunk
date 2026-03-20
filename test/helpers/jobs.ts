@@ -143,23 +143,10 @@ export function createServiceMocks() {
       sendRawEmail: vi.fn().mockResolvedValue({ MessageId: 'mock-message-id' }),
     },
 
-    // Mock S3 (file storage)
-    s3: {
-      upload: vi.fn().mockResolvedValue({ Location: 'https://mock-s3.com/file.jpg' }),
-      getSignedUrl: vi.fn().mockResolvedValue('https://mock-s3.com/signed-url'),
-      deleteObject: vi.fn().mockResolvedValue({}),
-    },
-
-    // Mock Stripe (billing)
-    stripe: {
-      customers: {
-        create: vi.fn().mockResolvedValue({ id: 'cus_mock' }),
-        retrieve: vi.fn().mockResolvedValue({ id: 'cus_mock' }),
-      },
-      subscriptions: {
-        create: vi.fn().mockResolvedValue({ id: 'sub_mock' }),
-        update: vi.fn().mockResolvedValue({ id: 'sub_mock' }),
-      },
+    // Mock Azure Blob Storage (file storage)
+    azureBlob: {
+      uploadFile: vi.fn().mockResolvedValue({ url: 'https://mock-storage.blob.core.windows.net/uploads/file.jpg', key: 'file.jpg' }),
+      isStorageEnabled: vi.fn().mockReturnValue(true),
     },
 
     // Mock Redis

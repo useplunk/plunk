@@ -14,7 +14,7 @@
     "clean": "rimraf node_modules dist .turbo"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.937.0",
+    "@azure/storage-blob": "^12.26.0",
     "@aws-sdk/client-ses": "^3.937.0",
     "@overnightjs/core": "^1.7.6",
     "@plunk/db": "*",
@@ -38,8 +38,7 @@
     "mailchecker": "^6.0.19",
     "morgan": "^1.10.0",
     "multer": "^2.1.1",
-    "signale": "^1.4.0",
-    "stripe": "^20.0.0"
+    "signale": "^1.4.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

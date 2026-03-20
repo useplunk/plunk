@@ -3,7 +3,7 @@ import type {NextFunction, Request, Response} from 'express';
 import multer from 'multer';
 import signale from 'signale';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
-import * as S3Service from '../services/S3Service.js';
+import * as AzureBlobService from '../services/AzureBlobService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
 const MAGIC_BYTES: Record<string, Buffer[]> = {
@@ -41,7 +41,7 @@ const upload = multer({
 export class Uploads {
   /**
    * POST /uploads/image
-   * Upload an image file to S3/Minio
+   * Upload an image file to Azure Blob Storage
    */
   @Post('image')
   @Middleware([requireAuth, requireEmailVerified, upload.single('image')])
@@ -50,9 +50,9 @@ export class Uploads {
     const auth = res.locals.auth;
 
     try {
-      if (!S3Service.isS3Enabled()) {
+      if (!AzureBlobService.isStorageEnabled()) {
         return res.status(503).json({
-          error: 'File uploads are not enabled. Please configure S3 storage.',
+          error: 'File uploads are not enabled. Please configure Azure Blob Storage.',
         });
       }
 
@@ -68,8 +68,8 @@ export class Uploads {
         });
       }
 
-      // Upload file to S3/Minio
-      const result = await S3Service.uploadFile({
+      // Upload file to Azure Blob Storage
+      const result = await AzureBlobService.uploadFile({
         file: req.file.buffer,
         filename: req.file.originalname,
         contentType: req.file.mimetype,
