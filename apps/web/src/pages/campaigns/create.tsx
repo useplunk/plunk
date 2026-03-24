@@ -292,22 +292,20 @@ export default function CreateCampaignPage() {
                       />
                     </div>
 
-                    {activeProject?.subscription && (
-                      <div className="flex items-center justify-between rounded-lg border border-neutral-200 p-4">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="disableFooter">Disable default footer</Label>
-                          <p className="text-xs text-neutral-500">
-                            When enabled, the default unsubscribe footer will not be appended. You are responsible for
-                            including your own unsubscribe mechanism.
-                          </p>
-                        </div>
-                        <Switch
-                          id="disableFooter"
-                          checked={disableFooter}
-                          onCheckedChange={setDisableFooter}
-                        />
+                    <div className="flex items-center justify-between rounded-lg border border-neutral-200 p-4">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="disableFooter">Disable default footer</Label>
+                        <p className="text-xs text-neutral-500">
+                          When enabled, the default unsubscribe footer will not be appended. You are responsible for
+                          including your own unsubscribe mechanism.
+                        </p>
                       </div>
-                    )}
+                      <Switch
+                        id="disableFooter"
+                        checked={disableFooter}
+                        onCheckedChange={setDisableFooter}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
 

@@ -48,14 +48,6 @@ export class CampaignService {
       SegmentService.validateCondition(data.audienceCondition);
     }
 
-    // Enforce paid-only gate for disableFooter
-    if (data.disableFooter) {
-      const project = await prisma.project.findUnique({where: {id: projectId}, select: {subscription: true}});
-      if (!project?.subscription) {
-        throw new HttpException(403, 'Disabling the footer is only available for projects with an active subscription');
-      }
-    }
-
     // Create campaign with initial recipient count of 0
     const campaign = await prisma.campaign.create({
       data: {
@@ -103,14 +95,6 @@ export class CampaignService {
     // Can only update draft or scheduled campaigns
     if (campaign.status !== CampaignStatus.DRAFT && campaign.status !== CampaignStatus.SCHEDULED) {
       throw new HttpException(400, 'Cannot update campaign that is sending or has been sent');
-    }
-
-    // Enforce paid-only gate for disableFooter
-    if (data.disableFooter) {
-      const project = await prisma.project.findUnique({where: {id: projectId}, select: {subscription: true}});
-      if (!project?.subscription) {
-        throw new HttpException(403, 'Disabling the footer is only available for projects with an active subscription');
-      }
     }
 
     // Build base update data using shared utility

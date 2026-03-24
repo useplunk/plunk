@@ -253,7 +253,7 @@ export default function TemplateEditorPage() {
                   </p>
                 </div>
 
-                {editedTemplate.type === 'MARKETING' && activeProject?.subscription && (
+                {editedTemplate.type === 'MARKETING' && (
                   <div className="flex items-center justify-between rounded-lg border border-neutral-200 p-4">
                     <div className="space-y-0.5">
                       <Label htmlFor="disableFooter">Disable default footer</Label>

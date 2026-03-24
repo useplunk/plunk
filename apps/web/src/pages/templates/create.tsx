@@ -146,7 +146,7 @@ export default function CreateTemplatePage() {
                   </div>
                 </div>
 
-                {type === 'MARKETING' && activeProject?.subscription && (
+                {type === 'MARKETING' && (
                   <div className="flex items-center justify-between rounded-lg border border-neutral-200 p-4 md:col-span-2">
                     <div className="space-y-0.5">
                       <Label htmlFor="disableFooter">Disable default footer</Label>

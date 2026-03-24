@@ -87,14 +87,6 @@ export class TemplateService {
       disableFooter?: boolean;
     },
   ): Promise<Template> {
-    // Enforce paid-only gate for disableFooter
-    if (data.disableFooter) {
-      const project = await prisma.project.findUnique({where: {id: projectId}, select: {subscription: true}});
-      if (!project?.subscription) {
-        throw new HttpException(403, 'Disabling the footer is only available for projects with an active subscription');
-      }
-    }
-
     return prisma.template.create({
       data: {
         projectId,
@@ -131,14 +123,6 @@ export class TemplateService {
   ): Promise<Template> {
     // Verify template exists and belongs to project
     await this.get(projectId, templateId);
-
-    // Enforce paid-only gate for disableFooter
-    if (data.disableFooter) {
-      const project = await prisma.project.findUnique({where: {id: projectId}, select: {subscription: true}});
-      if (!project?.subscription) {
-        throw new HttpException(403, 'Disabling the footer is only available for projects with an active subscription');
-      }
-    }
 
     const updateData = {
       ...buildEmailFieldsUpdate(data),
