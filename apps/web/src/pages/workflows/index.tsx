@@ -14,11 +14,6 @@ import {
   DialogTitle,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from '@plunk/ui';
 import type {Workflow} from '@plunk/db';
 import type {PaginatedResponse} from '@plunk/types';
@@ -391,34 +386,25 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
           </div>
 
           <div>
-            <Label htmlFor="eventName">Trigger Event *</Label>
-            {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0 ? (
-              <Select value={eventName} onValueChange={setEventName} required>
-                <SelectTrigger id="eventName">
-                  <SelectValue placeholder="Select an event..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {eventNamesData.eventNames.map(name => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input
-                id="eventName"
-                type="text"
-                value={eventName}
-                onChange={e => setEventName(e.target.value)}
-                required
-                placeholder="e.g., contact.created, email.opened"
-              />
+            <Label htmlFor="createEventName">Trigger Event *</Label>
+            <Input
+              id="createEventName"
+              type="text"
+              list="createEventNameSuggestions"
+              value={eventName}
+              onChange={e => setEventName(e.target.value)}
+              placeholder="e.g., contact.created, email.opened"
+              required
+            />
+            {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0 && (
+              <datalist id="createEventNameSuggestions">
+                {eventNamesData.eventNames.map(name => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             )}
             <p className="text-xs text-neutral-500 mt-1">
-              {eventNamesData?.eventNames && eventNamesData.eventNames.length > 0
-                ? 'Select from previously tracked events'
-                : 'No events tracked yet. Enter the event name that will trigger this workflow.'}
+              The event that triggers this workflow to start for a contact
             </p>
           </div>
 
