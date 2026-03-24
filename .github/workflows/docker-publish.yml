@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - next
+      - deploy/custom
 
 jobs:
   # Prepare metadata and tags for all builds
