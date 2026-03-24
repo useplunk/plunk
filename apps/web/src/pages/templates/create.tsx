@@ -12,6 +12,7 @@ import {
   SelectItemWithDescription,
   SelectTrigger,
   SelectValue,
+  Switch,
 } from '@plunk/ui';
 import {NextSeo} from 'next-seo';
 import {DashboardLayout} from '../../components/DashboardLayout';
@@ -38,6 +39,7 @@ export default function CreateTemplatePage() {
   const [fromName, setFromName] = useState('');
   const [replyTo, setReplyTo] = useState('');
   const [type, setType] = useState<'MARKETING' | 'TRANSACTIONAL'>('MARKETING');
+  const [disableFooter, setDisableFooter] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,6 +63,7 @@ export default function CreateTemplatePage() {
         fromName: fromName || null,
         replyTo: replyTo || null,
         type,
+        disableFooter,
       });
 
       toast.success('Template created successfully');
@@ -142,6 +145,23 @@ export default function CreateTemplatePage() {
                     </Select>
                   </div>
                 </div>
+
+                {type === 'MARKETING' && activeProject?.subscription && (
+                  <div className="flex items-center justify-between rounded-lg border border-neutral-200 p-4 md:col-span-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="disableFooter">Disable default footer</Label>
+                      <p className="text-xs text-neutral-500">
+                        When enabled, the default unsubscribe footer will not be appended. You are responsible for
+                        including your own unsubscribe mechanism.
+                      </p>
+                    </div>
+                    <Switch
+                      id="disableFooter"
+                      checked={disableFooter}
+                      onCheckedChange={setDisableFooter}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="description">Description</Label>

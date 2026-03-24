@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
   StickySaveBar,
+  Switch,
 } from '@plunk/ui';
 import type {Template} from '@plunk/db';
 import {DashboardLayout} from '../../components/DashboardLayout';
@@ -56,6 +57,7 @@ export default function TemplateEditorPage() {
         fromName: template.fromName || '',
         replyTo: template.replyTo || '',
         type: template.type,
+        disableFooter: template.disableFooter,
       });
       // Reset hasChanges when loading fresh data
       setHasChanges(false);
@@ -74,7 +76,8 @@ export default function TemplateEditorPage() {
       editedTemplate.from !== template.from ||
       (editedTemplate.fromName || '') !== (template.fromName || '') ||
       (editedTemplate.replyTo || '') !== (template.replyTo || '') ||
-      editedTemplate.type !== template.type;
+      editedTemplate.type !== template.type ||
+      editedTemplate.disableFooter !== template.disableFooter;
 
     setHasChanges(changed);
   }, [editedTemplate, template]);
@@ -96,6 +99,7 @@ export default function TemplateEditorPage() {
         fromName: editedTemplate.fromName || null,
         replyTo: editedTemplate.replyTo || null,
         type: editedTemplate.type,
+        disableFooter: editedTemplate.disableFooter,
       });
 
       // Silent save - no toast notification
@@ -248,6 +252,23 @@ export default function TemplateEditorPage() {
                     Marketing templates will automatically include a Plunk-hosted unsubscribe link.
                   </p>
                 </div>
+
+                {editedTemplate.type === 'MARKETING' && activeProject?.subscription && (
+                  <div className="flex items-center justify-between rounded-lg border border-neutral-200 p-4">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="disableFooter">Disable default footer</Label>
+                      <p className="text-xs text-neutral-500">
+                        When enabled, the default unsubscribe footer will not be appended. You are responsible for
+                        including your own unsubscribe mechanism.
+                      </p>
+                    </div>
+                    <Switch
+                      id="disableFooter"
+                      checked={editedTemplate.disableFooter ?? false}
+                      onCheckedChange={checked => setEditedTemplate({...editedTemplate, disableFooter: checked})}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="subject">Subject Line *</Label>

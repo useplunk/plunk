@@ -158,6 +158,7 @@ export const TemplateSchemas = {
     fromName: z.string().max(100).nullish(),
     replyTo: email.nullish(),
     type: z.nativeEnum(TemplateType).default('MARKETING'),
+    disableFooter: z.boolean().default(false),
   }),
   update: z.object({
     name: z.string().min(1).max(100).optional(),
@@ -168,6 +169,7 @@ export const TemplateSchemas = {
     fromName: z.string().max(100).nullish(),
     replyTo: email.nullish(),
     type: z.nativeEnum(TemplateType).optional(),
+    disableFooter: z.boolean().optional(),
   }),
 };
 
@@ -352,6 +354,7 @@ export const CampaignSchemas = {
     audienceType: z.nativeEnum(CampaignAudienceType),
     audienceCondition: filterConditionSchema.optional(),
     segmentId: uuid.optional(),
+    disableFooter: z.boolean().default(false),
   }),
   schedule: z.object({
     scheduledFor: z.string(),
@@ -367,6 +370,7 @@ export const CampaignSchemas = {
     audienceType: z.nativeEnum(CampaignAudienceType).optional(),
     audienceCondition: filterConditionSchema.optional(),
     segmentId: z.string().optional(),
+    disableFooter: z.boolean().optional(),
   }),
   sendTest: z.object({
     email,

@@ -169,6 +169,9 @@ model Template {
   fromName String?
   replyTo  String?
 
+  // Footer control (paid-only feature)
+  disableFooter Boolean @default(false)
+
   // Type
   type TemplateType @default(MARKETING)
 
@@ -290,6 +293,9 @@ model Campaign {
   from     String
   fromName String?
   replyTo  String?
+
+  // Footer control (paid-only feature)
+  disableFooter Boolean @default(false)
 
   // Audience selection
   audienceType      CampaignAudienceType @default(ALL)
@@ -526,6 +532,9 @@ model Email {
   replyTo     String?
   headers     Json? // Custom email headers
   attachments Json? // Array of {filename: string, content: string (base64), contentType: string}
+
+  // Footer control
+  disableFooter Boolean @default(false)
 
   // AWS SES Message ID (for tracking webhooks)
   messageId String? @unique

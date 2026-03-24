@@ -19,6 +19,7 @@ export interface CreateCampaignData {
   audienceType: CampaignAudienceType;
   audienceCondition?: FilterCondition;
   segmentId?: string;
+  disableFooter?: boolean;
 }
 
 /**
@@ -35,4 +36,5 @@ export interface UpdateCampaignData {
   audienceType?: CampaignAudienceType;
   audienceCondition?: FilterCondition;
   segmentId?: string;
+  disableFooter?: boolean;
 }

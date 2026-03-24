@@ -38,6 +38,7 @@ interface SendEmailParams {
   workflowExecutionId?: string;
   workflowStepExecutionId?: string;
   recipientEmail?: string; // Optional custom recipient email (overrides contact.email)
+  disableFooter?: boolean; // When true, skip the default unsubscribe footer (paid-only feature)
 }
 
 /**
@@ -161,6 +162,7 @@ export class EmailService {
         sourceType,
         templateId: params.templateId,
         campaignId: params.campaignId,
+        disableFooter: params.disableFooter ?? false,
         status: EmailStatus.PENDING,
       },
     });
@@ -267,6 +269,7 @@ export class EmailService {
         templateId: params.templateId,
         workflowExecutionId: params.workflowExecutionId,
         workflowStepExecutionId: params.workflowStepExecutionId,
+        disableFooter: params.disableFooter ?? false,
         status: EmailStatus.PENDING,
       },
     });
@@ -1031,11 +1034,13 @@ export class EmailService {
     contact,
     project,
     includeUnsubscribe = true,
+    disableFooter = false,
   }: {
     content: string;
     contact: Contact;
     project: Project;
     includeUnsubscribe?: boolean;
+    disableFooter?: boolean;
   }): string {
     // Wrap visual editor content with prose styles so the sent email matches the preview modal.
     // Custom HTML (from the HTML editor) already carries its own styles and is used as-is.
@@ -1110,8 +1115,8 @@ export class EmailService {
         </table>`
         : '';
 
-    // Combine footer and badge
-    const footerHtml = `${unsubscribeHtml}${badgeHtml}`;
+    // Combine footer and badge (disableFooter skips the unsubscribe footer but keeps the badge)
+    const footerHtml = disableFooter ? badgeHtml : `${unsubscribeHtml}${badgeHtml}`;
 
     // Insert before closing body tag if it exists, otherwise append
     if (html.includes('</body>')) {

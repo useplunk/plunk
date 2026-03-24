@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
   StickySaveBar,
+  Switch,
 } from '@plunk/ui';
 import type {Campaign, Segment} from '@plunk/db';
 import {CampaignAudienceType, CampaignStatus} from '@plunk/db';
@@ -218,6 +219,7 @@ export default function CampaignDetailsPage() {
         replyTo: editedCampaign.replyTo || null,
         audienceType: editedCampaign.audienceType,
         segmentId: editedCampaign.segmentId || undefined,
+        disableFooter: editedCampaign.disableFooter,
       });
       // Silent save - no toast notification
       setHasChanges(false);
@@ -234,6 +236,7 @@ export default function CampaignDetailsPage() {
           replyTo: updated.data.replyTo || '',
           audienceType: updated.data.audienceType,
           segmentId: updated.data.segmentId || undefined,
+          disableFooter: updated.data.disableFooter,
         });
       }
     } catch (error) {
@@ -256,6 +259,7 @@ export default function CampaignDetailsPage() {
         replyTo: campaign.data.replyTo || '',
         audienceType: campaign.data.audienceType,
         segmentId: campaign.data.segmentId || undefined,
+        disableFooter: campaign.data.disableFooter,
       });
       // Reset hasChanges when loading fresh data
       setHasChanges(false);
@@ -275,7 +279,8 @@ export default function CampaignDetailsPage() {
       (editedCampaign.fromName || '') !== (campaign.data.fromName || '') ||
       (editedCampaign.replyTo || '') !== (campaign.data.replyTo || '') ||
       editedCampaign.audienceType !== campaign.data.audienceType ||
-      (editedCampaign.segmentId || null) !== (campaign.data.segmentId || null);
+      (editedCampaign.segmentId || null) !== (campaign.data.segmentId || null) ||
+      editedCampaign.disableFooter !== campaign.data.disableFooter;
 
     setHasChanges(changed);
   }, [editedCampaign, campaign]);
@@ -484,6 +489,23 @@ export default function CampaignDetailsPage() {
                   showFromNameHelpText
                   layout="vertical"
                 />
+
+                {activeProject?.subscription && (
+                  <div className="flex items-center justify-between rounded-lg border border-neutral-200 p-4">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="disableFooter">Disable default footer</Label>
+                      <p className="text-xs text-neutral-500">
+                        When enabled, the default unsubscribe footer will not be appended. You are responsible for
+                        including your own unsubscribe mechanism.
+                      </p>
+                    </div>
+                    <Switch
+                      id="disableFooter"
+                      checked={editedCampaign.disableFooter ?? false}
+                      onCheckedChange={checked => setEditedCampaign({...editedCampaign, disableFooter: checked})}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -48,6 +48,14 @@ export class CampaignService {
       SegmentService.validateCondition(data.audienceCondition);
     }
 
+    // Enforce paid-only gate for disableFooter
+    if (data.disableFooter) {
+      const project = await prisma.project.findUnique({where: {id: projectId}, select: {subscription: true}});
+      if (!project?.subscription) {
+        throw new HttpException(403, 'Disabling the footer is only available for projects with an active subscription');
+      }
+    }
+
     // Create campaign with initial recipient count of 0
     const campaign = await prisma.campaign.create({
       data: {
@@ -59,6 +67,7 @@ export class CampaignService {
         from: data.from,
         fromName: data.fromName,
         replyTo: data.replyTo,
+        disableFooter: data.disableFooter ?? false,
         audienceType: data.audienceType,
         audienceCondition: toPrismaJson(data.audienceCondition || null),
         segmentId: data.segmentId,
@@ -94,6 +103,14 @@ export class CampaignService {
     // Can only update draft or scheduled campaigns
     if (campaign.status !== CampaignStatus.DRAFT && campaign.status !== CampaignStatus.SCHEDULED) {
       throw new HttpException(400, 'Cannot update campaign that is sending or has been sent');
+    }
+
+    // Enforce paid-only gate for disableFooter
+    if (data.disableFooter) {
+      const project = await prisma.project.findUnique({where: {id: projectId}, select: {subscription: true}});
+      if (!project?.subscription) {
+        throw new HttpException(403, 'Disabling the footer is only available for projects with an active subscription');
+      }
     }
 
     // Build base update data using shared utility
@@ -262,6 +279,7 @@ export class CampaignService {
         from: campaign.from,
         fromName: campaign.fromName,
         replyTo: campaign.replyTo,
+        disableFooter: campaign.disableFooter,
         audienceType: campaign.audienceType,
         audienceCondition: campaign.audienceCondition as Prisma.InputJsonValue,
         segmentId: campaign.segmentId,
@@ -482,6 +500,7 @@ export class CampaignService {
           from: campaign.from,
           fromName: campaign.fromName || undefined,
           replyTo: campaign.replyTo || undefined,
+          disableFooter: campaign.disableFooter,
         });
       } catch (error) {
         signale.error(`[CAMPAIGN] Failed to queue email for contact ${contact.id}:`, error);

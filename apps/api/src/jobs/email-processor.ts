@@ -110,6 +110,7 @@ export async function createEmailWorker() {
           contact: email.contact,
           project: email.project,
           includeUnsubscribe: email.sourceType !== EmailSourceType.TRANSACTIONAL, // Don't add unsubscribe to transactional emails
+          disableFooter: email.disableFooter,
         });
 
         // Use fromName from database if available, otherwise fall back to project name

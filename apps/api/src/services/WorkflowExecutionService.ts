@@ -580,6 +580,7 @@ export class WorkflowExecutionService {
       replyTo: step.template.replyTo || undefined,
       // Pass custom recipient email if specified
       recipientEmail: recipientConfig.type === 'CUSTOM' ? recipientConfig.customEmail : undefined,
+      disableFooter: step.template.disableFooter,
     });
 
     return {
