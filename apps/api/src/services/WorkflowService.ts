@@ -862,6 +862,36 @@ export class WorkflowService {
   }
 
   /**
+   * Get active execution counts per step for a workflow
+   */
+  public static async getStepExecutionCounts(
+    projectId: string,
+    workflowId: string,
+  ): Promise<Record<string, number>> {
+    // Verify workflow belongs to project
+    await this.get(projectId, workflowId);
+
+    const counts = await prisma.workflowExecution.groupBy({
+      by: ['currentStepId'],
+      where: {
+        workflowId,
+        status: {in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING]},
+        currentStepId: {not: null},
+      },
+      _count: {id: true},
+    });
+
+    const result: Record<string, number> = {};
+    for (const row of counts) {
+      if (row.currentStepId) {
+        result[row.currentStepId] = row._count.id;
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Check if a workflow has active executions
    */
   private static async hasActiveExecutions(workflowId: string): Promise<number> {
