@@ -1,7 +1,7 @@
 import type {Event} from '@plunk/db';
 import {Prisma} from '@plunk/db';
 import type {FilterCondition, FilterGroup} from '@plunk/types';
-import {toPrismaJson} from '@plunk/types';
+import {buildWorkflowSnapshot, toPrismaJson} from '@plunk/types';
 import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
@@ -466,6 +466,22 @@ export class EventService {
         return;
       }
 
+      // Build workflow snapshot — freeze the graph so in-flight executions are immune to live edits
+      const fullWorkflow = await prisma.workflow.findUniqueOrThrow({
+        where: {id: workflowId},
+        include: {
+          steps: {
+            include: {
+              template: {
+                select: {id: true, subject: true, body: true, from: true, fromName: true, replyTo: true},
+              },
+              outgoingTransitions: true,
+            },
+          },
+        },
+      });
+      const snapshot = buildWorkflowSnapshot(fullWorkflow);
+
       // Create workflow execution
       const execution = await prisma.workflowExecution.create({
         data: {
@@ -474,6 +490,7 @@ export class EventService {
           status: 'RUNNING',
           currentStepId: triggerStep.id,
           context: context ? toPrismaJson(context) : undefined,
+          workflowSnapshot: toPrismaJson(snapshot),
         },
       });
 

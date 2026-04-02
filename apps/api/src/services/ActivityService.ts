@@ -744,7 +744,7 @@ export class ActivityService {
     });
 
     return stepExecutions
-      .filter(stepExec => stepExec.step.type === 'SEND_EMAIL' && stepExec.scheduledFor)
+      .filter(stepExec => stepExec.step?.type === 'SEND_EMAIL' && stepExec.scheduledFor)
       .map(stepExec => ({
         id: `workflow_step_${stepExec.id}_scheduled`,
         type: ActivityType.WORKFLOW_EMAIL_SCHEDULED,
@@ -753,9 +753,9 @@ export class ActivityService {
         contactId: stepExec.execution.contactId,
         metadata: {
           workflowName: stepExec.execution.workflow.name,
-          stepName: stepExec.step.name,
+          stepName: stepExec.step?.name,
           subject:
-            stepExec.step.config &&
+            stepExec.step?.config &&
             typeof stepExec.step.config === 'object' &&
             stepExec.step.config !== null &&
             'subject' in stepExec.step.config &&
