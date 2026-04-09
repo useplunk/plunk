@@ -13,13 +13,24 @@ export function renderTemplate(template: string, variables: Record<string, unkno
     const [mainKey, defaultValue] = key.split('??').map((s: string) => s.trim());
 
     // Handle nested property access (e.g., data.firstName)
+    // Uses recursive first-dot splitting so that literal dots in custom field
+    // names (e.g., "prefix.key") are resolved correctly: direct key lookup is
+    // tried before descending into nested objects.
     const getValue = (obj: Record<string, unknown>, path: string): unknown => {
-      return path.split('.').reduce((current: Record<string, unknown> | unknown, key) => {
-        if (current && typeof current === 'object' && !Array.isArray(current)) {
-          return (current as Record<string, unknown>)[key];
-        }
+      if (path in obj) {
+        return obj[path];
+      }
+      const firstDotIndex = path.indexOf('.');
+      if (firstDotIndex === -1) {
         return undefined;
-      }, obj);
+      }
+      const firstKey = path.substring(0, firstDotIndex);
+      const rest = path.substring(firstDotIndex + 1);
+      const next = obj[firstKey];
+      if (next && typeof next === 'object' && !Array.isArray(next)) {
+        return getValue(next as Record<string, unknown>, rest);
+      }
+      return undefined;
     };
 
     // Try multiple lookup strategies

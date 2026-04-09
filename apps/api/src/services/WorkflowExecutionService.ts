@@ -1111,7 +1111,15 @@ export class WorkflowExecutionService {
       normalizedField = field.substring(8); // Remove "contact." prefix, leaving "data.X"
     }
 
-    const parts = normalizedField.split('.');
+    // Split only on the first dot to separate the top-level field (e.g., "data")
+    // from the custom field name. This preserves dots in custom field names
+    // (e.g., "data.prefix.key" → ["data", "prefix.key"]).
+    const firstDotIndex = normalizedField.indexOf('.');
+    const parts =
+      firstDotIndex === -1
+        ? [normalizedField]
+        : [normalizedField.substring(0, firstDotIndex), normalizedField.substring(firstDotIndex + 1)];
+
     let value: unknown = data;
 
     for (const part of parts) {
