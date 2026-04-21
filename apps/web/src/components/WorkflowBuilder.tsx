@@ -55,6 +55,7 @@ interface WorkflowBuilderProps {
       priority: number;
     }>;
   })[];
+  stepExecutionCounts?: Record<string, number>;
   onUpdate: () => void;
 }
 
@@ -147,12 +148,21 @@ function getLayoutedElements(nodes: Node[], edges: Edge[]) {
 
   const layoutedNodes = nodes.map(node => {
     const nodeWithPosition = dagreGraph.node(node.id);
+    const dagrePosition = {
+      x: nodeWithPosition.x - nodeWidth / 2,
+      y: nodeWithPosition.y - nodeHeight / 2,
+    };
+
+    // Preserve user-saved positions for real step nodes (not addStep nodes).
+    // A non-default position means the user has dragged this node before.
+    const hasSavedPosition =
+      node.type !== 'addStep' &&
+      node.position &&
+      (node.position.x !== 0 || node.position.y !== 0);
+
     return {
       ...node,
-      position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
-      },
+      position: hasSavedPosition ? node.position : dagrePosition,
     };
   });
 
@@ -233,6 +243,7 @@ function CustomNode({
     onDelete?: () => void;
     template?: {name: string};
     config?: any;
+    executionCount?: number;
   };
 }) {
   const Icon = data.icon;
@@ -264,6 +275,17 @@ function CustomNode({
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       >
+        {/* Execution count badge */}
+        {data.executionCount && data.executionCount > 0 ? (
+          <div
+            className="absolute -top-2 -left-2 z-10 flex items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold shadow-md"
+            style={{minWidth: '22px', height: '22px', padding: '0 6px'}}
+            title={`${data.executionCount} active execution${data.executionCount !== 1 ? 's' : ''} on this step`}
+          >
+            {data.executionCount}
+          </div>
+        ) : null}
+
         {/* Action buttons - shown on hover */}
         {showActions && data.type === 'TRIGGER' && (
           <div className="absolute -top-3 -right-3 flex gap-1.5 z-10">
@@ -435,7 +457,7 @@ const STEP_TYPE_OPTIONS = [
   {value: 'EXIT', label: 'Exit', icon: LogOut, color: STEP_TYPE_COLORS.EXIT},
 ];
 
-export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderProps) {
+export function WorkflowBuilder({workflowId, steps, stepExecutionCounts, onUpdate}: WorkflowBuilderProps) {
   const reactFlowInstance = useReactFlow();
   const [addStepContext, setAddStepContext] = useState<{
     fromStepId: string | null;
@@ -490,6 +512,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           bgColor,
           template: step.template,
           config: step.config,
+          executionCount: stepExecutionCounts?.[step.id] ?? 0,
           onEdit: () => handleEditStep(step.id),
           onDelete: () => handleDeleteStepClick(step.id),
         },
@@ -835,6 +858,23 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
     [steps],
   );
 
+  // Save node position to DB when user finishes dragging
+  const handleNodeDragStop = useCallback(
+    async (_event: React.MouseEvent, node: Node) => {
+      // Only save positions for real step nodes, not addStep nodes
+      if (node.type === 'addStep') return;
+
+      try {
+        await network.fetch('PATCH', `/workflows/${workflowId}/steps/${node.id}`, {
+          position: {x: Math.round(node.position.x), y: Math.round(node.position.y)},
+        } as any);
+      } catch {
+        // Silently fail — position save is non-critical
+      }
+    },
+    [workflowId],
+  );
+
   const handleDeleteStep = async () => {
     if (!stepToDelete) return;
 
@@ -884,6 +924,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           edges={edges}
           onNodesChange={handleNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeDragStop={handleNodeDragStop}
           nodeTypes={nodeTypes}
           fitView
           fitViewOptions={{

@@ -1,14 +1,13 @@
 import type {
   Contact,
   Prisma,
-  Template,
   Workflow,
   WorkflowExecution,
-  WorkflowStep,
   WorkflowStepExecution,
 } from '@plunk/db';
 import {StepExecutionStatus, WorkflowExecutionStatus} from '@plunk/db';
-import {toPrismaJson} from '@plunk/types';
+import {resolveWorkflowGraph, toPrismaJson} from '@plunk/types';
+import type {ResolvedWorkflowGraph, WorkflowSnapshotStep} from '@plunk/types';
 import {renderTemplate, WorkflowStepConfigSchemas} from '@plunk/shared';
 import dns from 'node:dns/promises';
 import net from 'node:net';
@@ -25,15 +24,6 @@ import {QueueService} from './QueueService.js';
 type StepConfig = Prisma.JsonValue;
 type StepResult = Record<string, unknown>;
 type WorkflowExecutionWithRelations = WorkflowExecution & {contact: Contact; workflow: Workflow};
-type WorkflowStepWithTemplate = WorkflowStep & {template?: Template | null};
-type WorkflowStepWithTransitions = WorkflowStep & {
-  outgoingTransitions?: Array<{
-    id: string;
-    condition: Prisma.JsonValue;
-    priority: number;
-    toStep: WorkflowStep;
-  }>;
-};
 
 /**
  * Core Workflow Execution Engine
@@ -115,7 +105,9 @@ export class WorkflowExecutionService {
       // Allow execution to continue - no action needed
     }
 
-    const step = initialExecution.workflow.steps.find(s => s.id === stepId);
+    const graph = resolveWorkflowGraph(initialExecution.workflowSnapshot, initialExecution.workflow);
+
+    const step = graph.steps.find(s => s.id === stepId);
     if (!step) {
       signale.error(`[WORKFLOW] Step ${stepId} not found in workflow ${initialExecution.workflow.id}`);
       throw new HttpException(404, 'Step not found in workflow');
@@ -211,7 +203,7 @@ export class WorkflowExecutionService {
     try {
       // Execute the step based on its type
       signale.info(`[WORKFLOW] Executing step ${stepId} of type ${step.type}`);
-      const result = await this.executeStep(step, execution, stepExecution);
+      const result = await this.executeStep(step, execution, stepExecution, graph);
       signale.info(`[WORKFLOW] Step ${stepId} executed successfully`);
 
       // Check if step is in a waiting state (WAIT_FOR_EVENT steps only)
@@ -250,7 +242,7 @@ export class WorkflowExecutionService {
       });
 
       // Determine next step(s) based on transitions and conditions
-      await this.processNextSteps(execution, step, result);
+      await this.processNextSteps(execution, step, result, graph);
     } catch (error) {
       signale.error(`[WORKFLOW] Error executing step ${step.id}:`, error);
       // Mark step as failed
@@ -303,19 +295,28 @@ export class WorkflowExecutionService {
    * Called by BullMQ worker when timeout job executes
    */
   public static async processTimeout(executionId: string, stepId: string, stepExecutionId: string): Promise<void> {
-    // Fetch the step execution
+    // Fetch the step execution along with the workflow execution snapshot and live step data
     const stepExecution = await prisma.workflowStepExecution.findUnique({
       where: {id: stepExecutionId},
       include: {
-        execution: true,
-        step: {
+        execution: {
           include: {
-            outgoingTransitions: {
-              include: {toStep: true},
-              orderBy: {priority: 'asc'},
+            workflow: {
+              include: {
+                steps: {
+                  include: {
+                    template: true,
+                    outgoingTransitions: {
+                      orderBy: {priority: 'asc'},
+                      include: {toStep: true},
+                    },
+                  },
+                },
+              },
             },
           },
         },
+        step: true,
       },
     });
 
@@ -328,6 +329,16 @@ export class WorkflowExecutionService {
       return;
     }
 
+    // Resolve graph from snapshot (or fall back to live workflow data)
+    const graph = resolveWorkflowGraph(
+      stepExecution.execution.workflowSnapshot,
+      stepExecution.execution.workflow,
+    );
+
+    // Use snapshot step config for eventName if available, otherwise live step config
+    const snapshotStep = graph.steps.find(s => s.id === stepExecution.stepId);
+    const stepConfig = snapshotStep?.config ?? stepExecution.step?.config ?? null;
+
     // Mark step as completed with timeout
     await prisma.workflowStepExecution.update({
       where: {id: stepExecution.id},
@@ -337,17 +348,20 @@ export class WorkflowExecutionService {
         output: {
           timedOut: true,
           eventName:
-            stepExecution.step.config &&
-            typeof stepExecution.step.config === 'object' &&
-            'eventName' in stepExecution.step.config
-              ? stepExecution.step.config.eventName
+            stepConfig &&
+            typeof stepConfig === 'object' &&
+            'eventName' in stepConfig
+              ? stepConfig.eventName
               : undefined,
         },
       },
     });
 
-    // Continue workflow - find transitions with timeout/fallback logic
-    const transitions = stepExecution.step.outgoingTransitions || [];
+    // Continue workflow - find transitions with timeout/fallback logic using graph
+    const transitions = graph.transitions
+      .filter(t => t.fromStepId === stepExecution.stepId)
+      .sort((a, b) => a.priority - b.priority);
+
     const fallbackTransition = transitions.find(
       t =>
         (t.condition &&
@@ -359,20 +373,8 @@ export class WorkflowExecutionService {
 
     if (fallbackTransition) {
       // Follow timeout branch
-      await prisma.workflowExecution.update({
-        where: {id: stepExecution.executionId},
-        data: {
-          status: WorkflowExecutionStatus.RUNNING,
-          currentStepId: fallbackTransition.toStep.id,
-        },
-      });
-
-      await this.processStepExecution(stepExecution.executionId, fallbackTransition.toStep.id);
-    } else if (transitions.length > 0) {
-      // No timeout branch, follow first transition
-      const firstTransition = transitions[0];
-      if (firstTransition?.toStep) {
-        const nextStep = firstTransition.toStep;
+      const nextStep = graph.steps.find(s => s.id === fallbackTransition.toStepId);
+      if (nextStep) {
         await prisma.workflowExecution.update({
           where: {id: stepExecution.executionId},
           data: {
@@ -382,6 +384,23 @@ export class WorkflowExecutionService {
         });
 
         await this.processStepExecution(stepExecution.executionId, nextStep.id);
+      }
+    } else if (transitions.length > 0) {
+      // No timeout branch, follow first transition
+      const firstTransition = transitions[0];
+      if (firstTransition) {
+        const nextStep = graph.steps.find(s => s.id === firstTransition.toStepId);
+        if (nextStep) {
+          await prisma.workflowExecution.update({
+            where: {id: stepExecution.executionId},
+            data: {
+              status: WorkflowExecutionStatus.RUNNING,
+              currentStepId: nextStep.id,
+            },
+          });
+
+          await this.processStepExecution(stepExecution.executionId, nextStep.id);
+        }
       }
     } else {
       // No transitions, complete workflow
@@ -420,24 +439,35 @@ export class WorkflowExecutionService {
         execution: {
           include: {
             contact: true,
-            workflow: true,
-          },
-        },
-        step: {
-          include: {
-            outgoingTransitions: {
-              orderBy: {priority: 'asc'},
-              include: {toStep: true},
+            workflow: {
+              include: {
+                steps: {
+                  include: {
+                    template: true,
+                    outgoingTransitions: {
+                      orderBy: {priority: 'asc'},
+                      include: {toStep: true},
+                    },
+                  },
+                },
+              },
             },
           },
         },
+        step: true,
       },
     });
 
     for (const stepExecution of waitingExecutions) {
-      const config = stepExecution.step.config;
+      // Use snapshot config if available, otherwise fall back to live step config
+      const graph = resolveWorkflowGraph(
+        stepExecution.execution.workflowSnapshot,
+        stepExecution.execution.workflow,
+      );
+      const snapshotStep = graph.steps.find(s => s.id === stepExecution.stepId);
+      const stepConfig = snapshotStep?.config ?? stepExecution.step?.config ?? null;
 
-      if (config && typeof config === 'object' && 'eventName' in config && config.eventName === eventName) {
+      if (stepConfig && typeof stepConfig === 'object' && 'eventName' in stepConfig && stepConfig.eventName === eventName) {
         // Event matches, resume execution
         await prisma.workflowStepExecution.update({
           where: {id: stepExecution.id},
@@ -455,8 +485,10 @@ export class WorkflowExecutionService {
         // Cancel any pending timeout job
         await QueueService.cancelWorkflowTimeout(stepExecution.id);
 
-        // Continue workflow
-        await this.processNextSteps(stepExecution.execution, stepExecution.step, {eventReceived: true});
+        // Continue workflow (snapshotStep is always found since graph is built from snapshot or live data)
+        if (snapshotStep) {
+          await this.processNextSteps(stepExecution.execution, snapshotStep, {eventReceived: true}, graph);
+        }
       }
     }
   }
@@ -465,9 +497,10 @@ export class WorkflowExecutionService {
    * Execute a specific step based on its type
    */
   private static async executeStep(
-    step: WorkflowStepWithTemplate,
+    step: WorkflowSnapshotStep,
     execution: WorkflowExecutionWithRelations,
     stepExecution: WorkflowStepExecution,
+    graph: ResolvedWorkflowGraph,
   ): Promise<StepResult> {
     const config = step.config;
 
@@ -479,7 +512,7 @@ export class WorkflowExecutionService {
         return await this.executeSendEmail(step, execution, stepExecution, config);
 
       case 'DELAY':
-        return await this.executeDelay(step, execution, stepExecution, config);
+        return await this.executeDelay(step, execution, stepExecution, config, graph);
 
       case 'WAIT_FOR_EVENT':
         return await this.executeWaitForEvent(step, execution, stepExecution, config);
@@ -505,7 +538,7 @@ export class WorkflowExecutionService {
    * TRIGGER step - Entry point of workflow
    */
   private static async executeTrigger(
-    _step: WorkflowStep,
+    _step: WorkflowSnapshotStep,
     _execution: WorkflowExecutionWithRelations,
     _stepExecution: WorkflowStepExecution,
     config: StepConfig,
@@ -524,7 +557,7 @@ export class WorkflowExecutionService {
    * SEND_EMAIL step - Send an email to the contact or a custom recipient
    */
   private static async executeSendEmail(
-    step: WorkflowStepWithTemplate,
+    step: WorkflowSnapshotStep,
     execution: WorkflowExecutionWithRelations,
     stepExecution: WorkflowStepExecution,
     config: StepConfig,
@@ -596,10 +629,11 @@ export class WorkflowExecutionService {
    * DELAY step - Wait for a specified duration
    */
   private static async executeDelay(
-    _step: WorkflowStep,
+    _step: WorkflowSnapshotStep,
     _execution: WorkflowExecutionWithRelations,
     stepExecution: WorkflowStepExecution,
     config: StepConfig,
+    graph: ResolvedWorkflowGraph,
   ): Promise<StepResult> {
     const {amount, unit} = WorkflowStepConfigSchemas.delay.parse(config);
 
@@ -644,18 +678,18 @@ export class WorkflowExecutionService {
       },
     });
 
-    // Find next steps to queue
-    const transitions = await prisma.workflowTransition.findMany({
-      where: {fromStepId: _step.id},
-      include: {toStep: true},
-      orderBy: {priority: 'asc'},
-    });
+    // Find next steps to queue using graph instead of live DB query
+    const transitions = graph.transitions
+      .filter(t => t.fromStepId === _step.id)
+      .sort((a, b) => a.priority - b.priority);
 
     if (transitions.length > 0) {
       const firstTransition = transitions[0];
-      if (firstTransition?.toStep) {
-        const nextStep = firstTransition.toStep;
-        await QueueService.queueWorkflowStep(_execution.id, nextStep.id, Math.max(0, delayMs));
+      if (firstTransition) {
+        const nextStep = graph.steps.find(s => s.id === firstTransition.toStepId);
+        if (nextStep) {
+          await QueueService.queueWorkflowStep(_execution.id, nextStep.id, Math.max(0, delayMs));
+        }
       }
     }
 
@@ -671,7 +705,7 @@ export class WorkflowExecutionService {
    * WAIT_FOR_EVENT step - Wait for a specific event to occur
    */
   private static async executeWaitForEvent(
-    _step: WorkflowStep,
+    _step: WorkflowSnapshotStep,
     _execution: WorkflowExecutionWithRelations,
     stepExecution: WorkflowStepExecution,
     config: StepConfig,
@@ -715,7 +749,7 @@ export class WorkflowExecutionService {
    * CONDITION step - Evaluate a condition and determine branching
    */
   private static async executeCondition(
-    _step: WorkflowStep,
+    _step: WorkflowSnapshotStep,
     execution: WorkflowExecutionWithRelations,
     _stepExecution: WorkflowStepExecution,
     config: StepConfig,
@@ -794,7 +828,7 @@ export class WorkflowExecutionService {
    * EXIT step - Terminate the workflow
    */
   private static async executeExit(
-    _step: WorkflowStep,
+    _step: WorkflowSnapshotStep,
     execution: WorkflowExecutionWithRelations,
     _stepExecution: WorkflowStepExecution,
     config: StepConfig,
@@ -911,7 +945,7 @@ export class WorkflowExecutionService {
    * WEBHOOK step - Call an external webhook
    */
   private static async executeWebhook(
-    _step: WorkflowStep,
+    _step: WorkflowSnapshotStep,
     execution: WorkflowExecutionWithRelations,
     _stepExecution: WorkflowStepExecution,
     config: StepConfig,
@@ -974,7 +1008,7 @@ export class WorkflowExecutionService {
    * UPDATE_CONTACT step - Update contact data
    */
   private static async executeUpdateContact(
-    _step: WorkflowStep,
+    _step: WorkflowSnapshotStep,
     execution: WorkflowExecutionWithRelations,
     _stepExecution: WorkflowStepExecution,
     config: StepConfig,
@@ -1013,10 +1047,13 @@ export class WorkflowExecutionService {
    */
   private static async processNextSteps(
     execution: WorkflowExecutionWithRelations,
-    currentStep: WorkflowStepWithTransitions,
+    currentStep: WorkflowSnapshotStep,
     stepResult: StepResult,
+    graph: ResolvedWorkflowGraph,
   ): Promise<void> {
-    const transitions = currentStep.outgoingTransitions || [];
+    const transitions = graph.transitions
+      .filter(t => t.fromStepId === currentStep.id)
+      .sort((a, b) => a.priority - b.priority);
 
     if (transitions.length === 0) {
       // No more steps, complete the workflow
@@ -1039,7 +1076,7 @@ export class WorkflowExecutionService {
 
       // If no condition, always follow
       if (!condition) {
-        nextStep = transition.toStep;
+        nextStep = graph.steps.find(s => s.id === transition.toStepId) ?? null;
         break;
       }
 
@@ -1053,13 +1090,13 @@ export class WorkflowExecutionService {
         'branch' in condition &&
         condition.branch === stepResult.branch
       ) {
-        nextStep = transition.toStep;
+        nextStep = graph.steps.find(s => s.id === transition.toStepId) ?? null;
         break;
       }
 
       // For other conditional logic
       if (this.evaluateTransitionCondition(condition, stepResult, execution)) {
-        nextStep = transition.toStep;
+        nextStep = graph.steps.find(s => s.id === transition.toStepId) ?? null;
         break;
       }
     }

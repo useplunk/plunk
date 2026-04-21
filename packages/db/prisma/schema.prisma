@@ -398,6 +398,9 @@ model WorkflowStep {
   executions                WorkflowStepExecution[]
   currentWorkflowExecutions WorkflowExecution[] // Executions currently on this step
 
+  // Soft delete — null means active, set to hide from UI while preserving FK integrity
+  deletedAt DateTime?
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -444,7 +447,7 @@ model WorkflowExecution {
   status WorkflowExecutionStatus @default(RUNNING)
 
   // Current position
-  currentStep   WorkflowStep? @relation(fields: [currentStepId], references: [id])
+  currentStep   WorkflowStep? @relation(fields: [currentStepId], references: [id], onDelete: SetNull)
   currentStepId String?
 
   // Exit information
@@ -452,6 +455,10 @@ model WorkflowExecution {
 
   // Context data (merged with contact.data when executing)
   context Json? // Additional variables for this execution
+
+  // Frozen workflow graph at execution start (steps, transitions, template content)
+  // Executions run from this snapshot, isolating them from live edits
+  workflowSnapshot Json?
 
   // Relations
   stepExecutions WorkflowStepExecution[]
@@ -478,8 +485,8 @@ model WorkflowStepExecution {
   execution   WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
   executionId String
 
-  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  stepId String
+  step   WorkflowStep? @relation(fields: [stepId], references: [id], onDelete: SetNull)
+  stepId String?
 
   // Execution state
   status StepExecutionStatus @default(PENDING)

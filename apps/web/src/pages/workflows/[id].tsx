@@ -153,6 +153,12 @@ export default function WorkflowEditorPage() {
   // Check for active executions
   const activeExecutionsCount = (activeExecutionsData?.total || 0) + (waitingExecutionsData?.total || 0);
 
+  // Fetch per-step execution counts for badges (only when there are active executions)
+  const {data: stepExecutionCounts} = useSWR<Record<string, number>>(
+    id && activeExecutionsCount > 0 ? `/workflows/${id}/step-execution-counts` : null,
+    {revalidateOnFocus: false, refreshInterval: 10000},
+  );
+
   // Handler for cancelling a single execution
   const handleCancelExecution = async (executionId: string) => {
     setIsCancelling(true);
@@ -491,28 +497,17 @@ export default function WorkflowEditorPage() {
           </div>
         </div>
 
-        {/* Active Executions Warning Banner */}
+        {/* Active Executions Info Banner */}
         {activeExecutionsCount > 0 && (
           <Alert>
             <Info className="h-4 w-4" />
             <AlertTitle>
-              {workflow.enabled ? 'Workflow is active with running executions' : 'Workflow has active executions'}
+              {activeExecutionsCount} contact{activeExecutionsCount !== 1 ? 's' : ''} currently in this workflow
             </AlertTitle>
             <AlertDescription>
               <p>
-                This workflow has <strong>{activeExecutionsCount}</strong> active execution
-                {activeExecutionsCount !== 1 ? 's' : ''}.{' '}
-                {!workflow.enabled && 'Even though the workflow is disabled, existing executions will continue. '}
-                To protect running workflows, you cannot:
-              </p>
-              <ul className="list-disc list-inside space-y-1 mt-2">
-                <li>Delete steps or transitions</li>
-                <li>Modify step configurations (email templates, conditions, etc.)</li>
-                <li>Change the workflow trigger</li>
-              </ul>
-              <p className="mt-2">
-                You can still rename steps and adjust their position. To make configuration changes, wait for executions
-                to complete or cancel them from the Executions tab.
+                Changes you make will only affect <strong>new</strong> executions. Contacts already in the workflow will
+                continue on the version they started with.
               </p>
             </AlertDescription>
           </Alert>
@@ -578,7 +573,7 @@ export default function WorkflowEditorPage() {
             </CardHeader>
             <CardContent className="p-0">
               <ReactFlowProvider>
-                <WorkflowBuilder workflowId={id as string} steps={workflow.steps} onUpdate={() => mutate()} />
+                <WorkflowBuilder workflowId={id as string} steps={workflow.steps} stepExecutionCounts={stepExecutionCounts} onUpdate={() => mutate()} />
               </ReactFlowProvider>
             </CardContent>
           </Card>

@@ -1,7 +1,7 @@
 import type {Workflow, WorkflowExecution, WorkflowStep, WorkflowTransition} from '@plunk/db';
 import {Prisma, WorkflowExecutionStatus} from '@plunk/db';
 import type {PaginatedResponse, WorkflowExecutionWithDetails, WorkflowWithDetails} from '@plunk/types';
-import {toPrismaJson} from '@plunk/types';
+import {buildWorkflowSnapshot, toPrismaJson} from '@plunk/types';
 import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
@@ -74,6 +74,7 @@ export class WorkflowService {
       },
       include: {
         steps: {
+          where: {deletedAt: null},
           include: {
             template: {
               select: {
@@ -174,25 +175,6 @@ export class WorkflowService {
   ): Promise<Workflow> {
     // Verify workflow exists and belongs to project
     const workflow = await this.get(projectId, workflowId);
-
-    // Check if workflow is enabled and has active executions
-    if (workflow.enabled) {
-      const activeExecutions = await this.hasActiveExecutions(workflowId);
-
-      if (activeExecutions > 0) {
-        // Block changes to trigger configuration while executions are running
-        const hasCriticalChanges = data.triggerType !== undefined || data.triggerConfig !== undefined;
-
-        if (hasCriticalChanges) {
-          throw new HttpException(
-            409,
-            `Cannot modify workflow trigger while workflow has ${activeExecutions} active execution(s). ` +
-              'Please disable the workflow first or wait for executions to complete. ' +
-              'You can still update name, description, and re-entry settings.',
-          );
-        }
-      }
-    }
 
     // Use transaction to update workflow and TRIGGER step atomically
     const updated = await prisma.$transaction(async tx => {
@@ -402,25 +384,6 @@ export class WorkflowService {
       throw new HttpException(404, 'Workflow step not found');
     }
 
-    // Check if workflow is enabled and has active executions
-    if (workflow.enabled) {
-      const activeExecutions = await this.hasActiveExecutions(workflowId);
-
-      if (activeExecutions > 0) {
-        // Only allow safe changes: name and position updates
-        const hasCriticalChanges = data.config !== undefined || data.templateId !== undefined;
-
-        if (hasCriticalChanges) {
-          throw new HttpException(
-            409,
-            `Cannot modify step configuration while workflow has ${activeExecutions} active execution(s). ` +
-              'Please disable the workflow first or wait for executions to complete. ' +
-              'You can still update the step name and position.',
-          );
-        }
-      }
-    }
-
     const updateData: Prisma.WorkflowStepUpdateInput = {};
 
     if (data.name !== undefined) updateData.name = data.name;
@@ -462,83 +425,10 @@ export class WorkflowService {
       throw new HttpException(400, 'Cannot delete the trigger step. Every workflow must have a trigger.');
     }
 
-    // Check if workflow is enabled and has active executions on this step or downstream
-    if (workflow.enabled) {
-      // Check if any active executions are currently on this step
-      const executionsOnStep = await prisma.workflowExecution.count({
-        where: {
-          workflowId,
-          currentStepId: stepId,
-          status: {
-            in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING],
-          },
-        },
-      });
-
-      if (executionsOnStep > 0) {
-        throw new HttpException(
-          409,
-          `Cannot delete step "${step.name}" while ${executionsOnStep} execution(s) are currently on this step. ` +
-            'Please disable the workflow first or wait for executions to complete.',
-        );
-      }
-
-      // Also check downstream steps for active executions
-      const allSteps = await prisma.workflowStep.findMany({
-        where: {workflowId},
-        include: {outgoingTransitions: true},
-      });
-
-      // Build adjacency map
-      const adjacencyMap = new Map<string, string[]>();
-      for (const s of allSteps) {
-        adjacencyMap.set(
-          s.id,
-          s.outgoingTransitions.map(t => t.toStepId),
-        );
-      }
-
-      // Find all downstream steps
-      const downstreamSteps = new Set<string>([stepId]);
-      const queue = [stepId];
-
-      while (queue.length > 0) {
-        const currentStepId = queue.shift()!;
-        const outgoingStepIds = adjacencyMap.get(currentStepId) || [];
-
-        for (const nextStepId of outgoingStepIds) {
-          if (!downstreamSteps.has(nextStepId)) {
-            downstreamSteps.add(nextStepId);
-            queue.push(nextStepId);
-          }
-        }
-      }
-
-      // Check if any active executions are on downstream steps
-      const executionsOnDownstream = await prisma.workflowExecution.count({
-        where: {
-          workflowId,
-          currentStepId: {in: Array.from(downstreamSteps)},
-          status: {
-            in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING],
-          },
-        },
-      });
-
-      if (executionsOnDownstream > 0) {
-        throw new HttpException(
-          409,
-          `Cannot delete step "${step.name}" while ${executionsOnDownstream} execution(s) are on downstream steps. ` +
-            'Deleting this step would orphan those executions. ' +
-            'Please disable the workflow first or wait for executions to complete.',
-        );
-      }
-    }
-
-    // Find all downstream steps that need to be deleted (cascade)
-    // First, get all steps and transitions for this workflow to build a graph
+    // Find all downstream steps that need to be soft-deleted (cascade)
+    // Get all active steps and transitions for this workflow to build a graph
     const allSteps = await prisma.workflowStep.findMany({
-      where: {workflowId},
+      where: {workflowId, deletedAt: null},
       include: {outgoingTransitions: true},
     });
 
@@ -567,12 +457,25 @@ export class WorkflowService {
       }
     }
 
-    // Delete all affected steps (Prisma will cascade delete the transitions)
-    await prisma.workflowStep.deleteMany({
+    const stepIds = Array.from(stepsToDelete);
+
+    // Soft-delete all affected steps
+    await prisma.workflowStep.updateMany({
       where: {
-        id: {in: Array.from(stepsToDelete)},
-        workflowId, // Safety check to ensure we only delete steps from this workflow
+        id: {in: stepIds},
+        workflowId, // Safety check to ensure we only affect steps from this workflow
       },
+      data: {deletedAt: new Date()},
+    });
+
+    // Hard-delete transitions FROM the soft-deleted steps (no longer relevant to the live graph)
+    await prisma.workflowTransition.deleteMany({
+      where: {fromStepId: {in: stepIds}},
+    });
+
+    // Hard-delete transitions TO the initially deleted step (disconnect from upstream)
+    await prisma.workflowTransition.deleteMany({
+      where: {toStepId: stepId},
     });
   }
 
@@ -669,60 +572,6 @@ export class WorkflowService {
       throw new HttpException(404, 'Transition not found');
     }
 
-    // Check if workflow is enabled and has active executions that could be affected
-    if (workflow.enabled) {
-      // Get all steps that would become orphaned by removing this transition
-      const allSteps = await prisma.workflowStep.findMany({
-        where: {workflowId},
-        include: {outgoingTransitions: true, incomingTransitions: true},
-      });
-
-      // Build adjacency map without this transition
-      const adjacencyMap = new Map<string, string[]>();
-      for (const s of allSteps) {
-        adjacencyMap.set(
-          s.id,
-          s.outgoingTransitions.filter(t => t.id !== transitionId).map(t => t.toStepId),
-        );
-      }
-
-      // Find all steps reachable from the toStep (downstream)
-      const downstreamSteps = new Set<string>([transition.toStepId]);
-      const queue = [transition.toStepId];
-
-      while (queue.length > 0) {
-        const currentStepId = queue.shift()!;
-        const outgoingStepIds = adjacencyMap.get(currentStepId) || [];
-
-        for (const nextStepId of outgoingStepIds) {
-          if (!downstreamSteps.has(nextStepId)) {
-            downstreamSteps.add(nextStepId);
-            queue.push(nextStepId);
-          }
-        }
-      }
-
-      // Check if any active executions are on the toStep or downstream steps
-      const executionsAffected = await prisma.workflowExecution.count({
-        where: {
-          workflowId,
-          currentStepId: {in: Array.from(downstreamSteps)},
-          status: {
-            in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING],
-          },
-        },
-      });
-
-      if (executionsAffected > 0) {
-        throw new HttpException(
-          409,
-          `Cannot delete transition from "${transition.fromStep.name}" to "${transition.toStep.name}" ` +
-            `while ${executionsAffected} execution(s) are on affected steps. ` +
-            'Please disable the workflow first or wait for executions to complete.',
-        );
-      }
-    }
-
     await prisma.workflowTransition.delete({
       where: {id: transitionId},
     });
@@ -794,6 +643,22 @@ export class WorkflowService {
       throw new HttpException(400, 'Workflow has no trigger step');
     }
 
+    // Build workflow snapshot — freeze the graph so in-flight executions are immune to live edits
+    const fullWorkflow = await prisma.workflow.findUniqueOrThrow({
+      where: {id: workflowId},
+      include: {
+        steps: {
+          include: {
+            template: {
+              select: {id: true, subject: true, body: true, from: true, fromName: true, replyTo: true},
+            },
+            outgoingTransitions: true,
+          },
+        },
+      },
+    });
+    const snapshot = buildWorkflowSnapshot(fullWorkflow);
+
     // Create workflow execution
     const execution = await prisma.workflowExecution.create({
       data: {
@@ -802,6 +667,7 @@ export class WorkflowService {
         status: WorkflowExecutionStatus.RUNNING,
         currentStepId: triggerStep.id,
         context: context ?? Prisma.JsonNull,
+        workflowSnapshot: toPrismaJson(snapshot),
       },
     });
 
@@ -993,6 +859,36 @@ export class WorkflowService {
       typedFields: allFields,
       count: allFields.length,
     };
+  }
+
+  /**
+   * Get active execution counts per step for a workflow
+   */
+  public static async getStepExecutionCounts(
+    projectId: string,
+    workflowId: string,
+  ): Promise<Record<string, number>> {
+    // Verify workflow belongs to project
+    await this.get(projectId, workflowId);
+
+    const counts = await prisma.workflowExecution.groupBy({
+      by: ['currentStepId'],
+      where: {
+        workflowId,
+        status: {in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING]},
+        currentStepId: {not: null},
+      },
+      _count: {id: true},
+    });
+
+    const result: Record<string, number> = {};
+    for (const row of counts) {
+      if (row.currentStepId) {
+        result[row.currentStepId] = row._count.id;
+      }
+    }
+
+    return result;
   }
 
   /**

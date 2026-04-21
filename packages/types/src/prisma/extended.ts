@@ -15,6 +15,54 @@ import type {
 } from '@plunk/db';
 
 /**
+ * Frozen workflow graph stored on each execution at start time.
+ * Isolates in-flight executions from live edits to the workflow.
+ * Template content is denormalized so template edits don't affect in-flight executions.
+ */
+export interface WorkflowSnapshot {
+  version: 1;
+  workflowId: string;
+  name: string;
+  triggerType: string;
+  triggerConfig: Prisma.JsonValue;
+  steps: WorkflowSnapshotStep[];
+  transitions: WorkflowSnapshotTransition[];
+}
+
+export interface WorkflowSnapshotStep {
+  id: string;
+  type: string;
+  name: string;
+  config: Prisma.JsonValue;
+  templateId: string | null;
+  template: {
+    id: string;
+    subject: string;
+    body: string;
+    from: string;
+    fromName: string | null;
+    replyTo: string | null;
+  } | null;
+}
+
+export interface WorkflowSnapshotTransition {
+  id: string;
+  fromStepId: string;
+  toStepId: string;
+  condition: Prisma.JsonValue;
+  priority: number;
+}
+
+/**
+ * Resolved workflow graph — normalized structure used by the execution engine.
+ * Built from either a snapshot (new executions) or live DB data (legacy fallback).
+ */
+export interface ResolvedWorkflowGraph {
+  steps: WorkflowSnapshotStep[];
+  transitions: WorkflowSnapshotTransition[];
+}
+
+/**
  * Workflow with all steps, transitions, and template details
  * Used for workflow editor and detailed workflow views
  */

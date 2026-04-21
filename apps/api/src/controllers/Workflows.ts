@@ -306,6 +306,26 @@ export class Workflows {
   }
 
   /**
+   * GET /workflows/:id/step-execution-counts
+   * Get active execution counts per step for a workflow
+   */
+  @Get(':id/step-execution-counts')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async getStepExecutionCounts(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+    const workflowId = req.params.id;
+
+    if (!workflowId) {
+      return res.status(400).json({error: 'Workflow ID is required'});
+    }
+
+    const result = await WorkflowService.getStepExecutionCounts(auth.projectId!, workflowId);
+
+    return res.status(200).json(result);
+  }
+
+  /**
    * GET /workflows/:id/executions
    * List executions for a workflow
    */
