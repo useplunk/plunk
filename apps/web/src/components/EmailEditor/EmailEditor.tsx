@@ -32,6 +32,7 @@ import {
 import {Code2, Eye, Monitor, Smartphone, Tablet, Upload, X} from 'lucide-react';
 import {network} from '../../lib/network';
 import {detectCustomHtmlPatterns, wrapEmailWithStyles} from '../../lib/emailStyles';
+import {getInitialEditorMode, getModeToggleDecision} from './modeGuards';
 import 'tippy.js/dist/tippy.css';
 
 interface EmailEditorProps {
@@ -53,8 +54,7 @@ const commonVariables = [
 ];
 
 export function EmailEditor({value, onChange, placeholder, subject, from, replyTo}: EmailEditorProps) {
-  // Detect if initial value has custom HTML and start in appropriate mode
-  const initialMode = detectCustomHtmlPatterns(value) ? 'html' : 'visual';
+  const initialMode = getInitialEditorMode(value);
 
   const [mode, setMode] = useState<'visual' | 'html'>(initialMode);
   const [htmlContent, setHtmlContent] = useState(value);
@@ -151,41 +151,33 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, editor]);
 
-  // Use the same pattern detection as initialization (no editor manipulation)
-  const detectCustomHtml = (html: string): boolean => {
-    return detectCustomHtmlPatterns(html);
-  };
-
   const handleModeToggle = () => {
-    if (mode === 'visual') {
-      // Switching to HTML mode
+    const decision = getModeToggleDecision({
+      currentMode: mode,
+      htmlContent,
+    });
+
+    if (decision.action === 'switch' && decision.nextMode === 'html') {
       const currentHtml = editor?.getHTML() || '';
       setHtmlContent(currentHtml);
       setMode('html');
-    } else {
-      // Switching to visual mode - check if custom HTML will be lost
-      if (detectCustomHtml(htmlContent)) {
-        setShowModeWarningDialog(true);
-      } else {
-        switchToVisualMode();
-      }
+      return;
     }
-  };
 
-  const switchToVisualMode = () => {
-    // Only switch if we have an editor and html content
+    if (decision.action === 'block-custom-html') {
+      setShowModeWarningDialog(true);
+      return;
+    }
+
     if (editor) {
       editor.commands.setContent(htmlContent || '');
       onChange(htmlContent);
       setMode('visual');
     }
-    setShowModeWarningDialog(false);
   };
 
   const stayInHtmlMode = () => {
-    // Explicitly stay in HTML mode and just close the dialog
     setShowModeWarningDialog(false);
-    // Ensure we're in HTML mode
     if (mode !== 'html') {
       setMode('html');
     }
@@ -701,8 +693,8 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-neutral-700">
-              Your HTML contains custom formatting, styles, or elements that the visual editor doesn&apos;t support.
-              Switching to visual mode will cause these customizations to be lost or modified.
+              Your HTML contains custom formatting, styles, or elements that the visual editor doesn&apos;t support. To
+              preserve the original markup, this template must stay in HTML mode.
             </p>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
               <p className="text-sm text-amber-800 font-medium">This may affect:</p>
@@ -715,11 +707,8 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
             </div>
 
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={stayInHtmlMode}>
-                Stay in HTML Mode
-              </Button>
-              <Button type="button" variant="destructive" onClick={switchToVisualMode}>
-                Switch Anyway
+              <Button type="button" onClick={stayInHtmlMode}>
+                Continue Editing HTML
               </Button>
             </div>
           </div>
