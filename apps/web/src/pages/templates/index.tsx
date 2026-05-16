@@ -13,7 +13,7 @@ import {EmptyState} from '@plunk/ui';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {network} from '../../lib/network';
 import {formatRelativeTime} from '../../lib/dateUtils';
-import {Calendar, Copy, Edit, FileText, Plus, Search, Trash2, X} from 'lucide-react';
+import {Calendar, Files, Copy, Edit, FileText, Plus, Search, Trash2, X} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useEffect, useState} from 'react';
@@ -63,6 +63,15 @@ export default function TemplatesPage() {
       void mutate();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to duplicate template');
+    }
+  };
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copied to clipboard`);
+    } catch {
+      toast.error('Failed to copy');
     }
   };
 
@@ -193,6 +202,14 @@ export default function TemplatesPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Copy template ID"
+                            onClick={() => copyToClipboard(template.id, 'Template ID')}
+                          >
+                            <Files className="h-4 w-4" />
+                          </Button>
                           <Button asChild variant="ghost" size="sm" title="Edit template">
                             <Link href={`/templates/${template.id}`} aria-label="Edit template"><Edit className="h-4 w-4" /></Link>
                           </Button>
