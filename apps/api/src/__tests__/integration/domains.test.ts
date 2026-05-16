@@ -374,13 +374,14 @@ describe('Domain Verification and Ownership Tests', () => {
   // EDGE CASES
   // ========================================
   describe('Edge Cases', () => {
-    it('should handle case-sensitive domain names', async () => {
+    it('should canonicalize mixed-case domain names to lowercase', async () => {
       const {project} = await factories.createUserWithProject();
 
-      // Domains are typically case-insensitive in DNS, but stored as-is in DB
+      // DNS is case-insensitive — domains must be stored canonically so a tenant
+      // can't claim "Example.com" while another project owns "example.com".
       const domain1 = await DomainService.addDomain(project.id, 'Example.com');
 
-      expect(domain1.domain).toBe('Example.com');
+      expect(domain1.domain).toBe('example.com');
     });
 
     it('should handle subdomain vs root domain', async () => {

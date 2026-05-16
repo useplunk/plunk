@@ -4,7 +4,7 @@ export const Keys = {
       return `account:id:${id}`;
     },
     email(email: string): string {
-      return `account:${email}`;
+      return `account:${email.trim().toLowerCase()}`;
     },
     emailVerificationToken(token: string): string {
       return `auth:email_verification:${token}`;

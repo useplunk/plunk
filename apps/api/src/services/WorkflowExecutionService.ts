@@ -988,7 +988,10 @@ export class WorkflowExecutionService {
       body: method !== 'GET' ? JSON.stringify(payload) : undefined,
     });
 
-    const responseData = await response.text();
+    const {body: responseData, truncated} = await WorkflowExecutionService.readBodyCapped(
+      response,
+      WorkflowExecutionService.WEBHOOK_RESPONSE_MAX_BYTES,
+    );
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(responseData);
@@ -1002,7 +1005,63 @@ export class WorkflowExecutionService {
       statusCode: response.status,
       success: response.ok,
       response: parsedResponse,
+      ...(truncated ? {truncated: true} : {}),
     };
+  }
+
+  private static readonly WEBHOOK_RESPONSE_MAX_BYTES = 64 * 1024;
+
+  /**
+   * Read a fetch Response body up to a maximum number of bytes.
+   * Aborts further reading once the cap is reached so a malicious server
+   * cannot exhaust worker memory.
+   */
+  private static async readBodyCapped(
+    response: Response,
+    maxBytes: number,
+  ): Promise<{body: string; truncated: boolean}> {
+    if (!response.body) {
+      return {body: '', truncated: false};
+    }
+
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+    let truncated = false;
+
+    try {
+      while (received < maxBytes) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        if (!value) continue;
+
+        const remaining = maxBytes - received;
+        if (value.byteLength > remaining) {
+          chunks.push(value.subarray(0, remaining));
+          received += remaining;
+          truncated = true;
+          break;
+        }
+
+        chunks.push(value);
+        received += value.byteLength;
+      }
+    } finally {
+      try {
+        await reader.cancel();
+      } catch {
+        // ignore
+      }
+    }
+
+    const merged = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+
+    return {body: new TextDecoder().decode(merged), truncated};
   }
 
   /**

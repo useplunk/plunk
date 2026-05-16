@@ -12,6 +12,7 @@ import {isAuthenticated, requireEmailVerified} from '../middleware/auth.js';
 import {BillingLimitService} from '../services/BillingLimitService.js';
 import {MembershipService} from '../services/MembershipService.js';
 import {NtfyService} from '../services/NtfyService.js';
+import {ProjectService} from '../services/ProjectService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {UserService} from '../services/UserService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
@@ -117,6 +118,8 @@ export class Users {
       data,
     });
 
+    await ProjectService.invalidate(id, [{public: project.public, secret: project.secret}]);
+
     return res.status(200).json(project);
   }
 
@@ -129,6 +132,12 @@ export class Users {
 
     // Verify user has admin/owner access to this project
     await MembershipService.requireAdminAccess(auth.userId!, id);
+
+    // Capture the existing keys so we can drop them from cache after rotation
+    const previousProject = await prisma.project.findUnique({
+      where: {id},
+      select: {public: true, secret: true},
+    });
 
     // Generate new unique API keys
     const publicKey = `pk_${randomBytes(32).toString('hex')}`;
@@ -153,6 +162,13 @@ export class Users {
         subscription: true,
       },
     });
+
+    // Invalidate cached lookups for both old and new keys so revoked keys
+    // stop authorizing requests immediately instead of after cache TTL.
+    await ProjectService.invalidate(id, [
+      {public: previousProject?.public, secret: previousProject?.secret},
+      {public: project.public, secret: project.secret},
+    ]);
 
     // Send notification about API key regeneration
     await NtfyService.notifyApiKeysRegenerated(project.name!, id!, auth.userId!);

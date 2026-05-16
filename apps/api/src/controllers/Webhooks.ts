@@ -19,6 +19,7 @@ import {EventService} from '../services/EventService.js';
 import {MembershipService} from '../services/MembershipService.js';
 import {MeterService} from '../services/MeterService.js';
 import {NtfyService} from '../services/NtfyService.js';
+import {ProjectService} from '../services/ProjectService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
@@ -530,6 +531,10 @@ export class Webhooks {
             },
           });
 
+          await ProjectService.invalidate(projectId, [
+            {public: updatedProject.public, secret: updatedProject.secret},
+          ]);
+
           // Base onboarding credit: refund the 1-unit card-verification charge
           let creditBalance = -100;
 
@@ -609,6 +614,8 @@ export class Webhooks {
             data: {disabled: true},
           });
 
+          await ProjectService.invalidate(project.id, [{public: project.public, secret: project.secret}]);
+
           await NtfyService.notifyProjectDisabledForPayment(project.name, project.id);
 
           // Send email notification to project members
@@ -653,6 +660,8 @@ export class Webhooks {
               subscription: null,
             },
           });
+
+          await ProjectService.invalidate(project.id, [{public: project.public, secret: project.secret}]);
 
           signale.warn(`[WEBHOOK] Subscription deleted for project ${project.name} (${project.id})`);
 

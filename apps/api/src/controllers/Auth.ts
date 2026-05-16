@@ -321,9 +321,12 @@ export class Auth {
       data: {password: hashedPassword},
     });
 
-    // Delete token and invalidate cache
+    // Delete token and invalidate cache (id + email projections both cache the password hash)
     await redis.del(Keys.User.passwordResetToken(token));
     await redis.del(Keys.User.id(userId));
+    if (user.email) {
+      await redis.del(Keys.User.email(user.email));
+    }
 
     return res.json({success: true, data: {message: 'Password reset successfully'}});
   }

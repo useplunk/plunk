@@ -1,5 +1,6 @@
 import React from 'react';
 import signale from 'signale';
+import {getDomain as getRegistrableDomain} from 'tldts';
 import {DomainUnverifiedEmail, DomainVerifiedEmail, sendPlatformEmail} from '@plunk/email';
 import {DASHBOARD_URI, LANDING_URI} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
@@ -16,6 +17,14 @@ import {
 } from './SESService.js';
 
 export class DomainService {
+  /**
+   * Canonicalize a domain name for storage and comparison.
+   * DNS is case-insensitive and a trailing dot represents the same name.
+   */
+  public static canonicalize(domain: string): string {
+    return domain.trim().toLowerCase().replace(/\.$/, '');
+  }
+
   /**
    * Get a domain by ID
    */
@@ -41,14 +50,16 @@ export class DomainService {
    * Add a new domain to a project and start verification
    */
   public static async addDomain(projectId: string, domain: string) {
+    const canonical = this.canonicalize(domain);
+
     // Start verification process with AWS SES
-    const dkimTokens = await verifyDomain(domain);
+    const dkimTokens = await verifyDomain(canonical);
 
     // Create domain record
     const newDomain = await prisma.domain.create({
       data: {
         projectId,
-        domain,
+        domain: canonical,
         verified: false,
         dkimTokens,
       },
@@ -60,7 +71,7 @@ export class DomainService {
     });
 
     // Send notification about domain added
-    await NtfyService.notifyDomainAdded(domain, newDomain.project.name, projectId);
+    await NtfyService.notifyDomainAdded(canonical, newDomain.project.name, projectId);
 
     return newDomain;
   }
@@ -353,7 +364,7 @@ export class DomainService {
       throw new HttpException(400, 'Invalid email format');
     }
 
-    const domainName = emailParts[1];
+    const domainName = this.canonicalize(emailParts[1] ?? '');
 
     // Find domain in database
     const domain = await prisma.domain.findFirst({
@@ -389,12 +400,11 @@ export class DomainService {
   }
 
   /**
-   * Extract the registrable root domain (last two labels) from a domain name.
-   * e.g. "mail.example.com" → "example.com", "example.com" → "example.com"
+   * Extract the registrable root domain from a domain name using the Public Suffix List.
+   * e.g. "mail.example.com" → "example.com", "mail.example.co.uk" → "example.co.uk"
    */
   private static rootDomain(domain: string): string {
-    const parts = domain.split('.');
-    return parts.length > 2 ? parts.slice(-2).join('.') : domain;
+    return getRegistrableDomain(domain) ?? domain;
   }
 
   /**
@@ -404,10 +414,11 @@ export class DomainService {
   public static async checkSubdomainOfDisabledRoot(
     domain: string,
   ): Promise<{blocked: boolean; projectName?: string; projectId?: string}> {
-    const root = this.rootDomain(domain);
+    const canonical = this.canonicalize(domain);
+    const root = this.rootDomain(canonical);
 
     // Only relevant when the submitted domain is actually a subdomain
-    if (root === domain) {
+    if (root === canonical) {
       return {blocked: false};
     }
 
@@ -439,8 +450,9 @@ export class DomainService {
    * @returns Object with exists flag and membership info
    */
   public static async checkDomainOwnership(domain: string, userId: string) {
+    const canonical = this.canonicalize(domain);
     const existingDomain = await prisma.domain.findFirst({
-      where: {domain},
+      where: {domain: canonical},
       include: {
         project: {
           include: {

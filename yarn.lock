@@ -8104,6 +8104,7 @@ __metadata:
     sanitize-html: "npm:^2.17.3"
     signale: "npm:^1.4.0"
     stripe: "npm:^20.0.0"
+    tldts: "npm:^7.0.30"
     tsx: "npm:^4.20.6"
   languageName: unknown
   linkType: soft
@@ -18560,6 +18561,24 @@ __metadata:
   bin:
     tlds: bin.js
   checksum: 10c0/ce05d266618312dd52efe0c958ebd668da70b9b752b7ec1f1b8c4b8fabc6e0f044159f80fec6c3a78df02572afbeb343208df7ef8e83a43e9f8e6c26134c76ee
+  languageName: node
+  linkType: hard
+
+"tldts-core@npm:^7.0.30":
+  version: 7.0.30
+  resolution: "tldts-core@npm:7.0.30"
+  checksum: 10c0/e3cd730e96b0e9c0332fcaab44d0257b668f9089644508e4f6f870d37bbf5c218243b7e83aa39690c87b386d1b0ad577772a5994969c4c81cc25a476f783ccd7
+  languageName: node
+  linkType: hard
+
+"tldts@npm:^7.0.30":
+  version: 7.0.30
+  resolution: "tldts@npm:7.0.30"
+  dependencies:
+    tldts-core: "npm:^7.0.30"
+  bin:
+    tldts: bin/cli.js
+  checksum: 10c0/c36f7b480f09128303158e4738a82426c33e8da9f77d4fb57a2d5ef5896c803d7a3c1d53ade965712f9cb4946935139b6d192a18698665556ca504493c7c265e
   languageName: node
   linkType: hard
 

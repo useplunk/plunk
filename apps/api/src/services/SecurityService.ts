@@ -9,6 +9,7 @@ import {redis} from '../database/redis.js';
 import {Keys} from './keys.js';
 import {MembershipService} from './MembershipService.js';
 import {NtfyService} from './NtfyService.js';
+import {ProjectService} from './ProjectService.js';
 import {QueueService} from './QueueService.js';
 import {
   AUTO_PROJECT_DISABLE,
@@ -711,10 +712,13 @@ export class SecurityService {
       }
 
       // Disable the project
-      await prisma.project.update({
+      const disabled = await prisma.project.update({
         where: {id: projectId},
         data: {disabled: true},
+        select: {public: true, secret: true},
       });
+
+      await ProjectService.invalidate(projectId, [{public: disabled.public, secret: disabled.secret}]);
 
       // Log critical security event
       signale.error(
@@ -969,10 +973,13 @@ ${strippedBody.substring(0, 2000)}`,
       }
 
       // Disable the project
-      await prisma.project.update({
+      const disabled = await prisma.project.update({
         where: {id: projectId},
         data: {disabled: true},
+        select: {public: true, secret: true},
       });
+
+      await ProjectService.invalidate(projectId, [{public: disabled.public, secret: disabled.secret}]);
 
       const violation = `A policy violation was detected. Please contact support for more details.`;
 
