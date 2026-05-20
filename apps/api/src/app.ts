@@ -25,6 +25,7 @@ import {
 import {Actions} from './controllers/Actions.js';
 import {Activity} from './controllers/Activity.js';
 import {Analytics} from './controllers/Analytics.js';
+import {ApiPrefixedWebhooks} from './controllers/ApiPrefixedWebhooks.js';
 import {Auth} from './controllers/Auth.js';
 import {Campaigns} from './controllers/Campaigns.js';
 import {Contacts} from './controllers/Contacts.js';
@@ -161,6 +162,7 @@ const server = new (class extends Server {
       new Templates(),
       new Uploads(),
       new Webhooks(),
+      new ApiPrefixedWebhooks(),
       new Workflows(),
       new Events(),
       new Config(),

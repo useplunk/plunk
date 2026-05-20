@@ -36,6 +36,16 @@ export class Webhooks {
   @Post('sns')
   @CatchAsync
   public async receiveSNSWebhook(req: Request, res: Response) {
+    return this.handleSNSWebhook(req, res);
+  }
+
+  @Post('incoming/sns')
+  @CatchAsync
+  public async receiveIncomingSNSWebhook(req: Request, res: Response) {
+    return this.handleSNSWebhook(req, res);
+  }
+
+  protected async handleSNSWebhook(req: Request, res: Response) {
     try {
       // Verify SNS message signature before processing anything
       const signatureValid = await SecurityService.verifySnsSignature(req.body as Record<string, string>);
