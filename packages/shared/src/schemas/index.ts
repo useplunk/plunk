@@ -391,7 +391,7 @@ export const CampaignSchemas = {
     from: email,
     fromName: z.string().max(100).nullish(),
     replyTo: email.nullish(),
-    type: z.nativeEnum(TemplateType).default(TemplateType.MARKETING),
+    type: z.nativeEnum(TemplateType).default('MARKETING'),
     audienceType: z.nativeEnum(CampaignAudienceType),
     audienceCondition: filterConditionSchema.optional(),
     segmentId: uuid.optional(),
