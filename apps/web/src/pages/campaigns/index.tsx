@@ -8,41 +8,117 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  EmptyState,
+  IconSpinner,
   Input,
 } from '@plunk/ui';
 import type {Campaign, Template} from '@plunk/db';
 import {CampaignStatus} from '@plunk/db';
 import type {PaginatedResponse} from '@plunk/types';
-import {EmptyState} from '@plunk/ui';
+import {
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type SortingState,
+  type VisibilityState,
+} from '@tanstack/react-table';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {TemplateSelectionDialog} from '../../components/TemplateSelectionDialog';
 import {CampaignSelectionDialog} from '../../components/CampaignSelectionDialog';
+import {
+  DataTable,
+  DataTableColumnHeader,
+  DataTableFacetedFilter,
+  DataTableViewOptions,
+  DataTableViewSwitcher,
+  isDataTableView,
+  type DataTableColumnMeta,
+  type DataTableView,
+} from '../../components/data-table';
 import {network} from '../../lib/network';
 import {formatRelativeTime} from '../../lib/dateUtils';
 import {Ban, Calendar, ChevronDown, Copy, Edit, FileText, Mail, Plus, RefreshCw, Search, Trash2, X} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {toast} from 'sonner';
 import useSWR from 'swr';
 import dayjs from 'dayjs';
+import {useColumnVisibility} from '../../lib/hooks/useColumnVisibility';
+import {usePersistentState} from '../../lib/hooks/usePersistentState';
+
+type StatusFilter = 'ALL' | 'DRAFT' | 'SCHEDULED' | 'SENDING' | 'SENT' | 'CANCELLED';
+
+const VIEW_STORAGE_KEY = 'plunk:campaigns:view';
+const COLUMNS_STORAGE_KEY = 'plunk:campaigns:columns';
+
+// Name + Actions are locked-visible (see lockedColumnIds below). Everything
+// starts visible.
+const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
+  name: true,
+  subject: true,
+  status: true,
+  recipients: true,
+  updatedAt: true,
+  actions: true,
+};
+
+// Fixed-value options for the Status column's faceted filter (table view) and
+// the existing card-view pill row. Single source of truth for both.
+const STATUS_OPTIONS: ReadonlyArray<Exclude<StatusFilter, 'ALL'>> = [
+  'DRAFT',
+  'SCHEDULED',
+  'SENDING',
+  'SENT',
+  'CANCELLED',
+];
+
+const statusBadgeConfig: Record<CampaignStatus, {label: string; variant: 'neutral' | 'default' | 'success'}> = {
+  DRAFT: {label: 'Draft', variant: 'neutral'},
+  SCHEDULED: {label: 'Scheduled', variant: 'default'},
+  SENDING: {label: 'Sending', variant: 'default'},
+  SENT: {label: 'Sent', variant: 'success'},
+  CANCELLED: {label: 'Cancelled', variant: 'neutral'},
+};
+
+const getStatusBadge = (status: CampaignStatus) => {
+  const {label, variant} = statusBadgeConfig[status];
+  return (
+    <Badge variant={variant} className="shrink-0">
+      {label}
+    </Badge>
+  );
+};
 
 export default function CampaignsPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'SCHEDULED' | 'SENDING' | 'SENT' | 'CANCELLED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [campaignToCancel, setCampaignToCancel] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showCampaignDialog, setShowCampaignDialog] = useState(false);
+  const [view, setView] = usePersistentState<DataTableView>(VIEW_STORAGE_KEY, 'card', isDataTableView);
+
+  // Tanstack table state.
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useColumnVisibility(COLUMNS_STORAGE_KEY, DEFAULT_COLUMN_VISIBILITY);
+
+  // Build the sort query string from tanstack state. The backend is
+  // authoritative (`?sort=<field>&dir=asc|desc`); without those params it falls
+  // back to its default order. manualSorting is on, so the client only mirrors.
+  const sortParam = sorting[0]?.id ?? '';
+  const dirParam = sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : '';
 
   const {data, mutate, isLoading} = useSWR<PaginatedResponse<Campaign>>(
-    `/campaigns?page=${page}&pageSize=20${search ? `&search=${encodeURIComponent(search)}` : ''}${statusFilter !== 'ALL' ? `&status=${statusFilter}` : ''}`,
+    `/campaigns?page=${page}&pageSize=20${search ? `&search=${encodeURIComponent(search)}` : ''}${
+      statusFilter !== 'ALL' ? `&status=${statusFilter}` : ''
+    }${sortParam ? `&sort=${sortParam}&dir=${dirParam}` : ''}`,
     {revalidateOnFocus: false},
   );
 
@@ -53,18 +129,6 @@ export default function CampaignsPage() {
     }, 350);
     return () => clearTimeout(timer);
   }, [searchInput]);
-
-  const getStatusBadge = (status: CampaignStatus) => {
-    const config: Record<CampaignStatus, {label: string; variant: 'neutral' | 'default' | 'success'}> = {
-      DRAFT:     {label: 'Draft',     variant: 'neutral'},
-      SCHEDULED: {label: 'Scheduled', variant: 'default'},
-      SENDING:   {label: 'Sending',   variant: 'default'},
-      SENT:      {label: 'Sent',      variant: 'success'},
-      CANCELLED: {label: 'Cancelled', variant: 'neutral'},
-    };
-    const {label, variant} = config[status];
-    return <Badge variant={variant} className="shrink-0">{label}</Badge>;
-  };
 
   const handleCancel = async () => {
     if (!campaignToCancel) return;
@@ -191,6 +255,202 @@ export default function CampaignsPage() {
     });
   };
 
+  // Recipients/delivered summary mirroring what each card surfaces, condensed
+  // into a single cell appropriate per status.
+  const recipientSummary = (campaign: Campaign) => {
+    const deliveryPct =
+      campaign.totalRecipients > 0 ? (campaign.sentCount / campaign.totalRecipients) * 100 : 0;
+    const openRate = campaign.sentCount > 0 ? (campaign.openedCount / campaign.sentCount) * 100 : 0;
+
+    switch (campaign.status) {
+      case 'SENT':
+        return (
+          <span className="text-sm text-neutral-700">
+            <strong className="font-semibold text-neutral-900">{campaign.sentCount.toLocaleString()}</strong>
+            <span className="text-neutral-400 ml-1 text-xs">sent</span>
+            <span className="text-neutral-300 mx-1.5">·</span>
+            <strong className="font-semibold text-neutral-900">{openRate.toFixed(1)}%</strong>
+            <span className="text-neutral-400 ml-1 text-xs">opens</span>
+          </span>
+        );
+      case 'SENDING':
+        return (
+          <span className="text-sm text-neutral-700">
+            <strong className="font-semibold text-neutral-900">{deliveryPct.toFixed(0)}%</strong>
+            <span className="text-neutral-400 ml-1 text-xs">delivered</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="text-sm text-neutral-700">
+            <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
+            <span className="text-neutral-400 ml-1 text-xs">recipients</span>
+          </span>
+        );
+    }
+  };
+
+  const columns = useMemo<Array<ColumnDef<Campaign, unknown>>>(
+    () => [
+      {
+        id: 'name',
+        accessorKey: 'name',
+        enableHiding: false, // Name column is locked-visible.
+        meta: {label: 'Name'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Name</DataTableColumnHeader>,
+        cell: ({row}) => (
+          <Link
+            href={`/campaigns/${row.original.id}`}
+            className="text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
+          >
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        id: 'subject',
+        accessorKey: 'subject',
+        enableSorting: false, // No backend sort field for subject.
+        meta: {label: 'Subject', cellClassName: 'max-w-xs'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Subject</DataTableColumnHeader>,
+        cell: ({row}) => (
+          <p className="text-sm text-neutral-700 truncate" title={row.original.subject}>
+            {row.original.subject}
+          </p>
+        ),
+      },
+      {
+        id: 'status',
+        accessorKey: 'status',
+        enableSorting: false, // Status is faceted-filtered, not sorted.
+        meta: {label: 'Status'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader
+            column={column}
+            filter={
+              <DataTableFacetedFilter
+                title="Status"
+                multiple={false}
+                options={STATUS_OPTIONS.map(s => ({value: s, label: statusBadgeConfig[s].label}))}
+                selected={statusFilter === 'ALL' ? [] : [statusFilter]}
+                onChange={next => {
+                  setStatusFilter((next[0] as StatusFilter) ?? 'ALL');
+                  setPage(1);
+                }}
+              />
+            }
+          >
+            Status
+          </DataTableColumnHeader>
+        ),
+        cell: ({row}) => getStatusBadge(row.original.status),
+      },
+      {
+        id: 'recipients',
+        enableSorting: false, // No backend sort field for computed counts.
+        meta: {label: 'Recipients'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Recipients</DataTableColumnHeader>,
+        cell: ({row}) => recipientSummary(row.original),
+      },
+      {
+        id: 'updatedAt',
+        accessorKey: 'updatedAt',
+        // ISO-string values sort ascending on first click by default; flip so
+        // the first click on "Updated" surfaces the most recently edited rows.
+        sortDescFirst: true,
+        meta: {label: 'Updated'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Updated</DataTableColumnHeader>,
+        cell: ({row}) => (
+          <div className="group relative inline-block cursor-help text-sm text-neutral-500 whitespace-nowrap">
+            {formatRelativeTime(row.original.updatedAt)}
+            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-1/2 transform -translate-x-1/2 mb-1 whitespace-nowrap">
+              {dayjs(row.original.updatedAt).format('DD MMMM YYYY, hh:mm')}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'actions',
+        enableSorting: false,
+        enableHiding: false, // Actions column is locked-visible.
+        meta: {label: 'Actions', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: () => <span className="flex justify-end">Actions</span>,
+        cell: ({row}) => (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              title={row.original.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}
+            >
+              <Link
+                href={`/campaigns/${row.original.id}`}
+                aria-label={row.original.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}
+              >
+                <Edit className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              title="Duplicate campaign"
+              aria-label="Duplicate campaign"
+              onClick={() => handleDuplicate(row.original.id)}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+            {row.original.status === 'DRAFT' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Delete campaign"
+                aria-label="Delete campaign"
+                onClick={() => {
+                  setCampaignToDelete(row.original.id);
+                  setShowDeleteDialog(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+            {(row.original.status === 'SCHEDULED' || row.original.status === 'SENDING') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Cancel campaign"
+                aria-label="Cancel campaign"
+                onClick={() => {
+                  setCampaignToCancel(row.original.id);
+                  setShowCancelDialog(true);
+                }}
+              >
+                <Ban className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ),
+      },
+    ],
+    // Re-creating columns on every render is cheap and avoids stale-closure bugs
+    // for the statusFilter-driven facet and cancel/delete/duplicate handlers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [statusFilter],
+  );
+
+  const table = useReactTable<Campaign>({
+    data: data?.data ?? [],
+    columns,
+    state: {sorting, columnVisibility},
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    enableMultiSort: false,
+    manualSorting: true, // Backend handles sorting; client just exposes ?sort=&dir=.
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: row => row.id,
+  });
+
+  const hasData = data && data.data.length > 0;
+
   return (
     <>
       <NextSeo title="Campaigns" />
@@ -251,7 +511,12 @@ export default function CampaignsPage() {
             </DropdownMenu>
           </div>
 
-          {/* Search & Filters */}
+          {/* Control row.
+              - Search input: always present (both views).
+              - Status filter pills: CARD VIEW ONLY (unchanged from before). In
+                table view the Status filter lives in the column header facet, so
+                the pills are not rendered.
+              - Columns selector (table view) + view switcher round out the row. */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -277,35 +542,54 @@ export default function CampaignsPage() {
                 </button>
               )}
             </div>
-            <div className="flex gap-1.5 shrink-0 flex-wrap">
-              {(['ALL', 'DRAFT', 'SCHEDULED', 'SENDING', 'SENT', 'CANCELLED'] as const).map(status => (
-                <Button
-                  key={status}
-                  type="button"
-                  onClick={() => { setStatusFilter(status); setPage(1); }}
-                  variant={statusFilter === status ? 'default' : 'secondary'}
-                  size="sm"
-                >
-                  {status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
-                </Button>
-              ))}
-            </div>
+            {view === 'card' && (
+              <div className="flex gap-1.5 shrink-0 flex-wrap">
+                {(['ALL', ...STATUS_OPTIONS] as const).map(status => (
+                  <Button
+                    key={status}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(status);
+                      setPage(1);
+                    }}
+                    variant={statusFilter === status ? 'default' : 'secondary'}
+                    size="sm"
+                  >
+                    {status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+                  </Button>
+                ))}
+              </div>
+            )}
+            {view === 'table' && (
+              <div className="shrink-0">
+                <DataTableViewOptions table={table} lockedColumnIds={['name', 'actions']} />
+              </div>
+            )}
+            <DataTableViewSwitcher view={view} onChange={setView} />
           </div>
 
-          {/* Campaigns List */}
+          {/* Campaigns */}
           <div className="space-y-4">
-            {isLoading && (
+            {isLoading ? (
               <Card>
-                <CardContent className="py-8 text-center text-neutral-500">Loading campaigns...</CardContent>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-center py-12">
+                    <IconSpinner />
+                  </div>
+                </CardContent>
               </Card>
-            )}
-
-            {!isLoading && data?.data.length === 0 && (
+            ) : !hasData ? (
               <Card>
                 <CardContent>
                   <EmptyState
                     icon={Mail}
-                    title={search ? 'No campaigns match' : statusFilter !== 'ALL' ? `No ${statusFilter.toLowerCase()} campaigns` : 'No campaigns yet'}
+                    title={
+                      search
+                        ? 'No campaigns match'
+                        : statusFilter !== 'ALL'
+                          ? `No ${statusFilter.toLowerCase()} campaigns`
+                          : 'No campaigns yet'
+                    }
                     description={
                       search
                         ? 'Try a different search term.'
@@ -362,163 +646,195 @@ export default function CampaignsPage() {
                   />
                 </CardContent>
               </Card>
-            )}
+            ) : view === 'card' ? (
+              <>
+                {/* Card List View — unchanged from before. */}
+                {data?.data.map(campaign => {
+                  const openRate = campaign.sentCount > 0 ? (campaign.openedCount / campaign.sentCount) * 100 : 0;
+                  const clickRate = campaign.sentCount > 0 ? (campaign.clickedCount / campaign.sentCount) * 100 : 0;
+                  const deliveryPct =
+                    campaign.totalRecipients > 0 ? (campaign.sentCount / campaign.totalRecipients) * 100 : 0;
 
-            {data?.data.map(campaign => {
-              const openRate = campaign.sentCount > 0 ? (campaign.openedCount / campaign.sentCount) * 100 : 0;
-              const clickRate = campaign.sentCount > 0 ? (campaign.clickedCount / campaign.sentCount) * 100 : 0;
-              const deliveryPct = campaign.totalRecipients > 0 ? (campaign.sentCount / campaign.totalRecipients) * 100 : 0;
+                  return (
+                    <Card key={campaign.id} className="transition-colors hover:border-neutral-300 flex flex-col [&:has([data-card-link]:focus-visible)]:ring-2 [&:has([data-card-link]:focus-visible)]:ring-ring [&:has([data-card-link]:focus-visible)]:ring-offset-2">
+                      <Link
+                        href={`/campaigns/${campaign.id}`}
+                        data-card-link=""
+                        className="flex-1 block p-6 pb-4 hover:bg-neutral-50/50 transition-colors rounded-t-xl focus-visible:outline-none"
+                        aria-label={`Open ${campaign.name}`}
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <h3 className="font-semibold text-neutral-900 leading-snug truncate">{campaign.name}</h3>
+                          {getStatusBadge(campaign.status)}
+                        </div>
 
-              return (
-                <Card key={campaign.id} className="transition-colors hover:border-neutral-300 flex flex-col [&:has([data-card-link]:focus-visible)]:ring-2 [&:has([data-card-link]:focus-visible)]:ring-ring [&:has([data-card-link]:focus-visible)]:ring-offset-2">
-                  <Link
-                    href={`/campaigns/${campaign.id}`}
-                    data-card-link=""
-                    className="flex-1 block p-6 pb-4 hover:bg-neutral-50/50 transition-colors rounded-t-xl focus-visible:outline-none"
-                    aria-label={`Open ${campaign.name}`}
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <h3 className="font-semibold text-neutral-900 leading-snug truncate">{campaign.name}</h3>
-                      {getStatusBadge(campaign.status)}
-                    </div>
-
-                    <div className="flex items-center gap-3 text-sm flex-wrap">
-                      {campaign.status === 'DRAFT' && (
-                        <>
-                          <span>
-                            <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
-                            <span className="text-neutral-400 ml-1 text-xs">estimated recipients</span>
-                          </span>
-                        </>
-                      )}
-                      {campaign.status === 'SCHEDULED' && (
-                        <>
-                          <span>
-                            <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
-                            <span className="text-neutral-400 ml-1 text-xs">recipients</span>
-                          </span>
-                          {campaign.scheduledFor && (
+                        <div className="flex items-center gap-3 text-sm flex-wrap">
+                          {campaign.status === 'DRAFT' && (
                             <>
-                              <span className="h-3 w-px bg-neutral-200" />
-                              <span className="text-xs text-neutral-500">
-                                Sending {dayjs(campaign.scheduledFor).format('MMM D, YYYY [at] h:mm A')}
+                              <span>
+                                <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
+                                <span className="text-neutral-400 ml-1 text-xs">estimated recipients</span>
                               </span>
                             </>
                           )}
-                        </>
-                      )}
-                      {campaign.status === 'SENDING' && (
-                        <>
-                          <span>
-                            <strong className="font-semibold text-neutral-900">{deliveryPct.toFixed(0)}%</strong>
-                            <span className="text-neutral-400 ml-1 text-xs">delivered</span>
-                          </span>
-                          <span className="h-3 w-px bg-neutral-200" />
-                          <span>
-                            <strong className="font-semibold text-neutral-900">{openRate.toFixed(1)}%</strong>
-                            <span className="text-neutral-400 ml-1 text-xs">opens</span>
-                          </span>
-                        </>
-                      )}
-                      {campaign.status === 'SENT' && (
-                        <>
-                          <span>
-                            <strong className="font-semibold text-neutral-900">{campaign.sentCount.toLocaleString()}</strong>
-                            <span className="text-neutral-400 ml-1 text-xs">sent</span>
-                          </span>
-                          <span className="h-3 w-px bg-neutral-200" />
-                          <span>
-                            <strong className="font-semibold text-neutral-900">{openRate.toFixed(1)}%</strong>
-                            <span className="text-neutral-400 ml-1 text-xs">opens</span>
-                          </span>
-                          {clickRate > 0 && (
+                          {campaign.status === 'SCHEDULED' && (
                             <>
+                              <span>
+                                <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
+                                <span className="text-neutral-400 ml-1 text-xs">recipients</span>
+                              </span>
+                              {campaign.scheduledFor && (
+                                <>
+                                  <span className="h-3 w-px bg-neutral-200" />
+                                  <span className="text-xs text-neutral-500">
+                                    Sending {dayjs(campaign.scheduledFor).format('MMM D, YYYY [at] h:mm A')}
+                                  </span>
+                                </>
+                              )}
+                            </>
+                          )}
+                          {campaign.status === 'SENDING' && (
+                            <>
+                              <span>
+                                <strong className="font-semibold text-neutral-900">{deliveryPct.toFixed(0)}%</strong>
+                                <span className="text-neutral-400 ml-1 text-xs">delivered</span>
+                              </span>
                               <span className="h-3 w-px bg-neutral-200" />
                               <span>
-                                <strong className="font-semibold text-neutral-900">{clickRate.toFixed(1)}%</strong>
-                                <span className="text-neutral-400 ml-1 text-xs">clicks</span>
+                                <strong className="font-semibold text-neutral-900">{openRate.toFixed(1)}%</strong>
+                                <span className="text-neutral-400 ml-1 text-xs">opens</span>
                               </span>
                             </>
                           )}
-                        </>
-                      )}
-                      {campaign.status === 'CANCELLED' && (
-                        <span>
-                          <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
-                          <span className="text-neutral-400 ml-1 text-xs">recipients</span>
-                        </span>
-                      )}
-                    </div>
-                  </Link>
+                          {campaign.status === 'SENT' && (
+                            <>
+                              <span>
+                                <strong className="font-semibold text-neutral-900">{campaign.sentCount.toLocaleString()}</strong>
+                                <span className="text-neutral-400 ml-1 text-xs">sent</span>
+                              </span>
+                              <span className="h-3 w-px bg-neutral-200" />
+                              <span>
+                                <strong className="font-semibold text-neutral-900">{openRate.toFixed(1)}%</strong>
+                                <span className="text-neutral-400 ml-1 text-xs">opens</span>
+                              </span>
+                              {clickRate > 0 && (
+                                <>
+                                  <span className="h-3 w-px bg-neutral-200" />
+                                  <span>
+                                    <strong className="font-semibold text-neutral-900">{clickRate.toFixed(1)}%</strong>
+                                    <span className="text-neutral-400 ml-1 text-xs">clicks</span>
+                                  </span>
+                                </>
+                              )}
+                            </>
+                          )}
+                          {campaign.status === 'CANCELLED' && (
+                            <span>
+                              <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
+                              <span className="text-neutral-400 ml-1 text-xs">recipients</span>
+                            </span>
+                          )}
+                        </div>
+                      </Link>
 
-                  <div className="px-6 py-3 border-t border-neutral-100 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-                      <Calendar className="h-3 w-3" />
-                      <div className="group relative inline-block cursor-help">
-                        <span>Updated {formatRelativeTime(campaign.updatedAt)}</span>
-                        <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
-                          {dayjs(campaign.updatedAt).format('DD MMMM YYYY, hh:mm')}
+                      <div className="px-6 py-3 border-t border-neutral-100 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+                          <Calendar className="h-3 w-3" />
+                          <div className="group relative inline-block cursor-help">
+                            <span>Updated {formatRelativeTime(campaign.updatedAt)}</span>
+                            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
+                              {dayjs(campaign.updatedAt).format('DD MMMM YYYY, hh:mm')}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button asChild variant="ghost" size="sm" title={campaign.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}>
+                            <Link href={`/campaigns/${campaign.id}`} aria-label={campaign.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}><Edit className="h-4 w-4" /></Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Duplicate campaign" onClick={() => handleDuplicate(campaign.id)}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          {campaign.status === 'DRAFT' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Delete campaign"
+                              onClick={() => {
+                                setCampaignToDelete(campaign.id);
+                                setShowDeleteDialog(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {(campaign.status === 'SCHEDULED' || campaign.status === 'SENDING') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Cancel campaign"
+                              onClick={() => {
+                                setCampaignToCancel(campaign.id);
+                                setShowCancelDialog(true);
+                              }}
+                            >
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button asChild variant="ghost" size="sm" title={campaign.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}>
-                        <Link href={`/campaigns/${campaign.id}`} aria-label={campaign.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}><Edit className="h-4 w-4" /></Link>
-                      </Button>
-                      <Button variant="ghost" size="sm" title="Duplicate campaign" onClick={() => handleDuplicate(campaign.id)}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      {campaign.status === 'DRAFT' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Delete campaign"
-                          onClick={() => {
-                            setCampaignToDelete(campaign.id);
-                            setShowDeleteDialog(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {(campaign.status === 'SCHEDULED' || campaign.status === 'SENDING') && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Cancel campaign"
-                          onClick={() => {
-                            setCampaignToCancel(campaign.id);
-                            setShowCancelDialog(true);
-                          }}
-                        >
-                          <Ban className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+                    </Card>
+                  );
+                })}
 
-          {/* Pagination */}
-          {data && data.totalPages > 1 && (
-            <div className="flex justify-center gap-2">
-              <Button variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-                Previous
-              </Button>
-              <span className="flex items-center px-4 text-sm text-neutral-600">
-                Page {page} of {data.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                disabled={page === data.totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          )}
+                {/* Pagination */}
+                {data && data.totalPages > 1 && (
+                  <div className="flex justify-center gap-2">
+                    <Button variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                      Previous
+                    </Button>
+                    <span className="flex items-center px-4 text-sm text-neutral-600">
+                      Page {page} of {data.totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
+                      disabled={page === data.totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Table View (tanstack-driven) */}
+                <Card>
+                  <CardContent className="p-0">
+                    <DataTable table={table} />
+                  </CardContent>
+                </Card>
+
+                {/* Pagination */}
+                {data && data.totalPages > 1 && (
+                  <div className="flex justify-center gap-2">
+                    <Button variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                      Previous
+                    </Button>
+                    <span className="flex items-center px-4 text-sm text-neutral-600">
+                      Page {page} of {data.totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
+                      disabled={page === data.totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <ConfirmDialog
