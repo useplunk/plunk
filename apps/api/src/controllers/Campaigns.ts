@@ -8,6 +8,7 @@ import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {CampaignService} from '../services/CampaignService.js';
 import {DomainService} from '../services/DomainService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
+import {parseListSort} from '../utils/listSort.js';
 
 @Controller('campaigns')
 export class Campaigns {
@@ -57,6 +58,13 @@ export class Campaigns {
   /**
    * Get all campaigns for a project
    * GET /campaigns
+   *
+   * Query params:
+   * - page, pageSize: pagination
+   * - status: filter by CampaignStatus
+   * - search: filter by name/subject/from
+   * - sort: name | createdAt | updatedAt (default: createdAt)
+   * - dir: asc | desc (default: desc)
    */
   @Get('')
   @Middleware([requireAuth, requireEmailVerified])
@@ -67,6 +75,7 @@ export class Campaigns {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() || undefined : undefined;
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 20;
+    const sort = parseListSort(req.query.sort, req.query.dir, {field: 'createdAt', direction: 'desc'});
 
     // Validate status if provided
     if (status && !Object.values(CampaignStatus).includes(status)) {
@@ -78,6 +87,7 @@ export class Campaigns {
       search,
       page,
       pageSize,
+      sort,
     });
 
     return res.json(result);

@@ -6,6 +6,7 @@ import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
+import type {ListSort} from '../utils/listSort.js';
 
 import {ContactService} from './ContactService.js';
 import {EventService} from './EventService.js';
@@ -21,6 +22,7 @@ export class WorkflowService {
     page = 1,
     pageSize = 20,
     search?: string,
+    sort: ListSort = {field: 'createdAt', direction: 'desc'},
   ): Promise<PaginatedResponse<Workflow>> {
     const skip = (page - 1) * pageSize;
 
@@ -41,7 +43,7 @@ export class WorkflowService {
         where,
         skip,
         take: pageSize,
-        orderBy: {createdAt: 'desc'},
+        orderBy: {[sort.field]: sort.direction} as Prisma.WorkflowOrderByWithRelationInput,
         include: {
           _count: {
             select: {

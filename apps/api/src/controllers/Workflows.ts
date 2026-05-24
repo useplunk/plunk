@@ -5,12 +5,19 @@ import signale from 'signale';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {WorkflowService} from '../services/WorkflowService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
+import {parseListSort} from '../utils/listSort.js';
 
 @Controller('workflows')
 export class Workflows {
   /**
    * GET /workflows
    * List all workflows for the authenticated project
+   *
+   * Query params:
+   * - page, pageSize: pagination
+   * - search: filter by name/description
+   * - sort: name | createdAt | updatedAt (default: createdAt)
+   * - dir: asc | desc (default: desc)
    */
   @Get('')
   @Middleware([requireAuth, requireEmailVerified])
@@ -20,8 +27,9 @@ export class Workflows {
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
     const search = req.query.search as string | undefined;
+    const sort = parseListSort(req.query.sort, req.query.dir, {field: 'createdAt', direction: 'desc'});
 
-    const result = await WorkflowService.list(auth.projectId!, page, pageSize, search);
+    const result = await WorkflowService.list(auth.projectId!, page, pageSize, search, sort);
 
     return res.status(200).json(result);
   }

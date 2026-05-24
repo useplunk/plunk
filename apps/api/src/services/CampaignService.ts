@@ -6,6 +6,7 @@ import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
+import type {ListSort} from '../utils/listSort.js';
 import {buildEmailFieldsUpdate} from '../utils/modelUpdate.js';
 
 import {BillingLimitService} from './BillingLimitService.js';
@@ -189,9 +190,10 @@ export class CampaignService {
       search?: string;
       page?: number;
       pageSize?: number;
+      sort?: ListSort;
     } = {},
   ): Promise<PaginatedResponse<Campaign>> {
-    const {status, search, page = 1, pageSize = 20} = options;
+    const {status, search, page = 1, pageSize = 20, sort = {field: 'createdAt', direction: 'desc'}} = options;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.CampaignWhereInput = {
@@ -214,7 +216,7 @@ export class CampaignService {
         include: {
           segment: true,
         },
-        orderBy: {createdAt: 'desc'},
+        orderBy: {[sort.field]: sort.direction} as Prisma.CampaignOrderByWithRelationInput,
         skip,
         take: pageSize,
       }),
