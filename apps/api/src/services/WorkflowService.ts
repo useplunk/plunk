@@ -313,6 +313,94 @@ export class WorkflowService {
   }
 
   /**
+   * Apply a bulk operation to multiple workflows at once.
+   *
+   * The payload is intentionally open-ended (a single endpoint) so future bulk
+   * operations (e.g. enable / disable) can stack on the same operation. For now
+   * the only supported mode is `delete: true` (bulk delete).
+   *
+   * Atomicity: every selected workflow must belong to the requesting project AND
+   * none of them may currently have active executions. Both checks plus the
+   * `deleteMany` are folded into a single Prisma transaction, so a partial bulk
+   * delete is impossible — either every selected workflow is removed, or the
+   * whole operation rolls back.
+   *
+   * Guards mirror the single-workflow `delete()` above:
+   * - 404 if any id is missing from this project (foreign / cross-project id).
+   * - 409 if any selected workflow has active (RUNNING / WAITING) executions.
+   *
+   * Deleting a workflow cascades its steps, transitions and executions exactly
+   * as the single `delete()` does (Prisma relations). After the transaction
+   * commits, the enabled-workflow cache is invalidated once if any deleted
+   * workflow was enabled, matching the single-delete side effect.
+   */
+  public static async bulkUpdate(
+    projectId: string,
+    options: {ids: string[]; delete?: boolean},
+  ): Promise<{deleted?: number; updated?: number}> {
+    const {ids, delete: shouldDelete} = options;
+
+    // Dedup defensively — the schema permits the same id twice and we don't
+    // want duplicates inflating the ownership / row counts below.
+    const uniqueIds = Array.from(new Set(ids));
+
+    if (uniqueIds.length === 0) {
+      return {updated: 0};
+    }
+
+    if (shouldDelete) {
+      const {deleted, hadEnabled} = await prisma.$transaction(async tx => {
+        // 1. Ownership / project-scope check. Cross-project leaks are the main
+        //    thing this endpoint must defend against.
+        const owned = await tx.workflow.findMany({
+          where: {id: {in: uniqueIds}, projectId},
+          select: {id: true, enabled: true},
+        });
+
+        if (owned.length !== uniqueIds.length) {
+          throw new HttpException(404, 'One or more workflows not found in this project');
+        }
+
+        // 2. Reject the whole bulk delete if ANY selected workflow has active
+        //    executions. Mirrors the single delete() guard — no partial wipes.
+        const activeExecutions = await tx.workflowExecution.count({
+          where: {
+            workflowId: {in: uniqueIds},
+            status: {
+              in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING],
+            },
+          },
+        });
+
+        if (activeExecutions > 0) {
+          throw new HttpException(
+            409,
+            `Cannot delete: ${activeExecutions} active execution(s) across the selected workflows. ` +
+              'Please wait for them to complete or cancel them first.',
+          );
+        }
+
+        const result = await tx.workflow.deleteMany({
+          where: {id: {in: uniqueIds}, projectId},
+        });
+
+        return {deleted: result.count, hadEnabled: owned.some(w => w.enabled)};
+      });
+
+      // Invalidate workflow cache if any deleted workflow was enabled.
+      if (hadEnabled) {
+        await EventService.invalidateWorkflowCache(projectId);
+      }
+
+      return {deleted};
+    }
+
+    // No-op shape for forward-compat: when other bulk modes ship they'll branch
+    // off here. Returning {updated: 0} keeps the response shape stable.
+    return {updated: 0};
+  }
+
+  /**
    * Duplicate a workflow including all steps and transitions.
    * The duplicate always starts disabled to prevent accidental triggering.
    * Runtime execution state is intentionally not copied.

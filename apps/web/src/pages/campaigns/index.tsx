@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   ConfirmDialog,
   DropdownMenu,
   DropdownMenuContent,
@@ -14,11 +15,13 @@ import {
 } from '@plunk/ui';
 import type {Campaign, Template} from '@plunk/db';
 import {CampaignStatus} from '@plunk/db';
+import {CampaignSchemas} from '@plunk/shared';
 import type {PaginatedResponse} from '@plunk/types';
 import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type RowSelectionState,
   type SortingState,
   type VisibilityState,
 } from '@tanstack/react-table';
@@ -26,6 +29,7 @@ import {DashboardLayout} from '../../components/DashboardLayout';
 import {TemplateSelectionDialog} from '../../components/TemplateSelectionDialog';
 import {CampaignSelectionDialog} from '../../components/CampaignSelectionDialog';
 import {
+  BulkActionBar,
   DataTable,
   DataTableColumnHeader,
   DataTableFacetedFilter,
@@ -35,6 +39,7 @@ import {
   type DataTableColumnMeta,
   type DataTableView,
 } from '../../components/data-table';
+import {useShiftClickSelection} from '../../lib/hooks/useShiftClickSelection';
 import {network} from '../../lib/network';
 import {formatRelativeTime} from '../../lib/dateUtils';
 import {Ban, Calendar, ChevronDown, Copy, Edit, FileText, Mail, Plus, RefreshCw, Search, Trash2, X} from 'lucide-react';
@@ -53,9 +58,10 @@ type StatusFilter = 'ALL' | 'DRAFT' | 'SCHEDULED' | 'SENDING' | 'SENT' | 'CANCEL
 const VIEW_STORAGE_KEY = 'plunk:campaigns:view';
 const COLUMNS_STORAGE_KEY = 'plunk:campaigns:columns';
 
-// Name + Actions are locked-visible (see lockedColumnIds below). Everything
-// starts visible.
+// Name + Actions are locked-visible (see lockedColumnIds below). `select` is
+// also locked. Everything starts visible.
 const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
+  select: true,
   name: true,
   subject: true,
   status: true,
@@ -101,6 +107,8 @@ export default function CampaignsPage() {
   const [campaignToCancel, setCampaignToCancel] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [bulkDeleteStatus, setBulkDeleteStatus] = useState<'idle' | 'loading'>('idle');
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showCampaignDialog, setShowCampaignDialog] = useState(false);
   const [view, setView] = usePersistentState<DataTableView>(VIEW_STORAGE_KEY, 'card', isDataTableView);
@@ -108,6 +116,8 @@ export default function CampaignsPage() {
   // Tanstack table state.
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useColumnVisibility(COLUMNS_STORAGE_KEY, DEFAULT_COLUMN_VISIBILITY);
+  // Row-selection state drives the BulkActionBar above the table.
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   // Build the sort query string from tanstack state. The backend is
   // authoritative (`?sort=<field>&dir=asc|desc`); without those params it falls
@@ -129,6 +139,14 @@ export default function CampaignsPage() {
     }, 350);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  // Clear row selection whenever the visible data set changes (page, search,
+  // status filter). Selections only make sense for currently-visible rows —
+  // keeping a stale selection across pagination would let the user bulk-delete
+  // campaigns they can no longer see.
+  useEffect(() => {
+    setRowSelection({});
+  }, [page, search, statusFilter]);
 
   const handleCancel = async () => {
     if (!campaignToCancel) return;
@@ -165,6 +183,32 @@ export default function CampaignsPage() {
       toast.error(error instanceof Error ? error.message : 'Failed to delete campaign');
     } finally {
       setCampaignToDelete(null);
+    }
+  };
+
+  const selectedIds = useMemo(() => Object.keys(rowSelection).filter(id => rowSelection[id]), [rowSelection]);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkDeleteStatus('loading');
+    try {
+      const result = await network.fetch<{deleted?: number}, typeof CampaignSchemas.bulkUpdate>(
+        'POST',
+        '/campaigns/bulk-update',
+        {
+          ids: selectedIds,
+          delete: true,
+        },
+      );
+      const count = result?.deleted ?? selectedIds.length;
+      toast.success(`${count} campaign${count === 1 ? '' : 's'} deleted`);
+      setRowSelection({});
+      void mutate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete campaigns');
+    } finally {
+      // ConfirmDialog closes itself after onConfirm resolves.
+      setBulkDeleteStatus('idle');
     }
   };
 
@@ -292,6 +336,38 @@ export default function CampaignsPage() {
 
   const columns = useMemo<Array<ColumnDef<Campaign, unknown>>>(
     () => [
+      {
+        id: 'select',
+        enableSorting: false,
+        enableHiding: false, // Selection column is locked-visible.
+        meta: {label: 'Select', headClassName: 'w-10', cellClassName: 'w-10'} satisfies DataTableColumnMeta,
+        header: ({table}) => (
+          <Checkbox
+            aria-label="Select all rows on this page"
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? true
+                : table.getIsSomePageRowsSelected()
+                  ? 'indeterminate'
+                  : false
+            }
+            onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+          />
+        ),
+        cell: ({row}) => (
+          <Checkbox
+            aria-label={`Select ${row.original.name}`}
+            checked={row.getIsSelected()}
+            // Capture shift-key state before the toggle, then apply range
+            // selection on change (see useShiftClickSelection below).
+            onClick={e => {
+              e.stopPropagation();
+              shiftSelect.onClick(e);
+            }}
+            onCheckedChange={value => shiftSelect.onCheckedChange(row, value)}
+          />
+        ),
+      },
       {
         id: 'name',
         accessorKey: 'name',
@@ -440,14 +516,19 @@ export default function CampaignsPage() {
   const table = useReactTable<Campaign>({
     data: data?.data ?? [],
     columns,
-    state: {sorting, columnVisibility},
+    state: {sorting, columnVisibility, rowSelection},
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
     enableMultiSort: false,
     manualSorting: true, // Backend handles sorting; client just exposes ?sort=&dir=.
     getCoreRowModel: getCoreRowModel(),
     getRowId: row => row.id,
   });
+
+  // Range (shift-click) selection for the checkbox column.
+  const shiftSelect = useShiftClickSelection(table);
 
   const hasData = data && data.data.length > 0;
 
@@ -562,11 +643,29 @@ export default function CampaignsPage() {
             )}
             {view === 'table' && (
               <div className="shrink-0">
-                <DataTableViewOptions table={table} lockedColumnIds={['name', 'actions']} />
+                <DataTableViewOptions table={table} lockedColumnIds={['select', 'name', 'actions']} />
               </div>
             )}
             <DataTableViewSwitcher view={view} onChange={setView} />
           </div>
+
+          {/* Bulk action bar — table view only (the selection column lives
+              there). Wires the delete action; the children slot stays open for
+              future bulk operations. */}
+          {view === 'table' && (
+            <BulkActionBar selectedCount={selectedIds.length} itemNoun="campaign" onClear={() => setRowSelection({})}>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteDialog(true)}
+                disabled={bulkDeleteStatus === 'loading'}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete selected
+              </Button>
+            </BulkActionBar>
+          )}
 
           {/* Campaigns */}
           <div className="space-y-4">
@@ -855,6 +954,17 @@ export default function CampaignsPage() {
           description="Are you sure you want to delete this draft campaign? This action cannot be undone."
           confirmText="Delete Campaign"
           variant="destructive"
+        />
+
+        <ConfirmDialog
+          open={showBulkDeleteDialog}
+          onOpenChange={setShowBulkDeleteDialog}
+          onConfirm={handleBulkDelete}
+          title={`Delete ${selectedIds.length} campaign${selectedIds.length === 1 ? '' : 's'}`}
+          description="Are you sure you want to delete the selected campaigns? This action cannot be undone. Only draft campaigns can be deleted — selecting a non-draft campaign will block the operation."
+          confirmText="Delete"
+          variant="destructive"
+          status={bulkDeleteStatus}
         />
 
         <TemplateSelectionDialog

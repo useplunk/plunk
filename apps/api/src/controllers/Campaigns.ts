@@ -94,6 +94,36 @@ export class Campaigns {
   }
 
   /**
+   * Apply a bulk operation to multiple campaigns at once.
+   * POST /campaigns/bulk-update
+   *
+   * Currently supports `{ids: string[], delete: true}` for bulk delete. The
+   * schema is intentionally open-ended so future bulk operations can stack on
+   * the same endpoint.
+   *
+   * Atomicity: the underlying service wraps the ownership check, the
+   * draft-only guard, and the delete in a single Prisma transaction, so a
+   * partial bulk delete is not possible.
+   *
+   * NOTE: This must be defined BEFORE the :id route to avoid conflicts.
+   */
+  @Post('bulk-update')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  private async bulkUpdate(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+
+    // Let Zod throw on invalid input so the global error handler in app.ts
+    // formats it into the standard error envelope, matching the other
+    // schema-validated endpoints in this controller.
+    const data = CampaignSchemas.bulkUpdate.parse(req.body);
+
+    const result = await CampaignService.bulkUpdate(auth.projectId, data);
+
+    return res.status(200).json(result);
+  }
+
+  /**
    * Get a specific campaign
    * GET /campaigns/:id
    */

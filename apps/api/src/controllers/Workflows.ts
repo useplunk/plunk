@@ -1,5 +1,6 @@
 import {Controller, Delete, Get, Middleware, Patch, Post} from '@overnightjs/core';
 import {WorkflowExecutionStatus} from '@plunk/db';
+import {WorkflowSchemas} from '@plunk/shared';
 import type {NextFunction, Request, Response} from 'express';
 import signale from 'signale';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
@@ -57,6 +58,36 @@ export class Workflows {
         error: error instanceof Error ? error.message : 'Failed to get available fields',
       });
     }
+  }
+
+  /**
+   * POST /workflows/bulk-update
+   * Apply a bulk operation to multiple workflows at once.
+   *
+   * Currently supports `{ids: string[], delete: true}` for bulk delete. The
+   * schema is intentionally open-ended so future bulk operations can stack on
+   * the same endpoint.
+   *
+   * Atomicity: the underlying service wraps the ownership check, the
+   * active-execution guard, and the delete in a single Prisma transaction, so a
+   * partial bulk delete is not possible.
+   *
+   * NOTE: This must be defined BEFORE the :id route to avoid conflicts.
+   */
+  @Post('bulk-update')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async bulkUpdate(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+
+    // Let Zod throw on invalid input so the global error handler in app.ts
+    // formats it into the standard error envelope, matching the other
+    // schema-validated endpoints.
+    const data = WorkflowSchemas.bulkUpdate.parse(req.body);
+
+    const result = await WorkflowService.bulkUpdate(auth.projectId!, data);
+
+    return res.status(200).json(result);
   }
 
   /**

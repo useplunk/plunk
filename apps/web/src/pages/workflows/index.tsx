@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Command,
   CommandGroup,
   CommandItem,
@@ -24,11 +25,13 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type RowSelectionState,
   type SortingState,
   type VisibilityState,
 } from '@tanstack/react-table';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {
+  BulkActionBar,
   DataTable,
   DataTableColumnHeader,
   DataTableViewOptions,
@@ -41,6 +44,7 @@ import {network} from '../../lib/network';
 import {formatRelativeTime} from '../../lib/dateUtils';
 import {useColumnVisibility} from '../../lib/hooks/useColumnVisibility';
 import {usePersistentState} from '../../lib/hooks/usePersistentState';
+import {useShiftClickSelection} from '../../lib/hooks/useShiftClickSelection';
 import {Calendar, Copy, Edit, Plus, Power, PowerOff, Search, Trash2, Workflow as WorkflowIcon, X, Zap} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
@@ -55,9 +59,10 @@ type WorkflowRow = Workflow & {_count?: {steps: number; executions: number}};
 const VIEW_STORAGE_KEY = 'plunk:workflows:view';
 const COLUMNS_STORAGE_KEY = 'plunk:workflows:columns';
 
-// Name + Actions are locked-visible (see lockedColumnIds below). Everything
-// starts visible.
+// Name + Actions are locked-visible (see lockedColumnIds below). `select` is
+// also locked. Everything starts visible.
 const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
+  select: true,
   name: true,
   trigger: true,
   status: true,
@@ -73,11 +78,15 @@ export default function WorkflowsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<string | null>(null);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [bulkDeleteStatus, setBulkDeleteStatus] = useState<'idle' | 'loading'>('idle');
   const [view, setView] = usePersistentState<DataTableView>(VIEW_STORAGE_KEY, 'card', isDataTableView);
 
   // Tanstack table state.
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useColumnVisibility(COLUMNS_STORAGE_KEY, DEFAULT_COLUMN_VISIBILITY);
+  // Row-selection state drives the BulkActionBar above the table.
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   // Build the sort query string from tanstack state. The backend is
   // authoritative (`?sort=<field>&dir=asc|desc`); without those params it falls
@@ -99,6 +108,14 @@ export default function WorkflowsPage() {
     }, 350);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  // Clear row selection whenever the visible data set changes (page, search).
+  // Selections only make sense for currently-visible rows — keeping a stale
+  // selection across pagination would let the user bulk-delete workflows they
+  // can no longer see.
+  useEffect(() => {
+    setRowSelection({});
+  }, [page, search]);
 
   const handleDelete = async () => {
     if (!workflowToDelete) return;
@@ -136,6 +153,32 @@ export default function WorkflowsPage() {
     }
   };
 
+  const selectedIds = useMemo(() => Object.keys(rowSelection).filter(id => rowSelection[id]), [rowSelection]);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkDeleteStatus('loading');
+    try {
+      const result = await network.fetch<{deleted?: number}, typeof WorkflowSchemas.bulkUpdate>(
+        'POST',
+        '/workflows/bulk-update',
+        {
+          ids: selectedIds,
+          delete: true,
+        },
+      );
+      const count = result?.deleted ?? selectedIds.length;
+      toast.success(`${count} workflow${count === 1 ? '' : 's'} deleted`);
+      setRowSelection({});
+      void mutate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete workflows');
+    } finally {
+      // ConfirmDialog closes itself after onConfirm resolves.
+      setBulkDeleteStatus('idle');
+    }
+  };
+
   const triggerEventName = (workflow: WorkflowRow): string | null =>
     workflow.triggerConfig && typeof workflow.triggerConfig === 'object' && 'eventName' in workflow.triggerConfig
       ? String(workflow.triggerConfig.eventName)
@@ -143,6 +186,38 @@ export default function WorkflowsPage() {
 
   const columns = useMemo<Array<ColumnDef<WorkflowRow, unknown>>>(
     () => [
+      {
+        id: 'select',
+        enableSorting: false,
+        enableHiding: false, // Selection column is locked-visible.
+        meta: {label: 'Select', headClassName: 'w-10', cellClassName: 'w-10'} satisfies DataTableColumnMeta,
+        header: ({table}) => (
+          <Checkbox
+            aria-label="Select all rows on this page"
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? true
+                : table.getIsSomePageRowsSelected()
+                  ? 'indeterminate'
+                  : false
+            }
+            onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+          />
+        ),
+        cell: ({row}) => (
+          <Checkbox
+            aria-label={`Select ${row.original.name}`}
+            checked={row.getIsSelected()}
+            // Capture shift-key state before the toggle, then apply range
+            // selection on change (see useShiftClickSelection below).
+            onClick={e => {
+              e.stopPropagation();
+              shiftSelect.onClick(e);
+            }}
+            onCheckedChange={value => shiftSelect.onCheckedChange(row, value)}
+          />
+        ),
+      },
       {
         id: 'name',
         accessorKey: 'name',
@@ -281,14 +356,19 @@ export default function WorkflowsPage() {
   const table = useReactTable<WorkflowRow>({
     data: data?.data ?? [],
     columns,
-    state: {sorting, columnVisibility},
+    state: {sorting, columnVisibility, rowSelection},
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
     enableMultiSort: false,
     manualSorting: true, // Backend handles sorting; client just exposes ?sort=&dir=.
     getCoreRowModel: getCoreRowModel(),
     getRowId: row => row.id,
   });
+
+  // Range (shift-click) selection for the checkbox column.
+  const shiftSelect = useShiftClickSelection(table);
 
   const hasData = data && data.data.length > 0;
 
@@ -346,11 +426,29 @@ export default function WorkflowsPage() {
             </div>
             {view === 'table' && (
               <div className="shrink-0">
-                <DataTableViewOptions table={table} lockedColumnIds={['name', 'actions']} />
+                <DataTableViewOptions table={table} lockedColumnIds={['select', 'name', 'actions']} />
               </div>
             )}
             <DataTableViewSwitcher view={view} onChange={setView} />
           </div>
+
+          {/* Bulk action bar — table view only (the selection column lives
+              there). Wires the delete action; the children slot stays open for
+              future bulk operations. */}
+          {view === 'table' && (
+            <BulkActionBar selectedCount={selectedIds.length} itemNoun="workflow" onClear={() => setRowSelection({})}>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteDialog(true)}
+                disabled={bulkDeleteStatus === 'loading'}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete selected
+              </Button>
+            </BulkActionBar>
+          )}
 
           {/* Workflows */}
           <div>
@@ -548,6 +646,17 @@ export default function WorkflowsPage() {
           description="Are you sure you want to delete this workflow? This action cannot be undone."
           confirmText="Delete"
           variant="destructive"
+        />
+
+        <ConfirmDialog
+          open={showBulkDeleteDialog}
+          onOpenChange={setShowBulkDeleteDialog}
+          onConfirm={handleBulkDelete}
+          title={`Delete ${selectedIds.length} workflow${selectedIds.length === 1 ? '' : 's'}`}
+          description="Are you sure you want to delete the selected workflows? This action cannot be undone. Workflows with active executions will block the operation."
+          confirmText="Delete"
+          variant="destructive"
+          status={bulkDeleteStatus}
         />
       </DashboardLayout>
     </>
