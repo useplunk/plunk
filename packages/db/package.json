@@ -6,7 +6,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "db:generate": "prisma generate",
-    "migrate:dev": "prisma migrate dev",
+    "migrate:dev": "dotenv -e ../../apps/api/.env -- prisma migrate dev",
     "migrate:prod": "prisma migrate deploy",
     "clean": "rimraf node_modules .turbo dist",
     "build": "tsc && prisma generate"
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
+    "dotenv-cli": "^11.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   }
