@@ -54,6 +54,7 @@ yarn services:up
 
 # Set up environment variables
 cp apps/api/.env.example apps/api/.env
+cp packages/db/.env.example packages/db/.env
 
 # Edit apps/api/.env with your configuration
 # Important! To start the api-server, the two variables `AWS_SES_ACCESS_KEY_ID` and `AWS_SES_SECRET_ACCESS_KEY` must not be empty.
