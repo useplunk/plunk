@@ -53,10 +53,9 @@ yarn install
 yarn services:up
 
 # Set up environment variables
-cp .env.example .env
 cp apps/api/.env.example apps/api/.env
 
-# Edit .env with your configuration
+# Edit apps/api/.env with your configuration
 # Important! To start the api-server, the two variables `AWS_SES_ACCESS_KEY_ID` and `AWS_SES_SECRET_ACCESS_KEY` must not be empty.
 # Dummy values are pre-set to enable local development (without the ability to send emails).
 # If you plan to send emails in your development environment, replace the dummy values in `apps/api/.env`.
