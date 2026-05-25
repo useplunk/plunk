@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@plunk/ui';
-import {Code2, Eye, Monitor, Smartphone, Tablet, Upload, X} from 'lucide-react';
+import {Code2, Eye, Monitor, RotateCcw, Smartphone, Tablet, Upload, X} from 'lucide-react';
 import {network} from '../../lib/network';
 import {detectCustomHtmlPatterns, wrapEmailWithStyles} from '../../lib/emailStyles';
 import {getInitialEditorMode, getModeToggleDecision} from './modeGuards';
@@ -60,7 +60,9 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
   const [htmlContent, setHtmlContent] = useState(value);
   const [showVariableDialog, setShowVariableDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
-  const [showModeWarningDialog, setShowModeWarningDialog] = useState(false);
+  // WHY: snapshot stores the original HTML before a lossy visual-mode switch,
+  // so the user can revert if the conversion dropped markup
+  const [htmlSnapshot, setHtmlSnapshot] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -157,30 +159,34 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
       htmlContent,
     });
 
-    if (decision.action === 'switch' && decision.nextMode === 'html') {
+    if (decision.nextMode === 'html') {
       const currentHtml = editor?.getHTML() || '';
       setHtmlContent(currentHtml);
+      setHtmlSnapshot(null);
       setMode('html');
       return;
     }
 
-    if (decision.action === 'block-custom-html') {
-      setShowModeWarningDialog(true);
-      return;
-    }
-
     if (editor) {
+      if (decision.snapshot) {
+        setHtmlSnapshot(decision.snapshot);
+      }
       editor.commands.setContent(htmlContent || '');
       onChange(htmlContent);
       setMode('visual');
     }
   };
 
-  const stayInHtmlMode = () => {
-    setShowModeWarningDialog(false);
-    if (mode !== 'html') {
-      setMode('html');
-    }
+  const revertToSnapshot = () => {
+    if (!htmlSnapshot) return;
+    setHtmlContent(htmlSnapshot);
+    onChange(htmlSnapshot);
+    setHtmlSnapshot(null);
+    setMode('html');
+  };
+
+  const dismissSnapshot = () => {
+    setHtmlSnapshot(null);
   };
 
   const handleHtmlChange = (newHtml: string) => {
@@ -377,6 +383,22 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
             onInsertImage={() => setShowImageDialog(true)}
             canUploadImages={canUploadImages}
           />
+          {htmlSnapshot && (
+            <div className="flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2">
+              <p className="text-sm text-amber-800">
+                Some custom HTML may not display correctly in the visual editor.
+              </p>
+              <div className="flex gap-2 shrink-0">
+                <Button type="button" variant="ghost" size="sm" onClick={dismissSnapshot} className="text-amber-700 h-7">
+                  Dismiss
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={revertToSnapshot} className="h-7">
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                  Revert to HTML
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="min-h-[400px] max-h-[600px] overflow-y-auto">
             <EditorContent editor={editor} />
           </div>
@@ -672,44 +694,6 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
                 <code className="text-xs bg-neutral-100 px-1 rounded">{'{{name ?? default}}'}</code> syntax for fallback
                 values.
               </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Mode switch warning dialog */}
-      <Dialog
-        open={showModeWarningDialog}
-        onOpenChange={open => {
-          // Only allow closing (not opening) and ensure we stay in current mode
-          if (!open) {
-            setShowModeWarningDialog(false);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Custom HTML Detected</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-neutral-700">
-              Your HTML contains custom formatting, styles, or elements that the visual editor doesn&apos;t support. To
-              preserve the original markup, this template must stay in HTML mode.
-            </p>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-sm text-amber-800 font-medium">This may affect:</p>
-              <ul className="text-sm text-amber-700 mt-2 ml-4 list-disc space-y-1">
-                <li>Custom HTML elements and attributes</li>
-                <li>Inline styles and CSS classes</li>
-                <li>Complex table structures</li>
-                <li>Custom formatting or layout</li>
-              </ul>
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <Button type="button" onClick={stayInHtmlMode}>
-                Continue Editing HTML
-              </Button>
             </div>
           </div>
         </DialogContent>

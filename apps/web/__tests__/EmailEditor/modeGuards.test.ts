@@ -8,7 +8,7 @@ describe('EmailEditor mode guards', () => {
     expect(getInitialEditorMode(customHtml)).toBe('html');
   });
 
-  it('allows switching simple html into visual mode', () => {
+  it('allows switching simple html into visual mode without snapshot', () => {
     const simpleHtml = '<p>Hello <strong>world</strong></p>';
 
     expect(
@@ -19,14 +19,23 @@ describe('EmailEditor mode guards', () => {
     ).toEqual({action: 'switch', nextMode: 'visual'});
   });
 
-  it('blocks switching custom html into visual mode', () => {
+  it('allows switching custom html into visual mode with snapshot for revert', () => {
     const customHtml = '<div class="email-shell"><table><tr><td style="padding:24px">Hello</td></tr></table></div>';
 
+    const decision = getModeToggleDecision({
+      currentMode: 'html',
+      htmlContent: customHtml,
+    });
+
+    expect(decision).toEqual({action: 'switch', nextMode: 'visual', snapshot: customHtml});
+  });
+
+  it('always allows switching from visual to html', () => {
     expect(
       getModeToggleDecision({
-        currentMode: 'html',
-        htmlContent: customHtml,
+        currentMode: 'visual',
+        htmlContent: '<p>anything</p>',
       }),
-    ).toEqual({action: 'block-custom-html'});
+    ).toEqual({action: 'switch', nextMode: 'html'});
   });
 });
