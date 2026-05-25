@@ -11,7 +11,7 @@ import {setAvailableVariables, VariableMention} from './VariableMention';
 import {Toolbar} from './Toolbar';
 import {ResizableImage} from './ResizableImage';
 import {HtmlEditor} from './HtmlEditor';
-import {useContactFields, useContacts} from '../../lib/hooks/useContacts';
+import {useContactFields, useContacts, useSegmentContacts} from '../../lib/hooks/useContacts';
 import {useConfig} from '../../lib/hooks/useConfig';
 import {useEffect, useRef, useState} from 'react';
 import {renderTemplate} from '@plunk/shared';
@@ -42,6 +42,9 @@ interface EmailEditorProps {
   subject?: string;
   from?: string;
   replyTo?: string;
+  // When set, the "Preview as" dropdown is scoped to this segment's members
+  // instead of all contacts in the project (used for SEGMENT-audience campaigns)
+  segmentId?: string;
 }
 
 const commonVariables = [
@@ -52,7 +55,7 @@ const commonVariables = [
   {name: 'manageUrl', description: 'Manage link'},
 ];
 
-export function EmailEditor({value, onChange, placeholder, subject, from, replyTo}: EmailEditorProps) {
+export function EmailEditor({value, onChange, placeholder, subject, from, replyTo, segmentId}: EmailEditorProps) {
   // Detect if initial value has custom HTML and start in appropriate mode
   const initialMode = detectCustomHtmlPatterns(value) ? 'html' : 'visual';
 
@@ -73,14 +76,27 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
   // Fetch available contact fields using SWR
   const {fields: availableFields} = useContactFields();
 
-  // Fetch contacts for preview using SWR
-  const {contacts} = useContacts({limit: 50});
+  // Fetch contacts for preview using SWR.
+  // When the campaign targets a segment, scope the dropdown to that segment's
+  // members; otherwise fall back to all contacts in the project.
+  const {contacts: allContacts} = useContacts({limit: 50});
+  const {contacts: segmentContacts} = useSegmentContacts(segmentId);
+  const contacts = segmentId ? segmentContacts : allContacts;
 
   useEffect(() => {
     if (availableFields.length > 0) {
       setAvailableVariables(availableFields);
     }
   }, [availableFields]);
+
+  // Clear the preview selection when the chosen contact is no longer in the
+  // available list (e.g. the segment changed). Otherwise the preview stays
+  // stuck rendering a contact that's no longer selectable in the dropdown.
+  useEffect(() => {
+    if (selectedContactId && !contacts.some(c => c.id === selectedContactId)) {
+      setSelectedContactId('');
+    }
+  }, [contacts, selectedContactId]);
 
   const {data: config} = useConfig();
   const canUploadImages = Boolean(config?.features.storage.s3Enabled);
