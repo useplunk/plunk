@@ -28,6 +28,7 @@ import {
   DataTableFacetedFilter,
   DataTableViewOptions,
   DataTableViewSwitcher,
+  NoResultsState,
   isDataTableView,
   type DataTableColumnMeta,
   type DataTableView,
@@ -89,7 +90,7 @@ export default function TemplatesPage() {
   const dirParam = sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : '';
 
   const {data, mutate, isLoading} = useSWR<PaginatedResponse<Template>>(
-    `/templates?page=${page}&pageSize=20${search ? `&search=${search}` : ''}${
+    `/templates?page=${page}&pageSize=20${search ? `&search=${encodeURIComponent(search)}` : ''}${
       typeFilter !== 'ALL' ? `&type=${typeFilter}` : ''
     }${sortParam ? `&sort=${sortParam}&dir=${dirParam}` : ''}`,
     {revalidateOnFocus: false},
@@ -332,6 +333,19 @@ export default function TemplatesPage() {
 
   const hasData = data && data.data.length > 0;
 
+  // Whether any search/facet filter is currently narrowing the list. Drives the
+  // "no results vs first-run empty" distinction below.
+  const hasActiveFilters = search !== '' || typeFilter !== 'ALL';
+
+  // Reset everything that can hide rows (search + type + pagination) so the
+  // user can recover from a filter combination that matched nothing.
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setTypeFilter('ALL');
+    setPage(1);
+  };
+
   return (
     <>
       <NextSeo title="Templates" />
@@ -443,23 +457,26 @@ export default function TemplatesPage() {
             ) : !hasData ? (
               <Card>
                 <CardContent>
-                  <EmptyState
-                    icon={FileText}
-                    title={search ? 'No templates match' : 'No templates yet'}
-                    description={
-                      search ? 'Try a different search term.' : 'Create reusable email designs for campaigns.'
-                    }
-                    action={
-                      !search ? (
+                  {hasActiveFilters ? (
+                    // Items exist, but the active search/type filters matched
+                    // none — offer a one-click recovery.
+                    <NoResultsState icon={FileText} itemNoun="templates" onClear={clearFilters} />
+                  ) : (
+                    // Genuinely empty project — first-run state.
+                    <EmptyState
+                      icon={FileText}
+                      title="No templates yet"
+                      description="Create reusable email designs for campaigns."
+                      action={
                         <Button asChild>
                           <Link href="/templates/create">
                             <Plus className="h-4 w-4" />
                             Create Template
                           </Link>
                         </Button>
-                      ) : undefined
-                    }
-                  />
+                      }
+                    />
+                  )}
                 </CardContent>
               </Card>
             ) : view === 'card' ? (

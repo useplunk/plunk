@@ -240,6 +240,44 @@ describe('WorkflowService', () => {
       expect(found?._count.steps).toBe(3); // TRIGGER + 2 added
       expect(found?._count.executions).toBe(1);
     });
+
+    it('should filter by enabled status', async () => {
+      await factories.createWorkflow({projectId, name: 'Active A', enabled: true});
+      await factories.createWorkflow({projectId, name: 'Active B', enabled: true});
+      await factories.createWorkflow({projectId, name: 'Disabled', enabled: false});
+
+      const active = await WorkflowService.list(projectId, 1, 20, undefined, undefined, true);
+      expect(active.total).toBe(2);
+      expect(active.data.every(w => w.enabled)).toBe(true);
+
+      const disabled = await WorkflowService.list(projectId, 1, 20, undefined, undefined, false);
+      expect(disabled.total).toBe(1);
+      expect(disabled.data.every(w => !w.enabled)).toBe(true);
+
+      // Omitting the filter returns both.
+      const all = await WorkflowService.list(projectId, 1, 20, undefined, undefined, undefined);
+      expect(all.total).toBe(3);
+    });
+
+    it('should sort by step count ascending and descending', async () => {
+      // `few` keeps just its TRIGGER step (count 1); `many` gets two more (count 3).
+      const few = await factories.createWorkflow({projectId, name: 'Few Steps'});
+      const many = await factories.createWorkflow({projectId, name: 'Many Steps'});
+      await factories.createWorkflowStep({workflowId: many.id});
+      await factories.createWorkflowStep({workflowId: many.id});
+
+      const asc = await WorkflowService.list(projectId, 1, 20, undefined, {
+        field: 'steps',
+        direction: 'asc',
+      });
+      expect(asc.data.map(w => w.id)).toEqual([few.id, many.id]);
+
+      const desc = await WorkflowService.list(projectId, 1, 20, undefined, {
+        field: 'steps',
+        direction: 'desc',
+      });
+      expect(desc.data.map(w => w.id)).toEqual([many.id, few.id]);
+    });
   });
 
   describe('update', () => {

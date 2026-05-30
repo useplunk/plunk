@@ -23,11 +23,15 @@ export class WorkflowService {
     pageSize = 20,
     search?: string,
     sort: ListSort = {field: 'createdAt', direction: 'desc'},
+    enabled?: boolean,
   ): Promise<PaginatedResponse<Workflow>> {
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.WorkflowWhereInput = {
       projectId,
+      // Status facet (Active / Disabled). Undefined = no filter; the
+      // `@@index([projectId, enabled])` covers this predicate.
+      ...(enabled !== undefined ? {enabled} : {}),
       ...(search
         ? {
             OR: [
@@ -38,12 +42,20 @@ export class WorkflowService {
         : {}),
     };
 
+    // The `steps` column sorts by the related step count, which Prisma expresses
+    // as `orderBy: {steps: {_count}}` rather than a scalar field. Every other
+    // sortable field (name/createdAt/updatedAt) maps straight onto the scalar.
+    const orderBy: Prisma.WorkflowOrderByWithRelationInput =
+      sort.field === 'steps'
+        ? {steps: {_count: sort.direction}}
+        : ({[sort.field]: sort.direction} as Prisma.WorkflowOrderByWithRelationInput);
+
     const [workflows, total] = await Promise.all([
       prisma.workflow.findMany({
         where,
         skip,
         take: pageSize,
-        orderBy: {[sort.field]: sort.direction} as Prisma.WorkflowOrderByWithRelationInput,
+        orderBy,
         include: {
           _count: {
             select: {

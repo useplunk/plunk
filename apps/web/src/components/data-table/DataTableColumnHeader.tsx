@@ -35,11 +35,18 @@ export function DataTableColumnHeader<TData, TValue>({
   const canSort = column.getCanSort();
   const sorted = column.getIsSorted();
 
+  // Match the plain (non-sortable) `<th>` header styling exactly so every column
+  // header reads uniformly — see `DataTable`'s `<TableHead>` className
+  // (`text-xs font-medium uppercase tracking-wider text-neutral-500`). The
+  // sortable label is a `<button>`, which would otherwise inherit nothing
+  // guaranteed, so we apply the same type styling here explicitly.
+  const labelTypeClass = 'text-xs font-medium uppercase tracking-wider';
+
   const label = canSort ? (
     <button
       type="button"
       onClick={column.getToggleSortingHandler()}
-      className="group inline-flex items-center gap-1 select-none transition-colors hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
+      className={`group inline-flex items-center gap-1 select-none transition-colors hover:text-neutral-700 focus-visible:outline-none focus-visible:underline ${labelTypeClass}`}
     >
       <span>{children}</span>
       {(() => {
@@ -59,7 +66,7 @@ export function DataTableColumnHeader<TData, TValue>({
       </span>
     </button>
   ) : (
-    <span>{children}</span>
+    <span className={labelTypeClass}>{children}</span>
   );
 
   return (

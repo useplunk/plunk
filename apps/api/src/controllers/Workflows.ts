@@ -17,7 +17,9 @@ export class Workflows {
    * Query params:
    * - page, pageSize: pagination
    * - search: filter by name/description
-   * - sort: name | createdAt | updatedAt (default: createdAt)
+   * - status: active | disabled — maps to the `enabled` boolean facet
+   * - sort: name | createdAt | updatedAt | steps (default: createdAt)
+   *   `steps` sorts by the related step count.
    * - dir: asc | desc (default: desc)
    */
   @Get('')
@@ -28,9 +30,15 @@ export class Workflows {
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
     const search = req.query.search as string | undefined;
-    const sort = parseListSort(req.query.sort, req.query.dir, {field: 'createdAt', direction: 'desc'});
+    // `steps` is a workflow-specific sortable column (orders by step count).
+    const sort = parseListSort(req.query.sort, req.query.dir, {field: 'createdAt', direction: 'desc'}, ['steps']);
 
-    const result = await WorkflowService.list(auth.projectId!, page, pageSize, search, sort);
+    // Status facet: `active` / `disabled` -> `enabled` boolean. Any other value
+    // (or absent) leaves the filter off.
+    const statusRaw = req.query.status as string | undefined;
+    const enabled = statusRaw === 'active' ? true : statusRaw === 'disabled' ? false : undefined;
+
+    const result = await WorkflowService.list(auth.projectId!, page, pageSize, search, sort, enabled);
 
     return res.status(200).json(result);
   }

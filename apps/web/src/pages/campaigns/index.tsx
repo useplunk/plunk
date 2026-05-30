@@ -35,6 +35,7 @@ import {
   DataTableFacetedFilter,
   DataTableViewOptions,
   DataTableViewSwitcher,
+  NoResultsState,
   isDataTableView,
   type DataTableColumnMeta,
   type DataTableView,
@@ -532,6 +533,19 @@ export default function CampaignsPage() {
 
   const hasData = data && data.data.length > 0;
 
+  // Whether any search/facet filter is currently narrowing the list. Drives the
+  // "no results vs first-run empty" distinction below.
+  const hasActiveFilters = search !== '' || statusFilter !== 'ALL';
+
+  // Reset everything that can hide rows (search + status + pagination) so the
+  // user can recover from a filter combination that matched nothing.
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setStatusFilter('ALL');
+    setPage(1);
+  };
+
   return (
     <>
       <NextSeo title="Campaigns" />
@@ -680,69 +694,64 @@ export default function CampaignsPage() {
             ) : !hasData ? (
               <Card>
                 <CardContent>
-                  <EmptyState
-                    icon={Mail}
-                    title={
-                      search
-                        ? 'No campaigns match'
-                        : statusFilter !== 'ALL'
-                          ? `No ${statusFilter.toLowerCase()} campaigns`
-                          : 'No campaigns yet'
-                    }
-                    description={
-                      search
-                        ? 'Try a different search term.'
-                        : statusFilter !== 'ALL'
-                          ? 'Adjust your filters or create a new campaign.'
-                          : 'Send one-off emails to groups of contacts.'
-                    }
-                    action={
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button>
-                            <Plus className="h-4 w-4" />
-                            Create Campaign
-                            <ChevronDown className="h-4 w-4 ml-1" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="center" className="w-80">
-                          <DropdownMenuItem asChild className="py-3 cursor-pointer">
-                            <Link href="/campaigns/create" className="flex items-start gap-3">
-                              <Mail className="h-4 w-4 mt-0.5 text-neutral-700" />
-                              <div className="flex flex-col gap-0.5 flex-1">
-                                <span className="font-medium text-sm">Empty Campaign</span>
-                                <span className="text-xs text-neutral-500 leading-snug">
-                                  Start from scratch with a blank canvas
-                                </span>
+                  {hasActiveFilters ? (
+                    // Items exist, but the active search/status filters matched
+                    // none — offer a one-click recovery.
+                    <NoResultsState icon={Mail} itemNoun="campaigns" onClear={clearFilters} />
+                  ) : (
+                    // Genuinely empty project — first-run state.
+                    <EmptyState
+                      icon={Mail}
+                      title="No campaigns yet"
+                      description="Send one-off emails to groups of contacts."
+                      action={
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button>
+                              <Plus className="h-4 w-4" />
+                              Create Campaign
+                              <ChevronDown className="h-4 w-4 ml-1" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="center" className="w-80">
+                            <DropdownMenuItem asChild className="py-3 cursor-pointer">
+                              <Link href="/campaigns/create" className="flex items-start gap-3">
+                                <Mail className="h-4 w-4 mt-0.5 text-neutral-700" />
+                                <div className="flex flex-col gap-0.5 flex-1">
+                                  <span className="font-medium text-sm">Empty Campaign</span>
+                                  <span className="text-xs text-neutral-500 leading-snug">
+                                    Start from scratch with a blank canvas
+                                  </span>
+                                </div>
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setShowTemplateDialog(true)} className="py-3 cursor-pointer">
+                              <div className="flex items-start gap-3">
+                                <FileText className="h-4 w-4 mt-0.5 text-neutral-700" />
+                                <div className="flex flex-col gap-0.5 flex-1">
+                                  <span className="font-medium text-sm">From Template</span>
+                                  <span className="text-xs text-neutral-500 leading-snug">
+                                    Use an existing template as a starting point
+                                  </span>
+                                </div>
                               </div>
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setShowTemplateDialog(true)} className="py-3 cursor-pointer">
-                            <div className="flex items-start gap-3">
-                              <FileText className="h-4 w-4 mt-0.5 text-neutral-700" />
-                              <div className="flex flex-col gap-0.5 flex-1">
-                                <span className="font-medium text-sm">From Template</span>
-                                <span className="text-xs text-neutral-500 leading-snug">
-                                  Use an existing template as a starting point
-                                </span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setShowCampaignDialog(true)} className="py-3 cursor-pointer">
+                              <div className="flex items-start gap-3">
+                                <RefreshCw className="h-4 w-4 mt-0.5 text-neutral-700" />
+                                <div className="flex flex-col gap-0.5 flex-1">
+                                  <span className="font-medium text-sm">From Previous Campaign</span>
+                                  <span className="text-xs text-neutral-500 leading-snug">
+                                    Copy content and settings from an existing campaign
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setShowCampaignDialog(true)} className="py-3 cursor-pointer">
-                            <div className="flex items-start gap-3">
-                              <RefreshCw className="h-4 w-4 mt-0.5 text-neutral-700" />
-                              <div className="flex flex-col gap-0.5 flex-1">
-                                <span className="font-medium text-sm">From Previous Campaign</span>
-                                <span className="text-xs text-neutral-500 leading-snug">
-                                  Copy content and settings from an existing campaign
-                                </span>
-                              </div>
-                            </div>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    }
-                  />
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      }
+                    />
+                  )}
                 </CardContent>
               </Card>
             ) : view === 'card' ? (

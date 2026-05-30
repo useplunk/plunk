@@ -54,7 +54,15 @@ export function BulkActionBar({selectedCount, itemNoun, onClear, children}: Bulk
           {selectedCount} {noun} selected
         </span>
       </div>
-      {children ? <div className="flex flex-wrap items-center gap-2">{children}</div> : null}
+      {children ? (
+        // Pin every action button to the same height/padding so the bar reads as
+        // a uniform group. `outline` triggers (which carry a border) and the
+        // solid `destructive` button otherwise read at subtly different sizes;
+        // forcing `h-8` + `px-3` here keeps them identical regardless of variant.
+        <div className="flex flex-wrap items-center gap-2 [&>button]:h-8 [&>button]:px-3 [&>button]:text-xs">
+          {children}
+        </div>
+      ) : null}
     </div>
   );
 }

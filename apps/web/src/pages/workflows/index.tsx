@@ -34,8 +34,10 @@ import {
   BulkActionBar,
   DataTable,
   DataTableColumnHeader,
+  DataTableFacetedFilter,
   DataTableViewOptions,
   DataTableViewSwitcher,
+  NoResultsState,
   isDataTableView,
   type DataTableColumnMeta,
   type DataTableView,
@@ -56,8 +58,19 @@ import dayjs from 'dayjs';
 
 type WorkflowRow = Workflow & {_count?: {steps: number; executions: number}};
 
+// Status facet values. Maps onto the API's `?status=active|disabled` filter
+// (which the backend resolves to the `enabled` boolean).
+type StatusFilter = 'ALL' | 'active' | 'disabled';
+
 const VIEW_STORAGE_KEY = 'plunk:workflows:view';
 const COLUMNS_STORAGE_KEY = 'plunk:workflows:columns';
+
+// Fixed-value options for the Status column's faceted filter (table view) and
+// the card-view pill row. Single source of truth for both.
+const STATUS_OPTIONS: ReadonlyArray<{value: Exclude<StatusFilter, 'ALL'>; label: string}> = [
+  {value: 'active', label: 'Active'},
+  {value: 'disabled', label: 'Disabled'},
+];
 
 // Name + Actions are locked-visible (see lockedColumnIds below). `select` is
 // also locked. Everything starts visible.
@@ -75,6 +88,7 @@ export default function WorkflowsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<string | null>(null);
@@ -95,9 +109,9 @@ export default function WorkflowsPage() {
   const dirParam = sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : '';
 
   const {data, mutate, isLoading} = useSWR<PaginatedResponse<WorkflowRow>>(
-    `/workflows?page=${page}&pageSize=20${search ? `&search=${search}` : ''}${
-      sortParam ? `&sort=${sortParam}&dir=${dirParam}` : ''
-    }`,
+    `/workflows?page=${page}&pageSize=20${search ? `&search=${encodeURIComponent(search)}` : ''}${
+      statusFilter !== 'ALL' ? `&status=${statusFilter}` : ''
+    }${sortParam ? `&sort=${sortParam}&dir=${dirParam}` : ''}`,
     {revalidateOnFocus: false},
   );
 
@@ -115,7 +129,7 @@ export default function WorkflowsPage() {
   // can no longer see.
   useEffect(() => {
     setRowSelection({});
-  }, [page, search]);
+  }, [page, search, statusFilter]);
 
   const handleDelete = async () => {
     if (!workflowToDelete) return;
@@ -252,9 +266,29 @@ export default function WorkflowsPage() {
       },
       {
         id: 'status',
-        enableSorting: false, // No backend sort field for enabled.
+        enableSorting: false, // Status is faceted-filtered, not sorted.
         meta: {label: 'Status'} satisfies DataTableColumnMeta,
-        header: ({column}) => <DataTableColumnHeader column={column}>Status</DataTableColumnHeader>,
+        header: ({column}) => (
+          <DataTableColumnHeader
+            column={column}
+            // Single-select facet — mirrors the API's `?status=active|disabled`
+            // filter (Prisma `enabled` boolean). Matches the campaigns Status facet.
+            filter={
+              <DataTableFacetedFilter
+                title="Status"
+                multiple={false}
+                options={STATUS_OPTIONS.map(s => ({value: s.value, label: s.label}))}
+                selected={statusFilter === 'ALL' ? [] : [statusFilter]}
+                onChange={next => {
+                  setStatusFilter((next[0] as StatusFilter) ?? 'ALL');
+                  setPage(1);
+                }}
+              />
+            }
+          >
+            Status
+          </DataTableColumnHeader>
+        ),
         cell: ({row}) => (
           <Badge variant={row.original.enabled ? 'success' : 'neutral'} className="shrink-0">
             {row.original.enabled ? (
@@ -273,7 +307,11 @@ export default function WorkflowsPage() {
       },
       {
         id: 'steps',
-        enableSorting: false, // No backend sort field for computed counts.
+        // Sorts by the related step count. The backend maps `?sort=steps` onto
+        // Prisma's `orderBy: {steps: {_count}}`. Larger counts feel more natural
+        // on the first click, so flip to descending first.
+        enableSorting: true,
+        sortDescFirst: true,
         meta: {label: 'Steps'} satisfies DataTableColumnMeta,
         header: ({column}) => <DataTableColumnHeader column={column}>Steps</DataTableColumnHeader>,
         cell: ({row}) => (
@@ -348,9 +386,9 @@ export default function WorkflowsPage() {
       },
     ],
     // Re-creating columns on every render is cheap and avoids stale-closure bugs
-    // for the toggle/delete/duplicate handlers.
+    // for the toggle/delete/duplicate handlers and the status-facet state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [statusFilter],
   );
 
   const table = useReactTable<WorkflowRow>({
@@ -371,6 +409,19 @@ export default function WorkflowsPage() {
   const shiftSelect = useShiftClickSelection(table);
 
   const hasData = data && data.data.length > 0;
+
+  // Whether any search/facet filter is currently narrowing the list. Drives the
+  // "no results vs first-run empty" distinction below.
+  const hasActiveFilters = search !== '' || statusFilter !== 'ALL';
+
+  // Reset everything that can hide rows (search + status + pagination) so the
+  // user can recover from a filter combination that matched nothing.
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setStatusFilter('ALL');
+    setPage(1);
+  };
 
   return (
     <>
@@ -395,10 +446,11 @@ export default function WorkflowsPage() {
 
           {/* Control row.
               - Search input: always present (both views).
+              - Status filter pills: CARD VIEW ONLY. In table view the Status
+                filter lives in the column header facet, so the pills are not
+                rendered (mirrors the campaigns Status-filter precedent).
               - Columns selector: table view only.
-              - View switcher rounds out the row. The workflows list has no
-                fixed-value filter today, so there is no faceted filter / pill
-                row to gate behind the card view. */}
+              - View switcher rounds out the row. */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -424,6 +476,24 @@ export default function WorkflowsPage() {
                 </button>
               )}
             </div>
+            {view === 'card' && (
+              <div className="flex gap-1.5 shrink-0 flex-wrap">
+                {([{value: 'ALL', label: 'All'}, ...STATUS_OPTIONS] as const).map(status => (
+                  <Button
+                    key={status.value}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(status.value as StatusFilter);
+                      setPage(1);
+                    }}
+                    variant={statusFilter === status.value ? 'default' : 'secondary'}
+                    size="sm"
+                  >
+                    {status.label}
+                  </Button>
+                ))}
+              </div>
+            )}
             {view === 'table' && (
               <div className="shrink-0">
                 <DataTableViewOptions table={table} lockedColumnIds={['select', 'name', 'actions']} />
@@ -463,19 +533,24 @@ export default function WorkflowsPage() {
             ) : !hasData ? (
               <Card>
                 <CardContent>
-                  <EmptyState
-                    icon={WorkflowIcon}
-                    title={search ? 'No workflows match' : 'No workflows yet'}
-                    description={search ? 'Try a different search term.' : 'Automate emails triggered by contact events.'}
-                    action={
-                      !search ? (
+                  {hasActiveFilters ? (
+                    // Items exist, but the active search/status filters matched
+                    // none — offer a one-click recovery.
+                    <NoResultsState icon={WorkflowIcon} itemNoun="workflows" onClear={clearFilters} />
+                  ) : (
+                    // Genuinely empty project — first-run state.
+                    <EmptyState
+                      icon={WorkflowIcon}
+                      title="No workflows yet"
+                      description="Automate emails triggered by contact events."
+                      action={
                         <Button onClick={() => setShowCreateDialog(true)}>
                           <Plus className="h-4 w-4" />
                           Create Workflow
                         </Button>
-                      ) : undefined
-                    }
-                  />
+                      }
+                    />
+                  )}
                 </CardContent>
               </Card>
             ) : view === 'card' ? (
