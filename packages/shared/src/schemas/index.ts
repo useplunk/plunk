@@ -106,6 +106,7 @@ export const ContactSchemas = {
       filter: z
         .object({
           search: z.string().max(255).optional(),
+          subscribed: z.boolean().optional(),
         })
         .default({}),
       excludeIds: z.array(uuid).max(10000).optional(),

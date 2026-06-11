@@ -39,7 +39,17 @@ export class Contacts {
     const cursor = req.query.cursor as string | undefined;
     const search = req.query.search as string | undefined;
 
-    const result = await ContactService.list(auth.projectId!, limit, cursor, search);
+    // Optional status facet (?subscribed=true|false) and column sort
+    // (?sort=email|createdAt&dir=asc|desc). Anything else falls back to the
+    // default newest-first ordering with no status filter.
+    const subscribedParam = req.query.subscribed as string | undefined;
+    const subscribed = subscribedParam === 'true' ? true : subscribedParam === 'false' ? false : undefined;
+    const sortParam = req.query.sort as string | undefined;
+    const sort = sortParam === 'email' || sortParam === 'createdAt' ? sortParam : undefined;
+    const dirParam = req.query.dir as string | undefined;
+    const dir = dirParam === 'asc' ? 'asc' : dirParam === 'desc' ? 'desc' : undefined;
+
+    const result = await ContactService.list(auth.projectId!, limit, cursor, search, {subscribed, sort, dir});
 
     return res.status(200).json(result);
   }

@@ -16,6 +16,13 @@ export class ContactService {
     limit = 20,
     cursor?: string,
     search?: string,
+    options?: {
+      /** Filter by subscription state. Backed by the `(projectId, subscribed)` index. */
+      subscribed?: boolean;
+      /** Sortable columns. `email` is covered by the `(projectId, email)` unique index. */
+      sort?: 'email' | 'createdAt';
+      dir?: 'asc' | 'desc';
+    },
   ): Promise<CursorPaginatedResponse<Contact>> {
     const where: Prisma.ContactWhereInput = {
       projectId,
@@ -27,20 +34,25 @@ export class ContactService {
             },
           }
         : {}),
+      ...(options?.subscribed !== undefined ? {subscribed: options.subscribed} : {}),
     };
 
-    // Fetch one extra to determine if there are more results
-    // Use composite ordering (createdAt + id) to ensure stable pagination
-    // This prevents skipping records when multiple contacts have the same createdAt
+    // The chosen sort column leads; `id` is always the stable tiebreaker the
+    // cursor (`{id}`) keys off, so keyset pagination stays correct under any
+    // sort (createdAt is non-unique, hence the tiebreaker; email is unique per
+    // project but kept consistent for the same cursor mechanics). Defaults to
+    // newest-first, matching the previous behaviour.
+    const dir: 'asc' | 'desc' = options?.dir === 'asc' ? 'asc' : 'desc';
+    const orderBy: Prisma.ContactOrderByWithRelationInput[] =
+      options?.sort === 'email' ? [{email: dir}, {id: 'desc'}] : [{createdAt: dir}, {id: 'desc'}];
+
+    // Fetch one extra to determine if there are more results.
     const contacts = await prisma.contact.findMany({
       where,
       take: limit + 1,
       skip: cursor ? 1 : 0,
       cursor: cursor ? {id: cursor} : undefined,
-      orderBy: [
-        {createdAt: 'desc'},
-        {id: 'desc'}, // Secondary sort by id for stable cursor pagination
-      ],
+      orderBy,
     });
 
     const hasMore = contacts.length > limit;

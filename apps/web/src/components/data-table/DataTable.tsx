@@ -22,6 +22,13 @@ interface DataTableProps<TData> {
    * all, but this keeps the component self-sufficient.
    */
   emptyState?: React.ReactNode;
+  /**
+   * Optional predicate for the selected-row highlight. Pages that own their own
+   * selection model (e.g. contacts' "select all matching" across cursor pages)
+   * rather than tanstack's `rowSelection` can pass it here so the `data-state`
+   * styling still reflects their selection. Defaults to `row.getIsSelected()`.
+   */
+  getRowSelected?: (row: TData) => boolean;
 }
 
 /**
@@ -35,7 +42,7 @@ interface DataTableProps<TData> {
  * (`DataTableColumnHeader`); this component owns the `aria-sort` attribute on
  * each `<th>` so it always mirrors the real sort state.
  */
-export function DataTable<TData>({table, emptyState}: DataTableProps<TData>) {
+export function DataTable<TData>({table, emptyState, getRowSelected}: DataTableProps<TData>) {
   const rows = table.getRowModel().rows;
   const leafColumnCount = table.getVisibleLeafColumns().length;
 
@@ -79,7 +86,12 @@ export function DataTable<TData>({table, emptyState}: DataTableProps<TData>) {
           </TableRow>
         ) : (
           rows.map(row => (
-            <TableRow key={row.id} data-state={row.getIsSelected() ? 'selected' : undefined}>
+            <TableRow
+              key={row.id}
+              data-state={
+                (getRowSelected ? getRowSelected(row.original) : row.getIsSelected()) ? 'selected' : undefined
+              }
+            >
               {row.getVisibleCells().map(cell => {
                 const meta = cell.column.columnDef.meta as DataTableColumnMeta | undefined;
                 return (

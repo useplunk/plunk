@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Card,
   CardContent,
@@ -9,18 +10,43 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  EmptyState,
   IconSpinner,
   Input,
   Label,
   Switch,
 } from '@plunk/ui';
 import type {Contact} from '@plunk/db';
+import {ContactSchemas} from '@plunk/shared';
 import type {CursorPaginatedResponse} from '@plunk/types';
-import {EmptyState} from '@plunk/ui';
+import {
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type OnChangeFn,
+  type SortingState,
+  type VisibilityState,
+} from '@tanstack/react-table';
 import {DashboardLayout} from '../../components/DashboardLayout';
+import {
+  BulkActionBar,
+  DataTable,
+  DataTableColumnHeader,
+  DataTableFacetedFilter,
+  DataTableFilter,
+  DataTableViewOptions,
+  DataTableViewSwitcher,
+  NoResultsState,
+  isDataTableView,
+  type DataTableColumnMeta,
+  type DataTableView,
+  type FacetedFilterOption,
+} from '../../components/data-table';
 import {KeyValueEditor} from '../../components/KeyValueEditor';
 import {network} from '../../lib/network';
 import {formatRelativeTime} from '../../lib/dateUtils';
+import {useColumnVisibility} from '../../lib/hooks/useColumnVisibility';
+import {usePersistentState} from '../../lib/hooks/usePersistentState';
 import {
   AlertTriangle,
   Check,
@@ -43,11 +69,33 @@ import {
 } from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {toast} from 'sonner';
 import useSWR from 'swr';
-import {ContactSchemas} from '@plunk/shared';
 import dayjs from 'dayjs';
+
+type StatusFilter = 'ALL' | 'subscribed' | 'unsubscribed';
+
+const VIEW_STORAGE_KEY = 'plunk:contacts:view';
+const COLUMNS_STORAGE_KEY = 'plunk:contacts:columns';
+
+// Fixed-value options for the Status faceted filter (table header) and the
+// card-view toolbar dropdown. Single source of truth for both.
+const STATUS_OPTIONS: FacetedFilterOption[] = [
+  {value: 'subscribed', label: 'Subscribed'},
+  {value: 'unsubscribed', label: 'Unsubscribed'},
+];
+
+// select + email + actions are locked-visible (see lockedColumnIds). `updatedAt`
+// starts hidden so the Columns menu has a meaningful toggle out of the box.
+const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
+  select: true,
+  email: true,
+  status: true,
+  createdAt: true,
+  updatedAt: false,
+  actions: true,
+};
 
 export default function ContactsPage() {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -56,6 +104,10 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [view, setView] = usePersistentState<DataTableView>(VIEW_STORAGE_KEY, 'table', isDataTableView);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useColumnVisibility(COLUMNS_STORAGE_KEY, DEFAULT_COLUMN_VISIBILITY);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -68,12 +120,20 @@ export default function ContactsPage() {
   const [bulkOperation, setBulkOperation] = useState<'subscribe' | 'unsubscribe' | 'delete' | null>(null);
   const pageSize = 50;
 
+  // Backend is authoritative for sorting + status filtering
+  // (?sort=&dir=, ?subscribed=); the client only mirrors the active state.
+  const sortParam = sorting[0]?.id ?? '';
+  const dirParam = sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : '';
+  const subscribedParam = statusFilter === 'subscribed' ? 'true' : statusFilter === 'unsubscribed' ? 'false' : '';
+
   const {data, mutate, isLoading} = useSWR<CursorPaginatedResponse<Contact>>(
-    `/contacts?limit=${pageSize}${cursor ? `&cursor=${cursor}` : ''}${search ? `&search=${search}` : ''}`,
+    `/contacts?limit=${pageSize}${cursor ? `&cursor=${cursor}` : ''}${
+      search ? `&search=${encodeURIComponent(search)}` : ''
+    }${subscribedParam ? `&subscribed=${subscribedParam}` : ''}${sortParam ? `&sort=${sortParam}&dir=${dirParam}` : ''}`,
     {revalidateOnFocus: false},
   );
 
-    useEffect(() => {
+  useEffect(() => {
     if (data) {
       setContacts(data.data);
       if (!cursor) {
@@ -82,17 +142,42 @@ export default function ContactsPage() {
     }
   }, [data, cursor]);
 
+  // Reset the cursor stack — used whenever the query (search/status) or the
+  // ordering changes, since cursors are tied to a specific filter + sort.
+  const resetPagination = () => {
+    setCursor(undefined);
+    setCursorHistory([undefined]);
+    setCurrentPage(0);
+    setContacts([]);
+  };
+
+  const clearSelection = () => {
+    setSelectedContacts(new Set());
+    setSelectAllMatching(false);
+    setExcludedContacts(new Set());
+  };
+
+  const handleStatusChange = (next: StatusFilter) => {
+    setStatusFilter(next);
+    resetPagination();
+    clearSelection();
+  };
+
+  // Sorting only reorders the same matching set, so selection survives; but the
+  // cursor stack is tied to the old ordering and must restart from the first page.
+  const handleSortingChange: OnChangeFn<SortingState> = updater => {
+    setSorting(prev => (typeof updater === 'function' ? updater(prev) : updater));
+    resetPagination();
+  };
+
+  // Debounced search. Changing the query resets pagination and selection (the
+  // matching set changed, so per-id selections no longer make sense).
   useEffect(() => {
     if (searchInput === search) return;
     const timer = setTimeout(() => {
       setSearch(searchInput);
-      setCursor(undefined);
-      setCursorHistory([undefined]);
-      setCurrentPage(0);
-      setContacts([]);
-      setSelectedContacts(new Set());
-      setSelectAllMatching(false);
-      setExcludedContacts(new Set());
+      resetPagination();
+      clearSelection();
     }, 350);
     return () => clearTimeout(timer);
   }, [searchInput, search]);
@@ -176,8 +261,11 @@ export default function ContactsPage() {
     });
   };
 
-  const isContactSelected = (contactId: string) =>
-    selectAllMatching ? !excludedContacts.has(contactId) : selectedContacts.has(contactId);
+  // Function declaration (hoisted) so the column defs and derived values above
+  // can reference it regardless of source order.
+  function isContactSelected(contactId: string) {
+    return selectAllMatching ? !excludedContacts.has(contactId) : selectedContacts.has(contactId);
+  }
 
   const effectiveSelectionCount = selectAllMatching
     ? Math.max(0, totalCount - excludedContacts.size)
@@ -186,12 +274,6 @@ export default function ContactsPage() {
   const handleBulkAction = (operation: 'subscribe' | 'unsubscribe' | 'delete') => {
     setBulkOperation(operation);
     setShowBulkActionsDialog(true);
-  };
-
-  const clearSelection = () => {
-    setSelectedContacts(new Set());
-    setSelectAllMatching(false);
-    setExcludedContacts(new Set());
   };
 
   const handleSelectAllMatching = () => {
@@ -219,321 +301,460 @@ export default function ContactsPage() {
     }
   };
 
+  const hasData = contacts.length > 0;
+
+  // Whether any search/status filter is narrowing the list — drives the
+  // "no results vs first-run empty" distinction below.
+  const hasActiveFilters = search !== '' || statusFilter !== 'ALL';
+
+  // Reset everything that can hide rows (search + status + pagination) so the
+  // user can recover from a filter combination that matched nothing.
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setStatusFilter('ALL');
+    resetPagination();
+    clearSelection();
+  };
+
+  const columns = useMemo<Array<ColumnDef<Contact, unknown>>>(
+    () => [
+      {
+        id: 'select',
+        enableSorting: false,
+        enableHiding: false, // Selection column is locked-visible.
+        meta: {label: 'Select', headClassName: 'w-10', cellClassName: 'w-10'} satisfies DataTableColumnMeta,
+        header: () => (
+          <Checkbox
+            aria-label="Select all contacts on this page"
+            checked={allOnPageSelected ? true : contacts.some(c => isContactSelected(c.id)) ? 'indeterminate' : false}
+            onCheckedChange={handleSelectAll}
+          />
+        ),
+        cell: ({row}) => (
+          <Checkbox
+            aria-label={`Select ${row.original.email}`}
+            checked={isContactSelected(row.original.id)}
+            onClick={e => e.stopPropagation()}
+            onCheckedChange={() => handleSelectContact(row.original.id)}
+          />
+        ),
+      },
+      {
+        id: 'email',
+        accessorKey: 'email',
+        enableHiding: false, // Email column is locked-visible.
+        meta: {label: 'Email'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Email</DataTableColumnHeader>,
+        cell: ({row}) => (
+          <div className="flex items-center gap-2">
+            {row.original.subscribed ? (
+              <MailCheck className="h-4 w-4 shrink-0 text-green-600" aria-hidden="true" />
+            ) : (
+              <MailX className="h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
+            )}
+            <Link
+              href={`/contacts/${row.original.id}`}
+              className="text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
+            >
+              {row.original.email}
+            </Link>
+          </div>
+        ),
+      },
+      {
+        id: 'status',
+        accessorKey: 'subscribed',
+        enableSorting: false, // Status is faceted-filtered, not sorted.
+        meta: {label: 'Status'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader
+            column={column}
+            filter={
+              <DataTableFacetedFilter
+                title="Status"
+                multiple={false}
+                options={STATUS_OPTIONS}
+                selected={statusFilter === 'ALL' ? [] : [statusFilter]}
+                onChange={next => handleStatusChange((next[0] as StatusFilter) ?? 'ALL')}
+              />
+            }
+          >
+            Status
+          </DataTableColumnHeader>
+        ),
+        cell: ({row}) => (
+          <Badge variant={row.original.subscribed ? 'success' : 'destructive'}>
+            {row.original.subscribed ? 'Subscribed' : 'Unsubscribed'}
+          </Badge>
+        ),
+      },
+      {
+        id: 'createdAt',
+        accessorKey: 'createdAt',
+        sortDescFirst: true, // First click surfaces the newest contacts.
+        meta: {label: 'Created'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Created</DataTableColumnHeader>,
+        cell: ({row}) => (
+          <div className="group relative inline-block cursor-help text-sm text-neutral-500 whitespace-nowrap">
+            {formatRelativeTime(row.original.createdAt)}
+            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-1/2 transform -translate-x-1/2 mb-1 whitespace-nowrap">
+              {dayjs(row.original.createdAt).format('DD MMMM YYYY, hh:mm')}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'updatedAt',
+        accessorKey: 'updatedAt',
+        enableSorting: false, // No backend sort field for updatedAt.
+        meta: {label: 'Updated'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Updated</DataTableColumnHeader>,
+        cell: ({row}) => (
+          <span className="text-sm text-neutral-500 whitespace-nowrap">
+            {formatRelativeTime(row.original.updatedAt)}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        enableSorting: false,
+        enableHiding: false, // Actions column is locked-visible.
+        meta: {label: 'Actions', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: () => <span className="flex justify-end">Actions</span>,
+        cell: ({row}) => (
+          <div className="flex items-center justify-end gap-1">
+            <Button asChild variant="ghost" size="sm" title="Edit contact">
+              <Link href={`/contacts/${row.original.id}`} aria-label="Edit contact">
+                <Edit className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              title="Delete contact"
+              aria-label="Delete contact"
+              onClick={() => promptDelete(row.original.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    // Re-create columns when the facet selection or selection model changes so
+    // the select-column checkboxes and the Status facet read fresh state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [statusFilter, selectAllMatching, selectedContacts, excludedContacts, contacts, allOnPageSelected],
+  );
+
+  const table = useReactTable<Contact>({
+    data: contacts,
+    columns,
+    state: {sorting, columnVisibility},
+    onSortingChange: handleSortingChange,
+    onColumnVisibilityChange: setColumnVisibility,
+    enableRowSelection: false, // Contacts owns a custom select-all-matching model.
+    enableMultiSort: false,
+    manualSorting: true, // Backend handles sorting; client just exposes ?sort=&dir=.
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: row => row.id,
+  });
+
   return (
     <>
       <NextSeo title="Contacts" />
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Contacts</h1>
-                <p className="text-neutral-500 mt-2 text-sm sm:text-base">
-                  Manage your email subscribers and their data.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowImportDialog(true)} className="flex-1 sm:flex-none">
-                  <Upload className="h-4 w-4" />
-                  <span className="hidden sm:inline">Import CSV</span>
-                  <span className="sm:hidden">Import</span>
-                </Button>
-                <Button onClick={() => setShowCreateDialog(true)} className="flex-1 sm:flex-none">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Add Contact</span>
-                  <span className="sm:hidden">Add</span>
-                </Button>
-              </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Contacts</h1>
+              <p className="text-neutral-500 mt-2 text-sm sm:text-base">
+                Manage your email subscribers and their data.{' '}
+                {totalCount > 0 ? `${totalCount.toLocaleString()} ${hasActiveFilters ? 'matching' : 'total'}` : ''}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowImportDialog(true)} className="flex-1 sm:flex-none">
+                <Upload className="h-4 w-4" />
+                <span className="hidden sm:inline">Import CSV</span>
+                <span className="sm:hidden">Import</span>
+              </Button>
+              <Button onClick={() => setShowCreateDialog(true)} className="flex-1 sm:flex-none">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add Contact</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
             </div>
           </div>
 
-          {/* Contacts Table */}
-          <Card>
-            {/* Contextual header strip: idle = search + count, selecting = bulk actions.
-                Single fixed-min-height row prevents layout shift as state toggles.
-                The select-all-matching link is folded inline into the toolbar. */}
-            <div
-              key={effectiveSelectionCount === 0 ? 'idle' : 'selecting'}
-              className="border-b border-neutral-200 px-6 min-h-[68px] flex items-center py-3 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150"
-            >
-              {effectiveSelectionCount === 0 ? (
-                <div className="flex items-center gap-4 w-full">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
-                    <Input
-                      type="text"
-                      placeholder="Search by email..."
-                      value={searchInput}
-                      onChange={e => setSearchInput(e.target.value)}
-                      className="pl-10 pr-9 h-10"
-                    />
-                    {searchInput && (
-                      <button
-                        type="button"
-                        aria-label="Clear search"
-                        onClick={() => {
-                          setSearchInput('');
-                          setSearch('');
-                          setCursor(undefined);
-                          setCursorHistory([undefined]);
-                          setCurrentPage(0);
-                          setContacts([]);
-                        }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-neutral-400 transition-colors hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                  {totalCount > 0 && (
-                    <span className="hidden sm:inline text-sm text-neutral-500 tabular-nums whitespace-nowrap">
-                      {totalCount.toLocaleString()} {search ? 'matching' : 'total'}
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center justify-between gap-3 w-full">
-                  <div className="flex items-center gap-x-4 gap-y-2 min-w-0 flex-wrap">
-                    <span className="text-sm font-medium text-neutral-900 tabular-nums whitespace-nowrap">
-                      {effectiveSelectionCount.toLocaleString()} selected
-                    </span>
-                    {!selectAllMatching && allOnPageSelected && totalCount > contacts.length && (
-                      <button
-                        type="button"
-                        onClick={handleSelectAllMatching}
-                        className="text-sm font-medium text-neutral-600 underline-offset-4 transition-colors hover:text-neutral-900 hover:underline focus-visible:outline-none focus-visible:underline focus-visible:text-neutral-900 whitespace-nowrap rounded-sm tabular-nums"
-                      >
-                        Select all {totalCount.toLocaleString()}
-                        {search ? ' matching' : ''}
-                      </button>
-                    )}
-                    <div className="hidden sm:block h-5 w-px bg-neutral-200" aria-hidden="true" />
-                    <div className="flex gap-1.5">
-                      <Button variant="outline" size="sm" onClick={() => handleBulkAction('subscribe')}>
-                        <MailCheck className="h-4 w-4 mr-1.5" />
-                        Subscribe
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleBulkAction('unsubscribe')}>
-                        <MailX className="h-4 w-4 mr-1.5" />
-                        Unsubscribe
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleBulkAction('delete')}
-                        className="text-neutral-700 transition-colors hover:bg-red-50 hover:text-red-700 hover:border-red-200"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1.5" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearSelection}
-                    aria-label="Clear selection"
-                    className="text-neutral-500 hover:text-neutral-900"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+          {/* Control row. One aligned cluster of 32px-tall controls:
+              - Search input: always present (both views).
+              - Status filter: CARD VIEW ONLY, as a toolbar dropdown matching the
+                Columns selector. In table view the Status filter lives in the
+                column header facet instead (same shared menu body).
+              - Columns selector: TABLE VIEW ONLY.
+              - A hairline divider separates the data controls from the view switcher. */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+              <Input
+                type="text"
+                placeholder="Search by email..."
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="pl-10 pr-10 h-8 text-xs"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearchInput('');
+                    setSearch('');
+                    resetPagination();
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               )}
             </div>
-            <CardContent className="p-0">
-              {isLoading && contacts.length === 0 ? (
-                <div className="flex items-center justify-center py-16">
-                  <IconSpinner />
-                </div>
-              ) : contacts.length === 0 ? (
-                <div className="px-6 py-12">
-                  <EmptyState
-                    icon={Mail}
-                    title={search ? 'No contacts match' : 'No contacts yet'}
-                    description={search ? 'Try a different search term.' : 'Add contacts to start tracking engagement.'}
-                    action={
-                      !search ? (
+            <div className="flex items-center gap-2 shrink-0">
+              {view === 'card' && (
+                <DataTableFilter
+                  title="Status"
+                  multiple={false}
+                  options={STATUS_OPTIONS}
+                  selected={statusFilter === 'ALL' ? [] : [statusFilter]}
+                  onChange={next => handleStatusChange((next[0] as StatusFilter) ?? 'ALL')}
+                />
+              )}
+              {view === 'table' && (
+                <DataTableViewOptions table={table} lockedColumnIds={['select', 'email', 'actions']} />
+              )}
+              <span className="hidden sm:block h-5 w-px bg-neutral-200" aria-hidden="true" />
+              <DataTableViewSwitcher view={view} onChange={setView} />
+            </div>
+          </div>
+
+          {/* Bulk action bar — appears in both views once a selection exists.
+              Reuses the shared bar; the "select all matching" affordance rides in
+              the `note` slot, the three async bulk operations are the children. */}
+          {effectiveSelectionCount > 0 && (
+            <BulkActionBar
+              selectedCount={effectiveSelectionCount}
+              itemNoun="contact"
+              onClear={clearSelection}
+              note={
+                !selectAllMatching && allOnPageSelected && totalCount > contacts.length ? (
+                  <button
+                    type="button"
+                    onClick={handleSelectAllMatching}
+                    className="text-sm font-medium text-neutral-600 underline-offset-4 transition-colors hover:text-neutral-900 hover:underline focus-visible:outline-none focus-visible:underline focus-visible:text-neutral-900 whitespace-nowrap rounded-sm tabular-nums"
+                  >
+                    Select all {totalCount.toLocaleString()}
+                    {hasActiveFilters ? ' matching' : ''}
+                  </button>
+                ) : selectAllMatching ? (
+                  <span className="text-sm text-neutral-500 whitespace-nowrap">All matching selected</span>
+                ) : null
+              }
+            >
+              <Button variant="outline" size="sm" onClick={() => handleBulkAction('subscribe')}>
+                <MailCheck className="h-4 w-4" />
+                Subscribe
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleBulkAction('unsubscribe')}>
+                <MailX className="h-4 w-4" />
+                Unsubscribe
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkAction('delete')}
+                className="text-neutral-700 transition-colors hover:bg-red-50 hover:text-red-700 hover:border-red-200"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            </BulkActionBar>
+          )}
+
+          {/* Contacts */}
+          <div>
+            {isLoading && contacts.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-center py-12">
+                    <IconSpinner />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : !hasData ? (
+              <Card>
+                <CardContent>
+                  {hasActiveFilters ? (
+                    // Items exist, but the active search/status filters matched
+                    // none — offer a one-click recovery.
+                    <NoResultsState icon={Mail} itemNoun="contacts" onClear={clearFilters} />
+                  ) : (
+                    // Genuinely empty project — first-run state.
+                    <EmptyState
+                      icon={Mail}
+                      title="No contacts yet"
+                      description="Add contacts to start tracking engagement."
+                      action={
                         <Button onClick={() => setShowCreateDialog(true)}>
                           <Plus className="h-4 w-4" />
                           Add Contact
                         </Button>
-                      ) : undefined
-                    }
-                  />
-                </div>
-              ) : (
-                <>
-                  {/* Desktop Table View - Hidden on mobile */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-neutral-50 border-b border-neutral-200">
-                        <tr>
-                          <th className="px-6 py-3 text-left w-12">
-                            <Checkbox
-                              checked={allOnPageSelected}
-                              onCheckedChange={handleSelectAll}
-                            />
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                            Email
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                            Status
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                            Created
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-neutral-200">
-                        {contacts.map(contact => (
-                          <tr key={contact.id} className="hover:bg-neutral-50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Checkbox
-                                checked={isContactSelected(contact.id)}
-                                onCheckedChange={() => handleSelectContact(contact.id)}
-                              />
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                {contact.subscribed ? (
-                                  <MailCheck className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <MailX className="h-4 w-4 text-red-600" />
-                                )}
-                                <Link
-                                  href={`/contacts/${contact.id}`}
-                                  className="text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
-                                >
-                                  {contact.email}
-                                </Link>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  contact.subscribed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                }`}
+                      }
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            ) : view === 'card' ? (
+              <>
+                {/* Card grid view */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {contacts.map(contact => {
+                    const selected = isContactSelected(contact.id);
+                    return (
+                      <Card
+                        key={contact.id}
+                        data-state={selected ? 'selected' : undefined}
+                        className="flex flex-col transition-colors hover:border-neutral-300 data-[state=selected]:border-neutral-400 data-[state=selected]:bg-neutral-50/60"
+                      >
+                        <div className="flex items-start gap-3 p-4">
+                          <Checkbox
+                            className="mt-0.5 shrink-0"
+                            checked={selected}
+                            onCheckedChange={() => handleSelectContact(contact.id)}
+                            aria-label={`Select ${contact.email}`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <Link
+                                href={`/contacts/${contact.id}`}
+                                className="flex min-w-0 items-center gap-2 text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
                               >
+                                {contact.subscribed ? (
+                                  <MailCheck className="h-4 w-4 shrink-0 text-green-600" aria-hidden="true" />
+                                ) : (
+                                  <MailX className="h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
+                                )}
+                                <span className="truncate">{contact.email}</span>
+                              </Link>
+                              <Badge variant={contact.subscribed ? 'success' : 'destructive'} className="shrink-0">
                                 {contact.subscribed ? 'Subscribed' : 'Unsubscribed'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
+                              </Badge>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between">
                               <div className="group relative inline-block cursor-help">
-                                {formatRelativeTime(contact.createdAt)}
-                                <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-1/2 transform -translate-x-1/2 mb-1 whitespace-nowrap">
+                                <span className="text-xs text-neutral-400">
+                                  Added {formatRelativeTime(contact.createdAt)}
+                                </span>
+                                <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
                                   {dayjs(contact.createdAt).format('DD MMMM YYYY, hh:mm')}
                                 </div>
                               </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button asChild variant="ghost" size="sm">
-                                  <Link href={`/contacts/${contact.id}`}><Edit className="h-4 w-4" /></Link>
+                              <div className="flex items-center gap-1">
+                                <Button asChild variant="ghost" size="sm" title="Edit contact">
+                                  <Link href={`/contacts/${contact.id}`} aria-label="Edit contact">
+                                    <Edit className="h-4 w-4" />
+                                  </Link>
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => promptDelete(contact.id)}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Delete contact"
+                                  aria-label="Delete contact"
+                                  onClick={() => promptDelete(contact.id)}
+                                >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile Card View - Only visible on mobile */}
-                  <div className="md:hidden space-y-3 p-4">
-                    {contacts.map(contact => (
-                      <div
-                        key={contact.id}
-                        className="border border-neutral-200 rounded-lg p-4 bg-white hover:bg-neutral-50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            {contact.subscribed ? (
-                              <MailCheck className="h-4 w-4 text-green-600 flex-shrink-0" />
-                            ) : (
-                              <MailX className="h-4 w-4 text-red-600 flex-shrink-0" />
-                            )}
-                            <Link
-                              href={`/contacts/${contact.id}`}
-                              className="text-sm font-medium text-neutral-900 truncate hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
-                            >
-                              {contact.email}
-                            </Link>
-                          </div>
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
-                              contact.subscribed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {contact.subscribed ? 'Subscribed' : 'Unsubscribed'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="group relative inline-block cursor-help">
-                            <span className="text-xs text-neutral-500">{formatRelativeTime(contact.createdAt)}</span>
-                            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
-                              {dayjs(contact.createdAt).format('Do MMMM YYYY, h:mm A')}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Button asChild variant="ghost" size="sm">
-                              <Link href={`/contacts/${contact.id}`}><Edit className="h-4 w-4" /></Link>
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => promptDelete(contact.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      </Card>
+                    );
+                  })}
+                </div>
 
-                  {/* Pagination Controls */}
-                  {(currentPage > 0 || data?.hasMore) && (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 py-4 border-t border-neutral-200">
-                      <div className="text-xs sm:text-sm text-neutral-600 text-center sm:text-left">
-                        Showing <span className="font-medium text-neutral-900">{currentPage * pageSize + 1}</span> to{' '}
-                        <span className="font-medium text-neutral-900">{currentPage * pageSize + contacts.length}</span>
-                        {totalCount > 0 && (
-                          <>
-                            {' '}
-                            of <span className="font-medium text-neutral-900">{totalCount.toLocaleString()}</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="flex gap-2 justify-center sm:justify-end">
-                        <Button
-                          variant="outline"
-                          onClick={handlePreviousPage}
-                          disabled={currentPage === 0 || isLoading}
-                          className="flex-1 sm:flex-none"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                          <span className="hidden sm:inline">Previous</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={handleNextPage}
-                          disabled={!data?.hasMore || isLoading}
-                          className="flex-1 sm:flex-none"
-                        >
-                          <span className="hidden sm:inline">Next</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {(currentPage > 0 || data?.hasMore) && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6">
+                    <p className="text-sm text-neutral-500 tabular-nums">
+                      Showing {(currentPage * pageSize + 1).toLocaleString()} to{' '}
+                      {(currentPage * pageSize + contacts.length).toLocaleString()}
+                      {totalCount > 0 ? ` of ${totalCount.toLocaleString()}` : ''}
+                    </p>
+                    <div className="flex items-center gap-2 justify-center sm:justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 0 || isLoading}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span className="hidden sm:inline">Previous</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={!data?.hasMore || isLoading}
+                      >
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Table view (tanstack-driven) */}
+                <Card>
+                  <CardContent className="p-0">
+                    <DataTable table={table} getRowSelected={c => isContactSelected(c.id)} />
+                  </CardContent>
+                </Card>
+
+                {(currentPage > 0 || data?.hasMore) && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6">
+                    <p className="text-sm text-neutral-500 tabular-nums">
+                      Showing {(currentPage * pageSize + 1).toLocaleString()} to{' '}
+                      {(currentPage * pageSize + contacts.length).toLocaleString()}
+                      {totalCount > 0 ? ` of ${totalCount.toLocaleString()}` : ''}
+                    </p>
+                    <div className="flex items-center gap-2 justify-center sm:justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 0 || isLoading}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span className="hidden sm:inline">Previous</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={!data?.hasMore || isLoading}
+                      >
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Create Contact Dialog */}
@@ -549,7 +770,16 @@ export default function ContactsPage() {
           operation={bulkOperation}
           selector={
             selectAllMatching
-              ? {mode: 'query', filter: search ? {search} : {}, excludeIds: Array.from(excludedContacts)}
+              ? {
+                  mode: 'query',
+                  // Mirror the active list filters so "select all matching"
+                  // targets exactly the rows the user is looking at.
+                  filter: {
+                    ...(search ? {search} : {}),
+                    ...(statusFilter !== 'ALL' ? {subscribed: statusFilter === 'subscribed'} : {}),
+                  },
+                  excludeIds: Array.from(excludedContacts),
+                }
               : {mode: 'ids', contactIds: Array.from(selectedContacts)}
           }
           targetCount={effectiveSelectionCount}
@@ -984,7 +1214,7 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
 
 type BulkSelector =
   | {mode: 'ids'; contactIds: string[]}
-  | {mode: 'query'; filter: {search?: string}; excludeIds: string[]};
+  | {mode: 'query'; filter: {search?: string; subscribed?: boolean}; excludeIds: string[]};
 
 interface BulkActionsDialogProps {
   open: boolean;

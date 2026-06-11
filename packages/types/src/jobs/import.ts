@@ -21,7 +21,7 @@ export interface ContactImportJobData {
  */
 export type BulkContactActionSelector =
   | {mode: 'ids'; contactIds: string[]}
-  | {mode: 'query'; filter: {search?: string}; excludeIds?: string[]};
+  | {mode: 'query'; filter: {search?: string; subscribed?: boolean}; excludeIds?: string[]};
 
 /**
  * Job data for bulk contact actions (subscribe, unsubscribe, delete)
