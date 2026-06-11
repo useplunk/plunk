@@ -21,7 +21,7 @@
     "fumadocs-openapi": "^10.0.11",
     "fumadocs-ui": "16.0.8",
     "lucide-react": "^0.553.0",
-    "next": "^16.2.3",
+    "next": "^16.2.6",
     "next-sitemap": "^4.2.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

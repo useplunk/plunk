@@ -27,7 +27,7 @@
     "@tiptap/starter-kit": "^3.11.0",
     "juice": "^11.0.3",
     "lucide-react": "^0.553.0",
-    "next": "^16.2.3",
+    "next": "^16.2.6",
     "next-seo": "^6.6.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
