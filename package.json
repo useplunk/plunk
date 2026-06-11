@@ -35,7 +35,7 @@
     "prettier": "^3.5.3",
     "rimraf": "^6.1.2",
     "supertest": "^7.1.4",
-    "turbo": "^2.6.0",
+    "turbo": "^2.9.14",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.48.0",
     "vitest": "^4.1.0",
