@@ -33,6 +33,7 @@ import {
   DataTable,
   DataTableColumnHeader,
   DataTableFacetedFilter,
+  DataTableFilter,
   DataTableViewOptions,
   DataTableViewSwitcher,
   NoResultsState,
@@ -606,12 +607,14 @@ export default function CampaignsPage() {
             </DropdownMenu>
           </div>
 
-          {/* Control row.
+          {/* Control row. One aligned cluster of 32px-tall controls:
               - Search input: always present (both views).
-              - Status filter pills: CARD VIEW ONLY (unchanged from before). In
-                table view the Status filter lives in the column header facet, so
-                the pills are not rendered.
-              - Columns selector (table view) + view switcher round out the row. */}
+              - Status filter: CARD VIEW ONLY, as a toolbar dropdown matching the
+                Columns selector. In table view the Status filter lives in the
+                column header facet instead (same shared menu body).
+              - Columns selector: TABLE VIEW ONLY.
+              - A hairline divider separates the data controls (filter/columns)
+                from the layout control (view switcher). */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -637,30 +640,25 @@ export default function CampaignsPage() {
                 </button>
               )}
             </div>
-            {view === 'card' && (
-              <div className="flex gap-1.5 shrink-0 flex-wrap">
-                {(['ALL', ...STATUS_OPTIONS] as const).map(status => (
-                  <Button
-                    key={status}
-                    type="button"
-                    onClick={() => {
-                      setStatusFilter(status);
-                      setPage(1);
-                    }}
-                    variant={statusFilter === status ? 'default' : 'secondary'}
-                    size="sm"
-                  >
-                    {status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
-                  </Button>
-                ))}
-              </div>
-            )}
-            {view === 'table' && (
-              <div className="shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
+              {view === 'card' && (
+                <DataTableFilter
+                  title="Status"
+                  multiple={false}
+                  options={STATUS_OPTIONS.map(s => ({value: s, label: statusBadgeConfig[s].label}))}
+                  selected={statusFilter === 'ALL' ? [] : [statusFilter]}
+                  onChange={next => {
+                    setStatusFilter((next[0] as StatusFilter) ?? 'ALL');
+                    setPage(1);
+                  }}
+                />
+              )}
+              {view === 'table' && (
                 <DataTableViewOptions table={table} lockedColumnIds={['select', 'name', 'actions']} />
-              </div>
-            )}
-            <DataTableViewSwitcher view={view} onChange={setView} />
+              )}
+              <span className="hidden sm:block h-5 w-px bg-neutral-200" aria-hidden="true" />
+              <DataTableViewSwitcher view={view} onChange={setView} />
+            </div>
           </div>
 
           {/* Bulk action bar — table view only (the selection column lives
