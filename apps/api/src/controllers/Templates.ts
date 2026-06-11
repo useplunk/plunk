@@ -1,16 +1,25 @@
 import {Controller, Delete, Get, Middleware, Patch, Post} from '@overnightjs/core';
 import {TemplateType} from '@plunk/db';
+import {TemplateSchemas} from '@plunk/shared';
 import type {NextFunction, Request, Response} from 'express';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {DomainService} from '../services/DomainService.js';
 import {TemplateService} from '../services/TemplateService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
+import {parseListSort} from '../utils/listSort.js';
 
 @Controller('templates')
 export class Templates {
   /**
    * GET /templates
    * List all templates for the authenticated project
+   *
+   * Query params:
+   * - page, pageSize: pagination
+   * - search: filter by name/description/subject
+   * - type: filter by TemplateType
+   * - sort: name | createdAt | updatedAt (default: createdAt)
+   * - dir: asc | desc (default: desc)
    */
   @Get('')
   @Middleware([requireAuth, requireEmailVerified])
@@ -21,8 +30,9 @@ export class Templates {
     const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
     const search = req.query.search as string | undefined;
     const type = req.query.type as TemplateType | undefined;
+    const sort = parseListSort(req.query.sort, req.query.dir, {field: 'createdAt', direction: 'desc'});
 
-    const result = await TemplateService.list(auth.projectId!, page, pageSize, search, type);
+    const result = await TemplateService.list(auth.projectId!, page, pageSize, search, type, sort);
 
     return res.status(200).json(result);
   }
@@ -144,6 +154,35 @@ export class Templates {
     await TemplateService.delete(auth.projectId!, templateId);
 
     return res.status(204).send();
+  }
+
+  /**
+   * POST /templates/bulk-update
+   * Apply a bulk operation to multiple templates at once.
+   *
+   * Currently supports `{ids: string[], delete: true}` for bulk delete.
+   * The schema is intentionally open-ended so tag-related fields
+   * (addTags / removeTags) can stack on the same endpoint once a
+   * `Template.tags` column exists.
+   *
+   * Atomicity: the underlying service wraps the ownership check, the
+   * workflow-step-reference check, and the delete in a single Prisma
+   * transaction, so a partial bulk delete is not possible.
+   */
+  @Post('bulk-update')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async bulkUpdate(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+
+    // Let Zod throw on invalid input so the global error handler in app.ts
+    // formats it into the standard {success:false, error:{message, ...}}
+    // envelope, matching every other endpoint in this controller.
+    const data = TemplateSchemas.bulkUpdate.parse(req.body);
+
+    const result = await TemplateService.bulkUpdate(auth.projectId!, data);
+
+    return res.status(200).json(result);
   }
 
   /**

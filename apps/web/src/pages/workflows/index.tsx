@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Command,
   CommandGroup,
   CommandItem,
@@ -20,29 +21,99 @@ import {
 import type {Workflow} from '@plunk/db';
 import type {PaginatedResponse} from '@plunk/types';
 import {EmptyState} from '@plunk/ui';
+import {
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type RowSelectionState,
+  type SortingState,
+  type VisibilityState,
+} from '@tanstack/react-table';
 import {DashboardLayout} from '../../components/DashboardLayout';
+import {
+  BulkActionBar,
+  DataTable,
+  DataTableColumnHeader,
+  DataTableFacetedFilter,
+  DataTableViewOptions,
+  DataTableViewSwitcher,
+  NoResultsState,
+  isDataTableView,
+  type DataTableColumnMeta,
+  type DataTableView,
+} from '../../components/data-table';
 import {network} from '../../lib/network';
 import {formatRelativeTime} from '../../lib/dateUtils';
+import {useColumnVisibility} from '../../lib/hooks/useColumnVisibility';
+import {usePersistentState} from '../../lib/hooks/usePersistentState';
+import {useShiftClickSelection} from '../../lib/hooks/useShiftClickSelection';
 import {Calendar, Copy, Edit, Plus, Power, PowerOff, Search, Trash2, Workflow as WorkflowIcon, X, Zap} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {toast} from 'sonner';
 import useSWR from 'swr';
 import {WorkflowSchemas} from '@plunk/shared';
 import dayjs from 'dayjs';
 
+type WorkflowRow = Workflow & {_count?: {steps: number; executions: number}};
+
+// Status facet values. Maps onto the API's `?status=active|disabled` filter
+// (which the backend resolves to the `enabled` boolean).
+type StatusFilter = 'ALL' | 'active' | 'disabled';
+
+const VIEW_STORAGE_KEY = 'plunk:workflows:view';
+const COLUMNS_STORAGE_KEY = 'plunk:workflows:columns';
+
+// Fixed-value options for the Status column's faceted filter (table view) and
+// the card-view pill row. Single source of truth for both.
+const STATUS_OPTIONS: ReadonlyArray<{value: Exclude<StatusFilter, 'ALL'>; label: string}> = [
+  {value: 'active', label: 'Active'},
+  {value: 'disabled', label: 'Disabled'},
+];
+
+// Name + Actions are locked-visible (see lockedColumnIds below). `select` is
+// also locked. Everything starts visible.
+const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
+  select: true,
+  name: true,
+  trigger: true,
+  status: true,
+  steps: true,
+  updatedAt: true,
+  actions: true,
+};
+
 export default function WorkflowsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<string | null>(null);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [bulkDeleteStatus, setBulkDeleteStatus] = useState<'idle' | 'loading'>('idle');
+  const [view, setView] = usePersistentState<DataTableView>(VIEW_STORAGE_KEY, 'card', isDataTableView);
 
-  const {data, mutate, isLoading} = useSWR<
-    PaginatedResponse<Workflow & {_count?: {steps: number; executions: number}}>
-  >(`/workflows?page=${page}&pageSize=20${search ? `&search=${search}` : ''}`, {revalidateOnFocus: false});
+  // Tanstack table state.
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useColumnVisibility(COLUMNS_STORAGE_KEY, DEFAULT_COLUMN_VISIBILITY);
+  // Row-selection state drives the BulkActionBar above the table.
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  // Build the sort query string from tanstack state. The backend is
+  // authoritative (`?sort=<field>&dir=asc|desc`); without those params it falls
+  // back to its default order. manualSorting is on, so the client only mirrors.
+  const sortParam = sorting[0]?.id ?? '';
+  const dirParam = sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : '';
+
+  const {data, mutate, isLoading} = useSWR<PaginatedResponse<WorkflowRow>>(
+    `/workflows?page=${page}&pageSize=20${search ? `&search=${encodeURIComponent(search)}` : ''}${
+      statusFilter !== 'ALL' ? `&status=${statusFilter}` : ''
+    }${sortParam ? `&sort=${sortParam}&dir=${dirParam}` : ''}`,
+    {revalidateOnFocus: false},
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -51,6 +122,14 @@ export default function WorkflowsPage() {
     }, 350);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  // Clear row selection whenever the visible data set changes (page, search).
+  // Selections only make sense for currently-visible rows — keeping a stale
+  // selection across pagination would let the user bulk-delete workflows they
+  // can no longer see.
+  useEffect(() => {
+    setRowSelection({});
+  }, [page, search, statusFilter]);
 
   const handleDelete = async () => {
     if (!workflowToDelete) return;
@@ -88,6 +167,262 @@ export default function WorkflowsPage() {
     }
   };
 
+  const selectedIds = useMemo(() => Object.keys(rowSelection).filter(id => rowSelection[id]), [rowSelection]);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkDeleteStatus('loading');
+    try {
+      const result = await network.fetch<{deleted?: number}, typeof WorkflowSchemas.bulkUpdate>(
+        'POST',
+        '/workflows/bulk-update',
+        {
+          ids: selectedIds,
+          delete: true,
+        },
+      );
+      const count = result?.deleted ?? selectedIds.length;
+      toast.success(`${count} workflow${count === 1 ? '' : 's'} deleted`);
+      setRowSelection({});
+      void mutate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete workflows');
+    } finally {
+      // ConfirmDialog closes itself after onConfirm resolves.
+      setBulkDeleteStatus('idle');
+    }
+  };
+
+  const triggerEventName = (workflow: WorkflowRow): string | null =>
+    workflow.triggerConfig && typeof workflow.triggerConfig === 'object' && 'eventName' in workflow.triggerConfig
+      ? String(workflow.triggerConfig.eventName)
+      : null;
+
+  const columns = useMemo<Array<ColumnDef<WorkflowRow, unknown>>>(
+    () => [
+      {
+        id: 'select',
+        enableSorting: false,
+        enableHiding: false, // Selection column is locked-visible.
+        meta: {label: 'Select', headClassName: 'w-10', cellClassName: 'w-10'} satisfies DataTableColumnMeta,
+        header: ({table}) => (
+          <Checkbox
+            aria-label="Select all rows on this page"
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? true
+                : table.getIsSomePageRowsSelected()
+                  ? 'indeterminate'
+                  : false
+            }
+            onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+          />
+        ),
+        cell: ({row}) => (
+          <Checkbox
+            aria-label={`Select ${row.original.name}`}
+            checked={row.getIsSelected()}
+            // Capture shift-key state before the toggle, then apply range
+            // selection on change (see useShiftClickSelection below).
+            onClick={e => {
+              e.stopPropagation();
+              shiftSelect.onClick(e);
+            }}
+            onCheckedChange={value => shiftSelect.onCheckedChange(row, value)}
+          />
+        ),
+      },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        enableHiding: false, // Name column is locked-visible.
+        meta: {label: 'Name'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Name</DataTableColumnHeader>,
+        cell: ({row}) => (
+          <Link
+            href={`/workflows/${row.original.id}`}
+            className="text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
+          >
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        id: 'trigger',
+        enableSorting: false, // No backend sort field for trigger.
+        meta: {label: 'Trigger'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Trigger</DataTableColumnHeader>,
+        cell: ({row}) => {
+          const eventName = triggerEventName(row.original);
+          return eventName ? (
+            <span className="inline-flex items-center gap-1.5 text-xs text-neutral-500">
+              <Zap className="h-3 w-3 shrink-0" />
+              <code className="font-mono bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-700">{eventName}</code>
+            </span>
+          ) : (
+            <span className="text-sm text-neutral-400">—</span>
+          );
+        },
+      },
+      {
+        id: 'status',
+        enableSorting: false, // Status is faceted-filtered, not sorted.
+        meta: {label: 'Status'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader
+            column={column}
+            // Single-select facet — mirrors the API's `?status=active|disabled`
+            // filter (Prisma `enabled` boolean). Matches the campaigns Status facet.
+            filter={
+              <DataTableFacetedFilter
+                title="Status"
+                multiple={false}
+                options={STATUS_OPTIONS.map(s => ({value: s.value, label: s.label}))}
+                selected={statusFilter === 'ALL' ? [] : [statusFilter]}
+                onChange={next => {
+                  setStatusFilter((next[0] as StatusFilter) ?? 'ALL');
+                  setPage(1);
+                }}
+              />
+            }
+          >
+            Status
+          </DataTableColumnHeader>
+        ),
+        cell: ({row}) => (
+          <Badge variant={row.original.enabled ? 'success' : 'neutral'} className="shrink-0">
+            {row.original.enabled ? (
+              <>
+                <Power className="h-3 w-3 mr-1" />
+                Active
+              </>
+            ) : (
+              <>
+                <PowerOff className="h-3 w-3 mr-1" />
+                Disabled
+              </>
+            )}
+          </Badge>
+        ),
+      },
+      {
+        id: 'steps',
+        // Sorts by the related step count. The backend maps `?sort=steps` onto
+        // Prisma's `orderBy: {steps: {_count}}`. Larger counts feel more natural
+        // on the first click, so flip to descending first.
+        enableSorting: true,
+        sortDescFirst: true,
+        meta: {label: 'Steps'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Steps</DataTableColumnHeader>,
+        cell: ({row}) => (
+          <span className="text-sm text-neutral-700">
+            <strong className="font-semibold text-neutral-900">{row.original._count?.steps ?? 0}</strong>
+            <span className="text-neutral-400 ml-1 text-xs">steps</span>
+          </span>
+        ),
+      },
+      {
+        id: 'updatedAt',
+        accessorKey: 'updatedAt',
+        // ISO-string values sort ascending on first click by default; flip so
+        // the first click on "Updated" surfaces the most recently edited rows.
+        sortDescFirst: true,
+        meta: {label: 'Updated'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Updated</DataTableColumnHeader>,
+        cell: ({row}) => (
+          <div className="group relative inline-block cursor-help text-sm text-neutral-500 whitespace-nowrap">
+            {formatRelativeTime(row.original.updatedAt)}
+            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-1/2 transform -translate-x-1/2 mb-1 whitespace-nowrap">
+              {dayjs(row.original.updatedAt).format('DD MMMM YYYY, hh:mm')}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'actions',
+        enableSorting: false,
+        enableHiding: false, // Actions column is locked-visible.
+        meta: {label: 'Actions', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: () => <span className="flex justify-end">Actions</span>,
+        cell: ({row}) => (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              title={row.original.enabled ? 'Disable workflow' : 'Enable workflow'}
+              aria-label={row.original.enabled ? 'Disable workflow' : 'Enable workflow'}
+              onClick={() => handleToggleEnabled(row.original.id, row.original.enabled)}
+            >
+              {row.original.enabled ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+            </Button>
+            <Button asChild variant="ghost" size="sm" title="Edit workflow">
+              <Link href={`/workflows/${row.original.id}`} aria-label="Edit workflow">
+                <Edit className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              title="Duplicate workflow"
+              aria-label="Duplicate workflow"
+              onClick={() => handleDuplicate(row.original.id)}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              title="Delete workflow"
+              aria-label="Delete workflow"
+              onClick={() => {
+                setWorkflowToDelete(row.original.id);
+                setShowDeleteDialog(true);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    // Re-creating columns on every render is cheap and avoids stale-closure bugs
+    // for the toggle/delete/duplicate handlers and the status-facet state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [statusFilter],
+  );
+
+  const table = useReactTable<WorkflowRow>({
+    data: data?.data ?? [],
+    columns,
+    state: {sorting, columnVisibility, rowSelection},
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
+    enableMultiSort: false,
+    manualSorting: true, // Backend handles sorting; client just exposes ?sort=&dir=.
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: row => row.id,
+  });
+
+  // Range (shift-click) selection for the checkbox column.
+  const shiftSelect = useShiftClickSelection(table);
+
+  const hasData = data && data.data.length > 0;
+
+  // Whether any search/facet filter is currently narrowing the list. Drives the
+  // "no results vs first-run empty" distinction below.
+  const hasActiveFilters = search !== '' || statusFilter !== 'ALL';
+
+  // Reset everything that can hide rows (search + status + pagination) so the
+  // user can recover from a filter combination that matched nothing.
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setStatusFilter('ALL');
+    setPage(1);
+  };
+
   return (
     <>
       <NextSeo title="Workflows" />
@@ -109,31 +444,81 @@ export default function WorkflowsPage() {
             </Button>
           </div>
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-            <Input
-              type="text"
-              placeholder="Search workflows..."
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              className="pl-10 pr-10 h-8 text-xs"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => {
-                  setSearchInput('');
-                  setSearch('');
-                  setPage(1);
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
+          {/* Control row.
+              - Search input: always present (both views).
+              - Status filter pills: CARD VIEW ONLY. In table view the Status
+                filter lives in the column header facet, so the pills are not
+                rendered (mirrors the campaigns Status-filter precedent).
+              - Columns selector: table view only.
+              - View switcher rounds out the row. */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+              <Input
+                type="text"
+                placeholder="Search workflows..."
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="pl-10 pr-10 h-8 text-xs"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearchInput('');
+                    setSearch('');
+                    setPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {view === 'card' && (
+              <div className="flex gap-1.5 shrink-0 flex-wrap">
+                {([{value: 'ALL', label: 'All'}, ...STATUS_OPTIONS] as const).map(status => (
+                  <Button
+                    key={status.value}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(status.value as StatusFilter);
+                      setPage(1);
+                    }}
+                    variant={statusFilter === status.value ? 'default' : 'secondary'}
+                    size="sm"
+                  >
+                    {status.label}
+                  </Button>
+                ))}
+              </div>
             )}
+            {view === 'table' && (
+              <div className="shrink-0">
+                <DataTableViewOptions table={table} lockedColumnIds={['select', 'name', 'actions']} />
+              </div>
+            )}
+            <DataTableViewSwitcher view={view} onChange={setView} />
           </div>
+
+          {/* Bulk action bar — table view only (the selection column lives
+              there). Wires the delete action; the children slot stays open for
+              future bulk operations. */}
+          {view === 'table' && (
+            <BulkActionBar selectedCount={selectedIds.length} itemNoun="workflow" onClear={() => setRowSelection({})}>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteDialog(true)}
+                disabled={bulkDeleteStatus === 'loading'}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete selected
+              </Button>
+            </BulkActionBar>
+          )}
 
           {/* Workflows */}
           <div>
@@ -145,26 +530,32 @@ export default function WorkflowsPage() {
                   </div>
                 </CardContent>
               </Card>
-            ) : data?.data.length === 0 ? (
+            ) : !hasData ? (
               <Card>
                 <CardContent>
-                  <EmptyState
-                    icon={WorkflowIcon}
-                    title={search ? 'No workflows match' : 'No workflows yet'}
-                    description={search ? 'Try a different search term.' : 'Automate emails triggered by contact events.'}
-                    action={
-                      !search ? (
+                  {hasActiveFilters ? (
+                    // Items exist, but the active search/status filters matched
+                    // none — offer a one-click recovery.
+                    <NoResultsState icon={WorkflowIcon} itemNoun="workflows" onClear={clearFilters} />
+                  ) : (
+                    // Genuinely empty project — first-run state.
+                    <EmptyState
+                      icon={WorkflowIcon}
+                      title="No workflows yet"
+                      description="Automate emails triggered by contact events."
+                      action={
                         <Button onClick={() => setShowCreateDialog(true)}>
                           <Plus className="h-4 w-4" />
                           Create Workflow
                         </Button>
-                      ) : undefined
-                    }
-                  />
+                      }
+                    />
+                  )}
                 </CardContent>
               </Card>
-            ) : (
+            ) : view === 'card' ? (
               <>
+                {/* Card Grid View — unchanged from before. */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {data?.data.map(workflow => (
                     <Card key={workflow.id} className="transition-colors hover:border-neutral-300 flex flex-col [&:has([data-card-link]:focus-visible)]:ring-2 [&:has([data-card-link]:focus-visible)]:ring-ring [&:has([data-card-link]:focus-visible)]:ring-offset-2">
@@ -280,6 +671,41 @@ export default function WorkflowsPage() {
                   </div>
                 )}
               </>
+            ) : (
+              <>
+                {/* Table View (tanstack-driven) */}
+                <Card>
+                  <CardContent className="p-0">
+                    <DataTable table={table} />
+                  </CardContent>
+                </Card>
+
+                {/* Pagination */}
+                {data && data.totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6">
+                    <p className="text-sm text-neutral-500">
+                      Showing {(page - 1) * data.pageSize + 1} to {Math.min(page * data.pageSize, data.total)} of{' '}
+                      {data.total} workflows
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 1}>
+                        Previous
+                      </Button>
+                      <span className="text-sm text-neutral-700">
+                        Page {page} of {data.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => p + 1)}
+                        disabled={page === data.totalPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -295,6 +721,17 @@ export default function WorkflowsPage() {
           description="Are you sure you want to delete this workflow? This action cannot be undone."
           confirmText="Delete"
           variant="destructive"
+        />
+
+        <ConfirmDialog
+          open={showBulkDeleteDialog}
+          onOpenChange={setShowBulkDeleteDialog}
+          onConfirm={handleBulkDelete}
+          title={`Delete ${selectedIds.length} workflow${selectedIds.length === 1 ? '' : 's'}`}
+          description="Are you sure you want to delete the selected workflows? This action cannot be undone. Workflows with active executions will block the operation."
+          confirmText="Delete"
+          variant="destructive"
+          status={bulkDeleteStatus}
         />
       </DashboardLayout>
     </>

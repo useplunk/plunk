@@ -6,6 +6,7 @@ import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
+import type {ListSort} from '../utils/listSort.js';
 import {buildEmailFieldsUpdate} from '../utils/modelUpdate.js';
 
 import {BillingLimitService} from './BillingLimitService.js';
@@ -189,9 +190,10 @@ export class CampaignService {
       search?: string;
       page?: number;
       pageSize?: number;
+      sort?: ListSort;
     } = {},
   ): Promise<PaginatedResponse<Campaign>> {
-    const {status, search, page = 1, pageSize = 20} = options;
+    const {status, search, page = 1, pageSize = 20, sort = {field: 'createdAt', direction: 'desc'}} = options;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.CampaignWhereInput = {
@@ -214,7 +216,7 @@ export class CampaignService {
         include: {
           segment: true,
         },
-        orderBy: {createdAt: 'desc'},
+        orderBy: {[sort.field]: sort.direction} as Prisma.CampaignOrderByWithRelationInput,
         skip,
         take: pageSize,
       }),
@@ -258,6 +260,80 @@ export class CampaignService {
 
     // Send notification about campaign deletion
     await NtfyService.notifyCampaignDeleted(campaign.name, campaign.project.name, projectId);
+  }
+
+  /**
+   * Apply a bulk operation to multiple campaigns at once.
+   *
+   * The payload is intentionally open-ended (a single endpoint) so future bulk
+   * operations can stack on the same operation. For now the only supported mode
+   * is `delete: true` (bulk delete).
+   *
+   * Atomicity: every selected campaign must belong to the requesting project AND
+   * every one of them must be a DRAFT. Both checks plus the `deleteMany` are
+   * folded into a single Prisma transaction, so a partial bulk delete is
+   * impossible — either every selected campaign is removed, or the whole
+   * operation rolls back.
+   *
+   * Guards mirror the single-campaign `delete()` above:
+   * - 404 if any id is missing from this project (foreign / cross-project id).
+   * - 400 if any selected campaign is not a DRAFT (only drafts are deletable;
+   *   SCHEDULED / SENDING / SENT / CANCELLED campaigns are rejected, exactly as
+   *   the single delete path does). Non-deletable campaigns are not silently
+   *   skipped — the whole operation rolls back.
+   */
+  public static async bulkUpdate(
+    projectId: string,
+    options: {ids: string[]; delete?: boolean},
+  ): Promise<{deleted?: number; updated?: number}> {
+    const {ids, delete: shouldDelete} = options;
+
+    // Dedup defensively — the schema permits the same id twice and we don't
+    // want duplicates inflating the ownership / row counts below.
+    const uniqueIds = Array.from(new Set(ids));
+
+    if (uniqueIds.length === 0) {
+      return {updated: 0};
+    }
+
+    if (shouldDelete) {
+      return prisma.$transaction(async tx => {
+        // 1. Ownership / project-scope check. Cross-project leaks are the main
+        //    thing this endpoint must defend against.
+        const owned = await tx.campaign.findMany({
+          where: {id: {in: uniqueIds}, projectId},
+          select: {id: true, status: true},
+        });
+
+        if (owned.length !== uniqueIds.length) {
+          throw new HttpException(404, 'One or more campaigns not found in this project');
+        }
+
+        // 2. Reject the whole bulk delete if ANY selected campaign is not a
+        //    DRAFT. Mirrors the single delete() guard — no partial wipes.
+        const nonDraft = owned.filter(c => c.status !== CampaignStatus.DRAFT);
+
+        if (nonDraft.length > 0) {
+          const count = nonDraft.length;
+          throw new HttpException(
+            400,
+            `Can only delete draft campaigns: ${count} of the selected campaign${
+              count === 1 ? ' is' : 's are'
+            } not a draft.`,
+          );
+        }
+
+        const result = await tx.campaign.deleteMany({
+          where: {id: {in: uniqueIds}, projectId},
+        });
+
+        return {deleted: result.count};
+      });
+    }
+
+    // No-op shape for forward-compat: when other bulk modes ship they'll branch
+    // off here. Returning {updated: 0} keeps the response shape stable.
+    return {updated: 0};
   }
 
   /**

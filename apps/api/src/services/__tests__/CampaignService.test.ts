@@ -131,6 +131,82 @@ describe('CampaignService', () => {
     });
   });
 
+  describe('bulkUpdate (delete)', () => {
+    it('should bulk-delete multiple draft campaigns in this project', async () => {
+      const a = await factories.createCampaign({projectId, status: CampaignStatus.DRAFT});
+      const b = await factories.createCampaign({projectId, status: CampaignStatus.DRAFT});
+      const c = await factories.createCampaign({projectId, status: CampaignStatus.DRAFT});
+
+      const result = await CampaignService.bulkUpdate(projectId, {
+        ids: [a.id, b.id, c.id],
+        delete: true,
+      });
+
+      expect(result.deleted).toBe(3);
+      expect(await prisma.campaign.count({where: {projectId}})).toBe(0);
+    });
+
+    it('should dedup repeated ids so the deleted count is not inflated', async () => {
+      const a = await factories.createCampaign({projectId, status: CampaignStatus.DRAFT});
+
+      const result = await CampaignService.bulkUpdate(projectId, {
+        ids: [a.id, a.id, a.id],
+        delete: true,
+      });
+
+      expect(result.deleted).toBe(1);
+      expect(await prisma.campaign.findUnique({where: {id: a.id}})).toBeNull();
+    });
+
+    it('should throw 404 (and delete nothing) when any id does not exist', async () => {
+      const a = await factories.createCampaign({projectId, status: CampaignStatus.DRAFT});
+
+      await expect(
+        CampaignService.bulkUpdate(projectId, {ids: [a.id, '00000000-0000-0000-0000-000000000000'], delete: true}),
+      ).rejects.toThrow(/not found in this project/i);
+
+      // Nothing deleted — the whole operation rolled back.
+      expect(await prisma.campaign.findUnique({where: {id: a.id}})).not.toBeNull();
+    });
+
+    it('should throw 404 (and delete nothing) when an id belongs to another project', async () => {
+      const {project: otherProject} = await factories.createUserWithProject();
+      const mine = await factories.createCampaign({projectId, status: CampaignStatus.DRAFT});
+      const foreign = await factories.createCampaign({projectId: otherProject.id, status: CampaignStatus.DRAFT});
+
+      await expect(
+        CampaignService.bulkUpdate(projectId, {ids: [mine.id, foreign.id], delete: true}),
+      ).rejects.toThrow(/not found in this project/i);
+
+      // Both survive — atomic rollback, no cross-project leak.
+      expect(await prisma.campaign.findUnique({where: {id: mine.id}})).not.toBeNull();
+      expect(await prisma.campaign.findUnique({where: {id: foreign.id}})).not.toBeNull();
+    });
+
+    it('should throw 400 (and delete nothing) when any selected campaign is not a draft', async () => {
+      const draft = await factories.createCampaign({projectId, status: CampaignStatus.DRAFT});
+      const sent = await factories.createCampaign({projectId, status: CampaignStatus.SENT});
+
+      await expect(
+        CampaignService.bulkUpdate(projectId, {ids: [draft.id, sent.id], delete: true}),
+      ).rejects.toThrow(/can only delete draft campaigns/i);
+
+      // Partial delete must be impossible — the draft must survive too.
+      expect(await prisma.campaign.findUnique({where: {id: draft.id}})).not.toBeNull();
+      expect(await prisma.campaign.findUnique({where: {id: sent.id}})).not.toBeNull();
+    });
+
+    it('should return {updated: 0} when delete flag is omitted (forward-compat no-op)', async () => {
+      const a = await factories.createCampaign({projectId, status: CampaignStatus.DRAFT});
+
+      const result = await CampaignService.bulkUpdate(projectId, {ids: [a.id]});
+
+      expect(result).toEqual({updated: 0});
+      // No-op: the campaign is untouched.
+      expect(await prisma.campaign.findUnique({where: {id: a.id}})).not.toBeNull();
+    });
+  });
+
   describe('duplicate', () => {
     it('should duplicate a campaign with (Copy) suffix', async () => {
       const original = await factories.createCampaign({

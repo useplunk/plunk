@@ -8,6 +8,7 @@ import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {CampaignService} from '../services/CampaignService.js';
 import {DomainService} from '../services/DomainService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
+import {parseListSort} from '../utils/listSort.js';
 
 @Controller('campaigns')
 export class Campaigns {
@@ -57,6 +58,13 @@ export class Campaigns {
   /**
    * Get all campaigns for a project
    * GET /campaigns
+   *
+   * Query params:
+   * - page, pageSize: pagination
+   * - status: filter by CampaignStatus
+   * - search: filter by name/subject/from
+   * - sort: name | createdAt | updatedAt (default: createdAt)
+   * - dir: asc | desc (default: desc)
    */
   @Get('')
   @Middleware([requireAuth, requireEmailVerified])
@@ -67,6 +75,7 @@ export class Campaigns {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() || undefined : undefined;
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 20;
+    const sort = parseListSort(req.query.sort, req.query.dir, {field: 'createdAt', direction: 'desc'});
 
     // Validate status if provided
     if (status && !Object.values(CampaignStatus).includes(status)) {
@@ -78,9 +87,40 @@ export class Campaigns {
       search,
       page,
       pageSize,
+      sort,
     });
 
     return res.json(result);
+  }
+
+  /**
+   * Apply a bulk operation to multiple campaigns at once.
+   * POST /campaigns/bulk-update
+   *
+   * Currently supports `{ids: string[], delete: true}` for bulk delete. The
+   * schema is intentionally open-ended so future bulk operations can stack on
+   * the same endpoint.
+   *
+   * Atomicity: the underlying service wraps the ownership check, the
+   * draft-only guard, and the delete in a single Prisma transaction, so a
+   * partial bulk delete is not possible.
+   *
+   * NOTE: This must be defined BEFORE the :id route to avoid conflicts.
+   */
+  @Post('bulk-update')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  private async bulkUpdate(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+
+    // Let Zod throw on invalid input so the global error handler in app.ts
+    // formats it into the standard error envelope, matching the other
+    // schema-validated endpoints in this controller.
+    const data = CampaignSchemas.bulkUpdate.parse(req.body);
+
+    const result = await CampaignService.bulkUpdate(auth.projectId, data);
+
+    return res.status(200).json(result);
   }
 
   /**

@@ -396,6 +396,88 @@ describe('TemplateService', () => {
     });
   });
 
+  describe('bulkUpdate (delete)', () => {
+    it('should bulk-delete multiple templates in this project', async () => {
+      const a = await factories.createTemplate({projectId});
+      const b = await factories.createTemplate({projectId});
+      const c = await factories.createTemplate({projectId});
+
+      const result = await TemplateService.bulkUpdate(projectId, {
+        ids: [a.id, b.id, c.id],
+        delete: true,
+      });
+
+      expect(result.deleted).toBe(3);
+      expect(await prisma.template.count({where: {projectId}})).toBe(0);
+    });
+
+    it('should dedup repeated ids so the deleted count is not inflated', async () => {
+      const a = await factories.createTemplate({projectId});
+
+      const result = await TemplateService.bulkUpdate(projectId, {
+        ids: [a.id, a.id, a.id],
+        delete: true,
+      });
+
+      expect(result.deleted).toBe(1);
+      expect(await prisma.template.findUnique({where: {id: a.id}})).toBeNull();
+    });
+
+    it('should throw 404 when any id does not exist', async () => {
+      const a = await factories.createTemplate({projectId});
+
+      await expect(
+        TemplateService.bulkUpdate(projectId, {ids: [a.id, 'non-existent-id'], delete: true}),
+      ).rejects.toThrow(/not found in this project/i);
+
+      // Nothing deleted — the whole operation rolled back.
+      expect(await prisma.template.findUnique({where: {id: a.id}})).not.toBeNull();
+    });
+
+    it('should throw 404 (and delete nothing) when an id belongs to another project', async () => {
+      const {project: otherProject} = await factories.createUserWithProject();
+      const mine = await factories.createTemplate({projectId});
+      const foreign = await factories.createTemplate({projectId: otherProject.id});
+
+      await expect(
+        TemplateService.bulkUpdate(projectId, {ids: [mine.id, foreign.id], delete: true}),
+      ).rejects.toThrow(/not found in this project/i);
+
+      // Both survive — atomic rollback, no cross-project leak.
+      expect(await prisma.template.findUnique({where: {id: mine.id}})).not.toBeNull();
+      expect(await prisma.template.findUnique({where: {id: foreign.id}})).not.toBeNull();
+    });
+
+    it('should throw 409 (and delete nothing) when any selected template is used in a workflow step', async () => {
+      const used = await factories.createTemplate({projectId});
+      const free = await factories.createTemplate({projectId});
+      const workflow = await factories.createWorkflow({projectId});
+      await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        templateId: used.id,
+        type: 'SEND_EMAIL',
+      });
+
+      await expect(
+        TemplateService.bulkUpdate(projectId, {ids: [used.id, free.id], delete: true}),
+      ).rejects.toThrow(/currently used in workflow steps/i);
+
+      // Partial delete must be impossible — the un-referenced template must survive too.
+      expect(await prisma.template.findUnique({where: {id: used.id}})).not.toBeNull();
+      expect(await prisma.template.findUnique({where: {id: free.id}})).not.toBeNull();
+    });
+
+    it('should return {updated: 0} when delete flag is omitted (forward-compat no-op)', async () => {
+      const a = await factories.createTemplate({projectId});
+
+      const result = await TemplateService.bulkUpdate(projectId, {ids: [a.id]});
+
+      expect(result).toEqual({updated: 0});
+      // No-op: the template is untouched.
+      expect(await prisma.template.findUnique({where: {id: a.id}})).not.toBeNull();
+    });
+  });
+
   describe('duplicate', () => {
     it('should duplicate a template with (Copy) suffix', async () => {
       const original = await factories.createTemplate({

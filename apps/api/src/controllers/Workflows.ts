@@ -1,16 +1,26 @@
 import {Controller, Delete, Get, Middleware, Patch, Post} from '@overnightjs/core';
 import {WorkflowExecutionStatus} from '@plunk/db';
+import {WorkflowSchemas} from '@plunk/shared';
 import type {NextFunction, Request, Response} from 'express';
 import signale from 'signale';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {WorkflowService} from '../services/WorkflowService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
+import {parseListSort} from '../utils/listSort.js';
 
 @Controller('workflows')
 export class Workflows {
   /**
    * GET /workflows
    * List all workflows for the authenticated project
+   *
+   * Query params:
+   * - page, pageSize: pagination
+   * - search: filter by name/description
+   * - status: active | disabled — maps to the `enabled` boolean facet
+   * - sort: name | createdAt | updatedAt | steps (default: createdAt)
+   *   `steps` sorts by the related step count.
+   * - dir: asc | desc (default: desc)
    */
   @Get('')
   @Middleware([requireAuth, requireEmailVerified])
@@ -20,8 +30,15 @@ export class Workflows {
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
     const search = req.query.search as string | undefined;
+    // `steps` is a workflow-specific sortable column (orders by step count).
+    const sort = parseListSort(req.query.sort, req.query.dir, {field: 'createdAt', direction: 'desc'}, ['steps']);
 
-    const result = await WorkflowService.list(auth.projectId!, page, pageSize, search);
+    // Status facet: `active` / `disabled` -> `enabled` boolean. Any other value
+    // (or absent) leaves the filter off.
+    const statusRaw = req.query.status as string | undefined;
+    const enabled = statusRaw === 'active' ? true : statusRaw === 'disabled' ? false : undefined;
+
+    const result = await WorkflowService.list(auth.projectId!, page, pageSize, search, sort, enabled);
 
     return res.status(200).json(result);
   }
@@ -49,6 +66,36 @@ export class Workflows {
         error: error instanceof Error ? error.message : 'Failed to get available fields',
       });
     }
+  }
+
+  /**
+   * POST /workflows/bulk-update
+   * Apply a bulk operation to multiple workflows at once.
+   *
+   * Currently supports `{ids: string[], delete: true}` for bulk delete. The
+   * schema is intentionally open-ended so future bulk operations can stack on
+   * the same endpoint.
+   *
+   * Atomicity: the underlying service wraps the ownership check, the
+   * active-execution guard, and the delete in a single Prisma transaction, so a
+   * partial bulk delete is not possible.
+   *
+   * NOTE: This must be defined BEFORE the :id route to avoid conflicts.
+   */
+  @Post('bulk-update')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async bulkUpdate(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+
+    // Let Zod throw on invalid input so the global error handler in app.ts
+    // formats it into the standard error envelope, matching the other
+    // schema-validated endpoints.
+    const data = WorkflowSchemas.bulkUpdate.parse(req.body);
+
+    const result = await WorkflowService.bulkUpdate(auth.projectId!, data);
+
+    return res.status(200).json(result);
   }
 
   /**

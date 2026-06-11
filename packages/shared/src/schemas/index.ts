@@ -203,6 +203,18 @@ export const TemplateSchemas = {
     replyTo: email.nullish(),
     type: z.nativeEnum(TemplateType).optional(),
   }),
+  // Bulk operation payload for POST /templates/bulk-update.
+  //
+  // Currently the only supported operation is `delete: true` (bulk delete).
+  // The schema is intentionally kept open-ended so future tag-related fields
+  // (e.g. `addTags?: string[]`, `removeTags?: string[]`) can stack onto the
+  // same endpoint once a `Template.tags` column exists — without changing the
+  // request shape callers already depend on. Keep this as the single source of
+  // truth for what bulk operations the endpoint accepts.
+  bulkUpdate: z.object({
+    ids: z.array(uuid).min(1).max(1000),
+    delete: z.boolean().optional(),
+  }),
 };
 
 export const WorkflowSchemas = {
@@ -244,6 +256,16 @@ export const WorkflowSchemas = {
   startExecution: z.object({
     contactId: uuid,
     context: jsonSchema.optional(),
+  }),
+  // Bulk operation payload for POST /workflows/bulk-update.
+  //
+  // Currently the only supported operation is `delete: true` (bulk delete).
+  // Mirrors `TemplateSchemas.bulkUpdate` and is intentionally kept open-ended so
+  // future bulk operations (e.g. enable/disable) can stack onto the same
+  // endpoint without changing the request shape callers already depend on.
+  bulkUpdate: z.object({
+    ids: z.array(uuid).min(1).max(1000),
+    delete: z.boolean().optional(),
   }),
 };
 
@@ -414,6 +436,16 @@ export const CampaignSchemas = {
   }),
   sendTest: z.object({
     email,
+  }),
+  // Bulk operation payload for POST /campaigns/bulk-update.
+  //
+  // Currently the only supported operation is `delete: true` (bulk delete).
+  // Mirrors `TemplateSchemas.bulkUpdate` and is intentionally kept open-ended so
+  // future bulk operations can stack onto the same endpoint without changing the
+  // request shape callers already depend on.
+  bulkUpdate: z.object({
+    ids: z.array(uuid).min(1).max(1000),
+    delete: z.boolean().optional(),
   }),
 } as const;
 
