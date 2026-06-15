@@ -31,7 +31,7 @@
     "eslint-config-next": "^16.0.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-import": "^2.31.0",
-    "form-data": "^4.0.3",
+    "form-data": "^4.0.6",
     "prettier": "^3.5.3",
     "rimraf": "^6.1.2",
     "supertest": "^7.1.4",
