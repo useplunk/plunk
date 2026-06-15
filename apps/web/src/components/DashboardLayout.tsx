@@ -22,7 +22,15 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@plunk/ui';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -77,49 +85,12 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
   const router = useRouter();
   const {data: user, mutate: mutateUser} = useUser();
   const {activeProject, availableProjects, setActiveProject} = useActiveProject();
-  const [showProjectMenu, setShowProjectMenu] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const desktopProjectMenuRef = useRef<HTMLDivElement>(null);
-  const desktopUserMenuRef = useRef<HTMLDivElement>(null);
-  const mobileProjectMenuRef = useRef<HTMLDivElement>(null);
-  const mobileUserMenuRef = useRef<HTMLDivElement>(null);
 
   // Sort projects alphabetically by name
   const sortedProjects = useMemo(() => {
     return [...availableProjects].sort((a, b) => a.name.localeCompare(b.name));
   }, [availableProjects]);
-
-  // Handle click outside for project menu
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const isClickOutsideProjectMenu =
-        desktopProjectMenuRef.current &&
-        !desktopProjectMenuRef.current.contains(event.target as Node) &&
-        mobileProjectMenuRef.current &&
-        !mobileProjectMenuRef.current.contains(event.target as Node);
-
-      const isClickOutsideUserMenu =
-        desktopUserMenuRef.current &&
-        !desktopUserMenuRef.current.contains(event.target as Node) &&
-        mobileUserMenuRef.current &&
-        !mobileUserMenuRef.current.contains(event.target as Node);
-
-      if (isClickOutsideProjectMenu) {
-        setShowProjectMenu(false);
-      }
-      if (isClickOutsideUserMenu) {
-        setShowUserMenu(false);
-      }
-    }
-
-    if (showProjectMenu || showUserMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [showProjectMenu, showUserMenu]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -133,9 +104,6 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
       // Clear SWR cache for user data
       await mutateUser(null, false);
 
-      // Close the menu
-      setShowUserMenu(false);
-
       // Redirect to login
       await router.push('/auth/login');
     } catch {
@@ -147,28 +115,8 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
     }
   }, [mutateUser, router]);
 
-  const handleToggleProjectMenu = useCallback(() => {
-    setShowProjectMenu(prev => !prev);
-  }, []);
-
-  const handleToggleUserMenu = useCallback(() => {
-    setShowUserMenu(prev => !prev);
-  }, []);
-
-  const handleLogoutClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      void handleLogout();
-    },
-    [handleLogout],
-  );
-
   // Sidebar content (reusable for both desktop and mobile)
-  const getSidebarContent = (
-    projectMenuRef: React.RefObject<HTMLDivElement | null>,
-    userMenuRef: React.RefObject<HTMLDivElement | null>,
-  ) => (
+  const getSidebarContent = () => (
     <>
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-6 border-b border-neutral-200">
@@ -187,57 +135,44 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
 
       {/* Project Switcher */}
       <div className="p-4 border-b border-neutral-200">
-        <div className="relative" ref={projectMenuRef}>
-          <button
-            onClick={handleToggleProjectMenu}
-            className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg hover:bg-neutral-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
+        <DropdownMenu>
+          <DropdownMenuTrigger className="group w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg hover:bg-neutral-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div className="h-8 w-8 rounded-lg bg-neutral-100 text-neutral-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
                 {activeProject?.name.charAt(0).toUpperCase() || 'P'}
               </div>
               <span className="font-medium text-neutral-900 truncate">{activeProject?.name || 'Select project'}</span>
             </div>
-            <ChevronDown
-              className={`h-4 w-4 text-neutral-500 flex-shrink-0 transition-transform duration-200 ${showProjectMenu ? 'rotate-180' : ''}`}
-            />
-          </button>
-
-          {/* Project Dropdown */}
-          {showProjectMenu && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-md z-50 py-1 max-h-[400px] overflow-y-auto min-w-full w-max">
-              {sortedProjects.map(project => (
-                <button
-                  key={project.id}
-                  onClick={e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setActiveProject(project);
-                    setShowProjectMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-neutral-50 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <div className="h-6 w-6 rounded-md bg-neutral-100 text-neutral-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
-                    {project.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-neutral-900 text-left flex-1">{project.name}</span>
-                  {activeProject?.id === project.id && (
-                    <div className="ml-auto h-1.5 w-1.5 rounded-full bg-neutral-900 flex-shrink-0" />
-                  )}
-                </button>
-              ))}
-              <div className="border-t border-neutral-200 my-1" />
-              <Link
-                href="/projects/create"
-                onClick={() => setShowProjectMenu(false)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-neutral-50 transition-colors text-neutral-700 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            <ChevronDown className="h-4 w-4 text-neutral-500 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="min-w-[var(--radix-dropdown-menu-trigger-width)] max-h-[400px] overflow-y-auto"
+          >
+            {sortedProjects.map(project => (
+              <DropdownMenuItem
+                key={project.id}
+                onSelect={() => setActiveProject(project)}
+                className="gap-2 px-3 py-2 cursor-pointer"
               >
+                <div className="h-6 w-6 rounded-md bg-neutral-100 text-neutral-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
+                  {project.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-neutral-900 text-left flex-1 truncate">{project.name}</span>
+                {activeProject?.id === project.id && (
+                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-neutral-900 flex-shrink-0" />
+                )}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="gap-2 px-3 py-2 cursor-pointer text-neutral-700">
+              <Link href="/projects/create" onClick={() => setShowMobileMenu(false)}>
                 <Plus className="h-4 w-4" />
                 <span>Create project</span>
               </Link>
-            </div>
-          )}
-        </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Navigation */}
@@ -300,11 +235,8 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
           Settings
         </Link>
 
-        <div className="relative" ref={userMenuRef}>
-          <button
-            onClick={handleToggleUserMenu}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
+        <DropdownMenu>
+          <DropdownMenuTrigger className="group w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
             <div
               className="h-5 w-5 rounded-full text-white flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
               style={{background: avatarGradient(user?.email ?? '')}}
@@ -312,27 +244,22 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
               {user?.email?.charAt(0).toUpperCase() ?? '?'}
             </div>
             <span className="flex-1 text-left truncate">Account</span>
-            <ChevronDown
-              className={`h-4 w-4 text-neutral-500 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`}
-            />
-          </button>
-
-          {/* User Dropdown */}
-          {showUserMenu && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-neutral-200 rounded-lg shadow-md z-50 py-1">
-              <div className="px-3 py-2 border-b border-neutral-100">
-                <p className="text-xs text-neutral-500 truncate">{user?.email}</p>
-              </div>
-              <button
-                onClick={handleLogoutClick}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-neutral-50 transition-colors text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Log out</span>
-              </button>
-            </div>
-          )}
-        </div>
+            <ChevronDown className="h-4 w-4 text-neutral-500 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+            <DropdownMenuLabel className="px-3 py-2 font-normal text-xs text-neutral-500 truncate">
+              {user?.email}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => void handleLogout()}
+              className="gap-2 px-3 py-2 cursor-pointer text-red-600 focus:text-red-600"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </>
   );
@@ -341,7 +268,7 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
     <div className="flex h-screen bg-neutral-50">
       {/* Desktop Sidebar - Hidden on mobile */}
       <div className="hidden lg:flex w-64 bg-white border-r border-neutral-200 flex-col">
-        {getSidebarContent(desktopProjectMenuRef, desktopUserMenuRef)}
+        {getSidebarContent()}
       </div>
 
       {/* Mobile Sidebar Overlay */}
@@ -357,7 +284,7 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
           showMobileMenu ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex flex-col h-full">{getSidebarContent(mobileProjectMenuRef, mobileUserMenuRef)}</div>
+        <div className="flex flex-col h-full">{getSidebarContent()}</div>
       </div>
 
       {/* Main Content */}

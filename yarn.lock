@@ -3228,7 +3228,7 @@ __metadata:
     sonner: "npm:^2.0.6"
     tailwind-merge: "npm:^3.4.0"
     tailwindcss: "npm:^4.1.17"
-    tailwindcss-animate: "npm:^1.0.7"
+    tw-animate-css: "npm:^1.4.0"
     typescript: "npm:^5.7.2"
   peerDependencies:
     react: ^19.2.3
@@ -18266,15 +18266,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss-animate@npm:^1.0.7":
-  version: 1.0.7
-  resolution: "tailwindcss-animate@npm:1.0.7"
-  peerDependencies:
-    tailwindcss: "*"
-  checksum: 10c0/ec7dbd1631076b97d66a1fbaaa06e0725fccfa63119221e8d87a997b02dcede98ad88bb1ef6665b968f5d260fcefb10592e0299ca70208d365b37761edf5e19a
-  languageName: node
-  linkType: hard
-
 "tailwindcss@npm:3.4.0":
   version: 3.4.0
   resolution: "tailwindcss@npm:3.4.0"
@@ -18695,6 +18686,13 @@ __metadata:
   bin:
     turbo: bin/turbo
   checksum: 10c0/3dab627a4e0f855c2ea2cc5e7d3d7abed01a7abace1197983c55e0563c413dfe45c80c121e5fa25d2cca013d895bde457d5cdf3a3d47000dc7d432a4cb68e78f
+  languageName: node
+  linkType: hard
+
+"tw-animate-css@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "tw-animate-css@npm:1.4.0"
+  checksum: 10c0/6cfbc19ccc73883ec80ef1f9147f43e736cb01ee99c8172968b37eb81b720523d30e38b1a96aef92db3c586d864204db5510b51744ddacbbf0ad8e3c7fb56ec7
   languageName: node
   linkType: hard
 
@@ -19466,6 +19464,7 @@ __metadata:
     swr: "npm:^2.2.5"
     tailwindcss: "npm:^4.1.17"
     tippy.js: "npm:^6.3.7"
+    tw-animate-css: "npm:^1.4.0"
     typescript: "npm:^5.7.2"
     zod: "npm:^3.23.8"
   languageName: unknown

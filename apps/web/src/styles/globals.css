@@ -1,8 +1,8 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
-@plugin 'tailwindcss-animate';
 
 @source '../../../../packages/ui/src/**/*.{ts,tsx}';
 
@@ -57,6 +57,10 @@
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
+
+    /* Decelerating curves for overlay motion: arrive with confidence, no bounce. */
+    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 @layer base {
@@ -172,5 +176,52 @@
     }
     100% {
         transform: translateX(400%);
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Overlay motion
+   One open/close choreography for every Radix overlay (dropdowns, selects,
+   popovers, tooltips, dialogs). Declared outside @layer so these longhands
+   reliably win over tw-animate-css's `animation` shorthand. Entrances
+   decelerate into place; exits are quicker and flatter so dismissals feel
+   instant.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Popper-positioned overlays scale out of their trigger, not the viewport. */
+[data-radix-popper-content-wrapper] > * {
+    transform-origin: var(--radix-popper-transform-origin);
+}
+
+/* Dropdown / select / popover / tooltip / submenus (everything with a side). */
+[data-side][data-state='open'] {
+    animation-duration: 180ms;
+    animation-timing-function: var(--ease-out-quint);
+}
+[data-side][data-state='closed'] {
+    animation-duration: 120ms;
+    animation-timing-function: var(--ease-out-quart);
+}
+
+/* Modal + confirm dialogs (centred, no side). */
+[role='dialog'][data-state='open'],
+[role='alertdialog'][data-state='open'] {
+    animation-duration: 200ms;
+    animation-timing-function: var(--ease-out-quint);
+}
+[role='dialog'][data-state='closed'],
+[role='alertdialog'][data-state='closed'] {
+    animation-duration: 150ms;
+    animation-timing-function: var(--ease-out-quart);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }
