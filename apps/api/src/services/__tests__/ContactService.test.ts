@@ -75,6 +75,45 @@ describe('ContactService - Duplicate Prevention & Data Merging', () => {
     });
   });
 
+  describe('Email Normalization (case-insensitive find-or-create)', () => {
+    it('should treat case-variant addresses as the same contact on upsert', async () => {
+      const first = await ContactService.upsert(projectId, 'User@Example.com', {firstName: 'John'});
+      const second = await ContactService.upsert(projectId, 'user@example.com', {lastName: 'Doe'});
+
+      expect(second.id).toBe(first.id);
+      expect(second.email).toBe('user@example.com');
+      expect(second.data).toMatchObject({firstName: 'John', lastName: 'Doe'});
+
+      const contacts = await prisma.contact.findMany({where: {projectId}});
+      expect(contacts).toHaveLength(1);
+    });
+
+    it('should store email lowercased and trimmed on create', async () => {
+      const contact = await ContactService.create(projectId, {email: '  MixedCase@Example.COM '});
+      expect(contact.email).toBe('mixedcase@example.com');
+    });
+
+    it('should reject a case-variant duplicate on create', async () => {
+      await ContactService.create(projectId, {email: 'dup@example.com'});
+      await expect(ContactService.create(projectId, {email: 'DUP@example.com'})).rejects.toThrow(/already exists/i);
+    });
+
+    it('should find a contact regardless of lookup casing', async () => {
+      const created = await ContactService.create(projectId, {email: 'find@example.com'});
+
+      const found = await ContactService.findByEmail(projectId, 'FIND@Example.com');
+      expect(found?.id).toBe(created.id);
+    });
+
+    it('should match case-insensitively in bulk lookup and echo original input', async () => {
+      await ContactService.create(projectId, {email: 'known@example.com'});
+
+      const result = await ContactService.lookup(projectId, ['KNOWN@example.com', 'missing@example.com']);
+      expect(result.found).toEqual(['KNOWN@example.com']);
+      expect(result.notFound).toEqual(['missing@example.com']);
+    });
+  });
+
   describe('Upsert Data Merging Logic', () => {
     it('should merge new data with existing data without losing fields', async () => {
       const email = 'test@example.com';

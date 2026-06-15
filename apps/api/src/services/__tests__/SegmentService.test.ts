@@ -709,4 +709,41 @@ describe('SegmentService', () => {
       expect(ids).toContain(recent.id);
     });
   });
+
+  describe('Static Segment addContacts (email normalization)', () => {
+    async function createStaticSegment() {
+      return prisma.segment.create({data: {projectId, name: `Static ${Date.now()}`, type: 'STATIC'}});
+    }
+
+    it('matches an existing contact regardless of input casing', async () => {
+      const contact = await factories.createContact({projectId, email: 'member@example.com'});
+      const segment = await createStaticSegment();
+
+      const result = await SegmentService.addContacts(projectId, segment.id, ['MEMBER@Example.com']);
+
+      expect(result.added).toBe(1);
+      expect(result.notFound).toEqual([]);
+      const memberships = await prisma.segmentMembership.findMany({where: {segmentId: segment.id}});
+      expect(memberships.map(m => m.contactId)).toEqual([contact.id]);
+    });
+
+    it('creates missing contacts with a normalized email', async () => {
+      const segment = await createStaticSegment();
+
+      await SegmentService.addContacts(projectId, segment.id, ['New@Example.COM'], true);
+
+      const created = await prisma.contact.findMany({where: {projectId}});
+      expect(created).toHaveLength(1);
+      expect(created[0]?.email).toBe('new@example.com');
+    });
+
+    it('collapses case-variants in the same request into one contact', async () => {
+      const segment = await createStaticSegment();
+
+      await SegmentService.addContacts(projectId, segment.id, ['Dup@example.com', 'dup@example.com'], true);
+
+      const created = await prisma.contact.findMany({where: {projectId}});
+      expect(created).toHaveLength(1);
+    });
+  });
 });

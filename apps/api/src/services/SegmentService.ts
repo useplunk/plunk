@@ -6,6 +6,7 @@ import signale from 'signale';
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
 
+import {ContactService} from './ContactService.js';
 import {EventService} from './EventService.js';
 import {NtfyService} from './NtfyService.js';
 
@@ -341,17 +342,20 @@ export class SegmentService {
       throw new HttpException(400, 'Can only add contacts to STATIC segments');
     }
 
-    // Look up contacts by email (case-insensitive)
+    // Emails are stored normalized, so look up (and create) on the normalized
+    // value. Dedupe first so case-variants in the same request collapse to one.
+    const normalizedEmails = [...new Set(emails.map(e => ContactService.normalizeEmail(e)))];
+
     let contacts = await prisma.contact.findMany({
       where: {
         projectId,
-        email: {in: emails, mode: 'insensitive'},
+        email: {in: normalizedEmails},
       },
       select: {id: true, email: true},
     });
 
-    let foundEmails = new Set(contacts.map(c => c.email.toLowerCase()));
-    const missing = emails.filter(e => !foundEmails.has(e.toLowerCase()));
+    let foundEmails = new Set(contacts.map(c => c.email));
+    const missing = normalizedEmails.filter(e => !foundEmails.has(e));
 
     let created = 0;
     if (createMissing && missing.length > 0) {
@@ -362,13 +366,14 @@ export class SegmentService {
       created = missing.length;
       // Re-fetch to include newly created contacts
       contacts = await prisma.contact.findMany({
-        where: {projectId, email: {in: emails, mode: 'insensitive'}},
+        where: {projectId, email: {in: normalizedEmails}},
         select: {id: true, email: true},
       });
-      foundEmails = new Set(contacts.map(c => c.email.toLowerCase()));
+      foundEmails = new Set(contacts.map(c => c.email));
     }
 
-    const notFound = emails.filter(e => !foundEmails.has(e.toLowerCase()));
+    // Report unmatched addresses using the caller's original input strings.
+    const notFound = emails.filter(e => !foundEmails.has(ContactService.normalizeEmail(e)));
 
     if (contacts.length > 0) {
       // Check for existing memberships (to reactivate vs create new)

@@ -8,6 +8,21 @@ import {EventService} from './EventService.js';
 
 export class ContactService {
   /**
+   * Normalize an email address for storage and lookup.
+   *
+   * Emails are stored lowercased and trimmed so that the find-or-create path
+   * (`upsert`/`findByEmail`) and the `(projectId, email)` unique constraint
+   * treat case-variant addresses as the same contact. In practice every major
+   * mailbox provider delivers `User@x.com` and `user@x.com` to the same inbox,
+   * so treating them as one person matches how recipients actually experience
+   * email and prevents duplicate, segment-less contacts. Mirrors the `User`
+   * model, which already lowercases on write.
+   */
+  public static normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
+  /**
    * Get all contacts for a project with cursor-based pagination
    * Uses cursor pagination for better performance with large datasets
    */
@@ -95,13 +110,17 @@ export class ContactService {
     projectId: string,
     emails: string[],
   ): Promise<{found: string[]; notFound: string[]}> {
+    // Emails are stored normalized, so an exact `in` match uses the
+    // `(projectId, email)` btree index instead of a full scan via ILIKE.
+    const normalized = emails.map(e => this.normalizeEmail(e));
     const rows = await prisma.contact.findMany({
-      where: {projectId, email: {in: emails, mode: 'insensitive'}},
+      where: {projectId, email: {in: normalized}},
       select: {email: true},
     });
-    const foundSet = new Set(rows.map(r => r.email.toLowerCase()));
-    const found = emails.filter(e => foundSet.has(e.toLowerCase()));
-    const notFound = emails.filter(e => !foundSet.has(e.toLowerCase()));
+    const foundSet = new Set(rows.map(r => r.email));
+    // Return the caller's original strings, partitioned by normalized match.
+    const found = emails.filter(e => foundSet.has(this.normalizeEmail(e)));
+    const notFound = emails.filter(e => !foundSet.has(this.normalizeEmail(e)));
     return {found, notFound};
   }
 
@@ -112,7 +131,7 @@ export class ContactService {
     return prisma.contact.findFirst({
       where: {
         projectId,
-        email,
+        email: this.normalizeEmail(email),
       },
     });
   }
@@ -129,7 +148,7 @@ export class ContactService {
       return await prisma.contact.create({
         data: {
           projectId,
-          email: data.email,
+          email: this.normalizeEmail(data.email),
           data: data.data ?? Prisma.JsonNull,
           subscribed: data.subscribed ?? true,
         },
@@ -199,7 +218,7 @@ export class ContactService {
     const updateData: Prisma.ContactUpdateInput = {};
 
     if (data.email !== undefined) {
-      updateData.email = data.email;
+      updateData.email = ContactService.normalizeEmail(data.email);
     }
     if (data.data !== undefined) {
       if (data.data === null) {
@@ -277,11 +296,13 @@ export class ContactService {
     subscribed?: boolean,
     defaultSubscribed: boolean = true,
   ): Promise<Contact> {
+    const normalizedEmail = ContactService.normalizeEmail(email);
+
     // Find existing contact
     const existing = await prisma.contact.findFirst({
       where: {
         projectId,
-        email,
+        email: normalizedEmail,
       },
     });
 
@@ -323,7 +344,7 @@ export class ContactService {
         return await prisma.contact.create({
           data: {
             projectId,
-            email,
+            email: normalizedEmail,
             data: Object.keys(mergedData).length > 0 ? toPrismaJson(mergedData) : Prisma.JsonNull,
             subscribed: subscribed ?? defaultSubscribed,
           },
