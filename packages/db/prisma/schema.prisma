@@ -581,6 +581,7 @@ model Email {
   @@index([projectId, contactId])
   @@index([contactId])
   @@index([campaignId])
+  @@index([campaignId, status]) // Cheap "any email still pending?" probe for campaign finalization
   @@index([workflowExecutionId])
   @@index([workflowStepExecutionId])
   @@index([status])

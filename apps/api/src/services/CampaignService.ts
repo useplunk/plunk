@@ -631,6 +631,21 @@ export class CampaignService {
       return;
     }
 
+    // Cheap completion probe: an unprocessed campaign email is always PENDING or
+    // SENDING (any other status either has sentAt set or is FAILED, both terminal),
+    // so a single index-only LIMIT 1 lookup tells us whether the campaign is done.
+    // This runs on every sent email, so it must stay O(log N) — the full counts
+    // below only run once the campaign has actually finished. See the (campaignId,
+    // status) index on Email.
+    const stillPending = await prisma.email.findFirst({
+      where: {campaignId, status: {in: [EmailStatus.PENDING, EmailStatus.SENDING]}},
+      select: {id: true},
+    });
+
+    if (stillPending) {
+      return;
+    }
+
     const [processedCount, sentCount] = await Promise.all([
       prisma.email.count({
         where: {
