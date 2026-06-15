@@ -40,13 +40,21 @@ WHERE s.id = m.survivor_id
 
 -- 3. Merge custom data: union the duplicates' keys, then let the survivor's
 --    own keys override. NULLIF keeps an all-empty result as NULL.
+--    data is a free-form Json? column, so some rows hold non-object values
+--    (scalars/arrays/null). jsonb_each and the || merge operator only behave
+--    correctly on objects, so guard every read with jsonb_typeof = 'object'
+--    and treat anything else as an empty object.
 UPDATE contacts s
-SET data = NULLIF(COALESCE(agg.dup_data, '{}'::jsonb) || COALESCE(s.data, '{}'::jsonb), '{}'::jsonb)
+SET data = NULLIF(
+  COALESCE(agg.dup_data, '{}'::jsonb)
+  || CASE WHEN jsonb_typeof(s.data) = 'object' THEN s.data ELSE '{}'::jsonb END,
+  '{}'::jsonb)
 FROM (
   SELECT m.survivor_id, jsonb_object_agg(kv.key, kv.value) AS dup_data
   FROM _contact_merge_map m
   JOIN contacts d ON d.id = m.dup_id
-  CROSS JOIN LATERAL jsonb_each(COALESCE(d.data, '{}'::jsonb)) AS kv(key, value)
+  CROSS JOIN LATERAL jsonb_each(d.data) AS kv(key, value)
+  WHERE jsonb_typeof(d.data) = 'object'
   GROUP BY m.survivor_id
 ) agg
 WHERE s.id = agg.survivor_id;
