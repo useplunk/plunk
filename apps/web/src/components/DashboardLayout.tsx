@@ -17,7 +17,7 @@ import {
   Plus,
   Settings,
   Users,
-  Workflow,
+  Workflow
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -60,6 +60,18 @@ const navigation: NavSection[] = [
     items: [{name: 'Campaigns', href: '/campaigns', icon: Megaphone}],
   },
 ];
+
+// Deterministically derives a soft two-tone gradient from a string (e.g. an email),
+// so every account gets a stable, distinct avatar without storing any image.
+function avatarGradient(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  const hue2 = (hue + 45) % 360;
+  return `linear-gradient(135deg, hsl(${hue} 70% 55%), hsl(${hue2} 75% 45%))`;
+}
 
 export function DashboardLayout({children}: DashboardLayoutProps) {
   const router = useRouter();
@@ -168,7 +180,8 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
           onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', {key: 'k', metaKey: true, bubbles: true}))}
           className="hidden lg:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-neutral-400 bg-neutral-100 border border-neutral-200 rounded hover:bg-neutral-200 hover:text-neutral-600 transition-colors cursor-pointer"
         >
-          <span>⌘</span><span>K</span>
+          <span>⌘</span>
+          <span>K</span>
         </button>
       </div>
 
@@ -247,7 +260,9 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
                     href={item.href}
                     onClick={() => setShowMobileMenu(false)}
                     className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                      isActive ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                      isActive
+                        ? 'bg-neutral-100 text-neutral-900'
+                        : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -290,10 +305,13 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
             onClick={handleToggleUserMenu}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <div className="h-5 w-5 rounded-full bg-neutral-900 text-white flex items-center justify-center text-[10px] font-semibold flex-shrink-0">
+            <div
+              className="h-5 w-5 rounded-full text-white flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
+              style={{background: avatarGradient(user?.email ?? '')}}
+            >
               {user?.email?.charAt(0).toUpperCase() ?? '?'}
             </div>
-            <span className="flex-1 text-left truncate">{user?.email}</span>
+            <span className="flex-1 text-left truncate">Account</span>
             <ChevronDown
               className={`h-4 w-4 text-neutral-500 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`}
             />
