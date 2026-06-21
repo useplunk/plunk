@@ -1,0 +1,45 @@
+{
+  "pages": {
+    "unsubscribe": {
+      "title": "配信停止",
+      "description": "メールの配信を停止されるとのこと、残念です。{email} へのメール配信を停止してもよろしいですか？",
+      "button": "配信を停止する",
+      "buttonLoading": "配信停止中...",
+      "managePreferences": "代わりに配信設定を変更する",
+      "successTitle": "配信を停止しました",
+      "successDescription": "{email} の配信を停止しました。今後、こちらからメールが届くことはありません。",
+      "changedMind": "気が変わりましたか？",
+      "subscribeAgain": "再び配信登録する"
+    },
+    "subscribe": {
+      "title": "最新情報の配信登録する",
+      "description": "{email} でメールの配信を受け取りますか？",
+      "button": "登録する",
+      "buttonLoading": "登録中...",
+      "successTitle": "登録が完了しました！",
+      "successDescription": "{email} のメール配信登録が完了しました。"
+    },
+    "manage": {
+      "title": "配信設定の管理",
+      "description": "{email} のメール配信設定を管理します",
+      "subscriptionLabel": "メール配信",
+      "subscribedStatus": "現在、メールを受信する設定になっています",
+      "unsubscribedStatus": "現在、メールの配信を停止しています",
+      "subscribedSuccess": "登録が完了しました！",
+      "unsubscribedSuccess": "配信を停止しました！",
+      "unsubscribeCompletely": "メール配信を完全に停止する",
+      "subscribeToEmails": "メール配信を受け取る",
+      "disclaimer": "このページではメールの配信設定を管理できます。設定の変更はリアルタイムで反映されます。"
+    },
+    "common": {
+      "loading": "読み込み中...",
+      "error": "エラー"
+    }
+  },
+  "email": {
+    "footer": {
+      "unsubscribeText": "このメールは、{projectName} からのメール配信に同意いただいたため送信されています。今後このようなメールを受け取りたくない場合は、",
+      "updatePreferences": "配信設定を変更してください"
+    }
+  }
+}
