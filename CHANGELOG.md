@@ -1,5 +1,61 @@
 # Changelog
 
+## [0.12.0](https://github.com/useplunk/plunk/compare/v0.11.0...v0.12.0) (2026-06-21)
+
+
+### Features
+
+* add composite index on campaignId and status for efficient campaign completion checks ([4b752a5](https://github.com/useplunk/plunk/commit/4b752a527b1c4da1cd211869ac33ba124bf8aa66)), closes [#400](https://github.com/useplunk/plunk/issues/400)
+* add disabledReason field to projects for better tracking of disable reasons ([94ceadb](https://github.com/useplunk/plunk/commit/94ceadbbe417f0cb3ab72c66bfad9428bdce2d11))
+* **api:** allow API key authentication for domain endpoints ([d2496bc](https://github.com/useplunk/plunk/commit/d2496bc51d17657380160dbfc20e099d3f4eadba))
+* bulk delete for workflows and campaigns ([a05034e](https://github.com/useplunk/plunk/commit/a05034e517d8811aa941bc6be111fa94491e881a))
+* **Contacts:** add subscription status filter and enhance query capabilities ([8564016](https://github.com/useplunk/plunk/commit/85640162ce8461f76df9f125db6119f5eed26e87))
+* **contacts:** make email cell a link to the contact detail page ([6759bff](https://github.com/useplunk/plunk/commit/6759bffd2a1f0bfb09b754bb0efdfe5c347ea2b3))
+* **contacts:** make email cell a link to the contact detail page ([6d98d51](https://github.com/useplunk/plunk/commit/6d98d512222ffb422bc2a4bef4284a644558b39d))
+* **EmailService:** add worker concurrency settings and improve email queue prioritization ([80beb2b](https://github.com/useplunk/plunk/commit/80beb2bb9937101d1723f2d54648060fdcbe6cef))
+* extend table view to workflows and campaigns list pages ([e932b2d](https://github.com/useplunk/plunk/commit/e932b2dccb685e46d9a6ff82babd488a5e068e53))
+* **i18n:** add Japanese (ja) translations ([e399d0c](https://github.com/useplunk/plunk/commit/e399d0c0bc24e08991c9839a0604cdff4985a995))
+* **i18n:** add Japanese (ja) translations ([f34c0e1](https://github.com/useplunk/plunk/commit/f34c0e13dd1146c3310f74c49090f9db1a9ee8ec))
+* implement deterministic avatar gradient generation for user accounts ([e0e79cc](https://github.com/useplunk/plunk/commit/e0e79cc8e7bce6f63e871e4630bcf6ed36a36ca0))
+* introduce DataTableFilter and FacetedFilterMenu for unified filtering experience ([44e4e45](https://github.com/useplunk/plunk/commit/44e4e454c0ecde66b4881a5831def7bee82d0862))
+* make detectCustomHtmlPatterns aware of TipTap's actual capabilities ([9797aed](https://github.com/useplunk/plunk/commit/9797aed47f520aba51bec4e09c9bc4b7762e02f8))
+* make detectCustomHtmlPatterns aware of TipTap's actual capabilities ([ba3813e](https://github.com/useplunk/plunk/commit/ba3813e2422d9fe4e252a90242393cada65644dc))
+* normalize email addresses for contacts to handle case-variants and whitespace ([05c8041](https://github.com/useplunk/plunk/commit/05c8041a312aaf1328d09ee5b31fb4dbc9ed6e6b)), closes [#403](https://github.com/useplunk/plunk/issues/403)
+* refactor DashboardLayout to use DropdownMenu for project and user menus ([9cbd5c0](https://github.com/useplunk/plunk/commit/9cbd5c050eb43a123f1b9f06090aa829796c3a0a))
+* render template variables in WEBHOOK step url, headers and body ([bfecf04](https://github.com/useplunk/plunk/commit/bfecf04fa38309804ee19e99b9908caf51c5e039))
+* render template variables in WEBHOOK step url, headers and body ([c484da8](https://github.com/useplunk/plunk/commit/c484da88ab7b4635987868e2e3c6fdded68ade8c))
+* **SecurityService:** enhance phishing detection by verifying sender domains and institutional TLDs ([6ab4d77](https://github.com/useplunk/plunk/commit/6ab4d77ca9bebd01f75d8799dad23fdec7768b52))
+* **SecurityService:** enhance phishing detection by verifying sender domains and institutional TLDs ([edfc399](https://github.com/useplunk/plunk/commit/edfc399061cb7fd079b7f11167a2796df766d8ac))
+* table view with sorting, faceted filters, and bulk delete  for templates, workflows, and campaigns ([4ccb3d2](https://github.com/useplunk/plunk/commit/4ccb3d20b1fcfe21f8781777154d05571f3f19c6))
+* tanstack table view with sorting, faceted filter, and bulk delete for templates ([55a0c4f](https://github.com/useplunk/plunk/commit/55a0c4fe239f415b54784270365ee0a3b2b312e2))
+* **tests:** enhance test database setup and cleanup for improved isolation and performance ([32dd7bb](https://github.com/useplunk/plunk/commit/32dd7bba462a6f4a13d59b8fb03708f971d1eff0))
+
+
+### Bug Fixes
+
+* coerce boolean and numeric values in custom CSV columns ([4a145f3](https://github.com/useplunk/plunk/commit/4a145f3488bee63c2d82a4a477f6dfaaaaede64b))
+* **dashboard:** table empty-state recovery, bulk button sizing, workflow status+steps, header casing ([157ff34](https://github.com/useplunk/plunk/commit/157ff34486a5cd4d716cb7176f6e3e86d7109320))
+* **filters:** land templates/workflows/campaigns search inputs at 32px to match filter buttons ([283f402](https://github.com/useplunk/plunk/commit/283f40239dcc81e78d35b39cb9b31f97b435b8d7))
+* make email templates, campaigns and workflow search inputs same height as the rest of the app ([8b3657d](https://github.com/useplunk/plunk/commit/8b3657d056938b17f0634c0fe8d664ae1e07cd73))
+* safeguard JSON data handling in contacts migration to ensure proper object types ([55a5e4d](https://github.com/useplunk/plunk/commit/55a5e4d31b666bcef65c6de118ad7564d624f2cd))
+
+
+### Code Refactoring
+
+* **database:** increase Prisma connection pool limits for improved test performance ([71e2277](https://github.com/useplunk/plunk/commit/71e227764319e6fc732aefdebd11f3e844257ef6))
+* **SecurityService:** update absolute count ceilings for new projects to improve spam detection ([4de40f4](https://github.com/useplunk/plunk/commit/4de40f40fa300c9e9ed2ed35f367ca4cd601f309))
+
+
+### Documentation
+
+* add env-var sync rule to CLAUDE.md ([a348d37](https://github.com/useplunk/plunk/commit/a348d37c21ecf1d57845f31210f66a8113fadb8d))
+* add new recipe pages for waitlist and sync unsubscribes ([01ec34a](https://github.com/useplunk/plunk/commit/01ec34a8cbbe0f4a158398c0eb8300d847bc29ab))
+* correct PHISHING_CONFIDENCE_THRESHOLD default in CLAUDE.md ([5c16679](https://github.com/useplunk/plunk/commit/5c166797b57f2e7b714957824ee1acdcb22c05f2))
+* **env:** add wiki-documented vars to apps/api/.env.example ([81315ea](https://github.com/useplunk/plunk/commit/81315eac8eb32a7d2e61617c6a84f349afaf7860))
+* **env:** sync .env.self-host.example with missing variables ([1c1c95d](https://github.com/useplunk/plunk/commit/1c1c95d332fb9ab6c2f926f6d51071cfb245ed86))
+* **env:** sync env example files, fix CLAUDE.md drift, add process rule ([6ebbb50](https://github.com/useplunk/plunk/commit/6ebbb50f6817f1354f26cc7734631d3b6ded32ed))
+* **wiki:** document MAIL_FROM_SUBDOMAIN and NGINX_PORT env vars ([971b98a](https://github.com/useplunk/plunk/commit/971b98a4cc6145571204f5a4ad794aa3d09ea71c))
+
 ## [0.11.0](https://github.com/useplunk/plunk/compare/v0.10.0...v0.11.0) (2026-05-13)
 
 
