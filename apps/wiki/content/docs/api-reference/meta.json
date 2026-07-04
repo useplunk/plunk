@@ -11,6 +11,7 @@
     "templates",
     "campaigns",
     "segments",
+    "forms",
     "---Reference---",
     "errors"
   ]

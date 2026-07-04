@@ -1,0 +1,73 @@
+---
+title: Forms
+description: Hosted signup pages that capture contacts and feed segments
+icon: FileInput
+---
+
+Forms let you collect signups without building your own backend integration. Create a form in the dashboard, share the hosted link, and every submission creates or updates a contact with tags you can filter on in dynamic segments — or adds them directly to a static segment.
+
+## How it works
+
+1. **Create a form** in **Forms → Create Form** — set the page title, optional custom fields, and destination.
+2. **Share the link** — your dashboard URL + `/form/{publicId}` (copy from the form detail page).
+3. **On submit**, Plunk:
+   - Upserts the contact by email
+   - Writes `data["form:<slug>"] = true` plus any tags you configured (e.g. `source: newsletter`)
+   - Tracks `form.submitted` (or a custom event name) for workflows
+   - Optionally adds the contact to a **static** segment
+
+## Static vs dynamic destinations
+
+| Destination | What happens on submit | Best for |
+| ----------- | ---------------------- | -------- |
+| **Dynamic (tags)** | Tags on `contact.data` + event | Flexible audiences; one tag shared across many forms; filter with dynamic segments |
+| **Static segment** | Direct membership via `SegmentMembership` | Fixed lists you campaign to immediately |
+
+You can use **both**: link a static segment *and* write tags. Tags and events always fire; static membership is additive.
+
+### Dynamic segments from forms
+
+Each form writes a unique boolean tag: `data["form:your-slug"] = true`. Build a dynamic segment with:
+
+- `data.form:your-slug` **equals** `true`, or
+- a shared tag like `data.source` **equals** `newsletter` (same tag on multiple forms), or
+- event `form.submitted` **triggered** (or your custom event name)
+
+This supports **one form → many segments** (different filters) and **many forms → one segment** (shared `source` tag or OR groups).
+
+### Static segments
+
+Choose an existing static segment or auto-create one on form setup. Submit calls the same path as `POST /segments/:id/members` — membership is immediate; entry/exit events are not fired (same as manual API adds).
+
+## Custom fields
+
+Email is always required. Optional text fields map to keys under `contact.data` (e.g. `firstName`) for personalization and segmentation.
+
+## Workflows
+
+Every submit tracks `form.submitted` with event data `{ form: "<slug>", ...fieldValues }`. Trigger workflows on that event for welcome emails, double opt-in, or `UPDATE_CONTACT` steps.
+
+### Double opt-in
+
+Enable **Double opt-in** on the form. Contacts are created with `subscribed: false`. Add a workflow on `form.submitted` that sends a **transactional** template containing `{{subscribeUrl}}`. See [Double opt-in](/recipes/double-opt-in).
+
+## Options
+
+| Option | Effect |
+| ------ | ------ |
+| **Validate email** | Rejects disposable addresses, plus-addressing, and domains without MX records |
+| **Redirect URL** | Browser redirect after successful submit |
+| **Published** | Disabled forms return 404 on the public link |
+
+## Security
+
+Public submit endpoints use rate limiting (per IP per form), a honeypot field, and optional email validation. No API key is exposed in the browser.
+
+## API
+
+Manage forms with authenticated endpoints (`GET/POST/PATCH/DELETE /forms`). Public endpoints:
+
+- `GET /forms/public/:publicId` — form config for rendering
+- `POST /forms/public/:publicId/submit` — submit `{ email, data?: {...} }`
+
+See [Forms API reference](/api-reference/forms).

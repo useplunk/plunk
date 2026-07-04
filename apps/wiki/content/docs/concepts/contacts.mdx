@@ -15,6 +15,7 @@ Contacts can be added to your Plunk project in several ways:
 - Bulk **CSV import** via `POST /contacts/import` — upload a CSV (≤ 5 MB) and poll `GET /contacts/import/:jobId` for status. The first column must be `email`; any other columns map to keys under `data.*`.
 - Bulk **subscribe / unsubscribe / delete** via `POST /contacts/bulk-subscribe`, `bulk-unsubscribe`, and `bulk-delete` — each accepts up to 1,000 contact IDs and returns a job ID; poll `GET /contacts/bulk/:jobId` for progress.
 - Adding emails to a **static segment** with `POST /segments/:id/members` and `createMissing: true` will create any contacts that don't already exist.
+- **Forms** — hosted signup pages that upsert contacts, write tags for dynamic segments, and optionally add to static segments. See [Forms](/concepts/forms).
 - Manually through the dashboard.
 
 ## Contact Data

@@ -1,3 +1,3 @@
 {
-  "pages": ["contacts", "segments", "workflows", "campaigns", "transactional-emails", "templates", "billing"]
+  "pages": ["contacts", "segments", "forms", "workflows", "campaigns", "transactional-emails", "templates", "billing"]
 }

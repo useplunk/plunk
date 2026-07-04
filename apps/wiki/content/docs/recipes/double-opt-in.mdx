@@ -6,6 +6,10 @@ icon: MailCheck
 
 Double opt-in adds a confirmation step between "user signs up" and "user starts getting marketing email." It's the standard way to avoid mailing typoed addresses, role accounts, and anyone who didn't actually consent.
 
+<Callout title="No-code alternative" type="info">
+  Enable **Double opt-in** on a [Form](/concepts/forms). Contacts submit via the hosted page as unsubscribed; wire a workflow on `form.submitted` to send the confirmation email with `{{subscribeUrl}}`.
+</Callout>
+
 The trick is `{{subscribeUrl}}`: a per-contact link Plunk auto-injects into every send. Clicking it flips `subscribed` to `true` and fires a `contact.subscribed` event.
 
 ## Setup

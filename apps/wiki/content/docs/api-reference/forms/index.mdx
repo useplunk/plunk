@@ -1,0 +1,91 @@
+---
+title: Forms API
+description: Manage forms and public submit endpoints
+icon: FileInput
+---
+
+Authenticated endpoints require a secret key (`sk_*`) or dashboard session with `X-Project-Id`. Public endpoints require no authentication.
+
+## List forms
+
+`GET /forms`
+
+Returns all forms for the project, including linked segment summary and submission count.
+
+## Create form
+
+`POST /forms`
+
+```json
+{
+  "name": "Newsletter",
+  "slug": "newsletter",
+  "fields": [
+    { "key": "firstName", "label": "First name", "type": "text", "required": false }
+  ],
+  "settings": {
+    "title": "Join our newsletter",
+    "description": "Weekly updates, no spam.",
+    "successMessage": "Thanks for subscribing!",
+    "tags": { "source": "newsletter" },
+    "doubleOptIn": false,
+    "verifyEmail": true
+  },
+  "segmentId": "uuid-of-static-segment",
+  "createSegment": false,
+  "enabled": true
+}
+```
+
+| Field | Description |
+| ----- | ----------- |
+| `slug` | Lowercase URL-safe id; writes `data["form:<slug>"] = true` on submit |
+| `fields` | Custom fields (email is always collected separately) |
+| `settings.tags` | Extra `contact.data` keys for dynamic segment filters |
+| `segmentId` | Optional static segment to add members to |
+| `createSegment` | If `true`, creates a new static segment named `Form — {name}` |
+
+## Get / update / delete
+
+- `GET /forms/:id`
+- `PATCH /forms/:id` — partial update; pass `"segmentId": null` to unlink static segment
+- `DELETE /forms/:id`
+
+## Public: get form config
+
+`GET /forms/public/:publicId`
+
+No auth. Returns render metadata (fields, title, description, language). Disabled or missing forms return `404`.
+
+## Public: submit
+
+`POST /forms/public/:publicId/submit`
+
+No auth. CORS enabled for browser embeds.
+
+```json
+{
+  "email": "ada@example.com",
+  "data": {
+    "firstName": "Ada"
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "redirectUrl": "https://example.com/thanks"
+}
+```
+
+Rate limit: 10 submissions per IP per form per hour. Honeypot field `hp` — if filled, returns success without processing.
+
+## Submit side effects
+
+1. Contact upsert with `data["form:<slug>"]`, configured tags, and custom field values
+2. Event `form.submitted` (or `settings.eventName`) with `{ form, formId, ...data }`
+3. Static segment membership if configured
+4. Increments form `submissions` counter
