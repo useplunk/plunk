@@ -29,3 +29,6 @@ export * from './security/index.js';
 
 // Workflow types
 export * from './workflows/index.js';
+
+// Form types
+export * from './forms/index.js';

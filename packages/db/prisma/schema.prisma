@@ -73,6 +73,7 @@ model Project {
   events      Event[]
   domains     Domain[]
   apiRequests ApiRequest[]
+  forms       Form[]
 
   idempotencyKeys IdempotencyKey[]
 
@@ -242,6 +243,7 @@ model Segment {
 
   memberships SegmentMembership[]
   campaigns   Campaign[]
+  forms       Form[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -250,6 +252,28 @@ model Segment {
   @@index([projectId])
   @@index([condition(ops: JsonbOps)], type: Gin) // GIN index for segment condition queries
   @@map("segments")
+}
+
+model Form {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  publicId  String  @unique
+  slug      String
+  name      String
+  fields    Json
+  settings  Json
+  segmentId String?
+  segment   Segment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  enabled   Boolean @default(true)
+  submissions Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+  @@map("forms")
 }
 
 model SegmentMembership {

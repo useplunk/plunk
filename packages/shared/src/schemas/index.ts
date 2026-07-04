@@ -582,3 +582,76 @@ export const MembershipSchemas = {
     role: z.enum(['ADMIN', 'MEMBER']),
   }),
 } as const;
+
+const formFieldKey = z
+  .string()
+  .min(1)
+  .max(50)
+  .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Field key must start with a letter and contain only letters, numbers, and underscores');
+
+const formSlug = z
+  .string()
+  .min(1)
+  .max(50)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase alphanumeric with hyphens');
+
+const formFieldSchema = z
+  .object({
+    key: formFieldKey,
+    label: z.string().min(1).max(100),
+    type: z.enum(['text', 'email', 'textarea', 'number', 'tel', 'url', 'date', 'select', 'checkbox']),
+    required: z.boolean().default(false),
+    placeholder: z.string().max(200).optional(),
+    options: z.array(z.string().min(1).max(100)).max(20).optional(),
+  })
+  .superRefine((field, ctx) => {
+    if (field.type === 'select' && (!field.options || field.options.length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Select fields must have at least one option',
+        path: ['options'],
+      });
+    }
+  });
+
+const formSettingsSchema = z.object({
+  title: z.string().max(200).optional(),
+  description: z.string().max(1000).optional(),
+  successMessage: z.string().max(500).optional(),
+  redirectUrl: z.string().url().max(2000).optional(),
+  emailPlaceholder: z.string().max(200).optional(),
+  fieldOrder: z.array(z.string().min(1).max(50)).max(21).optional(),
+  doubleOptIn: z.boolean().default(false),
+  defaultSubscribed: z.boolean().optional(),
+  tags: z.record(z.union([z.string(), z.boolean(), z.number()])).optional(),
+  eventName: z.string().min(1).max(100).optional(),
+  verifyEmail: z.boolean().default(false),
+});
+
+export const FormSchemas = {
+  field: formFieldSchema,
+  settings: formSettingsSchema,
+  create: z.object({
+    name: z.string().min(1).max(100),
+    slug: formSlug,
+    fields: z.array(formFieldSchema).max(20).default([]),
+    settings: formSettingsSchema.default({}),
+    segmentId: uuid.optional(),
+    enabled: z.boolean().default(true),
+    createSegment: z.boolean().optional(),
+  }),
+  update: z.object({
+    name: z.string().min(1).max(100).optional(),
+    slug: formSlug.optional(),
+    fields: z.array(formFieldSchema).max(20).optional(),
+    settings: formSettingsSchema.optional(),
+    segmentId: uuid.nullable().optional(),
+    enabled: z.boolean().optional(),
+    createSegment: z.boolean().optional(),
+  }),
+  submit: z.object({
+    email,
+    data: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+    hp: z.string().max(0).optional(),
+  }),
+} as const;
