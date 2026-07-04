@@ -2,6 +2,14 @@ import type {infer as ZodInfer, ZodSchema} from 'zod';
 
 import {API_URI} from './constants';
 
+/** Paths that must not send auth/project headers (public hosted pages). */
+const PUBLIC_PATH_PREFIXES = ['/forms/public/', '/contacts/public/'];
+
+function isPublicApiPath(path: string): boolean {
+  const pathname = path.startsWith('http') ? new URL(path).pathname : path;
+  return PUBLIC_PATH_PREFIXES.some(prefix => pathname.startsWith(prefix));
+}
+
 interface Json {
   [x: string]: string | number | boolean | Date | Json | JsonArray;
 }
@@ -30,9 +38,11 @@ export class network {
     body?: Schema extends TypedSchema ? ZodInfer<Schema> : never,
   ): Promise<T> {
     const url = path.startsWith('http') ? path : API_URI + path;
+    const isPublic = isPublicApiPath(path);
 
-    // Get active project ID from localStorage
-    const activeProjectId = typeof window !== 'undefined' ? localStorage.getItem('activeProjectId') : null;
+    // Get active project ID from localStorage (skip on public endpoints — breaks CORS preflight)
+    const activeProjectId =
+      !isPublic && typeof window !== 'undefined' ? localStorage.getItem('activeProjectId') : null;
 
     const headers: Record<string, string> = {};
     if (body) {
@@ -46,7 +56,7 @@ export class network {
       method,
       body: body && JSON.stringify(body),
       headers,
-      credentials: 'include',
+      credentials: isPublic ? 'omit' : 'include',
     });
 
     // Handle 204 No Content responses (no body to parse)

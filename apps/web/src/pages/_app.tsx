@@ -31,6 +31,7 @@ const PUBLIC_ROUTES = [
   '/unsubscribe',
   '/subscribe',
   '/manage',
+  '/form',
 ];
 
 // Routes that don't require a project
