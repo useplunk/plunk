@@ -30,6 +30,7 @@ import {Campaigns} from './controllers/Campaigns.js';
 import {Contacts} from './controllers/Contacts.js';
 import {Domains} from './controllers/Domains.js';
 import {Events} from './controllers/Events.js';
+import {Forms} from './controllers/Forms.js';
 import {Oauth} from './controllers/Oauth/index.js';
 import {Projects} from './controllers/Projects.js';
 import {Segments} from './controllers/Segments.js';
@@ -89,7 +90,7 @@ const server = new (class extends Server {
         : [DASHBOARD_URI, LANDING_URI, WIKI_URI];
 
     // Public API endpoints that should allow all origins
-    const publicApiPaths = ['/v1', '/v1/track', '/v1/send'];
+    const publicApiPaths = ['/v1', '/v1/track', '/v1/send', '/forms/public'];
 
     // Log CORS configuration on startup
     signale.info('CORS configuration', {
@@ -162,6 +163,7 @@ const server = new (class extends Server {
       new Users(),
       new Contacts(),
       new Domains(),
+      new Forms(),
       new Projects(),
       new Segments(),
       new Templates(),

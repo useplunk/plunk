@@ -98,4 +98,9 @@ export const Keys = {
       return `project:public:${key}`;
     },
   },
+  Form: {
+    submitRateLimit(publicId: string, ip: string): string {
+      return `form:rl:${publicId}:${ip}`;
+    },
+  },
 } as const;
