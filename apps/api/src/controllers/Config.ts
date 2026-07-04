@@ -5,6 +5,7 @@ import {
   API_URI,
   AWS_SES_REGION,
   DASHBOARD_URI,
+  DISABLE_SIGNUPS,
   GITHUB_OAUTH_ENABLED,
   GOOGLE_OAUTH_ENABLED,
   LANDING_URI,
@@ -46,6 +47,9 @@ export class Config {
         authProviders: {
           github: GITHUB_OAUTH_ENABLED,
           google: GOOGLE_OAUTH_ENABLED,
+        },
+        signup: {
+          signupsDisabled: DISABLE_SIGNUPS,
         },
         email: {
           trackingToggleEnabled: TRACKING_TOGGLE_ENABLED,

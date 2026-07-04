@@ -63,6 +63,7 @@ export default function Login() {
     github: config?.features.authProviders.github ?? false,
     google: config?.features.authProviders.google ?? false,
   };
+  const signupsDisabled = config?.features.signup.signupsDisabled ?? false;
 
   async function onSubmit(values: z.infer<typeof AuthenticationSchemas.login>) {
     try {
@@ -295,12 +296,14 @@ export default function Login() {
                       )}
                     </Button>
 
-                    <p className="text-center text-sm text-neutral-500">
-                      Don&apos;t have an account?{' '}
-                      <Link href="/auth/signup" className="text-neutral-900 underline underline-offset-4 hover:text-neutral-600 transition-colors">
-                        Sign up
-                      </Link>
-                    </p>
+                    {!signupsDisabled && (
+                      <p className="text-center text-sm text-neutral-500">
+                        Don&apos;t have an account?{' '}
+                        <Link href="/auth/signup" className="text-neutral-900 underline underline-offset-4 hover:text-neutral-600 transition-colors">
+                          Sign up
+                        </Link>
+                      </p>
+                    )}
                   </div>
                 </form>
               </Form>
