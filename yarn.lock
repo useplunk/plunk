@@ -7953,7 +7953,7 @@ __metadata:
     mailchecker: "npm:^6.0.19"
     mailparser: "npm:^3.9.8"
     morgan: "npm:^1.10.0"
-    multer: "npm:^2.1.1"
+    multer: "npm:^2.2.0"
     sanitize-html: "npm:^2.17.4"
     signale: "npm:^1.4.0"
     stripe: "npm:^20.0.0"
@@ -14763,15 +14763,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"multer@npm:^2.1.1":
-  version: 2.1.1
-  resolution: "multer@npm:2.1.1"
+"multer@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "multer@npm:2.2.0"
   dependencies:
     append-field: "npm:^1.0.0"
     busboy: "npm:^1.6.0"
     concat-stream: "npm:^2.0.0"
     type-is: "npm:^1.6.18"
-  checksum: 10c0/2ec4e02833b20f403cfb879d4b64d2a9070d902b9deae7aef18a6faadb707d7665385456cf540aa8a6dadfe3d4c5fc8e0e7b0675b94e1077048b1125426deee6
+  checksum: 10c0/7aa366d89042427347b6ab8e4a203405d7fe942e4a3095648a14526fcf3691d98ffc2da62abf85d8aca0a341f828168eb197b33cfdcfcce29d6ef593a5625591
   languageName: node
   linkType: hard
 
