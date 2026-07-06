@@ -1,15 +1,17 @@
-import {Button, Card, CardContent, IconSpinner, Input, Label, Textarea} from '@plunk/ui';
-import type {FormField, FormSettings} from '@plunk/types';
 import {AnimatePresence, motion} from 'framer-motion';
 import React from 'react';
 
 import {
   FORM_EMAIL_FIELD_KEY,
-  type FormFieldValues,
-  getFormFieldInputType,
-  resolveFieldOrder,
-  selectClassName,
-} from './formPreviewShared';
+  FormPreviewCustomField,
+  FormPreviewEmailField,
+  FormPreviewHeader,
+  FormPreviewShell,
+  FormPreviewSubmitButton,
+} from './formPreviewParts';
+import type {FormFieldValues} from './formPreviewShared';
+import {resolveFieldOrder} from './formPreviewShared';
+import type {FormField, FormSettings} from '@plunk/types';
 
 export type {FormFieldValues};
 export {
@@ -18,106 +20,6 @@ export {
   reorderFieldsFromOrder,
   resolveFieldOrder,
 } from './formPreviewShared';
-
-interface FormFieldInputProps {
-  field: FormField;
-  value: string | number | boolean | undefined;
-  onChange?: (key: string, value: string | number | boolean) => void;
-  disabled?: boolean;
-}
-
-function FormFieldInput({field, value, onChange, disabled}: FormFieldInputProps) {
-  const handleChange = (newValue: string | number | boolean) => {
-    onChange?.(field.key, newValue);
-  };
-
-  if (field.type === 'checkbox') {
-    return (
-      <label className="flex items-center gap-2 text-sm cursor-pointer">
-        <input
-          type="checkbox"
-          id={field.key}
-          checked={value === true}
-          required={field.required}
-          disabled={disabled}
-          onChange={e => handleChange(e.target.checked)}
-          className="rounded"
-        />
-        <span>{field.label}</span>
-      </label>
-    );
-  }
-
-  if (field.type === 'textarea') {
-    return (
-      <div className="space-y-2">
-        <Label htmlFor={field.key}>{field.label}</Label>
-        <Textarea
-          id={field.key}
-          required={field.required}
-          disabled={disabled}
-          value={value !== undefined ? String(value) : ''}
-          onChange={e => handleChange(e.target.value)}
-          placeholder={field.placeholder}
-        />
-      </div>
-    );
-  }
-
-  if (field.type === 'select') {
-    return (
-      <div className="space-y-2">
-        <Label htmlFor={field.key}>{field.label}</Label>
-        <select
-          id={field.key}
-          required={field.required}
-          disabled={disabled}
-          value={value !== undefined ? String(value) : ''}
-          onChange={e => handleChange(e.target.value)}
-          className={selectClassName}
-        >
-          <option value="">{field.placeholder || 'Select...'}</option>
-          {(field.options ?? []).map(opt => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  }
-
-  const inputType = getFormFieldInputType(field);
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={field.key}>{field.label}</Label>
-      <Input
-        id={field.key}
-        type={inputType}
-        required={field.required}
-        disabled={disabled}
-        value={
-          field.type === 'number'
-            ? value === undefined || value === ''
-              ? ''
-              : String(value)
-            : value !== undefined
-              ? String(value)
-              : ''
-        }
-        onChange={e => {
-          if (field.type === 'number') {
-            handleChange(e.target.value === '' ? '' : Number(e.target.value));
-          } else {
-            handleChange(e.target.value);
-          }
-        }}
-        placeholder={field.placeholder}
-      />
-    </div>
-  );
-}
 
 export interface FormPreviewProps {
   name: string;
@@ -156,8 +58,6 @@ export function FormPreview({
   onHpChange,
   compact = false,
 }: FormPreviewProps) {
-  const title = settings.title || name || 'Subscribe';
-  const description = settings.description;
   const successMessage = settings.successMessage || 'Thanks for signing up!';
   const isInteractive = !disabled && !!onSubmit;
   const fieldDisabled = disabled || !onFieldChange;
@@ -167,8 +67,8 @@ export function FormPreview({
   if (success) {
     return (
       <div className={compact ? '' : 'min-h-[200px] flex items-center justify-center'}>
-        <Card className="w-full">
-          <CardContent className={compact ? 'p-6' : 'p-8 text-center'}>
+        <FormPreviewShell>
+          <div className="text-center">
             <motion.div
               initial={{scale: 0}}
               animate={{scale: 1}}
@@ -179,18 +79,15 @@ export function FormPreview({
               </svg>
             </motion.div>
             <h2 className="text-xl font-bold text-neutral-900">{successMessage}</h2>
-          </CardContent>
-        </Card>
+          </div>
+        </FormPreviewShell>
       </div>
     );
   }
 
-  const formContent = (
+  const body = (
     <>
-      <div className="text-center space-y-2">
-        <h2 className={`font-bold text-neutral-900 ${compact ? 'text-xl' : 'text-2xl'}`}>{title}</h2>
-        {description && <p className="text-neutral-500 text-sm">{description}</p>}
-      </div>
+      <FormPreviewHeader name={name} settings={settings} compact={compact} />
 
       {showHoneypot && (
         <input
@@ -208,19 +105,13 @@ export function FormPreview({
       {orderedKeys.map(orderKey => {
         if (orderKey === FORM_EMAIL_FIELD_KEY) {
           return (
-            <div key={orderKey} className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                disabled={fieldDisabled}
-                value={email}
-                onChange={e => onEmailChange?.(e.target.value)}
-                placeholder={settings.emailPlaceholder || 'you@example.com'}
-                autoComplete="email"
-              />
-            </div>
+            <FormPreviewEmailField
+              key={orderKey}
+              settings={settings}
+              email={email}
+              onEmailChange={onEmailChange}
+              disabled={fieldDisabled}
+            />
           );
         }
 
@@ -228,7 +119,7 @@ export function FormPreview({
         if (!field) return null;
 
         return (
-          <FormFieldInput
+          <FormPreviewCustomField
             key={field.key}
             field={field}
             value={fieldValues[field.key]}
@@ -251,36 +142,19 @@ export function FormPreview({
         )}
       </AnimatePresence>
 
-      <Button type={isInteractive ? 'submit' : 'button'} className="w-full" disabled={disabled || submitting}>
-        {submitting ? (
-          <span className="flex items-center gap-2">
-            <IconSpinner size="sm" />
-            Submitting...
-          </span>
-        ) : (
-          'Subscribe'
-        )}
-      </Button>
+      <FormPreviewSubmitButton interactive={isInteractive} submitting={submitting} disabled={disabled} />
     </>
   );
 
   if (isInteractive) {
     return (
-      <Card className="w-full">
-        <CardContent className={compact ? 'p-6' : 'p-8'}>
-          <form onSubmit={e => onSubmit?.(e)} className="space-y-6 relative">
-            {formContent}
-          </form>
-        </CardContent>
-      </Card>
+      <FormPreviewShell>
+        <form onSubmit={e => onSubmit?.(e)} className="space-y-6 relative">
+          {body}
+        </form>
+      </FormPreviewShell>
     );
   }
 
-  return (
-    <Card className="w-full">
-      <CardContent className={compact ? 'p-6' : 'p-8'}>
-        <div className="space-y-6 relative">{formContent}</div>
-      </CardContent>
-    </Card>
-  );
+  return <FormPreviewShell>{body}</FormPreviewShell>;
 }
