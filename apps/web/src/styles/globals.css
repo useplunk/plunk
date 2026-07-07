@@ -1,11 +1,13 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './pageui.css';
 
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
 @source '../../../../packages/ui/src/**/*.{ts,tsx}';
 @source '../components/puck/**/*.{ts,tsx}';
+@source '../components/pageui/**/*.{ts,tsx}';
 
 @custom-variant dark (&:is(.dark *));
 

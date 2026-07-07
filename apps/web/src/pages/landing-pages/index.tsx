@@ -13,6 +13,11 @@ import {
   IconSpinner,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@plunk/ui';
 import type {LandingPage} from '@plunk/db';
 import {LandingPageSchemas} from '@plunk/shared';
@@ -29,6 +34,10 @@ import {DashboardLayout} from '../../components/DashboardLayout';
 import {DASHBOARD_URI} from '../../lib/constants';
 import {formatRelativeTime} from '../../lib/dateUtils';
 import {network} from '../../lib/network';
+import {
+  LANDING_PAGE_TEMPLATES,
+  type LandingPageTemplateId,
+} from '../../lib/puck/templates/front-centre';
 
 function slugify(name: string): string {
   return name
@@ -52,6 +61,7 @@ export default function LandingPagesPage() {
   const [searchInput, setSearchInput] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createName, setCreateName] = useState('');
+  const [createTemplate, setCreateTemplate] = useState<LandingPageTemplateId>('blank');
   const [creating, setCreating] = useState(false);
 
   const filteredPages = useMemo(() => {
@@ -88,10 +98,11 @@ export default function LandingPagesPage() {
 
     try {
       setCreating(true);
+      const template = LANDING_PAGE_TEMPLATES.find(t => t.id === createTemplate);
       const payload = LandingPageSchemas.create.parse({
         name,
         slug: slugify(name),
-        data: EMPTY_PUCK_DATA,
+        data: template?.data ?? EMPTY_PUCK_DATA,
         settings: {},
         published: false,
       });
@@ -103,6 +114,7 @@ export default function LandingPagesPage() {
       toast.success('Landing page created');
       setShowCreateDialog(false);
       setCreateName('');
+      setCreateTemplate('blank');
       void router.push(`/landing-pages/edit/${page.id}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create landing page');
@@ -222,6 +234,24 @@ export default function LandingPagesPage() {
             <DialogHeader>
               <DialogTitle>Create landing page</DialogTitle>
             </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="landing-page-template">Template</Label>
+              <Select
+                value={createTemplate}
+                onValueChange={value => setCreateTemplate(value as LandingPageTemplateId)}
+              >
+                <SelectTrigger id="landing-page-template">
+                  <SelectValue placeholder="Choose a template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANDING_PAGE_TEMPLATES.map(template => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="landing-page-name">Name</Label>
               <Input

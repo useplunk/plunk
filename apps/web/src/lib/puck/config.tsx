@@ -26,6 +26,31 @@ import {
 } from '../../components/puck/magicui/hero-video-dialog';
 import {marqueePuckComponent, type MarqueePuckProps} from '../../components/puck/magicui/marquee';
 import {tweetCardPuckComponent, type TweetCardPuckProps} from '../../components/puck/magicui/tweet-card';
+import {
+  frontCentreTemplatePuckComponent,
+  pageUiBandPuckComponent,
+  pageUiFaqPuckComponent,
+  pageUiFeaturesGridPuckComponent,
+  pageUiProductFeatureAltPuckComponent,
+  pageUiProductFeaturePuckComponent,
+  pageUiSaleCtaPuckComponent,
+  pageUiSocialBandPuckComponent,
+  pageUiSocialProofBandPuckComponent,
+  pageUiTestimonialsPuckComponent,
+  pageUiVideoCtaPuckComponent,
+  type FrontCentreTemplateProps,
+  type PageUiBandProps,
+  type PageUiFaqProps,
+  type PageUiFeaturesGridProps,
+  type PageUiProductFeatureAltProps,
+  type PageUiProductFeatureProps,
+  type PageUiSaleCtaProps,
+  type PageUiSocialBandProps,
+  type PageUiSocialProofBandProps,
+  type PageUiTestimonialsProps,
+  type PageUiVideoCtaProps,
+} from '../../components/puck/pageui/front-centre';
+import {PAGEUI_PLACEHOLDER_1200x600} from '../../components/puck/pageui/front-centre/shared-defaults';
 
 type LandingPageComponents = {
   Heading: {
@@ -68,6 +93,17 @@ type LandingPageComponents = {
   HeroVideoDialog: HeroVideoDialogPuckProps;
   AnimatedList: AnimatedListPuckProps;
   TweetCard: TweetCardPuckProps;
+  PageUiSocialProofBand: PageUiSocialProofBandProps;
+  PageUiVideoCta: PageUiVideoCtaProps;
+  PageUiBand: PageUiBandProps;
+  PageUiProductFeature: PageUiProductFeatureProps;
+  PageUiProductFeatureAlt: PageUiProductFeatureAltProps;
+  PageUiFeaturesGrid: PageUiFeaturesGridProps;
+  PageUiSocialBand: PageUiSocialBandProps;
+  PageUiTestimonials: PageUiTestimonialsProps;
+  PageUiSaleCta: PageUiSaleCtaProps;
+  PageUiFaq: PageUiFaqProps;
+  FrontCentre: FrontCentreTemplateProps;
 };
 
 const headingClass: Record<LandingPageComponents['Heading']['level'], string> = {
@@ -125,6 +161,22 @@ export const puckConfig: Config<LandingPageComponents> = {
     magicui: {
       title: 'Magic UI',
       components: ['Marquee', 'HeroVideoDialog', 'AnimatedList', 'TweetCard'],
+    },
+    pageui: {
+      title: 'Page UI',
+      components: [
+        'FrontCentre',
+        'PageUiSocialProofBand',
+        'PageUiVideoCta',
+        'PageUiBand',
+        'PageUiProductFeature',
+        'PageUiProductFeatureAlt',
+        'PageUiFeaturesGrid',
+        'PageUiSocialBand',
+        'PageUiTestimonials',
+        'PageUiSaleCta',
+        'PageUiFaq',
+      ],
     },
   },
   root: {
@@ -200,7 +252,7 @@ export const puckConfig: Config<LandingPageComponents> = {
     Image: {
       label: 'Image',
       defaultProps: {
-        src: 'https://placehold.co/1200x600/e5e5e5/737373?text=Image',
+        src: PAGEUI_PLACEHOLDER_1200x600,
         alt: 'Image',
         rounded: true,
       },
@@ -332,6 +384,17 @@ export const puckConfig: Config<LandingPageComponents> = {
     HeroVideoDialog: heroVideoDialogPuckComponent,
     AnimatedList: animatedListPuckComponent,
     TweetCard: tweetCardPuckComponent,
+    PageUiSocialProofBand: pageUiSocialProofBandPuckComponent,
+    PageUiVideoCta: pageUiVideoCtaPuckComponent,
+    PageUiBand: pageUiBandPuckComponent,
+    PageUiProductFeature: pageUiProductFeaturePuckComponent,
+    PageUiProductFeatureAlt: pageUiProductFeatureAltPuckComponent,
+    PageUiFeaturesGrid: pageUiFeaturesGridPuckComponent,
+    PageUiSocialBand: pageUiSocialBandPuckComponent,
+    PageUiTestimonials: pageUiTestimonialsPuckComponent,
+    PageUiSaleCta: pageUiSaleCtaPuckComponent,
+    PageUiFaq: pageUiFaqPuckComponent,
+    FrontCentre: frontCentreTemplatePuckComponent,
     FormBlock: {
       label: 'Form',
       defaultProps: {

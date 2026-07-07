@@ -1,0 +1,171 @@
+/* Page UI design tokens and utilities for landing page templates (Tailwind v4) */
+
+@theme {
+    --color-primary-100: #d1fae5;
+    --color-primary-200: #d1fae5;
+    --color-primary-300: #6ee7b7;
+    --color-primary-400: #6ee7b7;
+    --color-primary-500: #10b981;
+    --color-primary-600: #10b981;
+    --color-primary-700: #047857;
+    --color-primary-800: #047857;
+    --color-primary-900: #064e3b;
+
+    --color-secondary-100: #f1f5f9;
+    --color-secondary-200: #f1f5f9;
+    --color-secondary-300: #cbd5e1;
+    --color-secondary-400: #cbd5e1;
+    --color-secondary-500: #64748b;
+    --color-secondary-600: #64748b;
+    --color-secondary-700: #334155;
+    --color-secondary-800: #334155;
+    --color-secondary-900: #1e293b;
+
+    --animate-accordion-down: accordion-down 0.2s ease-out;
+    --animate-accordion-up: accordion-up 0.2s ease-out;
+}
+
+@layer base {
+    :root {
+        --hard-shadow: 0px 29px 52px 0px rgba(0, 0, 0, 0.4),
+            22px 25px 16px 0px rgba(0, 0, 0, 0.2);
+        --hard-shadow-left: 0px 29px 52px 0px rgba(0, 0, 0, 0.4),
+            -22px 25px 16px 0px rgba(0, 0, 0, 0.2);
+
+        --primary-lighter-hex: #d1fae5;
+        --primary-light-hex: #6ee7b7;
+        --primary-dark-hex: #047857;
+        --primary-darker-hex: #064e3b;
+
+        --secondary-lighter-hex: #f1f5f9;
+        --secondary-light-hex: #cbd5e1;
+        --secondary-dark-hex: #334155;
+        --secondary-darker-hex: #1e293b;
+    }
+}
+
+@keyframes accordion-down {
+    from {
+        height: 0;
+    }
+    to {
+        height: var(--radix-accordion-content-height);
+    }
+}
+
+@keyframes accordion-up {
+    from {
+        height: var(--radix-accordion-content-height);
+    }
+    to {
+        height: 0;
+    }
+}
+
+@utility container-narrow {
+    max-width: 56rem;
+    margin-inline: auto;
+    width: 100%;
+}
+
+@utility container-wide {
+    max-width: 100%;
+    margin-inline: auto;
+    width: 100%;
+
+    @media (width >= 80rem) {
+        max-width: 72rem;
+    }
+}
+
+@utility container-ultrawide {
+    max-width: 100%;
+    margin-inline: auto;
+    width: 100%;
+
+    @media (width >= 80rem) {
+        max-width: 80rem;
+    }
+}
+
+@utility hard-shadow {
+    box-shadow: var(--hard-shadow);
+}
+
+@utility hard-shadow-left {
+    box-shadow: var(--hard-shadow-left);
+}
+
+@utility perspective-none {
+    transform: none;
+}
+
+@utility perspective-left {
+    box-shadow: var(--hard-shadow);
+    transform: perspective(400em) rotateY(-15deg) rotateX(6deg) skew(-8deg, 4deg)
+        translate3d(-4%, -2%, 0) scale(0.8);
+}
+
+@utility perspective-right {
+    box-shadow: var(--hard-shadow-left);
+    transform: perspective(400em) rotateY(15deg) rotateX(6deg) skew(8deg, -4deg)
+        translate3d(4%, -2%, 0) scale(0.8);
+}
+
+@utility perspective-bottom {
+    box-shadow: var(--hard-shadow);
+    transform: translateY(-4%) perspective(400em) rotateX(18deg) scale(0.9);
+}
+
+@utility perspective-bottom-lg {
+    box-shadow: var(--hard-shadow);
+    transform: perspective(400em) translate3d(0, -6%, 0) rotateX(34deg) scale(0.8);
+}
+
+@utility perspective-paper {
+    box-shadow: var(--hard-shadow);
+    transform: rotateX(40deg) rotate(40deg) scale(0.8);
+}
+
+@utility fancy-glass {
+    --glass-color: 0, 0, 200;
+    background: radial-gradient(
+            63.94% 63.94% at 50% 0%,
+            rgba(var(--glass-color), 0.12) 0%,
+            rgba(var(--glass-color), 0) 100%
+        ),
+        rgba(var(--glass-color), 0.01);
+    backdrop-filter: blur(6px);
+    position: relative;
+    overflow: hidden;
+}
+
+@utility fancy-glass-contrast {
+    --glass-color: 0, 0, 200;
+    background: radial-gradient(
+            63.94% 63.94% at 50% 0%,
+            rgba(var(--glass-color), 0.12) 0%,
+            rgba(var(--glass-color), 0) 100%
+        ),
+        rgba(var(--glass-color), 0.01);
+    backdrop-filter: blur(6px);
+    position: relative;
+    overflow: hidden;
+}
+
+@utility no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+@utility fancyHeading {
+    @supports (background-clip: text) {
+        background-image: linear-gradient(rgb(10, 10, 10) 10%, rgba(10, 10, 10, 0.68));
+        background-clip: text;
+        color: transparent;
+    }
+}
