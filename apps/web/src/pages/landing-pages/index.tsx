@@ -13,11 +13,6 @@ import {
   IconSpinner,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from '@plunk/ui';
 import type {LandingPage} from '@plunk/db';
 import {LandingPageSchemas} from '@plunk/shared';
@@ -31,6 +26,7 @@ import {toast} from 'sonner';
 import useSWR from 'swr';
 
 import {DashboardLayout} from '../../components/DashboardLayout';
+import {LandingPageTemplatePicker} from '../../components/landing-pages/LandingPageTemplatePicker';
 import {DASHBOARD_URI} from '../../lib/constants';
 import {formatRelativeTime} from '../../lib/dateUtils';
 import {network} from '../../lib/network';
@@ -230,28 +226,11 @@ export default function LandingPagesPage() {
         </div>
 
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>Create landing page</DialogTitle>
             </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="landing-page-template">Template</Label>
-              <Select
-                value={createTemplate}
-                onValueChange={value => setCreateTemplate(value as LandingPageTemplateId)}
-              >
-                <SelectTrigger id="landing-page-template">
-                  <SelectValue placeholder="Choose a template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANDING_PAGE_TEMPLATES.map(template => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <LandingPageTemplatePicker value={createTemplate} onChange={setCreateTemplate} />
             <div className="space-y-2">
               <Label htmlFor="landing-page-name">Name</Label>
               <Input

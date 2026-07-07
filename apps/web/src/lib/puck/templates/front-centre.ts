@@ -16,8 +16,18 @@ export const FRONT_CENTRE_TEMPLATE: PuckData = {
 };
 
 export const LANDING_PAGE_TEMPLATES = [
-  {id: 'blank', label: 'Blank page', data: undefined},
-  {id: 'front-centre', label: 'Front Centre', data: FRONT_CENTRE_TEMPLATE},
+  {
+    id: 'blank',
+    label: 'Blank page',
+    description: 'Start with an empty canvas and build from scratch.',
+    data: undefined,
+  },
+  {
+    id: 'front-centre',
+    label: 'Front Centre',
+    description: 'Full marketing landing with hero, features, testimonials, FAQ, and CTA.',
+    data: FRONT_CENTRE_TEMPLATE,
+  },
 ] as const;
 
 export type LandingPageTemplateId = (typeof LANDING_PAGE_TEMPLATES)[number]['id'];
