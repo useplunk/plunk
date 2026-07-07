@@ -9,6 +9,7 @@ import {useRouter} from 'next/router';
 import {useEffect, useState} from 'react';
 
 import {puckConfig} from '../../lib/puck/config';
+import {normalizePuckData} from '../../lib/puck/normalize-data';
 import {network} from '../../lib/network';
 
 export default function PublicLandingPage() {
@@ -69,7 +70,7 @@ export default function PublicLandingPage() {
         {pageDescription ? <meta name="description" content={pageDescription} /> : null}
         {config.settings.faviconUrl ? <link rel="icon" href={config.settings.faviconUrl} /> : null}
       </Head>
-      <Render config={puckConfig} data={config.data as Data} />
+      <Render config={puckConfig} data={normalizePuckData(config.data) as Data} />
     </>
   );
 }

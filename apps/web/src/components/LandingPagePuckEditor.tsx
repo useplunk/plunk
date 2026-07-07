@@ -4,7 +4,6 @@ import '@puckeditor/core/puck.css';
 import {Puck, type Data} from '@puckeditor/core';
 import {Button, IconSpinner} from '@plunk/ui';
 import {LandingPageSchemas} from '@plunk/shared';
-import {EMPTY_PUCK_DATA} from '@plunk/types';
 import {ArrowLeft, Save} from 'lucide-react';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
@@ -12,6 +11,7 @@ import {useCallback, useEffect, useState} from 'react';
 import {toast} from 'sonner';
 
 import {puckConfig} from '../lib/puck/config';
+import {normalizePuckData} from '../lib/puck/normalize-data';
 import {network} from '../lib/network';
 
 interface LandingPageRecord {
@@ -26,10 +26,7 @@ interface LandingPagePuckEditorProps {
 }
 
 function normalizeData(data: unknown): Data {
-  if (data && typeof data === 'object' && 'content' in data) {
-    return data as Data;
-  }
-  return EMPTY_PUCK_DATA as Data;
+  return normalizePuckData(data);
 }
 
 export default function LandingPagePuckEditor({landingPageId}: LandingPagePuckEditorProps) {
@@ -37,7 +34,7 @@ export default function LandingPagePuckEditor({landingPageId}: LandingPagePuckEd
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState<LandingPageRecord | null>(null);
-  const [data, setData] = useState<Data>(EMPTY_PUCK_DATA as Data);
+  const [data, setData] = useState<Data>(() => normalizePuckData(null));
 
   useEffect(() => {
     const fetchPage = async () => {

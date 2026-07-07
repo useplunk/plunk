@@ -1,0 +1,93 @@
+.wrapper {
+  width: 100%;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .wrapper {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .wrapper {
+    padding-inline: 2rem;
+  }
+}
+
+.inner {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+}
+
+.grid {
+  display: grid;
+  width: 100%;
+  align-items: start;
+}
+
+.flexRow {
+  display: flex;
+  width: 100%;
+  align-items: start;
+}
+
+.columns {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+
+.gapSm {
+  gap: 0.75rem;
+}
+
+.gapMd {
+  gap: 1rem;
+}
+
+.gapLg {
+  gap: 1.5rem;
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+.noWrap {
+  flex-wrap: nowrap;
+}
+
+.ratioEqual {
+  grid-template-columns: 1fr 1fr;
+}
+
+.ratioLeftWider {
+  grid-template-columns: 3fr 2fr;
+}
+
+.ratioRightWider {
+  grid-template-columns: 2fr 3fr;
+}
+
+@media (max-width: 639px) {
+  .mobileStack.grid,
+  .mobileStack.columns {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mobileStack.flexRow {
+    flex-direction: column;
+  }
+}
+
+.cell {
+  min-width: 0;
+  align-self: start;
+}
+
+.cellContent {
+  width: 100%;
+}

@@ -1,11 +1,21 @@
-import type {Config} from '@puckeditor/core';
-import {DropZone} from '@puckeditor/core';
+import type {Config, Slot} from '@puckeditor/core';
 import React from 'react';
 
 import {Button} from '@plunk/ui';
 
 import {network} from '../network';
 import {PuckFormBlock} from '../../components/puck/PuckFormBlock';
+import {
+  columnsPuckComponent,
+  type ColumnsPuckProps,
+  flexRowPuckComponent,
+  type FlexRowPuckProps,
+  gridCellPuckComponent,
+  type GridCellPuckProps,
+  gridPuckComponent,
+  type GridPuckProps,
+} from '../../components/puck/layout';
+import {SLOT_MIN_HEIGHT} from '../../components/puck/layout/shared/fields';
 import {
   animatedListPuckComponent,
   type AnimatedListPuckProps,
@@ -45,7 +55,12 @@ type LandingPageComponents = {
   Section: {
     padding: 'none' | 'sm' | 'md' | 'lg';
     background: 'white' | 'neutral' | 'dark';
+    content: Slot;
   };
+  Grid: GridPuckProps;
+  Columns: ColumnsPuckProps;
+  FlexRow: FlexRowPuckProps;
+  GridCell: GridCellPuckProps;
   FormBlock: {
     formPublicId: string;
   };
@@ -101,7 +116,7 @@ export const puckConfig: Config<LandingPageComponents> = {
     },
     layout: {
       title: 'Layout',
-      components: ['Section'],
+      components: ['Section', 'Grid', 'Columns', 'FlexRow', 'GridCell'],
     },
     forms: {
       title: 'Forms',
@@ -278,8 +293,10 @@ export const puckConfig: Config<LandingPageComponents> = {
       defaultProps: {
         padding: 'md',
         background: 'white',
+        content: [],
       },
       fields: {
+        content: {type: 'slot'},
         padding: {
           type: 'select',
           options: [
@@ -298,15 +315,19 @@ export const puckConfig: Config<LandingPageComponents> = {
           ],
         },
       },
-      render: ({padding, background, puck}) => (
+      render: ({padding, background, content: Content, puck}) => (
         <section className={`${sectionPaddingClass[padding]} ${sectionBackgroundClass[background]}`}>
-          <DropZone zone="section-content" />
-          {puck.isEditing && (
+          <Content minEmptyHeight={SLOT_MIN_HEIGHT} />
+          {puck.isEditing ? (
             <div className="px-4 text-xs text-neutral-400 text-center pb-2">Drop blocks into this section</div>
-          )}
+          ) : null}
         </section>
       ),
     },
+    Grid: gridPuckComponent,
+    Columns: columnsPuckComponent,
+    FlexRow: flexRowPuckComponent,
+    GridCell: gridCellPuckComponent,
     Marquee: marqueePuckComponent,
     HeroVideoDialog: heroVideoDialogPuckComponent,
     AnimatedList: animatedListPuckComponent,
