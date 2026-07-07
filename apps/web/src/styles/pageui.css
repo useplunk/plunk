@@ -186,3 +186,59 @@
 @utility direction-reverse {
     animation-direction: reverse;
 }
+
+@keyframes wiggle {
+    0%,
+    100% {
+        transform: rotate(-3deg);
+    }
+    50% {
+        transform: rotate(3deg);
+    }
+}
+
+@utility animate-wiggle {
+    animation: wiggle 1s ease-in-out infinite;
+}
+
+/* Gnomie AI template theme (lime primary + warm amber secondary, Montserrat/Hind) */
+.gnomie-theme {
+    --color-primary-100: #fef3c7;
+    --color-primary-200: #fde68a;
+    --color-primary-300: #fcd34d;
+    --color-primary-400: #fbbf24;
+    --color-primary-500: #d97706;
+    --color-primary-600: #b45309;
+    --color-primary-700: #92400e;
+    --color-primary-800: #78350f;
+    --color-primary-900: #451a03;
+
+    --color-secondary-100: #f7fee7;
+    --color-secondary-200: #ecfccb;
+    --color-secondary-300: #d9f99d;
+    --color-secondary-400: #bef264;
+    --color-secondary-500: #84cc16;
+    --color-secondary-600: #65a30d;
+    --color-secondary-700: #4d7c0f;
+    --color-secondary-800: #3f6212;
+    --color-secondary-900: #365314;
+
+    --primary-lighter-hex: #fef3c7;
+    --primary-light-hex: #fcd34d;
+    --primary-dark-hex: #92400e;
+    --primary-darker-hex: #451a03;
+
+    --secondary-lighter-hex: #f7fee7;
+    --secondary-light-hex: #d9f99d;
+    --secondary-dark-hex: #4d7c0f;
+    --secondary-darker-hex: #365314;
+
+    font-family: Hind, ui-sans-serif, system-ui, sans-serif;
+}
+
+.gnomie-theme h1,
+.gnomie-theme h2,
+.gnomie-theme h3,
+.gnomie-theme h4 {
+    font-family: Montserrat, ui-sans-serif, system-ui, sans-serif;
+}

@@ -10237,7 +10237,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"embla-carousel-react@npm:^8.5.1":
+"embla-carousel-react@npm:^8.5.1, embla-carousel-react@npm:^8.6.0":
   version: 8.6.0
   resolution: "embla-carousel-react@npm:8.6.0"
   dependencies:
@@ -20087,6 +20087,7 @@ __metadata:
     dagre: "npm:^0.8.5"
     dayjs: "npm:^1.11.19"
     dompurify: "npm:^3.4.11"
+    embla-carousel-react: "npm:^8.6.0"
     framer-motion: "npm:^12.23.24"
     juice: "npm:^11.0.3"
     lucide-react: "npm:^0.553.0"

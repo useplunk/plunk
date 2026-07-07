@@ -1,6 +1,7 @@
 import type {PuckData} from '@plunk/types';
 
 import {createDefaultFrontCentreTemplate} from '../../../components/puck/pageui/front-centre/front-centre-template/defaults';
+import {GNOMIE_TEMPLATE} from './gnomie';
 import {SPECTA_TEMPLATE} from './specta';
 
 export const FRONT_CENTRE_TEMPLATE: PuckData = {
@@ -34,6 +35,12 @@ export const LANDING_PAGE_TEMPLATES = [
     label: 'Specta',
     description: 'Dark AI video editing landing with marquee, showcase, and testimonials.',
     data: SPECTA_TEMPLATE,
+  },
+  {
+    id: 'gnomie',
+    label: 'Gnomie AI',
+    description: 'AI garden design landing with carousels, product tours, pricing, and FAQ.',
+    data: GNOMIE_TEMPLATE,
   },
 ] as const;
 

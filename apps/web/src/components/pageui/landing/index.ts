@@ -21,3 +21,20 @@ export {LandingTestimonialInline} from './testimonial/LandingTestimonialInline';
 export {LandingTestimonialInlineItem} from './testimonial/LandingTestimonialInlineItem';
 export {LandingShowcase} from './showcase/LandingShowcase';
 export {LandingShowcaseItem} from './showcase/LandingShowcaseItem';
+export {
+  LandingProductTourSection,
+  LandingProductTour,
+  LandingProductTourList,
+  LandingProductTourTrigger,
+  LandingProductTourContent,
+} from './LandingProductTour';
+export {
+  LandingExampleCarousel,
+  type ExampleCarouselItem,
+  type ExampleCarouselSocial,
+} from './carousel/LandingExampleCarousel';
+export {
+  LandingPricing,
+  type PricingTier,
+  type PricingTierFrequency,
+} from './pricing/LandingPricing';

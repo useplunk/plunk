@@ -70,6 +70,26 @@ import {
   type SpectaTestimonialsProps,
   type SpectaVideoCtaProps,
 } from '../../components/puck/pageui/specta';
+import {
+  gnomieExampleCarouselPuckComponent,
+  gnomieFaqPuckComponent,
+  gnomieFeaturesGridPuckComponent,
+  gnomiePricingPuckComponent,
+  gnomieProductTourPuckComponent,
+  gnomieSaleCtaPuckComponent,
+  gnomieTemplatePuckComponent,
+  gnomieTestimonialsPuckComponent,
+  gnomieVideoCtaPuckComponent,
+  type GnomieExampleCarouselProps,
+  type GnomieFaqProps,
+  type GnomieFeaturesGridProps,
+  type GnomiePricingProps,
+  type GnomieProductTourProps,
+  type GnomieSaleCtaProps,
+  type GnomieTemplateProps,
+  type GnomieTestimonialsProps,
+  type GnomieVideoCtaProps,
+} from '../../components/puck/pageui/gnomie';
 import {PAGEUI_PLACEHOLDER_1200x600} from '../../components/puck/pageui/front-centre/shared-defaults';
 
 type LandingPageComponents = {
@@ -133,6 +153,15 @@ type LandingPageComponents = {
   SpectaTestimonials: SpectaTestimonialsProps;
   SpectaSaleCta: SpectaSaleCtaProps;
   Specta: SpectaTemplateProps;
+  GnomieVideoCta: GnomieVideoCtaProps;
+  GnomieExampleCarousel: GnomieExampleCarouselProps;
+  GnomieProductTour: GnomieProductTourProps;
+  GnomieFeaturesGrid: GnomieFeaturesGridProps;
+  GnomieTestimonials: GnomieTestimonialsProps;
+  GnomiePricing: GnomiePricingProps;
+  GnomieSaleCta: GnomieSaleCtaProps;
+  GnomieFaq: GnomieFaqProps;
+  GnomieTemplate: GnomieTemplateProps;
 };
 
 const headingClass: Record<LandingPageComponents['Heading']['level'], string> = {
@@ -219,6 +248,20 @@ export const puckConfig: Config<LandingPageComponents> = {
         'SpectaShowcaseMarquee',
         'SpectaTestimonials',
         'SpectaSaleCta',
+      ],
+    },
+    gnomie: {
+      title: 'Gnomie',
+      components: [
+        'GnomieTemplate',
+        'GnomieVideoCta',
+        'GnomieExampleCarousel',
+        'GnomieProductTour',
+        'GnomieFeaturesGrid',
+        'GnomieTestimonials',
+        'GnomiePricing',
+        'GnomieSaleCta',
+        'GnomieFaq',
       ],
     },
   },
@@ -447,6 +490,15 @@ export const puckConfig: Config<LandingPageComponents> = {
     SpectaTestimonials: spectaTestimonialsPuckComponent,
     SpectaSaleCta: spectaSaleCtaPuckComponent,
     Specta: spectaTemplatePuckComponent,
+    GnomieVideoCta: gnomieVideoCtaPuckComponent,
+    GnomieExampleCarousel: gnomieExampleCarouselPuckComponent,
+    GnomieProductTour: gnomieProductTourPuckComponent,
+    GnomieFeaturesGrid: gnomieFeaturesGridPuckComponent,
+    GnomieTestimonials: gnomieTestimonialsPuckComponent,
+    GnomiePricing: gnomiePricingPuckComponent,
+    GnomieSaleCta: gnomieSaleCtaPuckComponent,
+    GnomieFaq: gnomieFaqPuckComponent,
+    GnomieTemplate: gnomieTemplatePuckComponent,
     FormBlock: {
       label: 'Form',
       defaultProps: {
