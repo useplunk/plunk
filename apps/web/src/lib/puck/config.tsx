@@ -6,6 +6,7 @@ import {Button} from '@plunk/ui';
 
 import {network} from '../network';
 import {PuckFormBlock} from '../../components/puck/PuckFormBlock';
+import {marqueePuckComponent, type MarqueePuckProps} from '../../components/puck/magicui/marquee';
 
 type LandingPageComponents = {
   Heading: {
@@ -39,6 +40,7 @@ type LandingPageComponents = {
   FormBlock: {
     formPublicId: string;
   };
+  Marquee: MarqueePuckProps;
 };
 
 const headingClass: Record<LandingPageComponents['Heading']['level'], string> = {
@@ -92,6 +94,10 @@ export const puckConfig: Config<LandingPageComponents> = {
     forms: {
       title: 'Forms',
       components: ['FormBlock'],
+    },
+    magicui: {
+      title: 'Magic UI',
+      components: ['Marquee'],
     },
   },
   root: {
@@ -289,6 +295,7 @@ export const puckConfig: Config<LandingPageComponents> = {
         </section>
       ),
     },
+    Marquee: marqueePuckComponent,
     FormBlock: {
       label: 'Form',
       defaultProps: {

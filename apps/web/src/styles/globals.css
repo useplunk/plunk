@@ -5,6 +5,7 @@
 @plugin '@tailwindcss/typography';
 
 @source '../../../../packages/ui/src/**/*.{ts,tsx}';
+@source '../components/puck/**/*.{ts,tsx}';
 
 @custom-variant dark (&:is(.dark *));
 
