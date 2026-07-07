@@ -15,6 +15,7 @@ import {
   type HeroVideoDialogPuckProps,
 } from '../../components/puck/magicui/hero-video-dialog';
 import {marqueePuckComponent, type MarqueePuckProps} from '../../components/puck/magicui/marquee';
+import {tweetCardPuckComponent, type TweetCardPuckProps} from '../../components/puck/magicui/tweet-card';
 
 type LandingPageComponents = {
   Heading: {
@@ -51,6 +52,7 @@ type LandingPageComponents = {
   Marquee: MarqueePuckProps;
   HeroVideoDialog: HeroVideoDialogPuckProps;
   AnimatedList: AnimatedListPuckProps;
+  TweetCard: TweetCardPuckProps;
 };
 
 const headingClass: Record<LandingPageComponents['Heading']['level'], string> = {
@@ -107,7 +109,7 @@ export const puckConfig: Config<LandingPageComponents> = {
     },
     magicui: {
       title: 'Magic UI',
-      components: ['Marquee', 'HeroVideoDialog', 'AnimatedList'],
+      components: ['Marquee', 'HeroVideoDialog', 'AnimatedList', 'TweetCard'],
     },
   },
   root: {
@@ -308,6 +310,7 @@ export const puckConfig: Config<LandingPageComponents> = {
     Marquee: marqueePuckComponent,
     HeroVideoDialog: heroVideoDialogPuckComponent,
     AnimatedList: animatedListPuckComponent,
+    TweetCard: tweetCardPuckComponent,
     FormBlock: {
       label: 'Form',
       defaultProps: {

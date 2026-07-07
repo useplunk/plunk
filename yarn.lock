@@ -5867,6 +5867,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@swc/helpers@npm:^0.5.3":
+  version: 0.5.23
+  resolution: "@swc/helpers@npm:0.5.23"
+  dependencies:
+    tslib: "npm:^2.8.0"
+  checksum: 10c0/02da7b4df465693933ecd4851cc193ec729c309939c8a84eccae5ec0010aafc3894e713b8ef8d13a6ba401759f0e900c88e2dcfef5872c27bb91e70f73275cce
+  languageName: node
+  linkType: hard
+
 "@tailwindcss/forms@npm:^0.5.10":
   version: 0.5.10
   resolution: "@tailwindcss/forms@npm:0.5.10"
@@ -17088,6 +17097,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-tweet@npm:^3.3.1":
+  version: 3.3.1
+  resolution: "react-tweet@npm:3.3.1"
+  dependencies:
+    "@swc/helpers": "npm:^0.5.3"
+    clsx: "npm:^2.0.0"
+    swr: "npm:^2.2.4"
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+  checksum: 10c0/7ceadfe3fc0abd9405eb0dcea9db98ad292737a8598f1a24cce7dc0c9819e58b8933501706d4b4234fedd985e2f23bfccfc1ea00bd37bd03e17b6dee6528bcb6
+  languageName: node
+  linkType: hard
+
 "react@npm:19.0.0":
   version: 19.0.0
   resolution: "react@npm:19.0.0"
@@ -18822,6 +18845,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"swr@npm:^2.2.4":
+  version: 2.4.2
+  resolution: "swr@npm:2.4.2"
+  dependencies:
+    dequal: "npm:^2.0.3"
+    use-sync-external-store: "npm:^1.6.0"
+  peerDependencies:
+    react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/fdb54e3cb5e788d4aa53d7db7d541709807c0dde2af41c423e241274cd6595e66dca15a0a310e08a26a49391ff615c153aaa44710016249c2d4c0fe653cc970f
+  languageName: node
+  linkType: hard
+
 "swr@npm:^2.2.5":
   version: 2.3.7
   resolution: "swr@npm:2.3.7"
@@ -19736,7 +19771,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"use-sync-external-store@npm:^1.2.2, use-sync-external-store@npm:^1.4.0":
+"use-sync-external-store@npm:^1.2.2, use-sync-external-store@npm:^1.4.0, use-sync-external-store@npm:^1.6.0":
   version: 1.6.0
   resolution: "use-sync-external-store@npm:1.6.0"
   peerDependencies:
@@ -20065,6 +20100,7 @@ __metadata:
     react-hook-form: "npm:^7.66.0"
     react-intl: "npm:^7.1.14"
     react-is: "npm:^19.0.0"
+    react-tweet: "npm:^3.3.1"
     recharts: "npm:^3.4.1"
     sonner: "npm:^2.0.6"
     swr: "npm:^2.2.5"

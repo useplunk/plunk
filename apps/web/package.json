@@ -53,6 +53,7 @@
     "react-hook-form": "^7.66.0",
     "react-intl": "^7.1.14",
     "react-is": "^19.0.0",
+    "react-tweet": "^3.3.1",
     "recharts": "^3.4.1",
     "sonner": "^2.0.6",
     "swr": "^2.2.5",
