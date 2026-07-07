@@ -2,26 +2,16 @@ import {Button, Card, CardContent} from '@plunk/ui';
 import type {Form} from '@plunk/db';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {FormEditor} from '../../components/FormEditor';
-import {network} from '../../lib/network';
-import {DASHBOARD_URI} from '../../lib/constants';
-import {ArrowLeft, ClipboardCopy, ExternalLink} from 'lucide-react';
+import {ArrowLeft} from 'lucide-react';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
 import {NextSeo} from 'next-seo';
-import {toast} from 'sonner';
 import useSWR from 'swr';
 
 export default function FormDetailPage() {
   const router = useRouter();
   const {id} = router.query;
   const {data: form} = useSWR<Form>(id ? `/forms/${id}` : null);
-
-  const copyLink = async () => {
-    if (!form) return;
-    const url = `${DASHBOARD_URI}/form/${form.publicId}`;
-    await navigator.clipboard.writeText(url);
-    toast.success('Link copied to clipboard');
-  };
 
   return (
     <>
@@ -41,18 +31,9 @@ export default function FormDetailPage() {
               </div>
             </div>
             {form && (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => void copyLink()}>
-                  <ClipboardCopy className="h-4 w-4 mr-1" />
-                  Copy link
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/form/${form.publicId}`} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    Preview
-                  </a>
-                </Button>
-              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/landing-pages">Manage landing pages</Link>
+              </Button>
             )}
           </div>
 
@@ -60,10 +41,9 @@ export default function FormDetailPage() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-neutral-600">
-                  Public URL:{' '}
-                  <code className="bg-neutral-100 px-2 py-1 rounded text-xs break-all">
-                    {DASHBOARD_URI}/form/{form.publicId}
-                  </code>
+                  Share this form by adding a <strong>Form</strong> block to a landing page, then publish and share the
+                  landing page link (<code className="bg-neutral-100 px-1 rounded text-xs">/p/&#123;publicId&#125;</code>
+                  ).
                 </p>
                 <p className="text-sm text-neutral-500 mt-2">
                   {form.submissions} submission{form.submissions !== 1 ? 's' : ''} · slug{' '}

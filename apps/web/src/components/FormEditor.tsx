@@ -310,7 +310,7 @@ export function FormEditor({mode, formId}: FormEditorProps) {
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} className="rounded" />
-            Published (public link active)
+            Enabled (accepts submissions on landing pages)
           </label>
         </CardContent>
       </Card>
@@ -318,7 +318,7 @@ export function FormEditor({mode, formId}: FormEditorProps) {
       <Card>
         <CardHeader>
           <CardTitle>Page content</CardTitle>
-          <CardDescription>What visitors see on the hosted form page</CardDescription>
+          <CardDescription>What visitors see on the form block in landing pages</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">

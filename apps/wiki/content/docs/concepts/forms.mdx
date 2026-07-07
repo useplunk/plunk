@@ -1,16 +1,18 @@
 ---
 title: Forms
-description: Hosted signup pages that capture contacts and feed segments
+description: Forms embedded in landing pages that capture contacts and feed segments
 icon: FileInput
 ---
 
-Forms let you collect signups without building your own backend integration. Create a form in the dashboard, share the hosted link, and every submission creates or updates a contact with tags you can filter on in dynamic segments — or adds them directly to a static segment.
+Forms let you collect signups without building your own backend integration. Create a form in the dashboard, embed it in a landing page, and every submission creates or updates a contact with tags you can filter on in dynamic segments — or adds them directly to a static segment.
 
 ## How it works
 
-1. **Create a form** in **Forms → Create Form** — set the page title, optional custom fields, and destination.
-2. **Share the link** — your dashboard URL + `/form/{publicId}` (copy from the form detail page).
-3. **On submit**, Plunk:
+1. **Create a form** in **Forms → Create Form** — set the title, optional custom fields, and destination.
+2. **Create a landing page** in **Landing Pages → Create Landing Page**.
+3. **Add a Form block** in the visual editor and select your form.
+4. **Publish** the landing page and share the link — your dashboard URL + `/p/{publicId}` (copy from the landing page detail page).
+5. **On submit**, Plunk:
    - Upserts the contact by email
    - Writes `data["form:<slug>"] = true` plus any tags you configured (e.g. `source: newsletter`)
    - Tracks `form.submitted` (or a custom event name) for workflows
@@ -57,7 +59,7 @@ Enable **Double opt-in** on the form. Contacts are created with `subscribed: fal
 | ------ | ------ |
 | **Validate email** | Rejects disposable addresses, plus-addressing, and domains without MX records |
 | **Redirect URL** | Browser redirect after successful submit |
-| **Published** | Disabled forms return 404 on the public link |
+| **Enabled** | Disabled forms return 404 when embedded on landing pages |
 
 ## Security
 

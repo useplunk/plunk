@@ -19,7 +19,7 @@ export default function NewFormPage() {
             </Button>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Create Form</h1>
-              <p className="text-neutral-500 mt-1">Build a hosted signup page</p>
+              <p className="text-neutral-500 mt-1">Build a form to use in landing pages</p>
             </div>
           </div>
           <FormEditor mode="create" />

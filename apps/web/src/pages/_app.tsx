@@ -31,7 +31,6 @@ const PUBLIC_ROUTES = [
   '/unsubscribe',
   '/subscribe',
   '/manage',
-  '/form',
   '/p',
 ];
 

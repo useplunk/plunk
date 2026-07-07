@@ -11,9 +11,8 @@ import {
 import type {Form} from '@plunk/db';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {network} from '../../lib/network';
-import {DASHBOARD_URI} from '../../lib/constants';
 import {formatRelativeTime} from '../../lib/dateUtils';
-import {ClipboardCopy, Edit, ExternalLink, FileInput, Plus, Search, Trash2} from 'lucide-react';
+import {Edit, FileInput, Plus, Search, Trash2} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useMemo, useState} from 'react';
@@ -52,12 +51,6 @@ export default function FormsPage() {
     }
   };
 
-  const copyLink = async (publicId: string) => {
-    const url = `${DASHBOARD_URI}/form/${publicId}`;
-    await navigator.clipboard.writeText(url);
-    toast.success('Link copied to clipboard');
-  };
-
   return (
     <>
       <NextSeo title="Forms" />
@@ -66,7 +59,12 @@ export default function FormsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Forms</h1>
-              <p className="text-neutral-500 mt-1">Create hosted signup pages that add contacts to segments</p>
+              <p className="text-neutral-500 mt-1">
+                Create forms to embed in{' '}
+                <Link href="/landing-pages" className="text-neutral-700 hover:underline">
+                  landing pages
+                </Link>
+              </p>
             </div>
             <Button asChild>
               <Link href="/forms/new">
@@ -119,7 +117,7 @@ export default function FormsPage() {
                             {form.name}
                           </Link>
                           <Badge variant={form.enabled ? 'default' : 'secondary'}>
-                            {form.enabled ? 'Published' : 'Disabled'}
+                            {form.enabled ? 'Enabled' : 'Disabled'}
                           </Badge>
                         </div>
                         <p className="text-sm text-neutral-500">
@@ -129,15 +127,6 @@ export default function FormsPage() {
                         <p className="text-xs text-neutral-400">Created {formatRelativeTime(form.createdAt)}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <Button variant="outline" size="sm" onClick={() => void copyLink(form.publicId)}>
-                          <ClipboardCopy className="h-4 w-4 mr-1" />
-                          Copy link
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={`/form/${form.publicId}`} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
                         <Button variant="outline" size="sm" asChild>
                           <Link href={`/forms/${form.id}`}>
                             <Edit className="h-4 w-4" />
@@ -167,7 +156,7 @@ export default function FormsPage() {
           onOpenChange={setShowDeleteDialog}
           onConfirm={() => void handleDelete()}
           title="Delete form"
-          description="This will permanently delete the form. The public link will stop working. Contacts already captured are not removed."
+          description="This will permanently delete the form. Embedded forms on landing pages will stop accepting submissions. Contacts already captured are not removed."
           confirmText="Delete"
           variant="destructive"
         />
