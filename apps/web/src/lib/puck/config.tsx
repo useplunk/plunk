@@ -50,6 +50,26 @@ import {
   type PageUiTestimonialsProps,
   type PageUiVideoCtaProps,
 } from '../../components/puck/pageui/front-centre';
+import {
+  spectaMarqueePuckComponent,
+  spectaProductFeaturePuckComponent,
+  spectaSaleCtaPuckComponent,
+  spectaShowcaseMarqueePuckComponent,
+  spectaShowcasePuckComponent,
+  spectaTemplatePuckComponent,
+  spectaTestimonialInlinePuckComponent,
+  spectaTestimonialsPuckComponent,
+  spectaVideoCtaPuckComponent,
+  type SpectaMarqueeProps,
+  type SpectaProductFeatureProps,
+  type SpectaSaleCtaProps,
+  type SpectaShowcaseMarqueeProps,
+  type SpectaShowcaseProps,
+  type SpectaTemplateProps,
+  type SpectaTestimonialInlineProps,
+  type SpectaTestimonialsProps,
+  type SpectaVideoCtaProps,
+} from '../../components/puck/pageui/specta';
 import {PAGEUI_PLACEHOLDER_1200x600} from '../../components/puck/pageui/front-centre/shared-defaults';
 
 type LandingPageComponents = {
@@ -104,6 +124,15 @@ type LandingPageComponents = {
   PageUiSaleCta: PageUiSaleCtaProps;
   PageUiFaq: PageUiFaqProps;
   FrontCentre: FrontCentreTemplateProps;
+  SpectaVideoCta: SpectaVideoCtaProps;
+  SpectaMarquee: SpectaMarqueeProps;
+  SpectaTestimonialInline: SpectaTestimonialInlineProps;
+  SpectaProductFeature: SpectaProductFeatureProps;
+  SpectaShowcase: SpectaShowcaseProps;
+  SpectaShowcaseMarquee: SpectaShowcaseMarqueeProps;
+  SpectaTestimonials: SpectaTestimonialsProps;
+  SpectaSaleCta: SpectaSaleCtaProps;
+  Specta: SpectaTemplateProps;
 };
 
 const headingClass: Record<LandingPageComponents['Heading']['level'], string> = {
@@ -176,6 +205,20 @@ export const puckConfig: Config<LandingPageComponents> = {
         'PageUiTestimonials',
         'PageUiSaleCta',
         'PageUiFaq',
+      ],
+    },
+    specta: {
+      title: 'Specta',
+      components: [
+        'Specta',
+        'SpectaVideoCta',
+        'SpectaMarquee',
+        'SpectaTestimonialInline',
+        'SpectaProductFeature',
+        'SpectaShowcase',
+        'SpectaShowcaseMarquee',
+        'SpectaTestimonials',
+        'SpectaSaleCta',
       ],
     },
   },
@@ -395,6 +438,15 @@ export const puckConfig: Config<LandingPageComponents> = {
     PageUiSaleCta: pageUiSaleCtaPuckComponent,
     PageUiFaq: pageUiFaqPuckComponent,
     FrontCentre: frontCentreTemplatePuckComponent,
+    SpectaVideoCta: spectaVideoCtaPuckComponent,
+    SpectaMarquee: spectaMarqueePuckComponent,
+    SpectaTestimonialInline: spectaTestimonialInlinePuckComponent,
+    SpectaProductFeature: spectaProductFeaturePuckComponent,
+    SpectaShowcase: spectaShowcasePuckComponent,
+    SpectaShowcaseMarquee: spectaShowcaseMarqueePuckComponent,
+    SpectaTestimonials: spectaTestimonialsPuckComponent,
+    SpectaSaleCta: spectaSaleCtaPuckComponent,
+    Specta: spectaTemplatePuckComponent,
     FormBlock: {
       label: 'Form',
       defaultProps: {

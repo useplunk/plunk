@@ -1,3 +1,4 @@
+export {LandingMarquee} from './LandingMarquee';
 export {LandingBandSection} from './LandingBand';
 export {LandingFaqCollapsibleSection, type FaqItem} from './LandingFaqCollapsible';
 export {LandingProductFeature} from './LandingProductFeature';
@@ -16,3 +17,7 @@ export {LandingRating} from './rating/LandingRating';
 export {LandingTestimonial, type TestimonialItem} from './testimonial/LandingTestimonial';
 export {LandingTestimonialGrid} from './testimonial/LandingTestimonialGrid';
 export {LandingTestimonialReadMoreWrapper} from './testimonial/LandingTestimonialReadMoreWrapper';
+export {LandingTestimonialInline} from './testimonial/LandingTestimonialInline';
+export {LandingTestimonialInlineItem} from './testimonial/LandingTestimonialInlineItem';
+export {LandingShowcase} from './showcase/LandingShowcase';
+export {LandingShowcaseItem} from './showcase/LandingShowcaseItem';
