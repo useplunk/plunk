@@ -3,7 +3,7 @@ import type {infer as ZodInfer, ZodSchema} from 'zod';
 import {API_URI} from './constants';
 
 /** Paths that must not send auth/project headers (public hosted pages). */
-const PUBLIC_PATH_PREFIXES = ['/forms/public/', '/contacts/public/'];
+const PUBLIC_PATH_PREFIXES = ['/forms/public/', '/landing-pages/public/', '/contacts/public/'];
 
 function isPublicApiPath(path: string): boolean {
   const pathname = path.startsWith('http') ? new URL(path).pathname : path;

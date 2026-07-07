@@ -106,6 +106,7 @@ export function FormPreviewEditor({
     if (fromIndex === toIndex || toIndex < 0 || toIndex >= orderedKeys.length) return;
     const next = [...orderedKeys];
     const [item] = next.splice(fromIndex, 1);
+    if (item === undefined) return;
     next.splice(toIndex, 0, item);
     onFieldOrderChange(next);
   };

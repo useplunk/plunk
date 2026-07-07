@@ -32,3 +32,6 @@ export * from './workflows/index.js';
 
 // Form types
 export * from './forms/index.js';
+
+// Landing page types
+export * from './landing-pages/index.js';

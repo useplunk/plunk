@@ -11,6 +11,7 @@ import {
   FileText,
   FileInput,
   Layers,
+  Layout,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -18,7 +19,7 @@ import {
   Plus,
   Settings,
   Users,
-  Workflow
+  Workflow,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -55,6 +56,7 @@ const navigation: NavSection[] = [
       {name: 'Contacts', href: '/contacts', icon: Users},
       {name: 'Segments', href: '/segments', icon: Layers},
       {name: 'Forms', href: '/forms', icon: FileInput},
+      {name: 'Landing Pages', href: '/landing-pages', icon: Layout},
       {name: 'Activity', href: '/activity', icon: Activity},
       {name: 'Analytics', href: '/analytics', icon: BarChart3},
     ],

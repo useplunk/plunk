@@ -73,7 +73,8 @@ model Project {
   events      Event[]
   domains     Domain[]
   apiRequests ApiRequest[]
-  forms       Form[]
+  forms        Form[]
+  landingPages LandingPage[]
 
   idempotencyKeys IdempotencyKey[]
 
@@ -274,6 +275,25 @@ model Form {
   @@unique([projectId, slug])
   @@index([projectId])
   @@map("forms")
+}
+
+model LandingPage {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  publicId  String  @unique
+  slug      String
+  name      String
+  data      Json
+  settings  Json
+  published Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+  @@map("landing_pages")
 }
 
 model SegmentMembership {

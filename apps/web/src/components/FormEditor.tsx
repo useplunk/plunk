@@ -184,6 +184,7 @@ export function FormEditor({mode, formId}: FormEditorProps) {
     setFieldOrder(prev => {
       const next = [...prev];
       const [item] = next.splice(fromIndex, 1);
+      if (item === undefined) return prev;
       next.splice(toIndex, 0, item);
       return next;
     });
@@ -257,13 +258,13 @@ export function FormEditor({mode, formId}: FormEditorProps) {
     try {
       const payload = buildPayload();
       if (mode === 'create') {
-        FormSchemas.create.parse(payload);
-        const form = await network.fetch<{id: string}, typeof FormSchemas.create>('POST', '/forms', payload);
+        const parsed = FormSchemas.create.parse(payload);
+        const form = await network.fetch<{id: string}, typeof FormSchemas.create>('POST', '/forms', parsed);
         toast.success('Form created');
         void router.push(`/forms/${form.id}`);
       } else if (formId) {
-        FormSchemas.update.parse(payload);
-        await network.fetch('PATCH', `/forms/${formId}`, payload);
+        const parsed = FormSchemas.update.parse(payload);
+        await network.fetch<void, typeof FormSchemas.update>('PATCH', `/forms/${formId}`, parsed);
         toast.success('Form saved');
       }
     } catch (error) {
@@ -431,6 +432,7 @@ export function FormEditor({mode, formId}: FormEditorProps) {
             const fieldIndex = fields.findIndex(f => f.key === orderKey);
             if (fieldIndex === -1) return null;
             const field = fields[fieldIndex];
+            if (!field) return null;
 
             return (
               <div

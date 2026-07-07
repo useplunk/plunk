@@ -17,6 +17,7 @@
     "@plunk/db": "*",
     "@plunk/shared": "*",
     "@plunk/ui": "*",
+    "@puckeditor/core": "^0.22.0",
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/core": "^3.11.0",
     "@tiptap/extension-color": "^3.11.0",

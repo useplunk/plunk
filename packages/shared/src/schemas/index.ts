@@ -628,6 +628,37 @@ const formSettingsSchema = z.object({
   verifyEmail: z.boolean().default(false),
 });
 
+const landingPageSettingsSchema = z.object({
+  title: z.string().max(200).optional(),
+  description: z.string().max(1000).optional(),
+  faviconUrl: z.string().url().max(2000).optional(),
+});
+
+const puckDataSchema = z
+  .object({
+    root: z.object({props: z.record(z.unknown()).default({})}).default({props: {}}),
+    content: z.array(z.record(z.unknown())).default([]),
+  })
+  .passthrough();
+
+export const LandingPageSchemas = {
+  settings: landingPageSettingsSchema,
+  create: z.object({
+    name: z.string().min(1).max(100),
+    slug: formSlug,
+    data: puckDataSchema.default({root: {props: {}}, content: []}),
+    settings: landingPageSettingsSchema.default({}),
+    published: z.boolean().default(false),
+  }),
+  update: z.object({
+    name: z.string().min(1).max(100).optional(),
+    slug: formSlug.optional(),
+    data: puckDataSchema.optional(),
+    settings: landingPageSettingsSchema.optional(),
+    published: z.boolean().optional(),
+  }),
+} as const;
+
 export const FormSchemas = {
   field: formFieldSchema,
   settings: formSettingsSchema,

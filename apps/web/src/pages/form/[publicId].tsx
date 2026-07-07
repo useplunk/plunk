@@ -1,5 +1,5 @@
 import {IconSpinner} from '@plunk/ui';
-import {createTranslator, type Translator} from '@plunk/shared';
+import {createTranslator, FormSchemas, type Translator} from '@plunk/shared';
 import type {FormField, FormSettings, FormSubmitResult, PublicFormConfig} from '@plunk/types';
 import {useRouter} from 'next/router';
 import React, {useEffect, useState} from 'react';
@@ -52,11 +52,15 @@ export default function PublicFormPage() {
     try {
       setSubmitting(true);
       setError(null);
-      const result = await network.fetch<FormSubmitResult>('POST', `/forms/public/${publicId}/submit`, {
-        email,
-        data: fieldValues,
-        hp,
-      });
+      const result = await network.fetch<FormSubmitResult, typeof FormSchemas.submit>(
+        'POST',
+        `/forms/public/${publicId}/submit`,
+        {
+          email,
+          data: fieldValues,
+          hp,
+        },
+      );
 
       if (result.redirectUrl) {
         window.location.href = result.redirectUrl;
