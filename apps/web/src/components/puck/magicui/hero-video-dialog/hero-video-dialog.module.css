@@ -1,0 +1,33 @@
+.block {
+  width: 100%;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .block {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .block {
+    padding-inline: 2rem;
+  }
+}
+
+.inner {
+  width: 100%;
+  max-width: 64rem;
+}
+
+.alignLeft {
+  margin-inline: 0 auto 0;
+}
+
+.alignCenter {
+  margin-inline: auto;
+}
+
+.alignRight {
+  margin-inline: 0 0 auto;
+}

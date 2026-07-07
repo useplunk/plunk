@@ -6,6 +6,10 @@ import {Button} from '@plunk/ui';
 
 import {network} from '../network';
 import {PuckFormBlock} from '../../components/puck/PuckFormBlock';
+import {
+  heroVideoDialogPuckComponent,
+  type HeroVideoDialogPuckProps,
+} from '../../components/puck/magicui/hero-video-dialog';
 import {marqueePuckComponent, type MarqueePuckProps} from '../../components/puck/magicui/marquee';
 
 type LandingPageComponents = {
@@ -41,6 +45,7 @@ type LandingPageComponents = {
     formPublicId: string;
   };
   Marquee: MarqueePuckProps;
+  HeroVideoDialog: HeroVideoDialogPuckProps;
 };
 
 const headingClass: Record<LandingPageComponents['Heading']['level'], string> = {
@@ -97,7 +102,7 @@ export const puckConfig: Config<LandingPageComponents> = {
     },
     magicui: {
       title: 'Magic UI',
-      components: ['Marquee'],
+      components: ['Marquee', 'HeroVideoDialog'],
     },
   },
   root: {
@@ -296,6 +301,7 @@ export const puckConfig: Config<LandingPageComponents> = {
       ),
     },
     Marquee: marqueePuckComponent,
+    HeroVideoDialog: heroVideoDialogPuckComponent,
     FormBlock: {
       label: 'Form',
       defaultProps: {
