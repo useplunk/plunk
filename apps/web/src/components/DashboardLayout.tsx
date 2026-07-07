@@ -55,10 +55,15 @@ const navigation: NavSection[] = [
       {name: 'Dashboard', href: '/', icon: LayoutDashboard},
       {name: 'Contacts', href: '/contacts', icon: Users},
       {name: 'Segments', href: '/segments', icon: Layers},
-      {name: 'Forms', href: '/forms', icon: FileInput},
-      {name: 'Landing Pages', href: '/landing-pages', icon: Layout},
       {name: 'Activity', href: '/activity', icon: Activity},
       {name: 'Analytics', href: '/analytics', icon: BarChart3},
+    ],
+  },
+  {
+    title: 'Pages',
+    items: [
+      {name: 'Forms', href: '/forms', icon: FileInput},
+      {name: 'Landing Pages', href: '/landing-pages', icon: Layout},
     ],
   },
   {
