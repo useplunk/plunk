@@ -632,6 +632,26 @@ const landingPageSettingsSchema = z.object({
   title: z.string().max(200).optional(),
   description: z.string().max(1000).optional(),
   faviconUrl: z.string().url().max(2000).optional(),
+  canonicalUrl: z.string().url().max(2000).optional(),
+  ogTitle: z.string().max(200).optional(),
+  ogDescription: z.string().max(1000).optional(),
+  ogImageUrl: z.string().url().max(2000).optional(),
+  twitterCard: z.enum(['summary', 'summary_large_image']).optional(),
+  gtmId: z
+    .string()
+    .regex(/^GTM-[A-Z0-9]+$/i, 'Invalid GTM container ID')
+    .max(20)
+    .optional(),
+  ga4Id: z
+    .string()
+    .regex(/^G-[A-Z0-9]+$/i, 'Invalid GA4 measurement ID')
+    .max(20)
+    .optional(),
+  fbPixelId: z
+    .string()
+    .regex(/^\d+$/, 'Invalid Facebook Pixel ID')
+    .max(20)
+    .optional(),
 });
 
 const puckDataSchema = z

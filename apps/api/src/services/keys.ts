@@ -103,4 +103,9 @@ export const Keys = {
       return `form:rl:${publicId}:${ip}`;
     },
   },
+  LandingPage: {
+    public(publicId: string): string {
+      return `landing_page:public:${publicId}`;
+    },
+  },
 } as const;

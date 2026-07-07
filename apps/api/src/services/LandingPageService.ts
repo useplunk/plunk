@@ -5,8 +5,10 @@ import {Prisma} from '@plunk/db';
 import type {LandingPageSettings, PublicLandingPageConfig, PuckData} from '@plunk/types';
 import {fromPrismaJson, toPrismaJson} from '@plunk/types';
 
+import {redis, TEN_MINUTES_IN_SECONDS, wrapRedis} from '../database/redis.js';
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
+import {Keys} from './keys.js';
 
 export class LandingPageService {
   public static async list(projectId: string): Promise<LandingPage[]> {
@@ -84,18 +86,47 @@ export class LandingPageService {
     }
     if (data.published !== undefined) updateData.published = data.published;
 
-    return prisma.landingPage.update({
+    const updated = await prisma.landingPage.update({
       where: {id: landingPageId},
       data: updateData,
     });
+
+    await redis.del(Keys.LandingPage.public(existing.publicId));
+
+    return updated;
   }
 
   public static async delete(projectId: string, landingPageId: string): Promise<void> {
-    await this.get(projectId, landingPageId);
+    const existing = await this.get(projectId, landingPageId);
     await prisma.landingPage.delete({where: {id: landingPageId}});
+    await redis.del(Keys.LandingPage.public(existing.publicId));
   }
 
   public static async getPublicConfig(publicId: string): Promise<PublicLandingPageConfig> {
+    return wrapRedis(
+      Keys.LandingPage.public(publicId),
+      () => this.fetchPublicConfig(publicId),
+      TEN_MINUTES_IN_SECONDS,
+    );
+  }
+
+  private static pickPublicSettings(settings: LandingPageSettings): LandingPageSettings {
+    return {
+      title: settings.title,
+      description: settings.description,
+      faviconUrl: settings.faviconUrl,
+      canonicalUrl: settings.canonicalUrl,
+      ogTitle: settings.ogTitle,
+      ogDescription: settings.ogDescription,
+      ogImageUrl: settings.ogImageUrl,
+      twitterCard: settings.twitterCard,
+      gtmId: settings.gtmId,
+      ga4Id: settings.ga4Id,
+      fbPixelId: settings.fbPixelId,
+    };
+  }
+
+  private static async fetchPublicConfig(publicId: string): Promise<PublicLandingPageConfig> {
     const page = await prisma.landingPage.findFirst({
       where: {publicId, published: true},
       include: {
@@ -116,11 +147,7 @@ export class LandingPageService {
       publicId: page.publicId,
       name: page.name,
       data: puckData,
-      settings: {
-        title: settings.title,
-        description: settings.description,
-        faviconUrl: settings.faviconUrl,
-      },
+      settings: this.pickPublicSettings(settings),
     };
   }
 

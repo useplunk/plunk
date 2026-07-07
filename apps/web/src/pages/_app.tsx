@@ -38,6 +38,29 @@ const PUBLIC_ROUTES = [
 // Routes that don't require a project
 const NO_PROJECT_ROUTES = ['/projects/create'];
 
+function DashboardSeoAndAnalytics() {
+  const router = useRouter();
+  const isLandingPageRoute =
+    router.pathname === '/p' || router.pathname.startsWith('/p/');
+
+  if (isLandingPageRoute) {
+    return null;
+  }
+
+  return (
+    <>
+      <DefaultSeo titleTemplate="%s | Plunk" defaultTitle="Plunk | Email Platform Dashboard" />
+
+      <Script
+        defer
+        src="https://analytics.driaug.com/script.js"
+        data-website-id="5880df93-9025-41ae-8e33-7c3da865f764"
+        data-domains="next-app.useplunk.com"
+      />
+    </>
+  );
+}
+
 function App({Component, pageProps}: AppProps) {
   return (
     <>
@@ -116,14 +139,7 @@ export default function WithProviders(props: AppProps) {
           shouldRetryOnError: false,
         }}
       >
-        <DefaultSeo titleTemplate="%s | Plunk" defaultTitle="Plunk | Email Platform Dashboard" />
-
-        <Script
-          defer
-          src="https://analytics.driaug.com/script.js"
-          data-website-id="5880df93-9025-41ae-8e33-7c3da865f764"
-          data-domains="next-app.useplunk.com"
-        />
+        <DashboardSeoAndAnalytics />
 
         <ActiveProjectProvider>
           <Root {...props} />

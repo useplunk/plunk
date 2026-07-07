@@ -17,7 +17,7 @@ import {
 import type {LandingPage} from '@plunk/db';
 import {LandingPageSchemas} from '@plunk/shared';
 import {EMPTY_PUCK_DATA} from '@plunk/types';
-import {ClipboardCopy, Edit, ExternalLink, Layout, Plus, Search, Trash2} from 'lucide-react';
+import {ClipboardCopy, Edit, ExternalLink, Layout, Plus, Search, Settings, Trash2} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
@@ -103,7 +103,7 @@ export default function LandingPagesPage() {
       toast.success('Landing page created');
       setShowCreateDialog(false);
       setCreateName('');
-      void router.push(`/landing-pages/${page.id}/edit`);
+      void router.push(`/landing-pages/edit/${page.id}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create landing page');
     } finally {
@@ -188,7 +188,13 @@ export default function LandingPagesPage() {
                           </a>
                         </Button>
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/landing-pages/${page.id}/edit`}>
+                          <Link href={`/landing-pages/${page.id}`}>
+                            <Settings className="h-4 w-4 mr-1" />
+                            Settings
+                          </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/landing-pages/edit/${page.id}`} title="Edit page content">
                             <Edit className="h-4 w-4" />
                           </Link>
                         </Button>

@@ -8,6 +8,14 @@ export interface LandingPageSettings {
   title?: string;
   description?: string;
   faviconUrl?: string;
+  canonicalUrl?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImageUrl?: string;
+  twitterCard?: 'summary' | 'summary_large_image';
+  gtmId?: string;
+  ga4Id?: string;
+  fbPixelId?: string;
 }
 
 export interface PublicLandingPageConfig {
