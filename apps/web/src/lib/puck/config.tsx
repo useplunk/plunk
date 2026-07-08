@@ -220,10 +220,13 @@ export const puckConfig: Config<LandingPageComponents> = {
       title: 'Magic UI',
       components: ['Marquee', 'HeroVideoDialog', 'AnimatedList', 'TweetCard'],
     },
+    landingTemplates: {
+      title: 'Landing Templates',
+      components: ['FrontCentre', 'Specta', 'GnomieTemplate'],
+    },
     pageui: {
-      title: 'Page UI',
+      title: 'Front Centre',
       components: [
-        'FrontCentre',
         'PageUiSocialProofBand',
         'PageUiVideoCta',
         'PageUiBand',
@@ -239,7 +242,6 @@ export const puckConfig: Config<LandingPageComponents> = {
     specta: {
       title: 'Specta',
       components: [
-        'Specta',
         'SpectaVideoCta',
         'SpectaMarquee',
         'SpectaTestimonialInline',
@@ -253,7 +255,6 @@ export const puckConfig: Config<LandingPageComponents> = {
     gnomie: {
       title: 'Gnomie',
       components: [
-        'GnomieTemplate',
         'GnomieVideoCta',
         'GnomieExampleCarousel',
         'GnomieProductTour',
