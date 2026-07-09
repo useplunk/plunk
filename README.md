@@ -1,3 +1,7 @@
+> This project is a modified version of [Plunk](https://github.com/useplunk/plunk) ([useplunk.com](https://www.useplunk.com/)), licensed under the AGPL-3.0 License. See [LICENSE](LICENSE) for the full license text.
+>
+> Modifications are copyright (C) Amplifica Soluções Digitais LTDA. See [NOTICE](NOTICE) for copyright attribution details.
+
 ![card.png](https://www.useplunk.com/api/og?title=Open-Source%0AEmail%20Platform&description=%240.001+per+email.+No+contact+limits.+Free+to+self-host.)
 
 <h1 align="center">Plunk</h1>
@@ -62,7 +66,3 @@ You are welcome to contribute to Plunk. You can find a guide on how to contribut
 <a href="https://github.com/useplunk/plunk/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=useplunk/plunk" alt="Contributors" />
 </a>
-
-## License
-
-AGPL-3.0 License - see [LICENSE](LICENSE) for details.

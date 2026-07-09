@@ -142,3 +142,5 @@ between groups.
 ## License
 
 By contributing to Plunk, you agree that your contributions will be licensed under the AGPL-3.0 License.
+
+This repository is a modified version of [Plunk](https://github.com/useplunk/plunk) ([useplunk.com](https://www.useplunk.com/)). See [NOTICE](NOTICE) for copyright attribution details.
