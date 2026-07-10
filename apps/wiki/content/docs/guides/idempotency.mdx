@@ -119,7 +119,7 @@ If a `5xx` burns a key for a request you're confident never went through, retry 
 
 Keys are scoped to your **project**, not to an endpoint. A key used on `/v1/track` cannot be reused on `/v1/send`. Two different projects can use the same key string independently.
 
-A claimed key expires after **24 hours**, after which it becomes reusable. Self-hosters can tune this with [`IDEMPOTENCY_KEY_TTL_HOURS`](/docs/self-hosting/environment-variables).
+A claimed key expires after **24 hours**, after which it becomes reusable. Self-hosters can tune this with [`IDEMPOTENCY_KEY_TTL_HOURS`](/self-hosting/environment-variables).
 
 ## Multiple recipients
 

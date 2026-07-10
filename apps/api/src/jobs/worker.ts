@@ -14,6 +14,7 @@ import {createIdempotencyKeyCleanupWorker} from './idempotency-key-cleanup-proce
 import {createBulkContactWorker} from './bulk-contact-processor.js';
 import {createCampaignWorker} from './campaign-processor.js';
 import {createDomainVerificationWorker} from './domain-verification-processor.js';
+import {createEmailBodyCleanupWorker} from './email-body-cleanup-processor.js';
 import {createEmailWorker} from './email-processor.js';
 import {createImportWorker} from './import-processor.js';
 import {createMeterWorker} from './meter-processor.js';
@@ -76,6 +77,11 @@ async function startWorkers() {
     const idempotencyKeyCleanupWorker = createIdempotencyKeyCleanupWorker();
     workers.push({name: 'idempotency-key-cleanup', worker: idempotencyKeyCleanupWorker});
     signale.success('[WORKER] Idempotency key cleanup worker started');
+
+    // Start email body cleanup worker
+    const emailBodyCleanupWorker = createEmailBodyCleanupWorker();
+    workers.push({name: 'email-body-cleanup', worker: emailBodyCleanupWorker});
+    signale.success('[WORKER] Email body cleanup worker started');
 
     // Start meter worker
     const meterWorker = createMeterWorker();

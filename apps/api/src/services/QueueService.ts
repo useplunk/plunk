@@ -10,6 +10,7 @@ import type {
   CampaignBatchJobData,
   ContactImportJobData,
   DomainVerificationJobData,
+  EmailBodyCleanupJobData,
   MeterEventJobData,
   ScheduledCampaignJobData,
   SegmentCountJobData,
@@ -150,6 +151,19 @@ export const apiRequestCleanupQueue = new Queue<ApiRequestCleanupJobData>('api-r
 });
 
 export const idempotencyKeyCleanupQueue = new Queue<IdempotencyKeyCleanupJobData>('idempotency-key-cleanup', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: {
+      type: 'exponential',
+      delay: 30000,
+    },
+    removeOnComplete: 5, // Keep last 5 completed jobs
+    removeOnFail: 20, // Keep last 20 failed jobs
+  },
+});
+
+export const emailBodyCleanupQueue = new Queue<EmailBodyCleanupJobData>('email-body-cleanup', {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 2,

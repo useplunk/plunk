@@ -1,0 +1,55 @@
+---
+title: Data Retention
+description: How long Plunk keeps email content, request logs, and idempotency keys
+icon: Archive
+---
+
+Plunk keeps the record of everything you send indefinitely. Some of the bulkier data attached to those records is aged out on a schedule to keep storage bounded.
+
+| Data                            | Kept for      | What happens after |
+| ------------------------------- | ------------- | ------------------ |
+| Email metadata and metrics      | Indefinitely  | Never removed      |
+| Rendered email HTML             | **90 days**   | Body is cleared; the email row remains |
+| API request logs                | **30 days**   | Log entry is deleted |
+| Idempotency keys                | **24 hours**  | Key is deleted and becomes reusable |
+
+## Email content
+
+Every email Plunk sends is stored with its fully rendered HTML body, which is what the **Preview** button on a contact's activity feed displays. That body is by far the largest thing Plunk stores per email, so after 90 days it is cleared.
+
+Clearing the body does not delete the email. Everything you analyse or segment on is kept permanently:
+
+- Recipient, subject, sender, and send time
+- Delivery status, and the timestamps for delivery, opens, clicks, bounces, and complaints
+- Open and click counts
+- The campaign, workflow, or template the email came from
+
+The only visible effect is that emails older than 90 days no longer offer a preview of their content in the dashboard. Segment filters built on [email activity](/guides/segment-filters) are unaffected, since they read the event timestamps rather than the body.
+
+<Callout type="warn">
+Clearing is irreversible. If you need a permanent archive of exact sent content, capture it on your side at send time, or reconstruct it from the [template](/concepts/templates) and the contact's data.
+</Callout>
+
+## API request logs
+
+Plunk logs most API requests — public API calls, resource changes, authentication attempts, and any failed request — for debugging and audit purposes. These log entries are deleted after 30 days. This affects request-level troubleshooting only; the emails and events those requests created are unaffected.
+
+## Idempotency keys
+
+A claimed [`Idempotency-Key`](/guides/idempotency) is retained until it expires, 24 hours after it was claimed, and is then removed. Expiry is what makes a key reusable, so this cleanup is part of how idempotency works rather than a storage concern.
+
+## Self-hosting
+
+Retention runs as scheduled jobs on the [worker process](/self-hosting/docker), so a deployment that never runs the worker will grow without bound.
+
+| Job                     | Schedule            |
+| ----------------------- | ------------------- |
+| Email body cleanup      | Daily, 04:00        |
+| API request log cleanup | Daily, 03:00        |
+| Idempotency key cleanup | Hourly, on the hour |
+
+Daily jobs run in the worker container's local timezone. Set `TZ` on that container if you need them to land at a specific hour.
+
+The 90-day and 30-day windows are compiled in rather than read from the environment. The idempotency key TTL is the exception and can be tuned with [`IDEMPOTENCY_KEY_TTL_HOURS`](/self-hosting/environment-variables).
+
+The first run after upgrading clears the backlog of every email body older than 90 days at once. On a large database this takes a while. Postgres will reuse the freed space for new rows, but the table will not shrink on disk without a `VACUUM FULL`.

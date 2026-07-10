@@ -36,3 +36,12 @@ export interface ApiRequestCleanupJobData {
 export interface IdempotencyKeyCleanupJobData {
   // Empty - cleans up all keys past their expiresAt
 }
+
+/**
+ * Job data for clearing the rendered HTML body of old emails
+ * Used by: emailBodyCleanupQueue worker
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface EmailBodyCleanupJobData {
+  // Empty - clears bodies for every email past the retention window
+}

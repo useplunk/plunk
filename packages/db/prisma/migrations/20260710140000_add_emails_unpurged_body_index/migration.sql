@@ -1,0 +1,18 @@
+-- Partial index supporting the daily email body cleanup job (email-body-cleanup-processor).
+-- That job repeatedly asks for "the oldest emails past the retention window that still
+-- have a body". A plain (createdAt) index answers it by walking every email older than
+-- the cutoff on every run, almost all of which were blanked on some earlier run. Excluding
+-- already-blanked rows from the index keeps it to roughly the retention window's worth of
+-- emails and turns each batch into a short range scan from the oldest entry.
+--
+-- Partial indexes cannot be expressed in schema.prisma, so this lives only here. Keep the
+-- predicate in sync with the job's `body <> ''` filter, otherwise the index stops matching.
+--
+-- CONCURRENTLY, because a plain CREATE INDEX takes a ShareLock that blocks every INSERT
+-- into "emails" until the build finishes -- i.e. it stalls sending. Two consequences:
+--   * This file must contain exactly ONE statement. Prisma sends a multi-statement file as
+--     a single implicit transaction, and CONCURRENTLY cannot run inside a transaction block.
+--   * A failed build leaves an INVALID index behind. If this migration fails, drop it
+--     ("DROP INDEX CONCURRENTLY \"emails_createdAt_unpurged_idx\";"), mark the migration
+--     rolled back, and re-run. Re-running without dropping would fail on the existing name.
+CREATE INDEX CONCURRENTLY "emails_createdAt_unpurged_idx" ON "emails"("createdAt") WHERE "body" <> '';

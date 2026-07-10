@@ -44,6 +44,7 @@ import {ErrorCode, type FieldError, HttpException, ValidationError} from './exce
 import {
   apiRequestCleanupQueue,
   domainVerificationQueue,
+  emailBodyCleanupQueue,
   idempotencyKeyCleanupQueue,
   segmentCountQueue,
 } from './services/QueueService.js';
@@ -521,4 +522,19 @@ void prisma.$connect().then(async () => {
   );
 
   signale.info('[BACKGROUND-JOB] Idempotency key cleanup scheduled (BullMQ repeatable job, runs hourly)');
+
+  // Set up repeatable job for email body cleanup (BullMQ)
+  // Run daily at 4 AM, offset from the API request cleanup so the two don't overlap
+  await emailBodyCleanupQueue.add(
+    'cleanup-old-email-bodies',
+    {},
+    {
+      repeat: {
+        pattern: '0 4 * * *', // Daily at 4 AM
+      },
+      jobId: 'email-body-cleanup-repeatable', // Fixed ID to prevent duplicates
+    },
+  );
+
+  signale.info('[BACKGROUND-JOB] Email body cleanup scheduled (BullMQ repeatable job, runs daily at 4 AM)');
 });
