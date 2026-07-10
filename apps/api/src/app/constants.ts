@@ -136,6 +136,10 @@ export const MAX_ATTACHMENT_SIZE_MB = Number(validateEnv('MAX_ATTACHMENT_SIZE_MB
 // Maximum number of attachments per email (default: 10)
 export const MAX_ATTACHMENTS_COUNT = Number(validateEnv('MAX_ATTACHMENTS_COUNT', '10'));
 
+// Idempotency (optional)
+// How long a used Idempotency-Key stays claimed before it can be reused (default: 24 hours)
+export const IDEMPOTENCY_KEY_TTL_HOURS = Number(validateEnv('IDEMPOTENCY_KEY_TTL_HOURS', '24'));
+
 // Email Verification & Password Reset
 export const TOKEN_EXPIRY_SECONDS = 3600; // 1 hour
 export const EMAIL_VERIFICATION_RATE_LIMIT = 3; // Max 3 emails per hour

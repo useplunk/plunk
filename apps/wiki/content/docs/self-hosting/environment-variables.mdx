@@ -64,6 +64,14 @@ Plunk supports attachments on transactional emails. AWS SES caps total message s
 | `MAX_ATTACHMENT_SIZE_MB` | No       | Maximum total attachment size in megabytes per email. Hard upper bound enforced by AWS SES is 40 MB.                     | `10`    |
 | `MAX_ATTACHMENTS_COUNT`  | No       | Maximum number of attachments per email.                                                                                 | `10`    |
 
+## Idempotency
+
+Callers can pass an `Idempotency-Key` header to `POST /v1/track` and `POST /v1/send` to guarantee the request runs at most once. See [Idempotency](/docs/guides/idempotency).
+
+| Variable                   | Required | Description                                                                                                                                                    | Default |
+| -------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `IDEMPOTENCY_KEY_TTL_HOURS` | No       | How long a used key stays claimed before it can be reused. Expired keys are swept hourly, so raising this grows the `idempotency_keys` table proportionally. | `24`    |
+
 ## SMTP Server
 
 The optional SMTP relay lets you send emails through Plunk via the SMTP protocol.

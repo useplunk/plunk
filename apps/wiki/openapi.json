@@ -170,6 +170,16 @@
           "type": "string"
         },
         "description": "Pagination cursor"
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "description": "Optional key that guarantees this request runs at most once. If the key was already used by your project, the request is refused with `409` instead of being performed a second time. Keys are scoped to your project, expire after 24 hours (configurable when self-hosting), and must be 1-255 printable ASCII characters."
       }
     }
   },
@@ -533,15 +543,47 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Idempotency-Key already used. The request was refused, not performed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": {
+                    "code": "IDEMPOTENCY_KEY_REUSED",
+                    "message": "Idempotency-Key \"order-1234-receipt\" has already been used",
+                    "statusCode": 409,
+                    "requestId": "8f14e45f-ceea-467a-9575-1f0f38e0b1c2",
+                    "details": {
+                      "key": "order-1234-receipt",
+                      "originalRequest": "POST /v1/send",
+                      "originalRequestAt": "2025-01-15T10:30:00.000Z",
+                      "originalStatusCode": 200
+                    },
+                    "suggestion": "This Idempotency-Key was already used, so the request was refused rather than performed twice. Generate a new key for a genuinely new request."
+                  },
+                  "timestamp": "2025-01-15T10:31:00.000Z"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ]
       }
     },
     "/v1/track": {
       "post": {
         "tags": ["Public API"],
         "summary": "Track event",
-        "description": "Track an event for a contact. Automatically creates or upserts the contact, then records the event. Tracked events can be used as workflow triggers, segment filters, and audience filters.\n\n**Reserved event names** (rejected with `VALIDATION_ERROR` and code `reserved_event`): anything matching `email.*`, `contact.subscribed`, `contact.unsubscribed`, `segment.<slug>.entry`, `segment.<slug>.exit`. These are emitted by Plunk itself.\n\n**No idempotency**: re-tracking the same event creates a new event record.",
+        "description": "Track an event for a contact. Automatically creates or upserts the contact, then records the event. Tracked events can be used as workflow triggers, segment filters, and audience filters.\n\n**Reserved event names** (rejected with `VALIDATION_ERROR` and code `reserved_event`): anything matching `email.*`, `contact.subscribed`, `contact.unsubscribed`, `segment.<slug>.entry`, `segment.<slug>.exit`. These are emitted by Plunk itself.\n\n**Idempotency**: re-tracking the same event creates a new event record. Send an `Idempotency-Key` header to have a repeated request refused with `409` instead.",
         "operationId": "trackEvent",
         "requestBody": {
           "required": true,
@@ -576,7 +618,7 @@
                 "event": "purchase",
                 "data": {
                   "product": "Premium Plan",
-                  "amount": 99.0
+                  "amount": 99
                 }
               }
             }
@@ -614,8 +656,40 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Idempotency-Key already used. The request was refused, not performed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": {
+                    "code": "IDEMPOTENCY_KEY_REUSED",
+                    "message": "Idempotency-Key \"order-1234-receipt\" has already been used",
+                    "statusCode": 409,
+                    "requestId": "8f14e45f-ceea-467a-9575-1f0f38e0b1c2",
+                    "details": {
+                      "key": "order-1234-receipt",
+                      "originalRequest": "POST /v1/send",
+                      "originalRequestAt": "2025-01-15T10:30:00.000Z",
+                      "originalStatusCode": 200
+                    },
+                    "suggestion": "This Idempotency-Key was already used, so the request was refused rather than performed twice. Generate a new key for a genuinely new request."
+                  },
+                  "timestamp": "2025-01-15T10:31:00.000Z"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ]
       }
     },
     "/v1/verify": {

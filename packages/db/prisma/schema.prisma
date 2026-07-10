@@ -74,6 +74,8 @@ model Project {
   domains     Domain[]
   apiRequests ApiRequest[]
 
+  idempotencyKeys IdempotencyKey[]
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -628,6 +630,36 @@ model Event {
   @@index([contactId, createdAt]) // For contact activity timeline (recent events)
   @@index([data(ops: JsonbOps)], type: Gin) // GIN index for event data queries
   @@map("events")
+}
+
+// ============================================
+// IDEMPOTENCY
+// ============================================
+
+model IdempotencyKey {
+  id String @id @default(uuid())
+
+  // The client-supplied Idempotency-Key header value
+  key String
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  // Which request claimed the key (surfaced in the 409 response)
+  method String
+  path   String
+
+  // Response status of the claiming request, once known. Null while in flight.
+  statusCode Int?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  expiresAt DateTime // Key becomes reusable after this point
+
+  @@unique([projectId, key]) // Enforces the guarantee; the claim races on this constraint
+  @@index([expiresAt]) // Supports the cleanup job's expired-key sweep
+  @@map("idempotency_keys")
 }
 
 // ============================================

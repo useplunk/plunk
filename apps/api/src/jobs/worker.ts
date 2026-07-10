@@ -10,6 +10,7 @@ import {Worker} from 'bullmq';
 import signale from 'signale';
 
 import {createApiRequestCleanupWorker} from './api-request-cleanup-processor.js';
+import {createIdempotencyKeyCleanupWorker} from './idempotency-key-cleanup-processor.js';
 import {createBulkContactWorker} from './bulk-contact-processor.js';
 import {createCampaignWorker} from './campaign-processor.js';
 import {createDomainVerificationWorker} from './domain-verification-processor.js';
@@ -70,6 +71,11 @@ async function startWorkers() {
     const apiRequestCleanupWorker = createApiRequestCleanupWorker();
     workers.push({name: 'api-request-cleanup', worker: apiRequestCleanupWorker});
     signale.success('[WORKER] API request cleanup worker started');
+
+    // Start idempotency key cleanup worker
+    const idempotencyKeyCleanupWorker = createIdempotencyKeyCleanupWorker();
+    workers.push({name: 'idempotency-key-cleanup', worker: idempotencyKeyCleanupWorker});
+    signale.success('[WORKER] Idempotency key cleanup worker started');
 
     // Start meter worker
     const meterWorker = createMeterWorker();

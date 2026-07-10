@@ -1,0 +1,128 @@
+---
+title: Idempotency
+description: Use an Idempotency-Key to guarantee an event or email is only ever processed once
+icon: KeyRound
+---
+
+A retried request is a duplicate email. A double-submitted checkout form is a double receipt. To make sure a request runs **at most once**, send an `Idempotency-Key` header.
+
+If the key is new, Plunk processes the request normally. If your project has already used that key, Plunk **refuses** the request with `409` rather than performing it a second time.
+
+Both public API write endpoints support it:
+
+- `POST /v1/track`
+- `POST /v1/send`
+
+## Sending a key
+
+The key is any string you choose, 1–255 printable ASCII characters. It must be unique per logical operation — a UUID, or something derived from your own data like `receipt-order-1234`.
+
+import {Tab, Tabs} from 'fumadocs-ui/components/tabs';
+
+<Tabs items={['cURL', 'JavaScript', 'Python']}>
+<Tab value="cURL">
+
+```bash
+curl -X POST https://api.useplunk.com/v1/send \
+  -H "Authorization: Bearer sk_your_secret_key" \
+  -H "Idempotency-Key: receipt-order-1234" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "customer@example.com",
+    "subject": "Your receipt",
+    "body": "<p>Thanks for your order!</p>"
+  }'
+```
+
+</Tab>
+<Tab value="JavaScript">
+
+```javascript
+await fetch('https://api.useplunk.com/v1/send', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer sk_your_secret_key',
+    'Idempotency-Key': 'receipt-order-1234',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    to: 'customer@example.com',
+    subject: 'Your receipt',
+    body: '<p>Thanks for your order!</p>',
+  }),
+});
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+import requests
+
+requests.post(
+    "https://api.useplunk.com/v1/send",
+    headers={
+        "Authorization": "Bearer sk_your_secret_key",
+        "Idempotency-Key": "receipt-order-1234",
+    },
+    json={
+        "to": "customer@example.com",
+        "subject": "Your receipt",
+        "body": "<p>Thanks for your order!</p>",
+    },
+)
+```
+
+</Tab>
+</Tabs>
+
+## What happens on reuse
+
+Reusing a key returns `409` with the error code `IDEMPOTENCY_KEY_REUSED`. The `details` object tells you about the request that originally claimed the key:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "IDEMPOTENCY_KEY_REUSED",
+    "message": "Idempotency-Key \"receipt-order-1234\" has already been used",
+    "statusCode": 409,
+    "details": {
+      "key": "receipt-order-1234",
+      "originalRequest": "POST /v1/send",
+      "originalRequestAt": "2025-01-15T10:30:00.000Z",
+      "originalStatusCode": 200
+    }
+  }
+}
+```
+
+An `originalStatusCode` of `null` means the original request is still in flight — two requests with the same key arrived at once, and this one lost the race.
+
+<Callout type="warn">
+Plunk **refuses** a reused key; it does not replay the original response. A `409` tells you the operation was not performed twice, but it does not return the original email or event ID. If you need that ID, record it when the first request succeeds.
+</Callout>
+
+## Which failures free the key
+
+Not every failed request burns the key.
+
+| Outcome of the first request | Key is | Why |
+| ---------------------------- | ------ | --- |
+| `2xx` success | **Kept** | The operation happened. A retry would duplicate it. |
+| `4xx` client error | **Released** | Validation and permission errors are rejected before anything is written, so it is safe to fix the request and retry with the same key. |
+| `5xx` server error | **Kept** | The request may have partially completed. Refusing the retry is the whole point of the key. |
+
+If a `5xx` burns a key for a request you're confident never went through, retry with a new key.
+
+## Scope and expiry
+
+Keys are scoped to your **project**, not to an endpoint. A key used on `/v1/track` cannot be reused on `/v1/send`. Two different projects can use the same key string independently.
+
+A claimed key expires after **24 hours**, after which it becomes reusable. Self-hosters can tune this with [`IDEMPOTENCY_KEY_TTL_HOURS`](/docs/self-hosting/environment-variables).
+
+## Multiple recipients
+
+`POST /v1/send` accepts an array of recipients and processes them one at a time. The idempotency key covers the request as a whole, not each recipient individually. If the request fails partway with a `5xx`, some recipients may already have been sent to — the key stays claimed precisely so a blind retry doesn't send to them again.
+
+For per-recipient control, send one request per recipient with its own key.

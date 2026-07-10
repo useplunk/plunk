@@ -5,6 +5,7 @@
     "receiving-emails",
     "tracking",
     "api-keys",
+    "idempotency",
     "localization",
     "webhooks",
     "importing-contacts",

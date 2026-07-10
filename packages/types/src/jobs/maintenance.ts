@@ -27,3 +27,12 @@ export interface DomainVerificationJobData {
 export interface ApiRequestCleanupJobData {
   // Empty - cleans up old API request logs
 }
+
+/**
+ * Job data for cleaning up expired idempotency keys
+ * Used by: idempotencyKeyCleanupQueue worker
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface IdempotencyKeyCleanupJobData {
+  // Empty - cleans up all keys past their expiresAt
+}

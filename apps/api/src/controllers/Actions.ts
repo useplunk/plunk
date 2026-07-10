@@ -2,6 +2,7 @@ import {Controller, Middleware, Post} from '@overnightjs/core';
 import {ActionSchemas} from '@plunk/shared';
 import type {NextFunction, Request, Response} from 'express';
 import {requirePublicKey, requireSecretKey} from '../middleware/auth.js';
+import {idempotency} from '../middleware/idempotency.js';
 import {prisma} from '../database/prisma.js';
 import {ContactService} from '../services/ContactService.js';
 import {DomainService} from '../services/DomainService.js';
@@ -21,6 +22,10 @@ export class Actions {
   /**
    * POST /v1/track
    * Track an event for a contact (creates/updates contact and tracks event)
+   *
+   * Headers:
+   * - Idempotency-Key: string (optional) - Refuses the request with 409 if this key
+   *   was already used by this project. See middleware/idempotency.ts.
    *
    * Request body:
    * - event: string (required) - Event name
@@ -47,7 +52,7 @@ export class Actions {
    * }
    */
   @Post('track')
-  @Middleware([requirePublicKey])
+  @Middleware([requirePublicKey, idempotency])
   @CatchAsync
   public async track(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;
@@ -104,6 +109,10 @@ export class Actions {
   /**
    * POST /v1/send
    * Send transactional email(s)
+   *
+   * Headers:
+   * - Idempotency-Key: string (optional) - Refuses the request with 409 if this key
+   *   was already used by this project. See middleware/idempotency.ts.
    *
    * Request body:
    * - to: string | object | array (required) - Recipient email(s)
@@ -170,7 +179,7 @@ export class Actions {
    * }
    */
   @Post('send')
-  @Middleware([requireSecretKey])
+  @Middleware([requireSecretKey, idempotency])
   @CatchAsync
   public async send(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;

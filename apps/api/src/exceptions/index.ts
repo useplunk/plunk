@@ -20,6 +20,7 @@ export enum ErrorCode {
   CAMPAIGN_NOT_FOUND = 'CAMPAIGN_NOT_FOUND',
   WORKFLOW_NOT_FOUND = 'WORKFLOW_NOT_FOUND',
   CONFLICT = 'CONFLICT',
+  IDEMPOTENCY_KEY_REUSED = 'IDEMPOTENCY_KEY_REUSED',
 
   // Validation & Input Errors (400, 422)
   BAD_REQUEST = 'BAD_REQUEST',
@@ -143,8 +144,8 @@ export class ValidationError extends HttpException {
  * Conflict - resource already exists or state conflict (409)
  */
 export class ConflictError extends HttpException {
-  public constructor(message: string, details?: Record<string, unknown>) {
-    super(409, message, ErrorCode.CONFLICT, details);
+  public constructor(message: string, details?: Record<string, unknown>, errorCode = ErrorCode.CONFLICT) {
+    super(409, message, errorCode, details);
   }
 }
 
