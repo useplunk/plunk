@@ -37,7 +37,7 @@
     "jsonwebtoken": "^9.0.2",
     "mailchecker": "^6.0.19",
     "mailparser": "^3.9.8",
-    "morgan": "^1.10.0",
+    "morgan": "^1.11.0",
     "multer": "^2.2.0",
     "sanitize-html": "^2.17.4",
     "signale": "^1.4.0",
