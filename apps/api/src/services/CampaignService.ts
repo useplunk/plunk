@@ -11,6 +11,7 @@ import {buildEmailFieldsUpdate} from '../utils/modelUpdate.js';
 
 import {BillingLimitService} from './BillingLimitService.js';
 import {DomainService} from './DomainService.js';
+import {buildEmailHeaders, classifyEmail} from './EmailHeaderService.js';
 import {EmailService} from './EmailService.js';
 import {NtfyService} from './NtfyService.js';
 import {QueueService} from './QueueService.js';
@@ -798,6 +799,17 @@ export class CampaignService {
       throw new HttpException(404, 'Project not found');
     }
 
+    // Mirror the production classification so the test send carries the same
+    // headers real recipients would get. Test emails use the raw body without the
+    // unsubscribe footer, so there is no unsubscribe URL to advertise. A
+    // transactional campaign resolves to a TRANSACTIONAL source upstream, so map it
+    // here too.
+    const emailClass = classifyEmail({
+      sourceType:
+        campaign.type === TemplateType.TRANSACTIONAL ? EmailSourceType.TRANSACTIONAL : EmailSourceType.CAMPAIGN,
+      campaignType: campaign.type,
+    });
+
     // Prepare the email content (no variable replacement for test emails)
     await sendRawEmail({
       from: {
@@ -810,9 +822,11 @@ export class CampaignService {
         html: campaign.body,
       },
       reply: campaign.replyTo || undefined,
-      headers: {
-        'X-Plunk-Test': 'true',
-      },
+      headers: buildEmailHeaders({
+        emailClass,
+        isCampaign: true,
+        customHeaders: {'X-Plunk-Test': 'true'},
+      }),
       tracking: false, // Disable tracking for test emails
     });
   }

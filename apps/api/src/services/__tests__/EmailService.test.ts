@@ -1101,3 +1101,57 @@ describe('SES MIME Boundary Structure', () => {
     expect(rawMessage).toContain(`--${mixedBoundary}--`);
   });
 });
+
+describe('SES header serialization', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function sendWithHeaders(headers: Record<string, string> | undefined) {
+    const {sendRawEmail: realSendRawEmail, ses} = await vi.importActual<typeof import('../SESService')>('../SESService');
+
+    await realSendRawEmail({
+      from: {name: 'Sender', email: 'sender@example.com'},
+      to: ['recipient@example.com'],
+      content: {subject: 'Test Subject', html: '<p>Hello world</p>'},
+      headers,
+    });
+
+    const callArgs = (ses.sendRawEmail as Mock).mock.calls[0][0];
+    const rawMessage = new TextDecoder().decode(callArgs.RawMessage.Data);
+
+    // Per RFC 5322 the first blank line separates the header section from the body.
+    const [headerSection, ...bodyParts] = rawMessage.split('\n\n');
+    return {headerSection, body: bodyParts.join('\n\n')};
+  }
+
+  it('serializes every provided header into the header section, not the body', async () => {
+    const bulkHeaders = {
+      'List-Unsubscribe': '<https://app.example.com/unsubscribe/contact-123>',
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      Precedence: 'bulk',
+      'Auto-Submitted': 'auto-generated',
+      'X-Auto-Response-Suppress': 'All',
+    };
+
+    const {headerSection, body} = await sendWithHeaders(bulkHeaders);
+
+    for (const [key, value] of Object.entries(bulkHeaders)) {
+      expect(headerSection).toContain(`${key}: ${value}`);
+    }
+    // The headers must not spill into the message body.
+    expect(body).not.toContain('Precedence: bulk');
+  });
+
+  it('emits no stray header lines when no headers are provided', async () => {
+    const {headerSection} = await sendWithHeaders(undefined);
+
+    // Only the fixed envelope headers should be present.
+    expect(headerSection).not.toContain('List-Unsubscribe');
+    expect(headerSection).not.toContain('Precedence:');
+    // The header section must not end with a blank line that would prematurely
+    // terminate it (which would push the Content-Type into the body).
+    expect(headerSection.endsWith('\n')).toBe(false);
+    expect(headerSection).toContain('Content-Type:');
+  });
+});

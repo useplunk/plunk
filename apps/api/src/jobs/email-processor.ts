@@ -3,7 +3,7 @@
  * Processes individual emails from the queue (for all sources: transactional, campaign, workflow)
  */
 
-import {EmailSourceType, EmailStatus} from '@plunk/db';
+import {EmailStatus} from '@plunk/db';
 import type {SendEmailJobData} from '@plunk/types';
 import {type Job, Worker} from 'bullmq';
 import signale from 'signale';
@@ -16,6 +16,7 @@ import {
 } from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {CampaignService} from '../services/CampaignService.js';
+import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail} from '../services/EmailHeaderService.js';
 import {EmailService} from '../services/EmailService.js';
 import {EventService} from '../services/EventService.js';
 import {MeterService} from '../services/MeterService.js';
@@ -141,16 +142,21 @@ export async function createEmailWorker() {
           },
         });
 
-        // Compile HTML with unsubscribe footer and badge
-        // TRANSACTIONAL and HEADLESS emails don't get the Plunk unsubscribe footer
+        // Classify the email once: it decides both the unsubscribe footer and the
+        // standards-based headers below.
+        const emailClass = classifyEmail({
+          sourceType: email.sourceType,
+          templateType: email.template?.type,
+          campaignType: email.campaign?.type,
+        });
+
+        // Compile HTML with unsubscribe footer and badge.
+        // Only marketing emails get the Plunk unsubscribe footer.
         const compiledHtml = EmailService.compile({
           content: formattedEmail.body,
           contact: email.contact,
           project: email.project,
-          includeUnsubscribe:
-            email.sourceType !== EmailSourceType.TRANSACTIONAL &&
-            email.template?.type !== 'HEADLESS' &&
-            email.campaign?.type !== 'HEADLESS',
+          includeUnsubscribe: emailClass === 'marketing',
         });
 
         // Use fromName from database if available, otherwise fall back to project name
@@ -172,6 +178,16 @@ export async function createEmailWorker() {
         if (publicHeaders && 'X-Plunk-Recipient-Override' in publicHeaders) {
           delete publicHeaders['X-Plunk-Recipient-Override'];
         }
+
+        // Build the outbound headers: standards-based defaults for the email class
+        // plus any caller-supplied headers (which override the defaults).
+        const outboundHeaders = buildEmailHeaders({
+          emailClass,
+          isCampaign: email.campaignId != null,
+          hasListManagementLink: bodyHasListManagementLink(compiledHtml, email.contact.id),
+          unsubscribeId: email.contact.id,
+          customHeaders: publicHeaders,
+        });
 
         // Build recipient with name if available
         const recipient: {name?: string; email: string} | string = email.toName
@@ -223,7 +239,7 @@ export async function createEmailWorker() {
             html: compiledHtml,
           },
           reply: email.replyTo || undefined,
-          headers: publicHeaders,
+          headers: outboundHeaders,
           tracking: shouldTrack,
           attachments: email.attachments as {filename: string; content: string; contentType: string}[] | null,
         });

@@ -5,7 +5,6 @@ import {
   AWS_SES_ACCESS_KEY_ID,
   AWS_SES_REGION,
   AWS_SES_SECRET_ACCESS_KEY,
-  DASHBOARD_URI,
   MAIL_FROM_SUBDOMAIN,
   SES_CONFIGURATION_SET,
   SES_CONFIGURATION_SET_NO_TRACKING,
@@ -93,16 +92,6 @@ export async function sendRawEmail({
   attachments,
   tracking = true,
 }: SendRawEmailParams): Promise<{messageId: string}> {
-  // Check if the body contains an unsubscribe link
-  const regex = /unsubscribe\/([a-f\d-]+)"/;
-  const containsUnsubscribeLink = regex.exec(content.html);
-
-  let unsubscribeHeader = '';
-  if (containsUnsubscribeLink?.[1]) {
-    const unsubscribeId = containsUnsubscribeLink[1];
-    unsubscribeHeader = `List-Unsubscribe: <${DASHBOARD_URI}/unsubscribe/${unsubscribeId}>`;
-  }
-
   // Generate unique boundaries for multipart messages
   const altBoundary = `----=_AltPart_${Math.random().toString(36).substring(2)}`;
   const mixedBoundary = attachments?.some(a => (a.disposition ?? 'attachment') === 'attachment')
@@ -134,14 +123,11 @@ export async function sendRawEmail({
     rootContentType = `multipart/related; boundary="${relatedBoundary}"`;
   }
 
-  // Build the additional headers (custom headers + List-Unsubscribe), filtering
+  // Serialize the caller-provided headers (built by buildEmailHeaders), filtering
   // out empties so we never emit a blank line inside the header section.
   // Per RFC 5322 §2.1, a blank line terminates the header section, so any blank
   // line here would push subsequent headers (notably List-Unsubscribe) into the body.
-  const extraHeaderLines = [
-    ...(headers ? Object.entries(headers).map(([key, value]) => `${key}: ${value}`) : []),
-    ...(unsubscribeHeader ? [unsubscribeHeader] : []),
-  ];
+  const extraHeaderLines = headers ? Object.entries(headers).map(([key, value]) => `${key}: ${value}`) : [];
   const extraHeaders = extraHeaderLines.length > 0 ? `\n${extraHeaderLines.join('\n')}` : '';
 
   // Build raw MIME message

@@ -10,6 +10,7 @@ import {createTranslatorSync, renderTemplate} from '@plunk/shared';
 
 import {BillingLimitService} from './BillingLimitService.js';
 import {DomainService} from './DomainService.js';
+import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail} from './EmailHeaderService.js';
 import {EventService} from './EventService.js';
 import {QueueService} from './QueueService.js';
 import {sendRawEmail} from './SESService.js';
@@ -355,16 +356,21 @@ export class EmailService {
         },
       });
 
-      // Compile HTML with unsubscribe footer and badge
-      // TRANSACTIONAL and HEADLESS emails don't get the Plunk unsubscribe footer
+      // Classify the email once: it decides both the unsubscribe footer and the
+      // standards-based headers below.
+      const emailClass = classifyEmail({
+        sourceType: email.sourceType,
+        templateType: email.template?.type,
+        campaignType: email.campaign?.type,
+      });
+
+      // Compile HTML with unsubscribe footer and badge.
+      // Only marketing emails get the Plunk unsubscribe footer.
       const compiledHtml = this.compile({
         content: formattedEmail.body,
         contact: email.contact,
         project: email.project,
-        includeUnsubscribe:
-          email.sourceType !== EmailSourceType.TRANSACTIONAL &&
-          email.template?.type !== 'HEADLESS' &&
-          email.campaign?.type !== 'HEADLESS',
+        includeUnsubscribe: emailClass === 'marketing',
       });
 
       // Use explicit fromName if provided, otherwise fall back to project name
@@ -385,6 +391,16 @@ export class EmailService {
       if (publicHeaders && 'X-Plunk-Recipient-Override' in publicHeaders) {
         delete publicHeaders['X-Plunk-Recipient-Override'];
       }
+
+      // Build the outbound headers: standards-based defaults for the email class
+      // plus any caller-supplied headers (which override the defaults).
+      const outboundHeaders = buildEmailHeaders({
+        emailClass,
+        isCampaign: email.campaignId != null,
+        hasListManagementLink: bodyHasListManagementLink(compiledHtml, email.contact.id),
+        unsubscribeId: email.contact.id,
+        customHeaders: publicHeaders,
+      });
 
       // Parse attachments from JSON
       const attachments =
@@ -413,7 +429,7 @@ export class EmailService {
           html: compiledHtml,
         },
         reply: email.replyTo || undefined,
-        headers: publicHeaders,
+        headers: outboundHeaders,
         attachments: attachments,
         tracking: shouldTrack,
       });
