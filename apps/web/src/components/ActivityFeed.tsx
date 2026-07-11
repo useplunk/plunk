@@ -46,8 +46,9 @@ export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: Activi
         });
 
         // Only apply startDate filter on initial load, not during pagination
-        // When cursor is present, we're paginating backwards and should not limit by startDate
-        if (!cursor) {
+        // When cursor is present, we're paginating backwards and should not limit by startDate.
+        // Contact-scoped feeds show the contact's full history, so skip the date floor entirely.
+        if (!cursor && !contactId) {
           params.set('startDate', startDate);
         }
 

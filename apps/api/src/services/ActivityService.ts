@@ -66,15 +66,21 @@ export class ActivityService {
     // We fetch limit items from each, then take top limit after sorting
     const fetchLimit = effectiveLimit;
 
-    // Default date range to last 30 days if not specified
+    // Default date range to last 30 days if not specified.
     // IMPORTANT: When cursor is provided (pagination), we should NOT apply the gte constraint
-    // to allow users to paginate back beyond the initial date range
+    // to allow users to paginate back beyond the initial date range.
+    //
+    // Contact-scoped feeds are exempt from the default 30-day floor: a single contact's
+    // history is naturally bounded (not the project-wide firehose the floor guards against),
+    // and older contacts whose newest event predates 30 days would otherwise show an empty
+    // first page with no "Load More" button to reach their history.
     const now = new Date();
     const defaultStartDate = new Date(now.getTime() - this.DEFAULT_DAYS_BACK * 24 * 60 * 60 * 1000);
+    const initialStartDate = startDate ?? (contactId ? undefined : defaultStartDate);
     const dateFilter: Prisma.DateTimeFilter = {
       // Only apply start date filter on initial load (no cursor)
       // This allows pagination to go back indefinitely
-      ...(cursor ? {} : {gte: startDate || defaultStartDate}),
+      ...(cursor || !initialStartDate ? {} : {gte: initialStartDate}),
       ...(endDate ? {lte: endDate} : {}),
     };
 
