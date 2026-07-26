@@ -3154,6 +3154,7 @@ __metadata:
     "@plunk/types": "npm:*"
     "@plunk/typescript-config": "npm:*"
     "@types/node": "npm:^24.10.0"
+    liquidjs: "npm:^10.27.2"
     typescript: "npm:^5.7.2"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -8888,6 +8889,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"commander@npm:^10.0.0":
+  version: 10.0.1
+  resolution: "commander@npm:10.0.1"
+  checksum: 10c0/53f33d8927758a911094adadda4b2cbac111a5b377d8706700587650fd8f45b0bbe336de4b5c3fe47fd61f420a3d9bd452b6e0e6e5600a7e74d7bf0174f6efe3
+  languageName: node
+  linkType: hard
+
 "commander@npm:^12.1.0":
   version: 12.1.0
   resolution: "commander@npm:12.1.0"
@@ -13436,6 +13444,18 @@ __metadata:
   version: 4.3.2
   resolution: "linkifyjs@npm:4.3.2"
   checksum: 10c0/1a85e6b368304a4417567fe5e38651681e3e82465590836942d1b4f3c834cc35532898eb1e2479f6337d9144b297d418eb708b6be8ed0b3dc3954a3588e07971
+  languageName: node
+  linkType: hard
+
+"liquidjs@npm:^10.27.2":
+  version: 10.27.2
+  resolution: "liquidjs@npm:10.27.2"
+  dependencies:
+    commander: "npm:^10.0.0"
+  bin:
+    liquid: bin/liquid.js
+    liquidjs: bin/liquid.js
+  checksum: 10c0/aac43b9b0296914de6031cc6957682a6391949ca5c4a3b914b762352c0f2ac8849bc42d85b82ae25c8168945fc9b45b378ca3654b375cde37b44497c43a6f6e8
   languageName: node
   linkType: hard
 

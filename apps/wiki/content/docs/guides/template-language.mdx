@@ -1,0 +1,190 @@
+---
+title: Template language
+description: Use conditionals, loops and filters in subjects and bodies with Liquid
+icon: Braces
+---
+
+Plunk renders email subjects and bodies with [Liquid](https://liquidjs.com/), the template language used by Shopify, Zendesk and Netlify. Every `{{variable}}` placeholder Plunk has always supported keeps working exactly as before — Liquid adds conditionals, loops and filters on top.
+
+The main thing this buys you is fewer campaigns. Instead of one campaign per segment, a single campaign can cover the whole combinatorial space: three languages × two offers is one send with branching copy rather than six sends to compare.
+
+## Variables
+
+Reference any contact field by name. Custom fields under `data` are available both with and without the prefix:
+
+```html
+<p>Hi {{firstName}}, you are on the {{plan}} plan.</p>
+<p>Same thing: {{data.firstName}} / {{data.plan}}</p>
+```
+
+These are always available regardless of contact data:
+
+| Variable             | Description                            |
+| -------------------- | -------------------------------------- |
+| `{{id}}`             | The contact's unique identifier        |
+| `{{email}}`          | The contact's email address            |
+| `{{locale}}`         | The contact's preferred locale         |
+| `{{subscribed}}`     | Subscription status                    |
+| `{{unsubscribeUrl}}` | URL to the unsubscribe page            |
+| `{{subscribeUrl}}`   | URL to the subscribe/resubscribe page  |
+| `{{manageUrl}}`      | URL to the preferences management page |
+
+A variable that isn't set renders as an empty string — it never errors and never leaks the placeholder into the email.
+
+### Fields whose names contain spaces
+
+CSV imports build field names from your column headers, so a "First Name" column becomes the field `first name`. Reference it directly, or with a bracket lookup if you want to combine it with filters:
+
+```html
+<p>Hi {{first name}}</p>
+<p>Hi {{data["first name"] | capitalize}}</p>
+```
+
+## Fallbacks
+
+`?? fallback` is Plunk-specific shorthand and takes a literal:
+
+```html
+<p>Hi {{firstName ?? there}}, welcome back.</p>
+```
+
+Liquid's `default` filter is the general form and can fall back to another variable:
+
+```html
+<p>Hi {{firstName | default: nickname}}</p>
+```
+
+Both treat a missing, `null`, `false` or empty value as "not set".
+
+## Conditionals
+
+`if` / `elsif` / `else`, `unless`, and `case` / `when` all work. This is the multilanguage pattern:
+
+```html
+{% if locale == 'es' %}
+  <h1>Hola {{firstName ?? cliente}}</h1>
+{% elsif locale == 'fr' %}
+  <h1>Bonjour {{firstName ?? client}}</h1>
+{% else %}
+  <h1>Hi {{firstName ?? there}}</h1>
+{% endif %}
+```
+
+And the segment-specific-offer pattern, without splitting the campaign:
+
+```html
+{% case plan %}
+  {% when 'pro' %}<p>Here's 20% off your renewal.</p>
+  {% when 'free' %}<p>Upgrade now and save 20%.</p>
+  {% else %}<p>Thanks for being with us.</p>
+{% endcase %}
+```
+
+Comparison (`==`, `!=`, `>`, `<`, `>=`, `<=`), boolean (`and`, `or`), `contains`, and `blank` / `empty` are all available:
+
+```html
+{% if lifetimeValue > 500 and plan != 'free' %}
+  <p>You qualify for our VIP tier.</p>
+{% endif %}
+```
+
+<Callout type="info">
+  Plunk uses JavaScript truthiness rather than Liquid's stricter rules, because imported
+  contact data very often has a column present but blank. An empty string is falsy, so
+  `{% if firstName %}` is false for a contact whose `firstName` is `""`.
+</Callout>
+
+## Loops
+
+Iterate arrays stored on a contact or passed to `/v1/send`:
+
+```html
+<ul>
+  {% for item in cartItems %}
+    <li>{{forloop.index}}. {{item.name}} — {{item.price}}</li>
+  {% endfor %}
+</ul>
+```
+
+`forloop.index`, `.index0`, `.first`, `.last` and `.length` are available inside the loop, and `limit` / `offset` / `reversed` work on the `for` tag itself.
+
+Outputting an array directly — `{{items}}` — wraps each entry in an `<li>` element. This predates Liquid support and is kept for compatibility; prefer an explicit `{% for %}` so you control the markup.
+
+## Filters
+
+Filters transform a value with `|`. The [full LiquidJS filter list](https://liquidjs.com/filters/overview.html) applies; these come up most:
+
+| Filter                                    | Example                                 | Result        |
+| ----------------------------------------- | --------------------------------------- | ------------- |
+| `upcase` / `downcase`                     | `{{plan \| upcase}}`                    | `PRO`         |
+| `capitalize`                              | `{{firstName \| capitalize}}`           | `Ada`         |
+| `default`                                 | `{{firstName \| default: "there"}}`     | `there`       |
+| `date`                                    | `{{signupDate \| date: "%B %-d, %Y"}}`  | `May 6, 2026` |
+| `plus` / `minus` / `times` / `divided_by` | `{{price \| times: 0.8 \| round: 2}}`   | `40`          |
+| `join`                                    | `{{tags \| join: ", "}}`                | `a, b`        |
+| `truncate`                                | `{{bio \| truncate: 40}}`               | truncated     |
+
+For `date` to work, store the value as a full ISO 8601 string (see [Custom fields](/guides/custom-fields)).
+
+## Computed values
+
+`assign` and `capture` let you derive a value once and reuse it — useful when an offer depends on something other than a raw field:
+
+```html
+{% assign discount = lifetimeValue | divided_by: 20 %}
+{% if discount > 25 %}{% assign discount = 25 %}{% endif %}
+
+<p>Here's {{discount}}% off, calculated from your account history.</p>
+```
+
+## Escaping template syntax
+
+To show `{{ }}` literally in an email, wrap it in `raw`:
+
+```html
+{% raw %}Use {{firstName}} to personalise your own emails.{% endraw %}
+```
+
+## What isn't available
+
+`{% include %}`, `{% render %}` and `{% layout %}` are rejected.
+
+## Errors
+
+Saving a template or campaign whose syntax Liquid can't parse returns `400` with the line and column of the problem, so mistakes surface while you're editing.
+
+Rendering itself is deliberately forgiving — nothing about a template can fail a send:
+
+- An unknown variable renders empty.
+- An unknown filter is skipped and the value passes through unchanged.
+- If a stored template somehow can't be parsed at send time, Plunk falls back to plain `{{variable}}` substitution rather than dropping the email.
+
+## Notes for existing templates
+
+Templates written before Liquid keep rendering the same output in almost every case — plain placeholders, nested paths, `?? fallback`, missing variables and bare arrays are all unchanged. These are the cases that do render differently:
+
+**Fixes to previously wrong output**
+
+- A quoted fallback no longer leaks its quotes. `{{name ?? 'there'}}` used to render `'there'` — quotes included — and now renders `there`, which is what this guide always described.
+- Falsy values render instead of disappearing. `0`, `false` and `NaN` used to come out as an empty string; `{{count}}` for a contact with `count: 0` now renders `0`, and `{{subscribed}}` renders `false`. Use `{% unless subscribed %}` to branch on it.
+- A fallback containing `??` inside quotes is no longer truncated at the first `??`.
+- Placeholders spanning multiple lines, and array indexes like `{{items.0}}`, now resolve; both used to render as literal text or empty.
+
+**Behaviour to check before upgrading**
+
+- Balanced tag markup in body copy is now executed. Prose like `Write {% if x %}…{% endif %} to branch` used to print verbatim and now evaluates to nothing. Wrap it in `{% raw %}` to keep it as text. Unbalanced markup — `Use {% if x %} in docs` — still fails to parse and survives untouched.
+- A custom field whose name contains `|`, quotes or other operator characters is now parsed as an expression. Field names made of letters, digits, `_`, `-`, `.` and spaces are unaffected.
+
+## What's next
+
+<Cards>
+  <Card title="Custom fields" href="/guides/custom-fields">
+    Store the data your templates branch on.
+  </Card>
+  <Card title="Templates" href="/concepts/templates">
+    How templates fit into campaigns, workflows and `/v1/send`.
+  </Card>
+  <Card title="Localization" href="/guides/localization">
+    Set a `locale` per contact to drive multilanguage templates.
+  </Card>
+</Cards>

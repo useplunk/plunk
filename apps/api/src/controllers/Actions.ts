@@ -11,6 +11,7 @@ import {EmailVerificationService} from '../services/EmailVerificationService.js'
 import {EventService} from '../services/EventService.js';
 import {NotFound, ValidationError} from '../exceptions/index.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
+import {assertValidTemplateSyntax} from '../utils/templateValidation.js';
 import {DASHBOARD_URI} from '../app/constants.js';
 
 /**
@@ -187,6 +188,10 @@ export class Actions {
     // Zod validation - errors automatically handled by global error handler
     const {to, subject, body, subscribed, name, from, reply, headers, data, template, attachments} =
       ActionSchemas.send.parse(req.body);
+
+    // Inline subject/body are templates too. Stored templates are checked when they're
+    // saved, but these arrive with the request and have never been validated.
+    assertValidTemplateSyntax({subject, body});
 
     // Normalize recipients to array and parse email/name
     type Recipient = {email: string; name?: string};

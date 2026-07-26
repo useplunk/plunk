@@ -38,7 +38,17 @@ Templates can be created using the built-in editor or by uploading your own HTML
 
 ### Personalization
 
-You can use contact data to personalize your templates by using the handlebars syntax `{{ key }}`, where `key` is the contact data key.
+You can use contact data to personalize your templates by using the handlebars syntax `{{ key }}`, where `key` is the contact data key. Subjects and bodies are rendered with [Liquid](https://liquidjs.com/), so besides variables like `{{ key }}` you also get conditionals, loops and filters. See [Template language](/guides/template-language) for the full reference.
+
+```html
+<p>Hi {{firstName ?? 'there'}},</p>
+
+{% if locale == 'es' %}
+  <p>Tu plan {{plan | upcase}} se renueva pronto.</p>
+{% else %}
+  <p>Your {{plan | upcase}} plan renews soon.</p>
+{% endif %}
+```
 
 #### Always Available Variables
 
@@ -60,7 +70,31 @@ You can provide fallback values for variables that might not be set:
 Hello {{firstName ?? 'there'}}!
 ```
 
-If `firstName` is not set, this will render as "Hello there!"
+If `firstName` is not set, this will render as "Hello there!" Liquid's `default` filter does the same thing and can fall back to another variable rather than a literal:
+
+```
+Hello {{firstName | default: nickname}}!
+```
+
+#### Conditionals, loops and filters
+
+Anything Liquid supports works in a template — branch on a custom field, loop over an array, or transform a value with a filter:
+
+```html
+{% case plan %}
+  {% when 'pro' %}<p>Here's 20% off your renewal.</p>
+  {% when 'free' %}<p>Upgrade and save 20%.</p>
+  {% else %}<p>Thanks for being with us.</p>
+{% endcase %}
+
+<ul>
+  {% for item in cartItems %}
+    <li>{{item.name}} — {{item.price | times: quantity | round: 2}}</li>
+  {% endfor %}
+</ul>
+```
+
+This lets a single campaign cover combinations that would otherwise need one campaign per segment — e.g. three languages × two offers in one send instead of six. See [Template language](/guides/template-language).
 
 #### Special Fields
 
@@ -93,6 +127,9 @@ There are three types of templates in Plunk. Each type is treated at the same pr
 ## What's next
 
 <Cards>
+  <Card title="Template language" href="/guides/template-language">
+    Conditionals, loops and filters with Liquid.
+  </Card>
   <Card title="Transactional emails" href="/concepts/transactional-emails">
     Send templated emails directly through `/v1/send`.
   </Card>

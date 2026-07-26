@@ -75,7 +75,7 @@ Plus these core contact fields, which exist outside `data`: `email`, `subscribed
 
 ### In templates
 
-Reference any field by name as a Handlebars variable:
+Reference any field by name as a template variable:
 
 ```html
 <p>Hi {{firstName ?? "there"}},</p>
@@ -83,6 +83,16 @@ Reference any field by name as a Handlebars variable:
 ```
 
 The `?? fallback` syntax is Plunk-specific and lets you provide a default when the field is missing or null. Nested data (`data.profile.tier`) is accessible the same way: `{{profile.tier}}`.
+
+Templates are rendered with Liquid, so custom fields can also drive conditionals, loops and filters:
+
+```html
+{% if plan == 'pro' and lifetimeValue > 500 %}
+  <p>Your VIP renewal discount is ready.</p>
+{% endif %}
+```
+
+Field names built from CSV headers often contain spaces (a "First Name" column becomes `first name`). Reference those directly — `{{first name}}` — or with a bracket lookup when combining with filters: `{{data["first name"] | capitalize}}`. See [Template language](/guides/template-language).
 
 ### In segments
 

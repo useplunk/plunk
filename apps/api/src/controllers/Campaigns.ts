@@ -9,6 +9,7 @@ import {CampaignService} from '../services/CampaignService.js';
 import {DomainService} from '../services/DomainService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 import {parseListSort} from '../utils/listSort.js';
+import {assertValidTemplateSyntax} from '../utils/templateValidation.js';
 
 @Controller('campaigns')
 export class Campaigns {
@@ -31,6 +32,8 @@ export class Campaigns {
     if (audienceType === CampaignAudienceType.FILTERED && !audienceCondition) {
       throw new HttpException(400, 'Audience condition is required for FILTERED audience type');
     }
+
+    assertValidTemplateSyntax({subject, body});
 
     // Verify domain ownership and verification
     await DomainService.verifyEmailDomain(from, auth.projectId);
@@ -163,6 +166,8 @@ export class Campaigns {
     if (audienceType === CampaignAudienceType.FILTERED && audienceCondition === undefined) {
       throw new HttpException(400, 'Audience condition is required for FILTERED audience type');
     }
+
+    assertValidTemplateSyntax({subject, body});
 
     // Verify domain ownership and verification if 'from' is being updated
     if (from) {
