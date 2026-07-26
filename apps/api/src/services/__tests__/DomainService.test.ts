@@ -18,6 +18,11 @@ describe('DomainService', () => {
       status: 'Success',
       tokens: ['token1', 'token2', 'token3'],
     });
+    // DomainService swallows failures from these two, so an unmocked call is invisible
+    // in the results while still hitting AWS on every run — and for anyone whose .env
+    // holds real credentials it would mutate a live SES account.
+    vi.spyOn(SESService, 'deleteIdentity').mockResolvedValue(undefined);
+    vi.spyOn(SESService, 'disableFeedbackForwarding').mockResolvedValue(undefined);
   });
 
   // ========================================
