@@ -552,6 +552,9 @@ model Email {
   workflowStepExecution   WorkflowStepExecution? @relation(fields: [workflowStepExecutionId], references: [id], onDelete: Cascade)
   workflowStepExecutionId String? // For WORKFLOW (specific step)
 
+  // Per-email tracking override (null = use project tracking mode)
+  trackingOverride Boolean?
+
   // Delivery
   status EmailStatus @default(PENDING)
 

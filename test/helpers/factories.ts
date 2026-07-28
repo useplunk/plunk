@@ -288,6 +288,7 @@ export class TestFactories {
           opens?: number;
           clicks?: number;
           error?: string | null;
+          trackingOverride?: boolean | null;
         },
     contactId?: string,
     additionalOptions?: Partial<{
@@ -305,6 +306,7 @@ export class TestFactories {
       opens?: number;
       clicks?: number;
       error?: string | null;
+      trackingOverride?: boolean | null;
     }>,
   ) {
     // Support both calling conventions
@@ -325,6 +327,7 @@ export class TestFactories {
       opens?: number;
       clicks?: number;
       error?: string | null;
+      trackingOverride?: boolean | null;
     };
 
     if (typeof projectIdOrOptions === 'string') {
@@ -372,6 +375,7 @@ export class TestFactories {
         opens: options.opens,
         clicks: options.clicks,
         error: options.error,
+        trackingOverride: options.trackingOverride,
       },
     });
   }

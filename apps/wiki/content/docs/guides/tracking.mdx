@@ -37,6 +37,21 @@ Tracking is configured per project under **Settings → Tracking**. Three modes 
 
 Tracking is **all or nothing** within a single send — there's no separate toggle for opens vs clicks. Pick the mode that fits your privacy and analytics requirements.
 
+## Per-email override
+
+Transactional sends can override the project's tracking mode on a per-email basis by passing the optional `tracking` boolean to [`POST /v1/send`](/api-reference/public-api/sendEmail):
+
+```json
+{
+  "to": "user@example.com",
+  "subject": "Your invoice",
+  "body": "<p>...</p>",
+  "tracking": false
+}
+```
+
+`false` sends the email without tracking, `true` sends it with tracking. When omitted, the project's tracking mode applies.
+
 <Callout title="Tracking mode availability" type="info">
-On self-hosted instances, the Marketing-only mode is only available when a no-tracking configuration set is configured. See [Self-hosting → Email setup](/self-hosting/email-setup) for details.
+On self-hosted instances, the Marketing-only mode and the per-email `tracking` override are only available when a no-tracking configuration set is configured. See [Self-hosting → Email setup](/self-hosting/email-setup) for details.
 </Callout>
