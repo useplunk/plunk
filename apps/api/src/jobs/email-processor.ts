@@ -71,6 +71,225 @@ function deriveWorkerConcurrency(rateLimit: number): number {
   return Math.max(MIN_CONCURRENCY, Math.min(derived, EMAIL_WORKER_MAX_CONCURRENCY));
 }
 
+/**
+ * Process a single queued email send.
+ * Exported so the worker send path can be tested directly.
+ */
+export async function processEmailJob(job: Job<SendEmailJobData>): Promise<void> {
+  const {emailId} = job.data;
+
+  const email = await prisma.email.findUnique({
+    where: {id: emailId},
+    include: {
+      contact: true,
+      project: true,
+      template: {select: {type: true}},
+      campaign: {select: {type: true}},
+    },
+  });
+
+  if (!email) {
+    throw new Error(`Email ${emailId} not found`);
+  }
+
+  if (email.status !== EmailStatus.PENDING) {
+    return;
+  }
+
+  // Check if project is disabled
+  if (email.project.disabled) {
+    signale.warn(`[EMAIL-PROCESSOR] Project ${email.projectId} is disabled, cancelling email ${emailId}`);
+    await prisma.email.update({
+      where: {id: emailId},
+      data: {
+        status: EmailStatus.FAILED,
+        error: 'Project is disabled',
+      },
+    });
+
+    // Cancelled emails are terminal for the campaign — finalize so it doesn't
+    // stay stuck in SENDING forever waiting on emails that will never be sent.
+    if (email.campaignId) {
+      await CampaignService.finalizeIfDone(email.campaignId);
+    }
+    return;
+  }
+
+  try {
+    // Update status to sending
+    await prisma.email.update({
+      where: {id: emailId},
+      data: {status: EmailStatus.SENDING},
+    });
+
+    // Format template variables in subject and body
+    const contactData = (email.contact.data as Record<string, unknown>) || {};
+    const formattedEmail = EmailService.format({
+      subject: email.subject,
+      body: email.body,
+      data: {
+        email: email.contact.email,
+        ...contactData,
+        data: contactData,
+        unsubscribeUrl: `${DASHBOARD_URI}/unsubscribe/${email.contact.id}`,
+        subscribeUrl: `${DASHBOARD_URI}/subscribe/${email.contact.id}`,
+        manageUrl: `${DASHBOARD_URI}/manage/${email.contact.id}`,
+      },
+    });
+
+    // Classify the email once: it decides both the unsubscribe footer and the
+    // standards-based headers below.
+    const emailClass = classifyEmail({
+      sourceType: email.sourceType,
+      templateType: email.template?.type,
+      campaignType: email.campaign?.type,
+    });
+
+    // Compile HTML with unsubscribe footer and badge.
+    // Only marketing emails get the Plunk unsubscribe footer.
+    const compiledHtml = EmailService.compile({
+      content: formattedEmail.body,
+      contact: email.contact,
+      project: email.project,
+      includeUnsubscribe: emailClass === 'marketing',
+    });
+
+    // Use fromName from database if available, otherwise fall back to project name
+    // The 'from' field in the database is just the email address
+    const fromName = email.fromName || email.project.name;
+    const fromEmail = email.from;
+
+    // Parse custom headers from JSON
+    const customHeaders =
+      email.headers && typeof email.headers === 'object' && !Array.isArray(email.headers)
+        ? (email.headers as Record<string, string>)
+        : undefined;
+
+    // Check for custom recipient override in headers
+    const recipientEmail = customHeaders?.['X-Plunk-Recipient-Override'] || email.contact.email;
+
+    // Remove internal headers before sending
+    const publicHeaders = customHeaders ? {...customHeaders} : undefined;
+    if (publicHeaders && 'X-Plunk-Recipient-Override' in publicHeaders) {
+      delete publicHeaders['X-Plunk-Recipient-Override'];
+    }
+
+    // Build the outbound headers: standards-based defaults for the email class
+    // plus any caller-supplied headers (which override the defaults).
+    const outboundHeaders = buildEmailHeaders({
+      emailClass,
+      isCampaign: email.campaignId != null,
+      hasListManagementLink: bodyHasListManagementLink(compiledHtml, email.contact.id),
+      unsubscribeId: email.contact.id,
+      customHeaders: publicHeaders,
+    });
+
+    // Build recipient with name if available
+    const recipient: {name?: string; email: string} | string = email.toName
+      ? {name: email.toName, email: recipientEmail}
+      : recipientEmail;
+
+    // Determine tracking: per-email override wins, otherwise project settings and email type
+    const shouldTrack = email.trackingOverride ?? EmailService.shouldTrackEmail(email.project.tracking, email.sourceType);
+
+    // Check for phishing/dangerous content before sending
+    const phishingCheck = await SecurityService.checkPhishingContent(
+      email.projectId,
+      email.project.name,
+      email.from,
+      formattedEmail.subject,
+      compiledHtml,
+    );
+
+    if (phishingCheck.shouldDisable) {
+      // Disable project immediately
+      await SecurityService.disableProjectForPhishing(
+        email.projectId,
+        formattedEmail.subject,
+        phishingCheck.confidence,
+        'Phishing content detected',
+      );
+
+      // Mark email as failed
+      await prisma.email.update({
+        where: {id: emailId},
+        data: {
+          status: EmailStatus.FAILED,
+          error: 'This email could not be sent. The project has been disabled. Please contact support.',
+        },
+      });
+
+      throw new Error(`Project ${email.projectId} has been disabled due to a policy violation`);
+    }
+
+    // Send via AWS SES
+    const result = await sendRawEmail({
+      from: {
+        name: fromName,
+        email: fromEmail,
+      },
+      to: typeof recipient === 'string' ? [recipient] : [{name: recipient.name, email: recipient.email}],
+      content: {
+        subject: formattedEmail.subject,
+        html: compiledHtml,
+      },
+      reply: email.replyTo || undefined,
+      headers: outboundHeaders,
+      tracking: shouldTrack,
+      attachments: email.attachments as {filename: string; content: string; contentType: string}[] | null,
+    });
+
+    // Mark as sent with SES message ID
+    await prisma.email.update({
+      where: {id: emailId},
+      data: {
+        status: EmailStatus.SENT,
+        sentAt: new Date(),
+        messageId: result.messageId,
+      },
+    });
+
+    // Record usage for billing (pay-per-email)
+    // Uses email ID as idempotency key to prevent double-charging on retries
+    // Charge 2 emails if attachments are present
+    if (email.project.customer) {
+      const hasAttachments = email.attachments && Array.isArray(email.attachments) && email.attachments.length > 0;
+      const emailCount = hasAttachments ? 2 : 1;
+      await MeterService.recordEmailSent(email.project.customer, emailCount, `email_${emailId}`);
+    }
+
+    // Track event (this will trigger workflows)
+    await EventService.trackEvent(email.projectId, 'email.sent', email.contactId, email.id, {
+      subject: formattedEmail.subject,
+      from: email.from,
+      fromName: email.fromName,
+      messageId: result.messageId,
+      emailId: email.id,
+      templateId: email.templateId,
+      campaignId: email.campaignId,
+      sourceType: email.sourceType,
+      sentAt: new Date().toISOString(),
+    });
+
+    if (email.campaignId) {
+      await CampaignService.finalizeIfDone(email.campaignId);
+    }
+  } catch (error) {
+    signale.error(`[EMAIL-PROCESSOR] Failed to send email ${emailId}:`, error);
+
+    // Mark as failed
+    await prisma.email.update({
+      where: {id: emailId},
+      data: {
+        status: EmailStatus.FAILED,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+
+    throw error; // Re-throw to trigger retry
+  }
+}
+
 export async function createEmailWorker() {
   // Fetch the rate limit (from env, AWS, or default)
   const rateLimit = await getEmailRateLimit();
@@ -80,220 +299,7 @@ export async function createEmailWorker() {
   );
   const worker = new Worker<SendEmailJobData>(
     emailQueue.name,
-    async (job: Job<SendEmailJobData>) => {
-      const {emailId} = job.data;
-
-      const email = await prisma.email.findUnique({
-        where: {id: emailId},
-        include: {
-          contact: true,
-          project: true,
-          template: {select: {type: true}},
-          campaign: {select: {type: true}},
-        },
-      });
-
-      if (!email) {
-        throw new Error(`Email ${emailId} not found`);
-      }
-
-      if (email.status !== EmailStatus.PENDING) {
-        return;
-      }
-
-      // Check if project is disabled
-      if (email.project.disabled) {
-        signale.warn(`[EMAIL-PROCESSOR] Project ${email.projectId} is disabled, cancelling email ${emailId}`);
-        await prisma.email.update({
-          where: {id: emailId},
-          data: {
-            status: EmailStatus.FAILED,
-            error: 'Project is disabled',
-          },
-        });
-
-        // Cancelled emails are terminal for the campaign — finalize so it doesn't
-        // stay stuck in SENDING forever waiting on emails that will never be sent.
-        if (email.campaignId) {
-          await CampaignService.finalizeIfDone(email.campaignId);
-        }
-        return;
-      }
-
-      try {
-        // Update status to sending
-        await prisma.email.update({
-          where: {id: emailId},
-          data: {status: EmailStatus.SENDING},
-        });
-
-        // Format template variables in subject and body
-        const contactData = (email.contact.data as Record<string, unknown>) || {};
-        const formattedEmail = EmailService.format({
-          subject: email.subject,
-          body: email.body,
-          data: {
-            email: email.contact.email,
-            ...contactData,
-            data: contactData,
-            unsubscribeUrl: `${DASHBOARD_URI}/unsubscribe/${email.contact.id}`,
-            subscribeUrl: `${DASHBOARD_URI}/subscribe/${email.contact.id}`,
-            manageUrl: `${DASHBOARD_URI}/manage/${email.contact.id}`,
-          },
-        });
-
-        // Classify the email once: it decides both the unsubscribe footer and the
-        // standards-based headers below.
-        const emailClass = classifyEmail({
-          sourceType: email.sourceType,
-          templateType: email.template?.type,
-          campaignType: email.campaign?.type,
-        });
-
-        // Compile HTML with unsubscribe footer and badge.
-        // Only marketing emails get the Plunk unsubscribe footer.
-        const compiledHtml = EmailService.compile({
-          content: formattedEmail.body,
-          contact: email.contact,
-          project: email.project,
-          includeUnsubscribe: emailClass === 'marketing',
-        });
-
-        // Use fromName from database if available, otherwise fall back to project name
-        // The 'from' field in the database is just the email address
-        const fromName = email.fromName || email.project.name;
-        const fromEmail = email.from;
-
-        // Parse custom headers from JSON
-        const customHeaders =
-          email.headers && typeof email.headers === 'object' && !Array.isArray(email.headers)
-            ? (email.headers as Record<string, string>)
-            : undefined;
-
-        // Check for custom recipient override in headers
-        const recipientEmail = customHeaders?.['X-Plunk-Recipient-Override'] || email.contact.email;
-
-        // Remove internal headers before sending
-        const publicHeaders = customHeaders ? {...customHeaders} : undefined;
-        if (publicHeaders && 'X-Plunk-Recipient-Override' in publicHeaders) {
-          delete publicHeaders['X-Plunk-Recipient-Override'];
-        }
-
-        // Build the outbound headers: standards-based defaults for the email class
-        // plus any caller-supplied headers (which override the defaults).
-        const outboundHeaders = buildEmailHeaders({
-          emailClass,
-          isCampaign: email.campaignId != null,
-          hasListManagementLink: bodyHasListManagementLink(compiledHtml, email.contact.id),
-          unsubscribeId: email.contact.id,
-          customHeaders: publicHeaders,
-        });
-
-        // Build recipient with name if available
-        const recipient: {name?: string; email: string} | string = email.toName
-          ? {name: email.toName, email: recipientEmail}
-          : recipientEmail;
-
-        // Determine tracking based on project settings and email type
-        const shouldTrack = EmailService.shouldTrackEmail(email.project.tracking, email.sourceType);
-
-        // Check for phishing/dangerous content before sending
-        const phishingCheck = await SecurityService.checkPhishingContent(
-          email.projectId,
-          email.project.name,
-          email.from,
-          formattedEmail.subject,
-          compiledHtml,
-        );
-
-        if (phishingCheck.shouldDisable) {
-          // Disable project immediately
-          await SecurityService.disableProjectForPhishing(
-            email.projectId,
-            formattedEmail.subject,
-            phishingCheck.confidence,
-            'Phishing content detected',
-          );
-
-          // Mark email as failed
-          await prisma.email.update({
-            where: {id: emailId},
-            data: {
-              status: EmailStatus.FAILED,
-              error: 'This email could not be sent. The project has been disabled. Please contact support.',
-            },
-          });
-
-          throw new Error(`Project ${email.projectId} has been disabled due to a policy violation`);
-        }
-
-        // Send via AWS SES
-        const result = await sendRawEmail({
-          from: {
-            name: fromName,
-            email: fromEmail,
-          },
-          to: typeof recipient === 'string' ? [recipient] : [{name: recipient.name, email: recipient.email}],
-          content: {
-            subject: formattedEmail.subject,
-            html: compiledHtml,
-          },
-          reply: email.replyTo || undefined,
-          headers: outboundHeaders,
-          tracking: shouldTrack,
-          attachments: email.attachments as {filename: string; content: string; contentType: string}[] | null,
-        });
-
-        // Mark as sent with SES message ID
-        await prisma.email.update({
-          where: {id: emailId},
-          data: {
-            status: EmailStatus.SENT,
-            sentAt: new Date(),
-            messageId: result.messageId,
-          },
-        });
-
-        // Record usage for billing (pay-per-email)
-        // Uses email ID as idempotency key to prevent double-charging on retries
-        // Charge 2 emails if attachments are present
-        if (email.project.customer) {
-          const hasAttachments = email.attachments && Array.isArray(email.attachments) && email.attachments.length > 0;
-          const emailCount = hasAttachments ? 2 : 1;
-          await MeterService.recordEmailSent(email.project.customer, emailCount, `email_${emailId}`);
-        }
-
-        // Track event (this will trigger workflows)
-        await EventService.trackEvent(email.projectId, 'email.sent', email.contactId, email.id, {
-          subject: formattedEmail.subject,
-          from: email.from,
-          fromName: email.fromName,
-          messageId: result.messageId,
-          emailId: email.id,
-          templateId: email.templateId,
-          campaignId: email.campaignId,
-          sourceType: email.sourceType,
-          sentAt: new Date().toISOString(),
-        });
-
-        if (email.campaignId) {
-          await CampaignService.finalizeIfDone(email.campaignId);
-        }
-      } catch (error) {
-        signale.error(`[EMAIL-PROCESSOR] Failed to send email ${emailId}:`, error);
-
-        // Mark as failed
-        await prisma.email.update({
-          where: {id: emailId},
-          data: {
-            status: EmailStatus.FAILED,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          },
-        });
-
-        throw error; // Re-throw to trigger retry
-      }
-    },
+    processEmailJob,
     {
       connection: emailQueue.opts.connection,
       concurrency,

@@ -1,6 +1,10 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {EmailSourceType, EmailStatus, TrackingMode} from '@plunk/db';
+import type {SendEmailJobData} from '@plunk/types';
 import {toPrismaJson} from '@plunk/types';
+import type {Job} from 'bullmq';
+import {processEmailJob} from '../email-processor';
+import {sendRawEmail} from '../../services/SESService';
 import {createServiceMocks, factories, getPrismaClient} from '../../../../../test/helpers';
 
 // Mock MeterService
@@ -8,6 +12,12 @@ vi.mock('../../services/MeterService.js', () => ({
   MeterService: {
     recordEmailSent: vi.fn().mockResolvedValue(undefined),
   },
+}));
+
+// Mock SES service so processEmailJob can run the real worker send path
+vi.mock('../../services/SESService', () => ({
+  sendRawEmail: vi.fn(),
+  getSendingQuota: vi.fn().mockResolvedValue(null),
 }));
 
 describe('Email Processor', () => {
@@ -335,6 +345,69 @@ describe('Email Processor', () => {
 
       expect(hasNoAttachments).toBeFalsy();
       expect(emailCountNoAttachments).toBe(1);
+    });
+  });
+
+  describe('Per-Email Tracking Override (worker send path)', () => {
+    const runJob = (emailId: string) => processEmailJob({data: {emailId}} as Job<SendEmailJobData>);
+
+    beforeEach(() => {
+      vi.mocked(sendRawEmail).mockClear();
+      vi.mocked(sendRawEmail).mockResolvedValue({messageId: 'ses-worker-123'});
+    });
+
+    it('should disable tracking when trackingOverride is false, even with project tracking ENABLED', async () => {
+      const contact = await factories.createContact({projectId});
+      const email = await factories.createEmail({
+        projectId,
+        contactId: contact.id,
+        status: EmailStatus.PENDING,
+        trackingOverride: false,
+      });
+
+      await runJob(email.id);
+
+      expect(vi.mocked(sendRawEmail)).toHaveBeenCalledWith(expect.objectContaining({tracking: false}));
+
+      const sent = await prisma.email.findUnique({where: {id: email.id}});
+      expect(sent?.status).toBe(EmailStatus.SENT);
+    });
+
+    it('should enable tracking when trackingOverride is true, even with project tracking DISABLED', async () => {
+      await prisma.project.update({
+        where: {id: projectId},
+        data: {tracking: TrackingMode.DISABLED},
+      });
+
+      const contact = await factories.createContact({projectId});
+      const email = await factories.createEmail({
+        projectId,
+        contactId: contact.id,
+        status: EmailStatus.PENDING,
+        trackingOverride: true,
+      });
+
+      await runJob(email.id);
+
+      expect(vi.mocked(sendRawEmail)).toHaveBeenCalledWith(expect.objectContaining({tracking: true}));
+    });
+
+    it('should fall back to project tracking mode when trackingOverride is null', async () => {
+      await prisma.project.update({
+        where: {id: projectId},
+        data: {tracking: TrackingMode.DISABLED},
+      });
+
+      const contact = await factories.createContact({projectId});
+      const email = await factories.createEmail({
+        projectId,
+        contactId: contact.id,
+        status: EmailStatus.PENDING,
+      });
+
+      await runJob(email.id);
+
+      expect(vi.mocked(sendRawEmail)).toHaveBeenCalledWith(expect.objectContaining({tracking: false}));
     });
   });
 });
