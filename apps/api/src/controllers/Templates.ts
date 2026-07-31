@@ -206,6 +206,36 @@ export class Templates {
   }
 
   /**
+   * POST /templates/:id/test
+   * Send a test email for a template
+   */
+  @Post(':id/test')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async sendTest(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+    const {id} = req.params;
+    const {email, subject, body, from, fromName, replyTo} = req.body;
+
+    if (!id) {
+      return res.status(400).json({error: 'Template ID is required'});
+    }
+
+    if (!email) {
+      return res.status(400).json({error: 'Email address is required'});
+    }
+
+    // Optional draft fields let the test send use what is currently in the
+    // editor rather than the last saved version.
+    await TemplateService.sendTest(auth.projectId!, id, email, {subject, body, from, fromName, replyTo});
+
+    return res.json({
+      success: true,
+      message: `Test email sent to ${email}`,
+    });
+  }
+
+  /**
    * GET /templates/:id/usage
    * Get template usage statistics
    */

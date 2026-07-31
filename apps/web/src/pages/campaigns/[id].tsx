@@ -196,8 +196,14 @@ export default function CampaignDetailsPage() {
     setDialog({type: 'testEmail', sending: true});
 
     try {
+      // Send what is in the editor right now, so no save is required first.
       await network.fetch<{success: boolean; message: string}>('POST', `/campaigns/${id}/test`, {
         email: testEmailAddress,
+        subject: editedCampaign.subject,
+        body: editedCampaign.body,
+        from: editedCampaign.from,
+        fromName: editedCampaign.fromName || null,
+        replyTo: editedCampaign.replyTo || null,
       } as any);
 
       toast.success(`Test email sent to ${testEmailAddress}`);
