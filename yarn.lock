@@ -3221,7 +3221,7 @@ __metadata:
     framer-motion: "npm:^12.23.24"
     lucide-react: "npm:^0.553.0"
     next-themes: "npm:^0.4.6"
-    postcss: "npm:^8.5.18"
+    postcss: "npm:^8.5.23"
     react-day-picker: "npm:^8.10.0"
     react-hook-form: "npm:^7.66.0"
     recharts: "npm:^3.5.1"
@@ -13100,7 +13100,7 @@ __metadata:
     next: "npm:^16.2.11"
     next-seo: "npm:^6.6.0"
     next-sitemap: "npm:^4.2.3"
-    postcss: "npm:^8.5.18"
+    postcss: "npm:^8.5.23"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
     sonner: "npm:^2.0.6"
@@ -14878,6 +14878,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nanoid@npm:^3.3.16":
+  version: 3.3.17
+  resolution: "nanoid@npm:3.3.17"
+  bin:
+    nanoid: bin/nanoid.cjs
+  checksum: 10c0/06f7949c7cce5c92c6aea66022f29a1eae7f56e05acbfddf1e049e819b4bf234c44a765cc44da7163482b111677948514012e27acdfa56f95309295768bdae32
+  languageName: node
+  linkType: hard
+
 "napi-postinstall@npm:^0.3.0":
   version: 0.3.4
   resolution: "napi-postinstall@npm:0.3.4"
@@ -15989,14 +15998,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.5.18":
-  version: 8.5.18
-  resolution: "postcss@npm:8.5.18"
+"postcss@npm:^8.5.23":
+  version: 8.5.23
+  resolution: "postcss@npm:8.5.23"
   dependencies:
-    nanoid: "npm:^3.3.12"
+    nanoid: "npm:^3.3.16"
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
-  checksum: 10c0/6fbab24a457ca5b90d423c333d0bab13e6646fda646e83235eed892f9e4f2dc6c50689ddc5ac1632fc085be2e096d2e8e03779ac092de6353e1cfcbbc3681685
+  checksum: 10c0/ed714e635b330bb42666ecdd0c0b4f30224ded15b0b0052d6bc2b92832f2cf17d1c1141359453f96f0a84f8fbf4c405a74df187f559163b8f31131b2535455aa
   languageName: node
   linkType: hard
 
@@ -19577,7 +19586,7 @@ __metadata:
     next-seo: "npm:^6.6.0"
     next-sitemap: "npm:^4.2.3"
     nuqs: "npm:^2.7.3"
-    postcss: "npm:^8.5.18"
+    postcss: "npm:^8.5.23"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
     react-hook-form: "npm:^7.66.0"
@@ -19773,7 +19782,7 @@ __metadata:
     lucide-react: "npm:^0.553.0"
     next: "npm:^16.2.11"
     next-sitemap: "npm:^4.2.3"
-    postcss: "npm:^8.5.18"
+    postcss: "npm:^8.5.23"
     react: "npm:^19.2.3"
     react-dom: "npm:^19.2.3"
     shiki: "npm:^3.15.0"
