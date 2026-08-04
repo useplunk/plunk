@@ -39,7 +39,7 @@
     "mailparser": "^3.9.8",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
-    "sanitize-html": "^2.17.4",
+    "sanitize-html": "^2.17.5",
     "signale": "^1.4.0",
     "stripe": "^20.0.0"
   },
