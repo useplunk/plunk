@@ -7954,7 +7954,7 @@ __metadata:
     mailparser: "npm:^3.9.8"
     morgan: "npm:^1.11.0"
     multer: "npm:^2.2.0"
-    sanitize-html: "npm:^2.17.4"
+    sanitize-html: "npm:^2.17.5"
     signale: "npm:^1.4.0"
     stripe: "npm:^20.0.0"
     tsx: "npm:^4.20.6"
@@ -17141,9 +17141,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sanitize-html@npm:^2.17.4":
-  version: 2.17.4
-  resolution: "sanitize-html@npm:2.17.4"
+"sanitize-html@npm:^2.17.5":
+  version: 2.17.5
+  resolution: "sanitize-html@npm:2.17.5"
   dependencies:
     deepmerge: "npm:^4.2.2"
     escape-string-regexp: "npm:^4.0.0"
@@ -17152,7 +17152,7 @@ __metadata:
     launder: "npm:^1.7.1"
     parse-srcset: "npm:^1.0.2"
     postcss: "npm:^8.3.11"
-  checksum: 10c0/5c352376a44bf8a70644f6d4421684000a982f6bda59beac051693d8fc08acbe48dc6358f5c8eb8ae4a815746260167926747a858e6a6e2daf01ccfb775100dd
+  checksum: 10c0/b3e1c0f42a87dece0a02c1ee4aee663be69d33661b94f7dbc006f341a34577b3ddb9ace5ff415ddd62efbc4e944845265ef2fe2702ad0ede8d3575bf7a36b9df
   languageName: node
   linkType: hard
 
