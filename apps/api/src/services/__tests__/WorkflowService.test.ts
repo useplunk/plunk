@@ -754,6 +754,67 @@ describe('WorkflowService', () => {
       expect(noTransition.condition).toEqual({branch: 'no'});
     });
 
+    it('should reject a second outgoing transition from a non-condition step', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const step1 = await factories.createWorkflowStep({workflowId: workflow.id, type: WorkflowStepType.DELAY});
+      const step2 = await factories.createWorkflowStep({workflowId: workflow.id});
+      const step3 = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      await WorkflowService.createTransition(projectId, workflow.id, {
+        fromStepId: step1.id,
+        toStepId: step2.id,
+      });
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: step1.id,
+          toStepId: step3.id,
+        }),
+      ).rejects.toThrow(/already leads to another step/i);
+    });
+
+    it('should reject connecting a step to itself', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const step = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: step.id,
+          toStepId: step.id,
+        }),
+      ).rejects.toThrow(/cannot be connected to itself/i);
+    });
+
+    it('should reject an outgoing transition from an EXIT step', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const exitStep = await factories.createWorkflowStep({workflowId: workflow.id, type: WorkflowStepType.EXIT});
+      const step2 = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: exitStep.id,
+          toStepId: step2.id,
+        }),
+      ).rejects.toThrow(/exit step ends the flow/i);
+    });
+
+    it('should reject a transition that would close a loop', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const stepA = await factories.createWorkflowStep({workflowId: workflow.id, type: WorkflowStepType.DELAY});
+      const stepB = await factories.createWorkflowStep({workflowId: workflow.id, type: WorkflowStepType.DELAY});
+      const stepC = await factories.createWorkflowStep({workflowId: workflow.id, type: WorkflowStepType.DELAY});
+
+      await prisma.workflowTransition.create({data: {fromStepId: stepA.id, toStepId: stepB.id}});
+      await prisma.workflowTransition.create({data: {fromStepId: stepB.id, toStepId: stepC.id}});
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: stepC.id,
+          toStepId: stepA.id,
+        }),
+      ).rejects.toThrow(/loop/i);
+    });
+
     it('should throw 404 when steps not found', async () => {
       const workflow = await factories.createWorkflow({projectId});
 
@@ -763,6 +824,141 @@ describe('WorkflowService', () => {
           toStepId: 'non-existent-2',
         }),
       ).rejects.toThrow('One or both steps not found');
+    });
+  });
+
+  describe('insertStepOnTransition', () => {
+    it('should split a transition into two around the new step', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const stepA = await factories.createWorkflowStep({workflowId: workflow.id});
+      const stepB = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      const transition = await prisma.workflowTransition.create({
+        data: {fromStepId: stepA.id, toStepId: stepB.id},
+      });
+
+      const newStep = await WorkflowService.insertStepOnTransition(projectId, workflow.id, transition.id, {
+        type: WorkflowStepType.DELAY,
+        name: 'Inserted delay',
+        config: {},
+      });
+
+      const original = await prisma.workflowTransition.findUnique({where: {id: transition.id}});
+      expect(original?.toStepId).toBe(newStep.id);
+
+      const outgoing = await prisma.workflowTransition.findMany({where: {fromStepId: newStep.id}});
+      expect(outgoing).toHaveLength(1);
+      expect(outgoing[0]?.toStepId).toBe(stepB.id);
+    });
+
+    it('should preserve the branch condition on the upstream transition', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const conditionStep = await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        type: WorkflowStepType.CONDITION,
+      });
+      const stepB = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      const transition = await prisma.workflowTransition.create({
+        data: {fromStepId: conditionStep.id, toStepId: stepB.id, condition: {branch: 'yes'}, priority: 3},
+      });
+
+      const newStep = await WorkflowService.insertStepOnTransition(projectId, workflow.id, transition.id, {
+        type: WorkflowStepType.SEND_EMAIL,
+        name: 'Inserted email',
+        config: {},
+      });
+
+      const original = await prisma.workflowTransition.findUnique({where: {id: transition.id}});
+      expect(original?.condition).toEqual({branch: 'yes'});
+      expect(original?.priority).toBe(3);
+
+      // The transition carrying the flow onwards is unconditional
+      const outgoing = await prisma.workflowTransition.findMany({where: {fromStepId: newStep.id}});
+      expect(outgoing[0]?.condition).toBeNull();
+    });
+
+    it('should attach the downstream step to the first branch when inserting a CONDITION', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const stepA = await factories.createWorkflowStep({workflowId: workflow.id});
+      const stepB = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      const transition = await prisma.workflowTransition.create({
+        data: {fromStepId: stepA.id, toStepId: stepB.id},
+      });
+
+      const conditionStep = await WorkflowService.insertStepOnTransition(projectId, workflow.id, transition.id, {
+        type: WorkflowStepType.CONDITION,
+        name: 'Inserted condition',
+        config: {},
+      });
+
+      // A condition routes only by branch, so B has to hang off one of them
+      const outgoing = await prisma.workflowTransition.findMany({where: {fromStepId: conditionStep.id}});
+      expect(outgoing).toHaveLength(1);
+      expect(outgoing[0]?.toStepId).toBe(stepB.id);
+      expect(outgoing[0]?.condition).toEqual({branch: 'yes'});
+    });
+
+    it('should reject inserting an EXIT step', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const stepA = await factories.createWorkflowStep({workflowId: workflow.id});
+      const stepB = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      const transition = await prisma.workflowTransition.create({
+        data: {fromStepId: stepA.id, toStepId: stepB.id},
+      });
+
+      await expect(
+        WorkflowService.insertStepOnTransition(projectId, workflow.id, transition.id, {
+          type: WorkflowStepType.EXIT,
+          name: 'Exit',
+          config: {},
+        }),
+      ).rejects.toThrow(/exit step ends the flow/i);
+
+      // Nothing was created and the original wiring is untouched
+      const original = await prisma.workflowTransition.findUnique({where: {id: transition.id}});
+      expect(original?.toStepId).toBe(stepB.id);
+    });
+
+    it('should reject inserting a TRIGGER step', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const stepA = await factories.createWorkflowStep({workflowId: workflow.id});
+      const stepB = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      const transition = await prisma.workflowTransition.create({
+        data: {fromStepId: stepA.id, toStepId: stepB.id},
+      });
+
+      await expect(
+        WorkflowService.insertStepOnTransition(projectId, workflow.id, transition.id, {
+          type: WorkflowStepType.TRIGGER,
+          name: 'Trigger',
+          config: {},
+        }),
+      ).rejects.toThrow(/trigger step cannot be inserted/i);
+    });
+
+    it('should throw 404 for a transition from another project', async () => {
+      const {project: otherProject} = await factories.createUserWithProject();
+      const otherWorkflow = await factories.createWorkflow({projectId: otherProject.id});
+      const stepA = await factories.createWorkflowStep({workflowId: otherWorkflow.id});
+      const stepB = await factories.createWorkflowStep({workflowId: otherWorkflow.id});
+
+      const transition = await prisma.workflowTransition.create({
+        data: {fromStepId: stepA.id, toStepId: stepB.id},
+      });
+
+      const workflow = await factories.createWorkflow({projectId});
+
+      await expect(
+        WorkflowService.insertStepOnTransition(projectId, workflow.id, transition.id, {
+          type: WorkflowStepType.DELAY,
+          name: 'Inserted delay',
+          config: {},
+        }),
+      ).rejects.toThrow('Transition not found');
     });
   });
 

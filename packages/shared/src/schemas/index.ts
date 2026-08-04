@@ -248,6 +248,17 @@ export const WorkflowSchemas = {
     config: jsonSchema.optional(),
     templateId: uuid.optional().nullable(),
   }),
+  // Payload for POST /workflows/:id/transitions/:transitionId/insert-step.
+  // Mirrors `addStep` minus `autoConnect` (the transition being split already
+  // determines both sides of the wiring) and with an optional position, since
+  // the builder lays the graph out with dagre anyway.
+  insertStep: z.object({
+    type: z.nativeEnum(WorkflowStepType),
+    name: z.string().min(1).max(100),
+    position: jsonSchema.optional(),
+    config: jsonSchema,
+    templateId: uuid.optional(),
+  }),
   createTransition: z.object({
     fromStepId: uuid,
     toStepId: uuid,
