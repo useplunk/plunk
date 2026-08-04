@@ -805,6 +805,132 @@ export class WorkflowService {
   }
 
   /**
+   * Insert a new step in the middle of an existing transition.
+   *
+   * Given `A -[t]-> B`, this creates `A -[t]-> NEW -> B` in a single transaction:
+   * the existing transition is re-pointed at the new step (keeping its condition,
+   * so a condition branch keeps its label) and a fresh transition carries the
+   * flow on to the original target.
+   *
+   * When the inserted step is itself a CONDITION, the downstream transition is
+   * attached to its first branch (`yes`) rather than left unconditional — a
+   * condition step routes exclusively by branch, so an unconditional outgoing
+   * transition would never be taken and B would be stranded.
+   *
+   * Purely additive — no step is removed and nothing becomes unreachable — so
+   * unlike splice/delete this does not need to guard against in-flight executions.
+   * An execution parked on A simply picks up the new step on its next hop.
+   */
+  public static async insertStepOnTransition(
+    projectId: string,
+    workflowId: string,
+    transitionId: string,
+    data: {
+      type: WorkflowStep['type'];
+      name: string;
+      position?: Prisma.JsonValue;
+      config: Prisma.JsonValue;
+      templateId?: string;
+    },
+  ): Promise<WorkflowStep> {
+    await this.get(projectId, workflowId);
+
+    const transition = await prisma.workflowTransition.findFirst({
+      where: {
+        id: transitionId,
+        fromStep: {workflowId, workflow: {projectId}},
+      },
+    });
+
+    if (!transition) {
+      throw new HttpException(404, 'Transition not found');
+    }
+
+    if (data.type === 'TRIGGER') {
+      throw new HttpException(400, 'A trigger step cannot be inserted into the flow.');
+    }
+
+    // EXIT terminates a path, so it can never carry the flow on to the original
+    // target — inserting one here would silently orphan everything below it.
+    if (data.type === 'EXIT') {
+      throw new HttpException(
+        400,
+        'An exit step ends the flow and cannot be inserted between two steps. ' +
+          'Disconnect the steps first, then add the exit step.',
+      );
+    }
+
+    return prisma.$transaction(async tx => {
+      const newStep = await tx.workflowStep.create({
+        data: {
+          workflowId,
+          type: data.type,
+          name: data.name,
+          position: toPrismaJson(data.position ?? {x: 0, y: 0}),
+          config: toPrismaJson(data.config),
+          templateId: data.templateId,
+        },
+      });
+
+      // Re-point the original transition (keeps its condition/priority, so the
+      // branch it belongs to is preserved) at the new step.
+      await tx.workflowTransition.update({
+        where: {id: transitionId},
+        data: {toStepId: newStep.id},
+      });
+
+      await tx.workflowTransition.create({
+        data: {
+          fromStepId: newStep.id,
+          toStepId: transition.toStepId,
+          // A freshly created condition has no config yet, which the builder reads
+          // as the default binary yes/no pair — so `yes` is its first branch.
+          condition: data.type === 'CONDITION' ? toPrismaJson({branch: 'yes'}) : Prisma.JsonNull,
+          priority: 0,
+        },
+      });
+
+      return newStep;
+    });
+  }
+
+  /**
+   * Whether `targetStepId` is reachable by following transitions from `fromStepId`.
+   * Used to keep the graph acyclic when new connections are made.
+   */
+  private static async reaches(workflowId: string, fromStepId: string, targetStepId: string): Promise<boolean> {
+    if (fromStepId === targetStepId) {
+      return true;
+    }
+
+    const allSteps = await prisma.workflowStep.findMany({
+      where: {workflowId},
+      select: {id: true, outgoingTransitions: {select: {toStepId: true}}},
+    });
+
+    const adjacency = new Map(allSteps.map(s => [s.id, s.outgoingTransitions.map(t => t.toStepId)]));
+
+    const seen = new Set<string>([fromStepId]);
+    const queue = [fromStepId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+
+      for (const nextId of adjacency.get(currentId) ?? []) {
+        if (nextId === targetStepId) {
+          return true;
+        }
+        if (!seen.has(nextId)) {
+          seen.add(nextId);
+          queue.push(nextId);
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Create a transition between two steps
    */
   public static async createTransition(
@@ -817,6 +943,10 @@ export class WorkflowService {
       priority?: number;
     },
   ): Promise<WorkflowTransition> {
+    if (data.fromStepId === data.toStepId) {
+      throw new HttpException(400, 'A step cannot be connected to itself');
+    }
+
     // Verify both steps belong to the workflow
     const steps = await prisma.workflowStep.findMany({
       where: {
@@ -831,6 +961,11 @@ export class WorkflowService {
     }
 
     const fromStep = steps.find(s => s.id === data.fromStepId);
+
+    // An exit step terminates the path it is on.
+    if (fromStep?.type === 'EXIT') {
+      throw new HttpException(400, 'An exit step ends the flow and cannot be connected to another step');
+    }
 
     // For CONDITION steps, validate that this branch doesn't already have a transition
     if (fromStep?.type === 'CONDITION' && data.condition) {
@@ -857,6 +992,25 @@ export class WorkflowService {
           );
         }
       }
+    } else if (fromStep?.type !== 'CONDITION') {
+      // Every other step type routes to exactly one next step. A second outgoing
+      // transition would make the next hop ambiguous at execution time.
+      const existingOutgoing = await prisma.workflowTransition.findFirst({
+        where: {fromStepId: data.fromStepId},
+      });
+
+      if (existingOutgoing) {
+        throw new HttpException(
+          400,
+          `"${fromStep?.name}" already leads to another step. Disconnect it first, or use a condition step to branch.`,
+        );
+      }
+    }
+
+    // Reject connections that would close a loop. Nothing bounds how many times
+    // an execution may traverse the graph, so a cycle would run indefinitely.
+    if (await this.reaches(workflowId, data.toStepId, data.fromStepId)) {
+      throw new HttpException(400, 'This connection would create a loop in the workflow');
     }
 
     const newTransition = await prisma.workflowTransition.create({
