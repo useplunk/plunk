@@ -1,0 +1,45 @@
+{
+  "pages": {
+    "unsubscribe": {
+      "title": "Avsluta prenumeration",
+      "description": "Tråkigt att du lämnar oss. Är du säker på att du vill avsluta prenumerationen för {email}?",
+      "button": "Avsluta prenumerationen",
+      "buttonLoading": "Avslutar prenumerationen...",
+      "managePreferences": "Hantera inställningar istället",
+      "successTitle": "Din prenumeration är avslutad",
+      "successDescription": "{email} har avslutat sin prenumeration. Du kommer inte längre att få e-post från oss.",
+      "changedMind": "Ångrat dig?",
+      "subscribeAgain": "Prenumerera igen"
+    },
+    "subscribe": {
+      "title": "Prenumerera på uppdateringar",
+      "description": "Vill du prenumerera med {email} för att få e-post?",
+      "button": "Prenumerera",
+      "buttonLoading": "Prenumererar...",
+      "successTitle": "Du prenumererar nu!",
+      "successDescription": "{email} prenumererar nu på e-post från oss."
+    },
+    "manage": {
+      "title": "Hantera inställningar",
+      "description": "Hantera e-postinställningar för {email}",
+      "subscriptionLabel": "E-postprenumeration",
+      "subscribedStatus": "Du prenumererar för närvarande på e-post",
+      "unsubscribedStatus": "Du prenumererar för närvarande inte på e-post",
+      "subscribedSuccess": "Prenumeration lyckades!",
+      "unsubscribedSuccess": "Prenumerationen avslutades!",
+      "unsubscribeCompletely": "Avsluta prenumerationen helt",
+      "subscribeToEmails": "Prenumerera på e-post",
+      "disclaimer": "På den här sidan kan du hantera dina e-postinställningar. Din prenumerationsstatus uppdateras i realtid."
+    },
+    "common": {
+      "loading": "Laddar...",
+      "error": "Fel"
+    }
+  },
+  "email": {
+    "footer": {
+      "unsubscribeText": "Du fick det här e-postmeddelandet eftersom du anmält dig till att ta emot e-post från {projectName}. Om du inte längre vill ha den här typen av e-post kan du",
+      "updatePreferences": "uppdatera dina inställningar"
+    }
+  }
+}

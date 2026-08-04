@@ -15,6 +15,7 @@ import zhTWTranslations from './locales/zh-TW.json' with {type: 'json'};
 import zhHKTranslations from './locales/zh-HK.json' with {type: 'json'};
 import zhCNTranslations from './locales/zh-CN.json' with {type: 'json'};
 import jaTranslations from './locales/ja.json' with {type: 'json'};
+import svTranslations from './locales/sv.json' with {type: 'json'};
 
 export {
   SUPPORTED_LANGUAGES,
@@ -40,21 +41,22 @@ export interface Translations {
 
 // Static mapping of language codes to translations
 const translationsMap: Record<string, Translations> = {
-  en: enTranslations,
-  nl: nlTranslations,
-  de: deTranslations,
-  fr: frTranslations,
-  hi: hiTranslations,
-  pt: ptTranslations,
-  bg: bgTranslations,
-  cs: csTranslations,
-  pl: plTranslations,
-  es: esTranslations,
-  it: itTranslations,
+  'en': enTranslations,
+  'nl': nlTranslations,
+  'de': deTranslations,
+  'fr': frTranslations,
+  'hi': hiTranslations,
+  'pt': ptTranslations,
+  'bg': bgTranslations,
+  'cs': csTranslations,
+  'pl': plTranslations,
+  'es': esTranslations,
+  'it': itTranslations,
   'zh-TW': zhTWTranslations,
   'zh-HK': zhHKTranslations,
   'zh-CN': zhCNTranslations,
-  ja: jaTranslations,
+  'ja': jaTranslations,
+  'sv': svTranslations,
 };
 
 // In-memory cache for loaded translations
