@@ -44,7 +44,7 @@
     "eslint": "^9.27.0",
     "eslint-config-next": "^16.0.1",
     "next-sitemap": "^4.2.3",
-    "postcss": "^8.5.18",
+    "postcss": "^8.5.23",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.7.2"
   },
