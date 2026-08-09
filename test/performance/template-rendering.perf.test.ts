@@ -7,23 +7,25 @@ import {clearTemplateCache, compileTemplate, renderTemplate} from '../../package
  *
  * Templates are rendered once per recipient, so template rendering sits directly on
  * the campaign send path — a campaign to 1M contacts renders 2M templates (subject +
- * body). Issue #426 flagged CPU cost as the main risk of adopting a real templating
- * language, so these tests pin the throughput floor.
+ * body). CPU cost is therefore the main risk of using a real templating language
+ * instead of string interpolation, and these tests pin the throughput floor so that
+ * risk cannot quietly materialise later.
  *
  * Measured on a developer machine (logged by every run, so regressions show as a trend
  * rather than only as a failure):
  *
- * | Scenario                                             | Result          |
- * | ---------------------------------------------------- | --------------- |
- * | Small template, parse hoisted (issue #426 benchmark) | ~142k renders/s |
- * | Realistic campaign body (loop + filters + branches)  | ~18k renders/s  |
- * | Same body via renderTemplate (parse from cache)      | ~0.05 ms/render |
- * | Parsing a 100 KB template                            | ~15 ms (once)   |
- * | Full 500-recipient batch, subject + body             | ~30 ms          |
+ * | Scenario                                            | Result          |
+ * | --------------------------------------------------- | --------------- |
+ * | Small template, parse hoisted                       | ~142k renders/s |
+ * | Realistic campaign body (loop + filters + branches) | ~18k renders/s  |
+ * | Same body via renderTemplate (parse from cache)     | ~0.05 ms/render |
+ * | Parsing a 100 KB template                           | ~15 ms (once)   |
+ * | Full 500-recipient batch, subject + body            | ~30 ms          |
+ * | Heap retained by 3000 distinct templates            | ~6 MB           |
+ * | Heap retained by 50k renders of one template        | ~0 MB           |
  *
  * At ~0.05 ms/render a 1M-contact campaign spends under a minute of CPU on rendering,
- * which is negligible next to 1M SES calls. The assertions below are set well below the
- * measured values so they hold on a loaded CI box.
+ * which is negligible next to 1M SES calls.
  *
  * Performance Targets:
  * - Rendering must never dominate the per-email cost (network + SES call): < 1ms/email
@@ -31,6 +33,44 @@ import {clearTemplateCache, compileTemplate, renderTemplate} from '../../package
  * - Memory must stay flat regardless of how many distinct templates are rendered
  */
 describe('Performance: Template Rendering at Scale', () => {
+  /**
+   * The raw throughput floors are calibrated on a developer machine, where a shared CI
+   * runner measures 3.5–4.5× slower on identical code: it has a fraction of the cores,
+   * and vitest schedules this file alongside the DB-heavy suites, so the benchmark loop
+   * only ever gets part of one of them. Left unscaled, the floors fail on CI for reasons
+   * that have nothing to do with the code under test.
+   *
+   * Lowering them for everyone would fix that but stop them catching anything on real
+   * hardware, so scale by environment instead. A developer still has to hit the full
+   * number; on CI the same assertions become a catastrophic-regression backstop, which
+   * is all they can honestly be there — losing the parse cache or reintroducing a
+   * per-render compile costs far more than 6×.
+   *
+   * The margin is wide: a CI run that failed the unscaled floors still measured 41.7k
+   * and 4.2k renders/s, roughly 5× above the scaled ones.
+   */
+  const CI_SLOWDOWN = process.env.CI ? 6 : 1;
+
+  /**
+   * heapUsed counts garbage the collector has not reached yet, and rendering produces
+   * a lot of it — sampling it raw measures GC timing rather than retained memory. The
+   * 50k-render loop below reads +26 MB on a developer machine and +53 MB on CI while
+   * actually retaining nothing. Forcing a collection first makes the number mean
+   * "still reachable", which is the only version of it that can catch a leak.
+   *
+   * global.gc comes from `execArgv: ['--expose-gc']` in vitest.config.ts.
+   */
+  const forceGc = (globalThis as {gc?: () => void}).gc;
+
+  function retainedHeapMB(): number {
+    if (!forceGc) {
+      throw new Error('These assertions need global.gc — run through vitest.config.ts, which sets --expose-gc.');
+    }
+    // Twice: the first pass can leave objects queued for the following cycle.
+    forceGc();
+    forceGc();
+    return process.memoryUsage().heapUsed / 1024 / 1024;
+  }
   /** A realistic marketing email: conditionals, a loop, filters and fallbacks. */
   const CAMPAIGN_TEMPLATE = `<!doctype html>
 <html lang="{{locale ?? en}}">
@@ -84,11 +124,12 @@ describe('Performance: Template Rendering at Scale', () => {
   // THROUGHPUT
   // ========================================
   describe('Render throughput', () => {
-    it('reproduces the issue #426 benchmark at over 50k renders/second', () => {
-      // Same shape as the benchmark posted on the issue: a small template with one
-      // variable, one filter and one conditional, parsed once outside the loop. Kept
-      // separate from the realistic template below so the published number stays
-      // directly comparable.
+    it('renders a minimal template with the parse hoisted at the expected throughput', () => {
+      // A deliberately small template — one variable, one filter, one conditional —
+      // parsed once outside the loop, so this measures render cost with parse cost
+      // removed. Kept separate from the realistic template below so the headline
+      // number stays comparable across changes rather than moving whenever the
+      // example campaign body is edited.
       const ITERATIONS = 50_000;
       const compiled = compileTemplate(
         `<p>Hello {{ recipient.name }},</p>
@@ -104,12 +145,16 @@ describe('Performance: Template Rendering at Scale', () => {
       const duration = performance.now() - startTime;
 
       const rendersPerSecond = (ITERATIONS / duration) * 1000;
-      console.log(`[PERF] issue #426 benchmark: ${Math.round(rendersPerSecond).toLocaleString()} renders/s`);
+      const floor = 50_000 / CI_SLOWDOWN;
+      console.log(
+        `[PERF] minimal template, parse hoisted: ${Math.round(rendersPerSecond).toLocaleString()} renders/s ` +
+          `(floor ${Math.round(floor).toLocaleString()})`,
+      );
 
-      expect(rendersPerSecond).toBeGreaterThan(50_000);
+      expect(rendersPerSecond).toBeGreaterThan(floor);
     }, 60000);
 
-    it('renders a realistic campaign body at over 5k renders/second', () => {
+    it('renders a realistic campaign body at the expected throughput', () => {
       const ITERATIONS = 20_000;
       const compiled = compileTemplate(CAMPAIGN_TEMPLATE);
       expect(compiled.valid).toBe(true);
@@ -122,18 +167,22 @@ describe('Performance: Template Rendering at Scale', () => {
       const duration = performance.now() - startTime;
 
       const rendersPerSecond = (ITERATIONS / duration) * 1000;
+      const floor = 5_000 / CI_SLOWDOWN;
       console.log(
         `[PERF] compiled render: ${Math.round(rendersPerSecond).toLocaleString()} renders/s ` +
-          `(${(duration / ITERATIONS).toFixed(4)} ms/render, ${characters.toLocaleString()} chars)`,
+          `(${(duration / ITERATIONS).toFixed(4)} ms/render, ${characters.toLocaleString()} chars, ` +
+          `floor ${Math.round(floor).toLocaleString()})`,
       );
 
       expect(characters).toBeGreaterThan(0);
-      expect(rendersPerSecond).toBeGreaterThan(5_000);
+      expect(rendersPerSecond).toBeGreaterThan(floor);
     }, 60000);
 
     it('keeps renderTemplate within 1ms/email by caching the parse', () => {
       // This is the path every individual send takes (EmailService.format), where the
       // caller has no compiled template to hand — the parse must come from the cache.
+      // Deliberately not scaled by CI_SLOWDOWN: 1ms/email is a product budget rather
+      // than a machine measurement, and the loaded runner still comes in at ~0.23ms.
       const ITERATIONS = 10_000;
 
       const startTime = performance.now();
@@ -148,19 +197,22 @@ describe('Performance: Template Rendering at Scale', () => {
       expect(msPerRender).toBeLessThan(1);
     }, 60000);
 
-    it('parses a 100KB template in under 100ms', () => {
+    it('parses a 100KB template without stalling the first email of a batch', () => {
       // Parsing happens once per template, so it only needs to be cheap enough not to
-      // stall the first email of a batch.
+      // stall the first email of a batch. Pure CPU, so it scales with the runner.
       const large = CAMPAIGN_TEMPLATE.repeat(Math.ceil(100_000 / CAMPAIGN_TEMPLATE.length));
+      const budget = 100 * CI_SLOWDOWN;
 
       const startTime = performance.now();
       const compiled = compileTemplate(large);
       const duration = performance.now() - startTime;
 
-      console.log(`[PERF] parse ${(large.length / 1024).toFixed(0)}KB template: ${duration.toFixed(2)} ms`);
+      console.log(
+        `[PERF] parse ${(large.length / 1024).toFixed(0)}KB template: ${duration.toFixed(2)} ms (budget ${budget} ms)`,
+      );
 
       expect(compiled.valid).toBe(true);
-      expect(duration).toBeLessThan(100);
+      expect(duration).toBeLessThan(budget);
     }, 60000);
   });
 
@@ -170,7 +222,8 @@ describe('Performance: Template Rendering at Scale', () => {
   describe('Campaign batch', () => {
     it('renders a 500-recipient batch (subject + body) in under 500ms', () => {
       // CampaignService.processBatch handles BATCH_SIZE = 500 contacts per job and
-      // renders both the subject and the body for each one.
+      // renders both the subject and the body for each one. Like the 1ms/email budget
+      // this is a product target, so it is not scaled — the loaded runner spends ~140ms.
       const BATCH_SIZE = 500;
       const subject = compileTemplate('{% if locale == "es" %}Tu oferta{% else %}Your offer{% endif %}, {{firstName ?? there}}');
       const body = compileTemplate(CAMPAIGN_TEMPLATE);
@@ -208,22 +261,28 @@ describe('Performance: Template Rendering at Scale', () => {
     it('keeps the parse cache bounded across many distinct templates', () => {
       // A worker sees templates from every project it serves. The cache is capped, so
       // cycling through far more templates than it holds must not accumulate ASTs.
-      const TEMPLATE_COUNT = 500;
+      //
+      // The count is what gives this assertion its teeth: retaining all 3000 ASTs costs
+      // ~90 MB, while the capped cache settles at ~6 MB — most of which is the 3000
+      // source strings below being flattened as they are used as cache keys, not ASTs.
+      const TEMPLATE_COUNT = 3_000;
       const templates = Array.from(
         {length: TEMPLATE_COUNT},
         (_, i) => `${CAMPAIGN_TEMPLATE}<!-- project ${i} -->{{firstName ?? there}}`,
       );
 
-      const initialMemory = process.memoryUsage().heapUsed;
+      const initialMemory = retainedHeapMB();
 
       for (const template of templates) {
         renderTemplate(template, contactVariables(1));
       }
 
-      const memoryIncrease = (process.memoryUsage().heapUsed - initialMemory) / 1024 / 1024;
-      console.log(`[PERF] ${TEMPLATE_COUNT} distinct templates: +${memoryIncrease.toFixed(1)} MB heap`);
+      const memoryIncrease = retainedHeapMB() - initialMemory;
+      console.log(
+        `[PERF] ${TEMPLATE_COUNT.toLocaleString()} distinct templates: +${memoryIncrease.toFixed(1)} MB retained`,
+      );
 
-      expect(memoryIncrease).toBeLessThan(100);
+      expect(memoryIncrease).toBeLessThan(25);
     }, 60000);
 
     it('does not grow the heap while rendering one template repeatedly', () => {
@@ -234,15 +293,17 @@ describe('Performance: Template Rendering at Scale', () => {
         compiled.render(contactVariables(i));
       }
 
-      const initialMemory = process.memoryUsage().heapUsed;
+      const initialMemory = retainedHeapMB();
       for (let i = 0; i < 50_000; i += 1) {
         compiled.render(contactVariables(i));
       }
-      const memoryIncrease = (process.memoryUsage().heapUsed - initialMemory) / 1024 / 1024;
+      const memoryIncrease = retainedHeapMB() - initialMemory;
 
-      console.log(`[PERF] 50k renders: +${memoryIncrease.toFixed(1)} MB heap`);
+      console.log(`[PERF] 50k renders: +${memoryIncrease.toFixed(1)} MB retained`);
 
-      expect(memoryIncrease).toBeLessThan(100);
+      // Nothing survives a render, so this measures ~0 MB. Anything that accumulated
+      // per-render state would show up long before 10 MB across 50k iterations.
+      expect(memoryIncrease).toBeLessThan(10);
     }, 60000);
   });
 });
