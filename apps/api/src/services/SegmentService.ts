@@ -940,7 +940,10 @@ export class SegmentService {
     value: unknown,
     unit?: 'days' | 'hours' | 'minutes',
   ): Prisma.ContactWhereInput {
-    const path = jsonPath.split('.');
+    // Use the entire jsonPath as a single path element.
+    // Contact data is a flat JSON object, so field names like "prefix.key"
+    // must be treated as literal keys, not nested paths.
+    const path = [jsonPath];
 
     switch (operator) {
       case 'equals':
