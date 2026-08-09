@@ -431,6 +431,20 @@ export class EventService {
         return;
       }
 
+      // Never run a workflow against a contact from another project.
+      // Queried directly instead of via ContactService, which imports this service.
+      const contact = await prisma.contact.findFirst({
+        where: {id: contactId, projectId: workflow.projectId},
+        select: {id: true},
+      });
+
+      if (!contact) {
+        signale.warn(
+          `[EVENT] Refusing to start workflow ${workflowId} for contact ${contactId}: contact does not belong to project ${workflow.projectId}`,
+        );
+        return;
+      }
+
       // Check re-entry rules
       if (!workflow.allowReentry) {
         // If re-entry is not allowed, check if contact has ANY execution (regardless of status)

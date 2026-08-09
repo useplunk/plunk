@@ -332,6 +332,38 @@ export class Workflows {
   }
 
   /**
+   * POST /workflows/:id/transitions/:transitionId/insert-step
+   * Insert a new step in the middle of an existing transition (A -> B becomes A -> NEW -> B)
+   */
+  @Post(':id/transitions/:transitionId/insert-step')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async insertStepOnTransition(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+    const workflowId = req.params.id;
+    const transitionId = req.params.transitionId;
+    const {type, name, position, config, templateId} = req.body;
+
+    if (!workflowId || !transitionId) {
+      return res.status(400).json({error: 'Workflow ID and Transition ID are required'});
+    }
+
+    if (!type || !name || !config) {
+      return res.status(400).json({error: 'Type, name, and config are required'});
+    }
+
+    const step = await WorkflowService.insertStepOnTransition(auth.projectId!, workflowId, transitionId, {
+      type,
+      name,
+      position,
+      config,
+      templateId,
+    });
+
+    return res.status(201).json(step);
+  }
+
+  /**
    * DELETE /workflows/:id/transitions/:transitionId
    * Delete a transition
    */

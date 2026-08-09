@@ -686,6 +686,11 @@ export default function CampaignDetailsPage() {
                   setEditedCampaign({...editedCampaign, body});
                   setHasChanges(true);
                 }}
+                segmentId={
+                  (editedCampaign.audienceType ?? c.audienceType) === CampaignAudienceType.SEGMENT
+                    ? (editedCampaign.segmentId ?? c.segmentId ?? undefined)
+                    : undefined
+                }
               />
             </CardContent>
           </Card>

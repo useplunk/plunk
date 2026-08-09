@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Background,
+  type Connection,
+  ConnectionLineType,
   Controls,
   type Edge,
   Handle,
@@ -35,6 +37,7 @@ import {
 } from 'lucide-react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import dagre from 'dagre';
+import {WorkflowEdge} from './WorkflowEdge';
 import {network} from '../lib/network';
 import {toast} from 'sonner';
 import {Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@plunk/ui';
@@ -110,6 +113,27 @@ function getExpectedBranches(config: any): string[] {
     return [...(config.branches || []).map((b: any) => b.id), 'default'];
   }
   return ['yes', 'no'];
+}
+
+/** Reads the branch id off a transition's condition, if it carries one. */
+function getTransitionBranch(condition: unknown): string | undefined {
+  if (condition && typeof condition === 'object' && 'branch' in condition) {
+    return String((condition as {branch: unknown}).branch);
+  }
+  return undefined;
+}
+
+/**
+ * Branch ids a condition step should expose a handle for: the branches its config
+ * declares, plus any branch that is already wired up. The two can drift apart if
+ * the condition was reconfigured after connections were made, and dropping a
+ * wired branch here would leave its edge pointing at a handle that doesn't exist.
+ */
+function getBranchHandles(config: any, transitions: Array<{condition: unknown}> = []): string[] {
+  const expected = getExpectedBranches(config);
+  const wired = transitions.map(t => getTransitionBranch(t.condition)).filter((b): b is string => Boolean(b));
+
+  return [...expected, ...wired.filter(b => !expected.includes(b))];
 }
 
 function getBranchLabel(config: any, branchId: string): string {
@@ -205,13 +229,31 @@ function getLayoutedElements(nodes: Node[], edges: Edge[]) {
   return {nodes: adjustedNodes, edges};
 }
 
+/**
+ * Handle ids. Every edge names its handles explicitly so a condition's branch
+ * survives the round trip through React Flow, and so connections dragged by hand
+ * report which branch they came from.
+ */
+const TARGET_HANDLE_ID = 'in';
+const SOURCE_HANDLE_ID = 'out';
+
+const HANDLE_STYLE = {
+  background: '#94a3b8',
+  width: 10,
+  height: 10,
+  border: '2px solid white',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+};
+
 // Add Step Node - appears at the end of flow paths
 function AddStepNode({data}: {data: {label: string; onClick?: () => void}}) {
   return (
     <>
       <Handle
+        id={TARGET_HANDLE_ID}
         type="target"
         position={Position.Top}
+        isConnectable={false}
         style={{
           background: '#94a3b8',
           width: 14,
@@ -246,6 +288,12 @@ function CustomNode({
     onDelete?: () => void;
     template?: {id: string; name: string};
     config?: any;
+    /**
+     * One entry per outgoing slot. Condition steps get a handle per branch so a
+     * dragged connection carries the branch it started from; everything else has
+     * a single unnamed slot. Empty for EXIT, which ends the path.
+     */
+    sourceHandles?: {id: string; color: string; connectable: boolean}[];
   };
 }) {
   const Icon = data.icon;
@@ -253,12 +301,15 @@ function CustomNode({
   const bgColor = data.bgColor;
   const [showActions, setShowActions] = useState(false);
 
+  const sourceHandles = data.sourceHandles ?? [];
+
   return (
     <>
       <Handle
+        id={TARGET_HANDLE_ID}
         type="target"
         position={Position.Top}
-        style={{opacity: 0, cursor: 'default', pointerEvents: 'none'}}
+        style={HANDLE_STYLE}
       />
 
       <div
@@ -420,11 +471,23 @@ function CustomNode({
         )}
       </div>
 
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{opacity: 0, cursor: 'default', pointerEvents: 'none'}}
-      />
+      {sourceHandles.map((handle, index) => (
+        <Handle
+          key={handle.id}
+          id={handle.id}
+          type="source"
+          position={Position.Bottom}
+          isConnectable={handle.connectable}
+          title={handle.connectable ? 'Drag to connect to another step' : undefined}
+          style={{
+            ...HANDLE_STYLE,
+            background: handle.color,
+            // Spread multiple branch handles evenly across the bottom edge
+            left: `${((index + 1) / (sourceHandles.length + 1)) * 100}%`,
+            cursor: handle.connectable ? 'crosshair' : 'default',
+          }}
+        />
+      ))}
     </>
   );
 }
@@ -433,6 +496,17 @@ const nodeTypes = {
   custom: CustomNode,
   addStep: AddStepNode,
 };
+
+const edgeTypes = {
+  workflow: WorkflowEdge,
+};
+
+/**
+ * Where a newly picked step should land.
+ * - `append`: after an existing step (optionally on a specific condition branch)
+ * - `insert`: in the middle of an existing transition, splitting it in two
+ */
+type PickerContext = {mode: 'append'; fromStepId: string; branch?: string} | {mode: 'insert'; transitionId: string};
 
 // Step type options for adding new steps
 const STEP_TYPE_OPTIONS = [
@@ -446,10 +520,8 @@ const STEP_TYPE_OPTIONS = [
 ];
 
 export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderProps) {
-  const [addStepContext, setAddStepContext] = useState<{
-    fromStepId: string | null;
-    branch?: string;
-  } | null>(null);
+  const [pickerContext, setPickerContext] = useState<PickerContext | null>(null);
+  const [transitionToDisconnect, setTransitionToDisconnect] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [stepToDelete, setStepToDelete] = useState<string | null>(null);
   const [deleteMode, setDeleteMode] = useState<'splice' | 'cascade'>('splice');
@@ -505,6 +577,20 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       const color = STEP_TYPE_COLORS[step.type as keyof typeof STEP_TYPE_COLORS] || '#6b7280';
       const bgColor = STEP_TYPE_BG[step.type as keyof typeof STEP_TYPE_BG] || '#f3f4f6';
 
+      // EXIT ends the path, a condition routes per branch, everything else has a
+      // single next step.
+      const outgoing = step.outgoingTransitions ?? [];
+      const sourceHandles =
+        step.type === 'EXIT'
+          ? []
+          : step.type === 'CONDITION'
+            ? getBranchHandles(step.config, outgoing).map(branchId => ({
+                id: branchId,
+                color: getBranchColor(step.config, branchId),
+                connectable: !outgoing.some(t => getTransitionBranch(t.condition) === branchId),
+              }))
+            : [{id: SOURCE_HANDLE_ID, color: '#94a3b8', connectable: outgoing.length === 0}];
+
       return {
         id: step.id,
         type: 'custom',
@@ -515,6 +601,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           icon: Icon,
           color,
           bgColor,
+          sourceHandles,
           template: step.template,
           config: step.config,
           onEdit: () => handleEditStep(step.id),
@@ -544,7 +631,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
               draggable: false,
               data: {
                 label: getBranchLabel(step.config, branchId),
-                onClick: () => setAddStepContext({fromStepId: step.id, branch: branchId}),
+                onClick: () => setPickerContext({mode: 'append', fromStepId: step.id, branch: branchId}),
               },
             });
           }
@@ -559,7 +646,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             draggable: false,
             data: {
               label: '',
-              onClick: () => setAddStepContext({fromStepId: step.id}),
+              onClick: () => setPickerContext({mode: 'append', fromStepId: step.id}),
             },
           });
         }
@@ -590,20 +677,16 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             id: transition.id,
             source: step.id,
             target: transition.toStepId,
-            type: 'smoothstep',
+            sourceHandle: branch ?? SOURCE_HANDLE_ID,
+            targetHandle: TARGET_HANDLE_ID,
+            type: 'workflow',
             animated: false,
-            label: isConditional ? branchLabel : undefined,
-            labelStyle: {
-              fill: isConditional ? branchColor : '#64748b',
-              fontWeight: 600,
-              fontSize: 12,
+            data: {
+              branchLabel: isConditional ? branchLabel : undefined,
+              branchColor: isConditional ? branchColor : '#64748b',
+              onInsert: () => setPickerContext({mode: 'insert', transitionId: transition.id}),
+              onDisconnect: () => setTransitionToDisconnect(transition.id),
             },
-            labelBgStyle: {
-              fill: '#fff',
-              fillOpacity: 0.95,
-            },
-            labelBgPadding: [8, 4] as [number, number],
-            labelBgBorderRadius: 4,
             style: {
               stroke: '#94a3b8',
               strokeWidth: 2,
@@ -641,6 +724,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
               id: `${step.id}-add-${branchId}-edge`,
               source: step.id,
               target: `${step.id}-add-${branchId}`,
+              sourceHandle: branchId,
+              targetHandle: TARGET_HANDLE_ID,
               type: 'smoothstep',
               animated: false,
               label,
@@ -659,6 +744,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             id: `${step.id}-add-edge`,
             source: step.id,
             target: `${step.id}-add`,
+            sourceHandle: SOURCE_HANDLE_ID,
+            targetHandle: TARGET_HANDLE_ID,
             type: 'smoothstep',
             animated: false,
             style: {stroke: '#94a3b8', strokeWidth: 2, strokeDasharray: '5,5'},
@@ -694,7 +781,39 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
 
   const handleCreateStep = useCallback(
     async (stepType: string) => {
-      if (!addStepContext?.fromStepId) return;
+      if (!pickerContext) return;
+
+      // Inserting into an existing transition is a single atomic call — the API
+      // re-points the transition at the new step and wires it on to the original
+      // target, so the graph is never left half-connected.
+      if (pickerContext.mode === 'insert') {
+        try {
+          const newStep = await network.fetch<WorkflowStep, typeof WorkflowSchemas.insertStep>(
+            'POST',
+            `/workflows/${workflowId}/transitions/${pickerContext.transitionId}/insert-step`,
+            {
+              type: stepType as WorkflowStep['type'],
+              name: `New ${stepType.toLowerCase().replace('_', ' ')}`,
+              position: {x: 0, y: 0}, // Will be auto-positioned by dagre layout
+              config: {},
+            },
+          );
+
+          toast.success('Step inserted');
+          setPickerContext(null);
+          onUpdate();
+
+          setTimeout(() => {
+            const event = new CustomEvent('workflow-edit-step', {detail: {stepId: newStep.id}});
+            window.dispatchEvent(event);
+          }, 100);
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : 'Failed to insert step');
+        }
+        return;
+      }
+
+      const addStepContext = pickerContext;
 
       try {
         // Validate that this branch doesn't already have a transition
@@ -754,7 +873,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
         );
 
         toast.success('Step added successfully');
-        setAddStepContext(null);
+        setPickerContext(null);
         onUpdate();
 
         // Trigger edit dialog for the new step after a short delay
@@ -767,7 +886,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addStepContext, workflowId, onUpdate],
+    [pickerContext, workflowId, onUpdate],
   );
 
   // Get all steps that will be affected by deleting a step (the step itself + all downstream steps)
@@ -828,6 +947,143 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
     }
   };
 
+  /** Look up a transition (and the steps on either end of it) by transition id. */
+  const findTransition = useCallback(
+    (transitionId: string) => {
+      for (const step of steps) {
+        const transition = step.outgoingTransitions?.find(t => t.id === transitionId);
+        if (transition) {
+          return {transition, fromStep: step, toStep: steps.find(s => s.id === transition.toStepId)};
+        }
+      }
+      return null;
+    },
+    [steps],
+  );
+
+  const handleDisconnect = async () => {
+    if (!transitionToDisconnect) return;
+
+    try {
+      await network.fetch('DELETE', `/workflows/${workflowId}/transitions/${transitionToDisconnect}`);
+      toast.success('Steps disconnected');
+      onUpdate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to disconnect steps');
+    } finally {
+      setTransitionToDisconnect(null);
+    }
+  };
+
+  /**
+   * Steps that can be wired up from `fromStepId`.
+   *
+   * Only steps that are currently unreachable (no incoming transition) qualify —
+   * these are the ones left dangling by a disconnect, and offering them here is
+   * what makes disconnecting reversible without rebuilding the branch. Anything
+   * downstream of the source is excluded so we can't create a cycle.
+   */
+  const getReconnectCandidates = useCallback(
+    (fromStepId: string) => {
+      const downstream = new Set(getAffectedSteps(fromStepId).map(s => s.id));
+      return steps.filter(
+        s => s.type !== 'TRIGGER' && !downstream.has(s.id) && (s.incomingTransitions?.length ?? 0) === 0,
+      );
+    },
+    [steps, getAffectedSteps],
+  );
+
+  /**
+   * Gates connections while they are being dragged, so an invalid drop is refused
+   * by React Flow rather than bouncing off the API. Mirrors the server-side rules
+   * in `WorkflowService.createTransition`.
+   */
+  const isValidConnection = useCallback(
+    (connection: Connection | Edge) => {
+      const {source, target, sourceHandle} = connection;
+      if (!source || !target || source === target) return false;
+
+      const fromStep = steps.find(s => s.id === source);
+      const toStep = steps.find(s => s.id === target);
+
+      // Either end being unknown means it's one of the "+" placeholder nodes
+      if (!fromStep || !toStep) return false;
+      if (fromStep.type === 'EXIT') return false;
+
+      // The slot being dragged from has to be free
+      if (fromStep.type === 'CONDITION') {
+        if (fromStep.outgoingTransitions?.some(t => getTransitionBranch(t.condition) === sourceHandle)) return false;
+      } else if ((fromStep.outgoingTransitions?.length ?? 0) > 0) {
+        return false;
+      }
+
+      // Connecting to something upstream would close a loop
+      return !getAffectedSteps(target).some(s => s.id === source);
+    },
+    [steps, getAffectedSteps],
+  );
+
+  const handleConnect = useCallback(
+    async (connection: Connection) => {
+      const {source, target, sourceHandle} = connection;
+      if (!source || !target || !isValidConnection(connection)) return;
+
+      const fromStep = steps.find(s => s.id === source);
+      const branch = fromStep?.type === 'CONDITION' ? sourceHandle : null;
+      const expectedBranches = fromStep?.type === 'CONDITION' ? getExpectedBranches(fromStep.config) : [];
+      const branchIndex = branch ? expectedBranches.indexOf(branch) : -1;
+
+      try {
+        await network.fetch<unknown, typeof WorkflowSchemas.createTransition>(
+          'POST',
+          `/workflows/${workflowId}/transitions`,
+          {
+            fromStepId: source,
+            toStepId: target,
+            condition: branch ? {branch} : null,
+            priority: branchIndex >= 0 ? branchIndex : 0,
+          },
+        );
+
+        toast.success('Steps connected');
+        onUpdate();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to connect steps');
+      }
+    },
+    [isValidConnection, steps, workflowId, onUpdate],
+  );
+
+  const handleConnectToExisting = useCallback(
+    async (toStepId: string) => {
+      if (pickerContext?.mode !== 'append') return;
+
+      try {
+        const fromStep = steps.find(s => s.id === pickerContext.fromStepId);
+        const expectedBranches = fromStep?.type === 'CONDITION' ? getExpectedBranches(fromStep.config) : [];
+        const branchIndex = pickerContext.branch ? expectedBranches.indexOf(pickerContext.branch) : -1;
+
+        await network.fetch<unknown, typeof WorkflowSchemas.createTransition>(
+          'POST',
+          `/workflows/${workflowId}/transitions`,
+          {
+            fromStepId: pickerContext.fromStepId,
+            toStepId,
+            condition: pickerContext.branch ? {branch: pickerContext.branch} : null,
+            priority: branchIndex >= 0 ? branchIndex : 0,
+          },
+        );
+
+        toast.success('Steps connected');
+        setPickerContext(null);
+        onUpdate();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to connect steps');
+      }
+    },
+    [pickerContext, steps, workflowId, onUpdate],
+  );
+
 
   if (steps.length === 0) {
     return (
@@ -860,6 +1116,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           fitView
           fitViewOptions={{
             padding: 0.3,
@@ -869,7 +1126,10 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           minZoom={0.1}
           maxZoom={2}
           nodesDraggable={false}
-          nodesConnectable={false}
+          nodesConnectable={true}
+          onConnect={handleConnect}
+          isValidConnection={isValidConnection}
+          connectionLineType={ConnectionLineType.SmoothStep}
           elementsSelectable={true}
           defaultEdgeOptions={{
             type: 'smoothstep',
@@ -918,55 +1178,136 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
               )}
             </button>
           </Panel>
-{rawEdges.length === 0 && steps.length > 1 && (
-            <Panel
-              position="bottom-center"
-              className="bg-white border border-neutral-200 px-4 py-2.5 rounded-lg shadow-sm"
-            >
-              <div className="flex items-center gap-2 text-sm text-neutral-600">
-                <Lightbulb className="h-4 w-4" />
-                <span>Click the + buttons to add and connect steps.</span>
-              </div>
-            </Panel>
-          )}
+          <Panel
+            position="bottom-center"
+            className="bg-white border border-neutral-200 px-4 py-2.5 rounded-lg shadow-sm"
+          >
+            <div className="flex items-center gap-2 text-sm text-neutral-600">
+              <Lightbulb className="h-4 w-4" />
+              <span>
+                Click a + to add a step, hover a connection to insert or disconnect, or drag between the dots to
+                connect two steps.
+              </span>
+            </div>
+          </Panel>
         </ReactFlow>
       </div>
 
-      {/* Step type picker dialog */}
-      <Dialog open={!!addStepContext} onOpenChange={open => !open && setAddStepContext(null)}>
+      {/* Step type picker dialog — used both to append after a step and to insert into a transition */}
+      <Dialog open={!!pickerContext} onOpenChange={open => !open && setPickerContext(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Step</DialogTitle>
+            <DialogTitle>{pickerContext?.mode === 'insert' ? 'Insert Step' : 'Add Step'}</DialogTitle>
           </DialogHeader>
+          {pickerContext?.mode === 'insert' && (
+            <p className="text-sm text-neutral-600">
+              The new step is placed between these two steps. The connection below it is kept.
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-3 py-4">
-            {STEP_TYPE_OPTIONS.map(option => {
-              const Icon = option.icon;
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => handleCreateStep(option.value)}
-                  className="flex flex-col items-center gap-2 p-4 rounded-lg border border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50 transition-all group"
-                >
-                  <div
-                    className="w-12 h-12 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
-                    style={{
-                      backgroundColor: `${option.color}15`,
-                    }}
+            {STEP_TYPE_OPTIONS
+              // An exit step ends the path, so it can never sit between two steps.
+              .filter(option => !(pickerContext?.mode === 'insert' && option.value === 'EXIT'))
+              .map(option => {
+                const Icon = option.icon;
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => handleCreateStep(option.value)}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg border border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50 transition-all group"
                   >
-                    <Icon className="h-6 w-6" style={{color: option.color}} />
-                  </div>
-                  <span className="text-sm font-medium text-neutral-900">{option.label}</span>
-                </button>
-              );
-            })}
+                    <div
+                      className="w-12 h-12 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
+                      style={{
+                        backgroundColor: `${option.color}15`,
+                      }}
+                    >
+                      <Icon className="h-6 w-6" style={{color: option.color}} />
+                    </div>
+                    <span className="text-sm font-medium text-neutral-900">{option.label}</span>
+                  </button>
+                );
+              })}
           </div>
+
+          {/* Reattaching a disconnected step, so a disconnect isn't a one-way door */}
+          {pickerContext?.mode === 'append' &&
+            (() => {
+              const candidates = getReconnectCandidates(pickerContext.fromStepId);
+              if (candidates.length === 0) return null;
+
+              return (
+                <div className="border-t border-neutral-200 pt-4">
+                  <p className="text-xs font-medium text-neutral-500 mb-2">Or connect to a disconnected step</p>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {candidates.map(candidate => {
+                      const Icon = STEP_TYPE_ICONS[candidate.type as keyof typeof STEP_TYPE_ICONS] ?? GitBranch;
+                      const color = STEP_TYPE_COLORS[candidate.type as keyof typeof STEP_TYPE_COLORS] ?? '#6b7280';
+                      return (
+                        <button
+                          key={candidate.id}
+                          onClick={() => handleConnectToExisting(candidate.id)}
+                          className="w-full flex items-center gap-2.5 p-2.5 rounded-lg border border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50 transition-all text-left"
+                        >
+                          <Icon className="h-4 w-4 shrink-0" style={{color}} />
+                          <span className="text-sm text-neutral-900 truncate flex-1">{candidate.name}</span>
+                          <span className="text-xs text-neutral-500 shrink-0">
+                            {STEP_TYPE_LABELS[candidate.type] ?? candidate.type}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddStepContext(null)}>
+            <Button variant="outline" onClick={() => setPickerContext(null)}>
               Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Disconnect confirmation */}
+      {transitionToDisconnect &&
+        (() => {
+          const found = findTransition(transitionToDisconnect);
+          if (!found) return null;
+
+          // Everything below the target loses its path from the trigger. It stays
+          // on the canvas and can be reattached from any + button.
+          const orphaned = found.toStep ? getAffectedSteps(found.toStep.id) : [];
+
+          return (
+            <Dialog open onOpenChange={open => !open && setTransitionToDisconnect(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Disconnect steps</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 py-1">
+                  <p className="text-sm text-neutral-600">
+                    Remove the connection from &quot;{found.fromStep.name}&quot; to &quot;{found.toStep?.name}&quot;?
+                  </p>
+                  {orphaned.length > 0 && (
+                    <p className="text-sm text-neutral-600">
+                      {orphaned.length === 1 ? 'This step' : `These ${orphaned.length} steps`} will no longer be
+                      reachable. Nothing is deleted — reconnect{orphaned.length === 1 ? ' it' : ' them'} from any{' '}
+                      <span className="font-medium">+</span> button.
+                    </p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setTransitionToDisconnect(null)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleDisconnect}>Disconnect</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
 
       {stepToDelete &&
         (() => {

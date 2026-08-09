@@ -1,5 +1,5 @@
 import type {Contact} from '@plunk/db';
-import type {CursorPaginatedResponse} from '@plunk/types';
+import type {CursorPaginatedResponse, PaginatedResponse} from '@plunk/types';
 import useSWR from 'swr';
 
 interface UseContactsOptions {
@@ -27,6 +27,35 @@ export function useContacts(options: UseContactsOptions = {}) {
   return {
     contacts: data?.data || [],
     total: data?.total || 0,
+    error,
+    isLoading,
+    mutate,
+  };
+}
+
+/**
+ * Hook to fetch the contacts belonging to a specific segment.
+ *
+ * Backed by `GET /segments/:id/contacts`, which resolves both STATIC
+ * (via SegmentMembership) and DYNAMIC (via condition) segments. Used by the
+ * email editor to scope the "Preview as" dropdown to the campaign's selected
+ * audience instead of every contact in the project.
+ *
+ * When `segmentId` is undefined/empty the SWR key is null, so no request is
+ * made and an empty list is returned (callers fall back to all contacts).
+ */
+export function useSegmentContacts(segmentId?: string, pageSize = 50) {
+  const {data, error, mutate, isLoading} = useSWR<PaginatedResponse<Contact>>(
+    segmentId ? `/segments/${segmentId}/contacts?page=1&pageSize=${pageSize}` : null,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 10000, // Prevent duplicate requests within 10 seconds
+    },
+  );
+
+  return {
+    contacts: data?.data ?? [],
+    total: data?.total ?? 0,
     error,
     isLoading,
     mutate,

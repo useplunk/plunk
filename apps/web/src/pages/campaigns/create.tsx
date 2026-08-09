@@ -316,7 +316,11 @@ export default function CreateCampaignPage() {
                   <CardDescription>Design your email message</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <EmailEditor value={body} onChange={setBody} />
+                  <EmailEditor
+                    value={body}
+                    onChange={setBody}
+                    segmentId={audienceType === CampaignAudienceType.SEGMENT ? segmentId || undefined : undefined}
+                  />
                 </CardContent>
               </Card>
 

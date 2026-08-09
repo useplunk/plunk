@@ -1,7 +1,7 @@
 import {EmailSourceType} from '@plunk/db';
 import {describe, expect, it} from 'vitest';
 
-import {DASHBOARD_URI} from '../../app/constants';
+import {API_URI} from '../../app/constants';
 import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail} from '../EmailHeaderService';
 
 describe('bodyHasListManagementLink', () => {
@@ -54,7 +54,7 @@ describe('buildEmailHeaders', () => {
       const headers = buildEmailHeaders({emailClass: 'marketing', unsubscribeId: 'contact-123'});
 
       expect(headers).toEqual({
-        'List-Unsubscribe': `<${DASHBOARD_URI}/unsubscribe/contact-123>`,
+        'List-Unsubscribe': `<${API_URI}/unsubscribe/contact-123>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         Precedence: 'bulk',
         'Auto-Submitted': 'auto-generated',
@@ -129,7 +129,7 @@ describe('buildEmailHeaders', () => {
       });
 
       expect(headers).toEqual({
-        'List-Unsubscribe': `<${DASHBOARD_URI}/unsubscribe/contact-123>`,
+        'List-Unsubscribe': `<${API_URI}/unsubscribe/contact-123>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         Precedence: 'bulk',
         'Auto-Submitted': 'auto-generated',
@@ -146,7 +146,7 @@ describe('buildEmailHeaders', () => {
         unsubscribeId: 'contact-123',
       });
 
-      expect(headers['List-Unsubscribe']).toBe(`<${DASHBOARD_URI}/unsubscribe/contact-123>`);
+      expect(headers['List-Unsubscribe']).toBe(`<${API_URI}/unsubscribe/contact-123>`);
       expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
       // A 1:1 transactional send is not bulk, so no suppression headers.
       expect(headers).not.toHaveProperty('Precedence');
@@ -159,7 +159,7 @@ describe('buildEmailHeaders', () => {
         unsubscribeId: 'contact-123',
       });
 
-      expect(headers['List-Unsubscribe']).toBe(`<${DASHBOARD_URI}/unsubscribe/contact-123>`);
+      expect(headers['List-Unsubscribe']).toBe(`<${API_URI}/unsubscribe/contact-123>`);
       expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
     });
 
@@ -180,7 +180,7 @@ describe('buildEmailHeaders', () => {
       });
 
       expect(headers).toEqual({
-        'List-Unsubscribe': `<${DASHBOARD_URI}/unsubscribe/contact-123>`,
+        'List-Unsubscribe': `<${API_URI}/unsubscribe/contact-123>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         Precedence: 'bulk',
         'Auto-Submitted': 'auto-generated',
@@ -223,6 +223,78 @@ describe('buildEmailHeaders', () => {
       expect(headers).not.toHaveProperty('X-Auto-Response-Suppress');
       const suppressKeys = Object.keys(headers).filter(k => k.toLowerCase() === 'x-auto-response-suppress');
       expect(suppressKeys).toHaveLength(1);
+    });
+  });
+
+  describe('caller-supplied List-Unsubscribe (bring your own list management)', () => {
+    it('drops the default one-click claim when the caller supplies only the URL', () => {
+      const headers = buildEmailHeaders({
+        emailClass: 'marketing',
+        unsubscribeId: 'contact-123',
+        customHeaders: {'List-Unsubscribe': '<https://acme.test/unsub?c=123>'},
+      });
+
+      // Plunk must not assert one-click for a URL the caller never claimed
+      // supports an unattended POST.
+      expect(headers['List-Unsubscribe']).toBe('<https://acme.test/unsub?c=123>');
+      expect(headers).not.toHaveProperty('List-Unsubscribe-Post');
+      // Unrelated defaults are untouched.
+      expect(headers.Precedence).toBe('bulk');
+    });
+
+    it('takes the caller pair verbatim when both members are supplied', () => {
+      const headers = buildEmailHeaders({
+        emailClass: 'marketing',
+        unsubscribeId: 'contact-123',
+        customHeaders: {
+          'List-Unsubscribe': '<https://acme.test/unsub?c=123>, <mailto:unsub@acme.test>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      });
+
+      expect(headers['List-Unsubscribe']).toBe('<https://acme.test/unsub?c=123>, <mailto:unsub@acme.test>');
+      expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+    });
+
+    it('drops both defaults case-insensitively, leaving no duplicate header', () => {
+      const headers = buildEmailHeaders({
+        emailClass: 'marketing',
+        unsubscribeId: 'contact-123',
+        customHeaders: {'list-unsubscribe': '<https://acme.test/unsub?c=123>'},
+      });
+
+      const unsubscribeKeys = Object.keys(headers).filter(k => k.toLowerCase().startsWith('list-unsubscribe'));
+      expect(unsubscribeKeys).toEqual(['list-unsubscribe']);
+    });
+
+    it('does not leave a dangling -Post when the caller supplies only that member', () => {
+      const headers = buildEmailHeaders({
+        emailClass: 'marketing',
+        unsubscribeId: 'contact-123',
+        customHeaders: {'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'},
+      });
+
+      // Degenerate input, but the result must never be a one-click claim with no
+      // target: taking over one member means taking over both.
+      expect(headers).not.toHaveProperty('List-Unsubscribe');
+    });
+
+    it('lets a headless send opt in to list management Plunk cannot detect', () => {
+      // A HEADLESS body pointing at the sender's own opt-out page: no Plunk link
+      // in the body, so no default pair — the caller's headers supply it.
+      const headers = buildEmailHeaders({
+        emailClass: 'headless',
+        isCampaign: true,
+        unsubscribeId: 'contact-123',
+        customHeaders: {
+          'List-Unsubscribe': '<https://acme.test/unsub?c=123>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      });
+
+      expect(headers['List-Unsubscribe']).toBe('<https://acme.test/unsub?c=123>');
+      expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+      expect(headers.Precedence).toBe('bulk');
     });
   });
 });

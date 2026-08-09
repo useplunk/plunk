@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.13.0](https://github.com/useplunk/plunk/compare/v0.12.0...v0.13.0) (2026-08-09)
+
+
+### Features
+
+* add email body cleanup job to remove old email content after 90 days ([cef8ce0](https://github.com/useplunk/plunk/commit/cef8ce0b419ae29d3527c8038318bf4be9f62f5d))
+* **api:** insert steps mid-transition and validate connections ([6343ef5](https://github.com/useplunk/plunk/commit/6343ef50a9abbeb2e350b611b9c746ba4d5e5c65))
+* classify emails and build headers based on email type ([8f23d8a](https://github.com/useplunk/plunk/commit/8f23d8aac479ae4e7d9926965f090c75afd3f6d5)), closes [#411](https://github.com/useplunk/plunk/issues/411)
+* hide signup link from login when DISABLE_SIGNUPS is set ([21ea0b8](https://github.com/useplunk/plunk/commit/21ea0b80d63b8897bb74323820e6dacae5ab1feb))
+* **i18n:** add Swedish (sv) translations ([1fbaccc](https://github.com/useplunk/plunk/commit/1fbaccccb06f5d94e4e6a65b84f4c03178d10356))
+* **i18n:** add Swedish (sv) translations ([bdd5ab7](https://github.com/useplunk/plunk/commit/bdd5ab777befececce5350dfb3755046296beb11))
+* implement idempotency for POST /v1/track and POST /v1/send with cleanup job ([94c85ac](https://github.com/useplunk/plunk/commit/94c85acf2441049b866a520d7e083e1b65aa4944))
+* insert, disconnect and reconnect steps in the workflow editor ([aa4b011](https://github.com/useplunk/plunk/commit/aa4b011678418e28987ec360db1c196c89a1f759))
+* One post click unsubscribe links for Plunk hosted emails ([64b51df](https://github.com/useplunk/plunk/commit/64b51df8301182aa44b47855b1eb15a06cd3ffaa))
+* **web:** insert, disconnect and reconnect steps in the workflow editor ([68cd243](https://github.com/useplunk/plunk/commit/68cd2439bd3151eadc85d35a88b1ad582374208c))
+* **web:** scope email editor 'Preview as' to the campaign's segment ([abef349](https://github.com/useplunk/plunk/commit/abef34949d8d3106f67211d446e97bb91b2fac5c))
+* **web:** scope email editor 'Preview as' to the campaign's segment ([184f019](https://github.com/useplunk/plunk/commit/184f0197238fac37baa4a2536d7cc5519a472bad))
+
+
+### Bug Fixes
+
+* **api:** close SSRF bypass via IPv6 transition addresses in webhooks ([a60ce6b](https://github.com/useplunk/plunk/commit/a60ce6b87c3b88b23365b6cb2367ca4afcb6f772))
+* **api:** close SSRF bypass via IPv6 transition addresses in webhooks ([e71c747](https://github.com/useplunk/plunk/commit/e71c747a84f0858a2861aef9d3034d5bb5f54d87))
+* **events:** reject cross-tenant contact and email IDs on event tracking ([7aad5de](https://github.com/useplunk/plunk/commit/7aad5deb3d03895a0a0c7877edc91aaebb389f8f))
+* **events:** reject cross-tenant contact and email IDs on event tracking ([6ff7ad0](https://github.com/useplunk/plunk/commit/6ff7ad07b8e6b55e4cc5421fb3d351826aef4f0f))
+* refine date filtering logic for activity feeds and pagination ([3b86873](https://github.com/useplunk/plunk/commit/3b868734dafad4453c10667d65b34853aaaf1bba))
+
+
+### Documentation
+
+* Update OpenAPI spec to reflect implementation ([ff609f8](https://github.com/useplunk/plunk/commit/ff609f8de1f6c08720a977116ac9b75f759e7dc9))
+
 ## [0.12.0](https://github.com/useplunk/plunk/compare/v0.11.0...v0.12.0) (2026-06-21)
 
 

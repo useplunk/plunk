@@ -1,7 +1,10 @@
 import {Controller, Delete, Get, Middleware, Post} from '@overnightjs/core';
 import type {NextFunction, Request, Response} from 'express';
 import signale from 'signale';
+import {prisma} from '../database/prisma.js';
+import {NotFound} from '../exceptions/index.js';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
+import {ContactService} from '../services/ContactService.js';
 import {EventService} from '../services/EventService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
@@ -20,6 +23,24 @@ export class Events {
 
     if (!name) {
       return res.status(400).json({error: 'Event name is required'});
+    }
+
+    // Both IDs are client-supplied: they must belong to the authenticated project
+    // before they are recorded or used to start workflows (cross-tenant IDOR)
+    if (contactId) {
+      // Throws a 404 when the contact belongs to another project
+      await ContactService.get(auth.projectId!, contactId);
+    }
+
+    if (emailId) {
+      const email = await prisma.email.findFirst({
+        where: {id: emailId, projectId: auth.projectId!},
+        select: {id: true},
+      });
+
+      if (!email) {
+        throw new NotFound('email', emailId);
+      }
     }
 
     const event = await EventService.trackEvent(auth.projectId!, name, contactId, emailId, data);
