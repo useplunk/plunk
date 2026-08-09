@@ -1,7 +1,7 @@
 import type {TemplateType} from '@plunk/db';
 import {EmailSourceType} from '@plunk/db';
 
-import {DASHBOARD_URI} from '../app/constants.js';
+import {API_URI} from '../app/constants.js';
 
 /**
  * Classification of an outbound email, derived by the caller from the email's
@@ -120,8 +120,15 @@ export function buildEmailHeaders({
   // providers to render the one-click control, and List-Unsubscribe-Post is
   // meaningless without a target, so the pair is only emitted together when we
   // have an unsubscribe URL to point at.
+  //
+  // The URL must point at the API's one-click endpoint, not the dashboard page:
+  // RFC 8058 requires the target to unsubscribe on a bare POST, with no user
+  // interaction. The dashboard route is a client-rendered page that only
+  // unsubscribes on a button click, so a provider POSTing to it would get a
+  // response but change nothing. `GET /unsubscribe/:id` on the API redirects to
+  // that dashboard page, so this one URL still serves humans who click through.
   if ((isMarketing || hasListManagementLink) && unsubscribeId) {
-    defaults['List-Unsubscribe'] = `<${DASHBOARD_URI}/unsubscribe/${unsubscribeId}>`;
+    defaults['List-Unsubscribe'] = `<${API_URI}/unsubscribe/${unsubscribeId}>`;
     defaults['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
   }
 
@@ -139,11 +146,26 @@ export function buildEmailHeaders({
 }
 
 /**
+ * The RFC 8058 one-click pair. These two headers are a single assertion split
+ * across two lines — `List-Unsubscribe-Post` claims that the URL in
+ * `List-Unsubscribe` honors an unattended POST — so they are merged as a unit
+ * rather than name by name. See {@link mergeHeaders}.
+ */
+const LIST_UNSUBSCRIBE_PAIR = ['list-unsubscribe', 'list-unsubscribe-post'];
+
+/**
  * Merge caller-supplied headers over Plunk's defaults. Header names are
  * case-insensitive per RFC 5322 §2.2, so a caller header replaces the matching
  * default (rather than producing a duplicate line), keeping the caller's casing
  * and value. Defaults keep their original order; any caller-only headers are
  * appended after them.
+ *
+ * The one-click pair is the exception to the name-by-name rule: a caller who
+ * supplies either member takes over both. Merging them independently would let a
+ * caller who sets only `List-Unsubscribe` (pointing at their own endpoint)
+ * inherit Plunk's `List-Unsubscribe-Post`, making us assert one-click support for
+ * a URL that never claimed it — mailbox providers would then POST to an endpoint
+ * that may do nothing, and silently report the unsubscribe as done.
  */
 function mergeHeaders(
   defaults: Record<string, string>,
@@ -153,9 +175,16 @@ function mergeHeaders(
     return {...defaults};
   }
 
+  const customNames = new Set(Object.keys(custom).map(name => name.toLowerCase()));
+  const customOwnsUnsubscribePair = LIST_UNSUBSCRIBE_PAIR.some(name => customNames.has(name));
+
   const byLowerName = new Map<string, {name: string; value: string}>();
   for (const [name, value] of Object.entries(defaults)) {
-    byLowerName.set(name.toLowerCase(), {name, value});
+    const lowerName = name.toLowerCase();
+    if (customOwnsUnsubscribePair && LIST_UNSUBSCRIBE_PAIR.includes(lowerName)) {
+      continue;
+    }
+    byLowerName.set(lowerName, {name, value});
   }
   for (const [name, value] of Object.entries(custom)) {
     byLowerName.set(name.toLowerCase(), {name, value});
