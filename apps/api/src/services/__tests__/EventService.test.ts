@@ -158,6 +158,27 @@ describe('EventService', () => {
       expect([WorkflowExecutionStatus.WAITING, WorkflowExecutionStatus.COMPLETED]).toContain(executions[0].status);
     });
 
+    it('should NOT start a workflow for a contact from another project', async () => {
+      const {project: otherProject} = await factories.createUserWithProject();
+      const foreignContact = await factories.createContact({projectId: otherProject.id});
+
+      const workflow = await factories.createWorkflow({
+        projectId,
+        enabled: true,
+        triggerType: WorkflowTriggerType.EVENT,
+        triggerConfig: {eventName: 'cross.tenant'},
+      });
+
+      // Event tracked in this project, but pointing at another tenant's contact
+      await EventService.trackEvent(projectId, 'cross.tenant', foreignContact.id);
+
+      const executions = await prisma.workflowExecution.findMany({
+        where: {workflowId: workflow.id},
+      });
+
+      expect(executions).toHaveLength(0);
+    });
+
     it('should NOT trigger disabled workflows', async () => {
       const contact = await factories.createContact({projectId});
 
