@@ -26,7 +26,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "API Key",
-        "description": "API Key authentication. **Secret keys (sk_*)** are required for all endpoints except `/v1/track`. **Public keys (pk_*)** only work with the `/v1/track` endpoint for client-side event tracking. The project is automatically derived from the key."
+        "description": "API Key authentication. The project is automatically derived from the key.\n\n**`/v1/track` requires a public key (`pk_*`)** — it is the one endpoint intended for client-side use, and a secret key is rejected there with `401`.\n\n**Every other endpoint requires a secret key (`sk_*`)** and rejects public keys with `401`.\n\nSo the two key types are not interchangeable in either direction: pick the key that matches the endpoint you are calling."
       }
     },
     "schemas": {
@@ -70,17 +70,43 @@
           "name": {
             "type": "string"
           },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
           "subject": {
             "type": "string"
           },
           "body": {
-            "type": "string"
+            "type": "string",
+            "description": "HTML content with `{{variable}}` placeholders."
+          },
+          "from": {
+            "type": "string",
+            "format": "email",
+            "description": "Sender address. Must belong to a verified domain."
+          },
+          "fromName": {
+            "type": "string",
+            "nullable": true
+          },
+          "replyTo": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
           },
           "type": {
             "type": "string",
-            "enum": ["TRANSACTIONAL", "MARKETING"]
+            "enum": ["TRANSACTIONAL", "MARKETING", "HEADLESS"]
+          },
+          "projectId": {
+            "type": "string"
           },
           "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -95,21 +121,95 @@
           "name": {
             "type": "string"
           },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
           "subject": {
             "type": "string"
           },
+          "body": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "format": "email"
+          },
+          "fromName": {
+            "type": "string",
+            "nullable": true
+          },
+          "replyTo": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
           "type": {
             "type": "string",
-            "enum": ["ALL", "SEGMENT", "FILTERED"]
+            "enum": ["TRANSACTIONAL", "MARKETING", "HEADLESS"],
+            "description": "Content type of the campaign email. Not to be confused with `audienceType`."
           },
           "status": {
             "type": "string",
-            "enum": ["DRAFT", "SCHEDULED", "SENDING", "SENT"]
+            "enum": ["DRAFT", "SCHEDULED", "SENDING", "SENT", "CANCELLED"]
           },
-          "scheduledAt": {
+          "audienceType": {
+            "type": "string",
+            "enum": ["ALL", "SEGMENT", "FILTERED"]
+          },
+          "audienceCondition": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FilterCondition"
+              }
+            ],
+            "nullable": true,
+            "description": "Set when `audienceType` is `FILTERED`."
+          },
+          "segmentId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Set when `audienceType` is `SEGMENT`."
+          },
+          "scheduledFor": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the campaign is scheduled to send. Null for immediate or unsent campaigns."
+          },
+          "totalRecipients": {
+            "type": "integer"
+          },
+          "sentCount": {
+            "type": "integer"
+          },
+          "deliveredCount": {
+            "type": "integer"
+          },
+          "openedCount": {
+            "type": "integer"
+          },
+          "clickedCount": {
+            "type": "integer"
+          },
+          "bouncedCount": {
+            "type": "integer"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "sentAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -122,31 +222,195 @@
           "name": {
             "type": "string"
           },
-          "filters": {
-            "type": "object"
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": ["DYNAMIC", "STATIC"],
+            "description": "`DYNAMIC` segments are evaluated from `condition`. `STATIC` segments hold a manually managed member list."
+          },
+          "condition": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FilterCondition"
+              }
+            ],
+            "nullable": true,
+            "description": "Filter condition for `DYNAMIC` segments. Null for `STATIC` segments."
           },
           "trackMembership": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "When true, contacts entering or leaving the segment emit `segment.<slug>.entry` / `segment.<slug>.exit` events."
           },
           "memberCount": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Cached member count, refreshed by a background job rather than computed per request."
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Filter": {
+        "type": "object",
+        "required": ["field", "operator"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Contact field to test. Custom fields are addressed via the `data.` prefix (e.g. `data.plan`); standard fields are `email`, `subscribed`, `createdAt`. Event operators take an event name instead."
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "equals",
+              "notEquals",
+              "contains",
+              "notContains",
+              "greaterThan",
+              "lessThan",
+              "greaterThanOrEqual",
+              "lessThanOrEqual",
+              "exists",
+              "notExists",
+              "within",
+              "olderThan",
+              "triggered",
+              "triggeredWithin",
+              "triggeredOlderThan",
+              "notTriggered",
+              "notTriggeredWithin",
+              "memberOfSegment",
+              "notMemberOfSegment"
+            ]
+          },
+          "value": {
+            "description": "Comparison value. Omitted for `exists` / `notExists` / `triggered` / `notTriggered`. For time-window operators this is the number of `unit`s."
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["days", "hours", "minutes"],
+            "description": "Time unit for window operators (`within`, `olderThan`, `triggeredWithin`, `triggeredOlderThan`, `notTriggeredWithin`)."
+          }
+        }
+      },
+      "FilterGroup": {
+        "type": "object",
+        "required": ["filters"],
+        "properties": {
+          "filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Filter"
+            },
+            "description": "Filters within a group are combined with AND."
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/FilterCondition",
+            "description": "Optional nested condition, allowing arbitrarily deep AND/OR trees."
+          }
+        }
+      },
+      "FilterCondition": {
+        "type": "object",
+        "required": ["logic", "groups"],
+        "description": "A boolean tree over contact filters. `logic` combines the `groups`; the filters inside each group are always ANDed together.",
+        "properties": {
+          "logic": {
+            "type": "string",
+            "enum": ["AND", "OR"]
+          },
+          "groups": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/FilterGroup"
+            }
+          }
+        }
+      },
+      "LegacyError": {
+        "type": "object",
+        "description": "Flat error shape returned by the hand-validated create/update endpoints (`POST /contacts`, `POST /templates`, `POST /segments`) for missing required fields. Unlike the rest of the API these return `400` with a bare `error` string rather than the standard envelope. Errors raised deeper in those same endpoints (404, 409, domain verification) still use the standard `Error` envelope.",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "FieldError": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Dot-path of the offending field, e.g. `attachments.0.filename`."
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "Validation issue code, e.g. `invalid_type`, `too_big`, `reserved_event`."
+          },
+          "received": {
+            "description": "The value that was received, when available."
           }
         }
       },
       "Error": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "integer"
+          "success": {
+            "type": "boolean",
+            "enum": [false]
           },
           "error": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Machine-readable error code, e.g. `VALIDATION_ERROR`, `INVALID_API_KEY`, `IDEMPOTENCY_KEY_REUSED`."
+              },
+              "message": {
+                "type": "string"
+              },
+              "statusCode": {
+                "type": "integer"
+              },
+              "requestId": {
+                "type": "string",
+                "description": "Correlation ID for this request. Include it when contacting support."
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FieldError"
+                },
+                "description": "Field-level detail, present on validation failures."
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Additional error context."
+              },
+              "suggestion": {
+                "type": "string",
+                "description": "Hint for fixing the request."
+              }
+            }
           },
-          "message": {
-            "type": "string"
-          },
-          "time": {
-            "type": "integer"
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }
@@ -161,7 +425,7 @@
           "maximum": 100,
           "default": 20
         },
-        "description": "Maximum items per page"
+        "description": "Maximum items per page. Values above 100 are clamped to 100."
       },
       "Cursor": {
         "name": "cursor",
@@ -169,7 +433,37 @@
         "schema": {
           "type": "string"
         },
-        "description": "Pagination cursor"
+        "description": "Pagination cursor. Pass the `cursor` returned by the previous page."
+      },
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "description": "1-based page number."
+      },
+      "PageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 20
+        },
+        "description": "Items per page."
+      },
+      "SortDirection": {
+        "name": "dir",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "enum": ["asc", "desc"],
+          "default": "desc"
+        },
+        "description": "Sort direction. Unrecognised values fall back to the default."
       },
       "IdempotencyKey": {
         "name": "Idempotency-Key",
@@ -180,6 +474,113 @@
           "maxLength": 255
         },
         "description": "Optional key that guarantees this request runs at most once. If the key was already used by your project, the request is refused with `409` instead of being performed a second time. Keys are scoped to your project, expire after 24 hours (configurable when self-hosting), and must be 1-255 printable ASCII characters."
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Request body failed schema validation. `error.errors` lists the offending fields.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "success": false,
+              "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Request validation failed",
+                "statusCode": 422,
+                "requestId": "8f14e45f-ceea-467a-9575-1f0f38e0b1c2",
+                "errors": [
+                  {
+                    "field": "to",
+                    "message": "Invalid email",
+                    "code": "invalid_string"
+                  }
+                ],
+                "suggestion": "Please check the API documentation for the correct request format."
+              },
+              "timestamp": "2025-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid API key.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "success": false,
+              "error": {
+                "code": "INVALID_API_KEY",
+                "message": "Invalid secret API key. This endpoint requires a secret key (sk_*), not a public key.",
+                "statusCode": 401,
+                "requestId": "8f14e45f-ceea-467a-9575-1f0f38e0b1c2"
+              },
+              "timestamp": "2025-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "UnverifiedDomain": {
+        "description": "The sender domain is not registered to this project, or has not completed DNS verification. Add and verify the domain in your project settings first.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "success": false,
+              "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "Domain \"example.com\" is not verified. Please complete the DNS verification process in your domain settings.",
+                "statusCode": 403,
+                "requestId": "8f14e45f-ceea-467a-9575-1f0f38e0b1c2"
+              },
+              "timestamp": "2025-01-15T10:30:00.000Z"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "The requested resource does not exist in this project.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "IdempotencyConflict": {
+        "description": "Idempotency-Key already used. The request was refused, not performed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "success": false,
+              "error": {
+                "code": "IDEMPOTENCY_KEY_REUSED",
+                "message": "Idempotency-Key \"order-1234-receipt\" has already been used",
+                "statusCode": 409,
+                "requestId": "8f14e45f-ceea-467a-9575-1f0f38e0b1c2",
+                "details": {
+                  "key": "order-1234-receipt",
+                  "originalRequest": "POST /v1/send",
+                  "originalRequestAt": "2025-01-15T10:30:00.000Z",
+                  "originalStatusCode": 200
+                },
+                "suggestion": "This Idempotency-Key was already used, so the request was refused rather than performed twice. Generate a new key for a genuinely new request."
+              },
+              "timestamp": "2025-01-15T10:31:00.000Z"
+            }
+          }
+        }
       }
     }
   },
@@ -264,6 +665,7 @@
                   },
                   "template": {
                     "type": "string",
+                    "format": "uuid",
                     "description": "Template ID to use for this email. When provided, uses the template's subject, body, from, and reply-to settings. You can override these by explicitly providing subject, body, from, or reply fields in the request. Template variables are populated from the data field."
                   },
                   "from": {
@@ -410,7 +812,7 @@
                   "description": "Send email using a template. Provide the template ID and any data for template variables. The template's subject, body, from address, and reply-to will be used automatically.",
                   "value": {
                     "to": "user@example.com",
-                    "template": "clx123abc456",
+                    "template": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
                     "data": {
                       "firstName": "John",
                       "lastName": "Doe",
@@ -426,7 +828,7 @@
                   "description": "You can override template values by providing subject, body, from, or reply fields. This example overrides the template's subject line.",
                   "value": {
                     "to": "user@example.com",
-                    "template": "clx123abc456",
+                    "template": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
                     "subject": "Custom Subject Override",
                     "data": {
                       "firstName": "Jane"
@@ -525,7 +927,7 @@
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Malformed JSON body, or an invalid `Idempotency-Key` header.",
             "content": {
               "application/json": {
                 "schema": {
@@ -535,7 +937,20 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The project is disabled and cannot send.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The `template` ID does not exist in this project.",
             "content": {
               "application/json": {
                 "schema": {
@@ -545,31 +960,10 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key already used. The request was refused, not performed.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "success": false,
-                  "error": {
-                    "code": "IDEMPOTENCY_KEY_REUSED",
-                    "message": "Idempotency-Key \"order-1234-receipt\" has already been used",
-                    "statusCode": 409,
-                    "requestId": "8f14e45f-ceea-467a-9575-1f0f38e0b1c2",
-                    "details": {
-                      "key": "order-1234-receipt",
-                      "originalRequest": "POST /v1/send",
-                      "originalRequestAt": "2025-01-15T10:30:00.000Z",
-                      "originalStatusCode": 200
-                    },
-                    "suggestion": "This Idempotency-Key was already used, so the request was refused rather than performed twice. Generate a new key for a genuinely new request."
-                  },
-                  "timestamp": "2025-01-15T10:31:00.000Z"
-                }
-              }
-            }
+            "$ref": "#/components/responses/IdempotencyConflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
           }
         },
         "parameters": [
@@ -657,32 +1051,14 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "409": {
-            "description": "Idempotency-Key already used. The request was refused, not performed.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "success": false,
-                  "error": {
-                    "code": "IDEMPOTENCY_KEY_REUSED",
-                    "message": "Idempotency-Key \"order-1234-receipt\" has already been used",
-                    "statusCode": 409,
-                    "requestId": "8f14e45f-ceea-467a-9575-1f0f38e0b1c2",
-                    "details": {
-                      "key": "order-1234-receipt",
-                      "originalRequest": "POST /v1/send",
-                      "originalRequestAt": "2025-01-15T10:30:00.000Z",
-                      "originalStatusCode": 200
-                    },
-                    "suggestion": "This Idempotency-Key was already used, so the request was refused rather than performed twice. Generate a new key for a genuinely new request."
-                  },
-                  "timestamp": "2025-01-15T10:31:00.000Z"
-                }
-              }
-            }
+            "$ref": "#/components/responses/IdempotencyConflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
           }
         },
         "parameters": [
@@ -888,25 +1264,11 @@
               }
             }
           },
-          "400": {
-            "description": "Bad request - invalid email format",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "401": {
-            "description": "Unauthorized - invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
           }
         }
       }
@@ -931,6 +1293,27 @@
               "type": "string"
             },
             "description": "Case-insensitive substring match on email."
+          },
+          {
+            "name": "subscribed",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by subscription state. Omit to return both subscribed and unsubscribed contacts."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["email", "createdAt"],
+              "default": "createdAt"
+            },
+            "description": "Column to sort by. Unrecognised values fall back to `createdAt`."
+          },
+          {
+            "$ref": "#/components/parameters/SortDirection"
           }
         ],
         "responses": {
@@ -963,6 +1346,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
@@ -1065,6 +1451,22 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "`email` was not supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyError"
+                },
+                "example": {
+                  "error": "Email is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
@@ -1096,8 +1498,11 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "404": {
-            "description": "Contact not found"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       },
@@ -1153,8 +1558,21 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "409": {
-            "description": "An existing contact already uses the email you're trying to set."
+            "description": "An existing contact already uses the email you're trying to set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -1177,8 +1595,11 @@
           "204": {
             "description": "Contact deleted successfully (no content returned)"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "404": {
-            "description": "Contact not found"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
@@ -1187,29 +1608,44 @@
       "get": {
         "tags": ["Templates"],
         "summary": "List templates",
-        "description": "Get a paginated list of email templates",
+        "description": "Get a paginated list of email templates.\n\nThis endpoint uses **offset pagination** (`page` / `pageSize`), not the cursor pagination used by `GET /contacts`.",
         "operationId": "listTemplates",
         "parameters": [
           {
-            "$ref": "#/components/parameters/Limit"
+            "$ref": "#/components/parameters/Page"
           },
           {
-            "$ref": "#/components/parameters/Cursor"
+            "$ref": "#/components/parameters/PageSize"
           },
           {
             "name": "type",
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": ["TRANSACTIONAL", "MARKETING"]
-            }
+              "enum": ["TRANSACTIONAL", "MARKETING", "HEADLESS"]
+            },
+            "description": "Filter by template type."
           },
           {
             "name": "search",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Case-insensitive match on name, description, or subject."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["name", "createdAt", "updatedAt"],
+              "default": "createdAt"
+            },
+            "description": "Column to sort by. Unrecognised values fall back to `createdAt`."
+          },
+          {
+            "$ref": "#/components/parameters/SortDirection"
           }
         ],
         "responses": {
@@ -1220,14 +1656,15 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "templates": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Template"
                       }
                     },
                     "total": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "Total templates matching the filters, across all pages."
                     },
                     "page": {
                       "type": "integer"
@@ -1242,13 +1679,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
       "post": {
         "tags": ["Templates"],
         "summary": "Create template",
-        "description": "Create a new email template",
+        "description": "Create a new email template.\n\n`from` is required and its domain must already be verified for this project, otherwise the request is rejected.",
         "operationId": "createTemplate",
         "requestBody": {
           "required": true,
@@ -1256,22 +1696,51 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "subject", "body", "type"],
+                "required": ["name", "subject", "body", "from"],
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Internal name for the template."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional internal note. Not sent to recipients."
                   },
                   "subject": {
                     "type": "string"
                   },
                   "body": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "HTML body. Use `{{variable}}` placeholders to interpolate contact data at send time."
+                  },
+                  "from": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Sender address. Must belong to a domain verified for this project."
+                  },
+                  "fromName": {
+                    "type": "string",
+                    "description": "Sender display name."
+                  },
+                  "replyTo": {
+                    "type": "string",
+                    "format": "email"
                   },
                   "type": {
                     "type": "string",
-                    "enum": ["TRANSACTIONAL", "MARKETING"]
+                    "enum": ["TRANSACTIONAL", "MARKETING", "HEADLESS"],
+                    "default": "MARKETING",
+                    "description": "Optional. Defaults to `MARKETING` when omitted."
                   }
                 }
+              },
+              "example": {
+                "name": "Password reset",
+                "subject": "Reset your password",
+                "body": "<h1>Hi {{firstName}}</h1><p>Use this code: {{resetCode}}</p>",
+                "from": "hello@example.com",
+                "fromName": "My App",
+                "type": "TRANSACTIONAL"
               }
             }
           }
@@ -1286,6 +1755,25 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "A required field (`name`, `subject`, `body`, `from`) is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyError"
+                },
+                "example": {
+                  "error": "From address is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/UnverifiedDomain"
           }
         }
       }
@@ -1294,22 +1782,44 @@
       "get": {
         "tags": ["Campaigns"],
         "summary": "List campaigns",
-        "description": "Get a paginated list of email campaigns",
+        "description": "Get a paginated list of email campaigns.\n\nThis endpoint uses **offset pagination** (`page` / `pageSize`), not the cursor pagination used by `GET /contacts`.",
         "operationId": "listCampaigns",
         "parameters": [
           {
-            "$ref": "#/components/parameters/Limit"
+            "$ref": "#/components/parameters/Page"
           },
           {
-            "$ref": "#/components/parameters/Cursor"
+            "$ref": "#/components/parameters/PageSize"
           },
           {
             "name": "status",
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": ["DRAFT", "SCHEDULED", "SENDING", "SENT"]
-            }
+              "enum": ["DRAFT", "SCHEDULED", "SENDING", "SENT", "CANCELLED"]
+            },
+            "description": "Filter by campaign status. An unrecognised value returns `400`."
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive match on name, subject, or sender address."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["name", "createdAt", "updatedAt"],
+              "default": "createdAt"
+            },
+            "description": "Column to sort by. Unrecognised values fall back to `createdAt`."
+          },
+          {
+            "$ref": "#/components/parameters/SortDirection"
           }
         ],
         "responses": {
@@ -1320,7 +1830,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "campaigns": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Campaign"
@@ -1333,7 +1843,8 @@
                       "type": "integer"
                     },
                     "total": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "Total campaigns matching the filters, across all pages."
                     },
                     "totalPages": {
                       "type": "integer"
@@ -1342,13 +1853,26 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid `status` value.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
       "post": {
         "tags": ["Campaigns"],
         "summary": "Create campaign",
-        "description": "Create a new email campaign",
+        "description": "Create a new email campaign. Campaigns are created as `DRAFT`; use `POST /campaigns/{id}/send` to send or schedule one.\n\nThe sender domain must already be verified for this project.\n\n**Audience:** `audienceType` decides which companion field is required — `SEGMENT` requires `segmentId`, `FILTERED` requires `audienceCondition`, and `ALL` requires neither.",
         "operationId": "createCampaign",
         "requestBody": {
           "required": true,
@@ -1388,6 +1912,12 @@
                     "format": "email",
                     "description": "Reply-to email address"
                   },
+                  "type": {
+                    "type": "string",
+                    "enum": ["TRANSACTIONAL", "MARKETING", "HEADLESS"],
+                    "default": "MARKETING",
+                    "description": "Content type of the campaign email. Defaults to `MARKETING`."
+                  },
                   "audienceType": {
                     "type": "string",
                     "enum": ["ALL", "SEGMENT", "FILTERED"],
@@ -1395,11 +1925,71 @@
                   },
                   "segmentId": {
                     "type": "string",
-                    "description": "Segment ID (required if audienceType is SEGMENT)"
+                    "format": "uuid",
+                    "description": "Segment ID. Required when `audienceType` is `SEGMENT`."
                   },
-                  "audienceFilter": {
-                    "type": "object",
-                    "description": "Filter conditions (required if audienceType is FILTERED)"
+                  "audienceCondition": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/FilterCondition"
+                      }
+                    ],
+                    "description": "Audience filter tree. Required when `audienceType` is `FILTERED`. Same structure as a segment's `condition`."
+                  }
+                }
+              },
+              "examples": {
+                "allContacts": {
+                  "summary": "Send to every contact",
+                  "value": {
+                    "name": "March newsletter",
+                    "subject": "What shipped in March",
+                    "body": "<h1>Hello {{firstName}}</h1>",
+                    "from": "news@example.com",
+                    "fromName": "Example",
+                    "audienceType": "ALL"
+                  }
+                },
+                "segment": {
+                  "summary": "Send to a saved segment",
+                  "value": {
+                    "name": "Premium announcement",
+                    "subject": "A new perk for premium users",
+                    "body": "<h1>Hello {{firstName}}</h1>",
+                    "from": "news@example.com",
+                    "audienceType": "SEGMENT",
+                    "segmentId": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f"
+                  }
+                },
+                "filtered": {
+                  "summary": "Send to an ad-hoc filter",
+                  "description": "Premium users who signed up in the last 30 days.",
+                  "value": {
+                    "name": "New premium onboarding",
+                    "subject": "Getting started",
+                    "body": "<h1>Welcome {{firstName}}</h1>",
+                    "from": "news@example.com",
+                    "audienceType": "FILTERED",
+                    "audienceCondition": {
+                      "logic": "AND",
+                      "groups": [
+                        {
+                          "filters": [
+                            {
+                              "field": "data.plan",
+                              "operator": "equals",
+                              "value": "premium"
+                            },
+                            {
+                              "field": "createdAt",
+                              "operator": "within",
+                              "value": 30,
+                              "unit": "days"
+                            }
+                          ]
+                        }
+                      ]
+                    }
                   }
                 }
               }
@@ -1407,7 +1997,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Campaign created",
             "content": {
               "application/json": {
@@ -1424,6 +2014,25 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "`segmentId` missing for a `SEGMENT` campaign, or `audienceCondition` missing for a `FILTERED` campaign.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/UnverifiedDomain"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
           }
         }
       }
@@ -1432,7 +2041,7 @@
       "post": {
         "tags": ["Campaigns"],
         "summary": "Send or schedule campaign",
-        "description": "Send a campaign immediately or schedule for future delivery",
+        "description": "Send a campaign immediately or schedule it for future delivery.",
         "operationId": "sendCampaign",
         "parameters": [
           {
@@ -1440,7 +2049,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -1454,7 +2064,19 @@
                     "type": "string",
                     "format": "date-time",
                     "nullable": true,
-                    "description": "ISO 8601 timestamp for when to send the campaign. Omit or set to null for immediate send."
+                    "description": "Timestamp for when to send the campaign. Omit or set to null for immediate send. Any value `new Date()` can parse is accepted; an unparseable one returns `400`."
+                  }
+                }
+              },
+              "examples": {
+                "immediate": {
+                  "summary": "Send now",
+                  "value": {}
+                },
+                "scheduled": {
+                  "summary": "Schedule for later",
+                  "value": {
+                    "scheduledFor": "2025-02-01T09:00:00.000Z"
                   }
                 }
               }
@@ -1463,7 +2085,62 @@
         },
         "responses": {
           "200": {
-            "description": "Campaign scheduled/sending"
+            "description": "Campaign scheduled or sending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Campaign"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable confirmation, e.g. `Campaign is being sent`."
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
+                    "name": "March newsletter",
+                    "status": "SCHEDULED",
+                    "scheduledFor": "2025-02-01T09:00:00.000Z"
+                  },
+                  "message": "Campaign scheduled for 2025-02-01T09:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unparseable `scheduledFor`, or the campaign is not in a sendable state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "The campaign `id` in the path is not a valid UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1472,7 +2149,7 @@
       "get": {
         "tags": ["Segments"],
         "summary": "List segments",
-        "description": "Get all audience segments",
+        "description": "Get all audience segments for the project, newest first. This endpoint is not paginated — it returns a bare array of every segment.",
         "operationId": "listSegments",
         "responses": {
           "200": {
@@ -1487,13 +2164,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
       "post": {
         "tags": ["Segments"],
         "summary": "Create segment",
-        "description": "Create a new audience segment",
+        "description": "Create a new audience segment.\n\n**`DYNAMIC` segments** (the default) are defined by a `condition` — a boolean tree that is re-evaluated against your contacts, so membership changes on its own as contact data changes. `condition` is required for these.\n\n**`STATIC` segments** hold a manually managed member list; `condition` is ignored. Add members with `POST /segments/{id}/members`.",
         "operationId": "createSegment",
         "requestBody": {
           "required": true,
@@ -1501,34 +2181,125 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "filters"],
+                "required": ["name"],
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
                   },
-                  "filters": {
-                    "type": "object",
-                    "description": "Filter conditions"
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["DYNAMIC", "STATIC"],
+                    "default": "DYNAMIC",
+                    "description": "Defaults to `DYNAMIC` when omitted."
+                  },
+                  "condition": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/FilterCondition"
+                      }
+                    ],
+                    "description": "Required for `DYNAMIC` segments; ignored for `STATIC` ones."
                   },
                   "trackMembership": {
                     "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "description": "Emit `segment.<slug>.entry` / `segment.<slug>.exit` events as contacts join and leave. These can be used as workflow triggers."
                   }
                 }
               },
-              "example": {
-                "name": "Premium Users",
-                "filters": {
-                  "operator": "AND",
-                  "conditions": [
-                    {
-                      "field": "data.plan",
-                      "operator": "equals",
-                      "value": "premium"
-                    }
-                  ]
+              "examples": {
+                "simple": {
+                  "summary": "Premium users",
+                  "value": {
+                    "name": "Premium Users",
+                    "condition": {
+                      "logic": "AND",
+                      "groups": [
+                        {
+                          "filters": [
+                            {
+                              "field": "data.plan",
+                              "operator": "equals",
+                              "value": "premium"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "trackMembership": true
+                  }
                 },
-                "trackMembership": true
+                "orLogic": {
+                  "summary": "Either of two groups (OR)",
+                  "description": "Filters inside a group are ANDed; `logic` combines the groups. This matches premium users OR anyone who signed up in the last 7 days.",
+                  "value": {
+                    "name": "Premium or new",
+                    "description": "Targets for the onboarding push",
+                    "condition": {
+                      "logic": "OR",
+                      "groups": [
+                        {
+                          "filters": [
+                            {
+                              "field": "data.plan",
+                              "operator": "equals",
+                              "value": "premium"
+                            },
+                            {
+                              "field": "subscribed",
+                              "operator": "equals",
+                              "value": true
+                            }
+                          ]
+                        },
+                        {
+                          "filters": [
+                            {
+                              "field": "createdAt",
+                              "operator": "within",
+                              "value": 7,
+                              "unit": "days"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                "eventBased": {
+                  "summary": "Based on a tracked event",
+                  "description": "Contacts who triggered `purchase` in the last 30 days.",
+                  "value": {
+                    "name": "Recent purchasers",
+                    "condition": {
+                      "logic": "AND",
+                      "groups": [
+                        {
+                          "filters": [
+                            {
+                              "field": "purchase",
+                              "operator": "triggeredWithin",
+                              "value": 30,
+                              "unit": "days"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                "static": {
+                  "summary": "Static segment",
+                  "value": {
+                    "name": "Beta testers",
+                    "type": "STATIC"
+                  }
+                }
               }
             }
           }
@@ -1543,6 +2314,22 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "`name` is missing, or `condition` is missing on a `DYNAMIC` segment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyError"
+                },
+                "example": {
+                  "error": "Condition is required and must be an object for DYNAMIC segments"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
