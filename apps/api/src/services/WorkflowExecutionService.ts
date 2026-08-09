@@ -825,38 +825,136 @@ export class WorkflowExecutionService {
   }
 
   /**
-   * Validates that an IP address is not in a private/reserved range to prevent SSRF.
-   * Blocks loopback, private, link-local, and cloud metadata ranges.
+   * True if a dotted-quad IPv4 address is in a private/reserved range.
    */
-  private static isPrivateIp(ip: string): boolean {
-    // Normalize IPv6-mapped IPv4 (e.g. ::ffff:192.168.1.1)
-    const addr = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  private static isPrivateIpv4(addr: string): boolean {
+    const parts = addr.split('.').map(Number);
+    const a = parts[0] ?? -1;
+    const b = parts[1] ?? -1;
 
-    if (net.isIPv4(addr)) {
-      const parts = addr.split('.').map(Number);
-      const a = parts[0] ?? -1;
-      const b = parts[1] ?? -1;
+    return (
+      a === 127 || // 127.0.0.0/8 loopback
+      a === 10 || // 10.0.0.0/8 private
+      (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12 private
+      (a === 192 && b === 168) || // 192.168.0.0/16 private
+      (a === 169 && b === 254) || // 169.254.0.0/16 link-local / cloud metadata
+      (a === 100 && b >= 64 && b <= 127) || // 100.64.0.0/10 shared address space
+      a === 0 || // 0.0.0.0/8
+      a >= 224 // 224.0.0.0+ multicast and reserved
+    );
+  }
 
-      return (
-        a === 127 || // 127.0.0.0/8 loopback
-        a === 10 || // 10.0.0.0/8 private
-        (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12 private
-        (a === 192 && b === 168) || // 192.168.0.0/16 private
-        (a === 169 && b === 254) || // 169.254.0.0/16 link-local / cloud metadata
-        (a === 100 && b >= 64 && b <= 127) || // 100.64.0.0/10 shared address space
-        a === 0 || // 0.0.0.0/8
-        a >= 224 // 224.0.0.0+ multicast and reserved
-      );
+  /**
+   * Expands an IPv6 address into its 8 hextets (16-bit numbers).
+   *
+   * Handles `::` compression, an optional zone id, and a trailing dotted-quad
+   * (e.g. `::ffff:169.254.169.254`). Returns null if the address is malformed —
+   * callers must treat that as untrusted.
+   */
+  private static expandIpv6(addr: string): number[] | null {
+    // Drop the zone id (fe80::1%eth0) — it is not part of the address
+    const bare = addr.split('%')[0]?.toLowerCase() ?? '';
+
+    // A trailing dotted-quad occupies the final two hextets
+    let head = bare;
+    const dotted = bare.lastIndexOf(':');
+    const tail = bare.slice(dotted + 1);
+    let embedded: number[] = [];
+    if (tail.includes('.')) {
+      if (!net.isIPv4(tail)) {
+        return null;
+      }
+      const [a = 0, b = 0, c = 0, d = 0] = tail.split('.').map(Number);
+      embedded = [(a << 8) | b, (c << 8) | d];
+      head = bare.slice(0, dotted + 1);
+      // `::1.2.3.4` leaves a trailing `::`, `1::1.2.3.4` a trailing `:`
+      head = head.endsWith('::') ? head : head.slice(0, -1);
     }
 
-    if (net.isIPv6(addr)) {
-      const normalized = addr.toLowerCase();
+    const halves = head.split('::');
+    if (halves.length > 2) {
+      return null;
+    }
+
+    const toHextets = (part: string) =>
+      part === '' ? [] : part.split(':').map((h) => (/^[0-9a-f]{1,4}$/.test(h) ? Number.parseInt(h, 16) : Number.NaN));
+
+    const left = toHextets(halves[0] ?? '');
+    const right = halves.length === 2 ? toHextets(halves[1] ?? '') : [];
+
+    const fixed = [...left, ...right, ...embedded];
+    if (fixed.some(Number.isNaN)) {
+      return null;
+    }
+
+    if (halves.length === 1) {
+      return fixed.length === 8 ? fixed : null;
+    }
+
+    const gap = 8 - fixed.length;
+    if (gap < 1) {
+      return null;
+    }
+
+    return [...left, ...new Array<number>(gap).fill(0), ...right, ...embedded];
+  }
+
+  /**
+   * Validates that an IP address is not in a private/reserved range to prevent SSRF.
+   * Blocks loopback, private, link-local, and cloud metadata ranges.
+   *
+   * IPv6 is range-checked on the parsed hextets rather than by string prefix, so
+   * alternate spellings of the same address cannot slip through. Transition
+   * mechanisms that embed an IPv4 address (IPv4-mapped, IPv4-compatible, 6to4,
+   * NAT64, Teredo) are unwrapped and the embedded IPv4 re-validated — otherwise
+   * e.g. `2002:a9fe:a9fe::` would reach 169.254.169.254 unblocked.
+   */
+  private static isPrivateIp(ip: string): boolean {
+    if (net.isIPv4(ip)) {
+      return WorkflowExecutionService.isPrivateIpv4(ip);
+    }
+
+    if (net.isIPv6(ip)) {
+      const h = WorkflowExecutionService.expandIpv6(ip);
+      if (!h) {
+        return true;
+      }
+
+      const [h0 = 0, h1 = 0, h2 = 0, h3 = 0, h4 = 0, h5 = 0, h6 = 0, h7 = 0] = h;
+      const v4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+      const topZero = h0 === 0 && h1 === 0 && h2 === 0 && h3 === 0 && h4 === 0;
+
+      // ::/128 unspecified and ::1/128 loopback
+      if (topZero && h5 === 0 && h6 === 0 && (h7 === 0 || h7 === 1)) {
+        return true;
+      }
+
+      // ::ffff:0:0/96 IPv4-mapped and ::/96 IPv4-compatible (deprecated)
+      if (topZero && (h5 === 0xffff || h5 === 0)) {
+        return WorkflowExecutionService.isPrivateIpv4(v4(h6, h7));
+      }
+
+      // 64:ff9b::/96 and 64:ff9b:1::/48 NAT64 (RFC 6052, RFC 8215)
+      if (h0 === 0x0064 && h1 === 0xff9b) {
+        return h2 === 0x0001 ? true : WorkflowExecutionService.isPrivateIpv4(v4(h6, h7));
+      }
+
+      // 2002::/16 6to4 (RFC 3056) — the embedded IPv4 is the tunnel endpoint
+      if (h0 === 0x2002) {
+        return WorkflowExecutionService.isPrivateIpv4(v4(h1, h2));
+      }
+
+      // 2001:0000::/32 Teredo (RFC 4380) — obfuscated endpoints, block outright
+      if (h0 === 0x2001 && h1 === 0x0000) {
+        return true;
+      }
+
       return (
-        normalized === '::1' || // loopback
-        normalized.startsWith('fe80:') || // link-local
-        normalized.startsWith('fc') || // unique local
-        normalized.startsWith('fd') || // unique local
-        normalized.startsWith('ff') // multicast
+        (h0 & 0xffc0) === 0xfe80 || // fe80::/10 link-local
+        (h0 & 0xfe00) === 0xfc00 || // fc00::/7 unique local
+        (h0 & 0xff00) === 0xff00 || // ff00::/8 multicast
+        (h0 === 0x0100 && h1 === 0 && h2 === 0 && h3 === 0) || // 100::/64 discard-only
+        (h0 === 0x2001 && h1 === 0x0db8) // 2001:db8::/32 documentation
       );
     }
 
@@ -879,7 +977,14 @@ export class WorkflowExecutionService {
         throw new Error(`Webhook URL scheme not allowed: ${parsed.protocol}`);
       }
 
-      const {address} = await dns.lookup(parsed.hostname);
+      // WHATWG URL keeps the brackets on IPv6 literals (http://[::1]/)
+      const hostname =
+        parsed.hostname.startsWith('[') && parsed.hostname.endsWith(']')
+          ? parsed.hostname.slice(1, -1)
+          : parsed.hostname;
+
+      // An IP literal needs no resolution — validate it directly
+      const address = net.isIP(hostname) ? hostname : (await dns.lookup(hostname)).address;
 
       if (WorkflowExecutionService.isPrivateIp(address)) {
         throw new Error(`Webhook URL resolves to a private/internal IP address: ${address}`);
