@@ -9,6 +9,10 @@ import {ErrorCode, HttpException} from '../exceptions/index.js';
  * falling back to plain `{{variable}}` substitution — so authoring time is the only
  * place a syntax error can be surfaced. Failing the write is what stops a broken
  * `{% if %}` from reaching a whole audience.
+ *
+ * Only for authoring surfaces — templates and campaigns, where a human is editing and
+ * an audience is at stake. `/v1/send` is left unchecked on purpose: its bodies come
+ * from other systems and rendering already degrades gracefully.
  */
 export function assertValidTemplateSyntax(fields: Record<string, unknown>): void {
   for (const [field, source] of Object.entries(fields)) {

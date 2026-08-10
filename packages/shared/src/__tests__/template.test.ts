@@ -353,6 +353,19 @@ describe('renderTemplate', () => {
       expect(renderTemplate('{{name}} and {{ unclosed', {name: 'Ada'})).toBe('Ada and {{ unclosed');
     });
 
+    it('handles foreign templating markup exactly as the old renderer did', () => {
+      // Transactional bodies are frequently produced by another system before reaching
+      // /v1/send, and leftover markup must not cost the caller their email. Unknown
+      // placeholders drop to empty here just as they did pre-Liquid, which is why
+      // /v1/send does not syntax check inline bodies.
+      expect(renderTemplate('Hi {{name}} {{#each items}}<li>{{this}}</li>{{/each}}', {name: 'Ada'})).toBe(
+        'Hi Ada <li></li>',
+      );
+
+      // Block markup Liquid can't parse at all still sends, via the legacy renderer.
+      expect(renderTemplate('Hi {{name}} {% each items %}', {name: 'Ada'})).toBe('Hi Ada {% each items %}');
+    });
+
     it('logs once per template rather than once per recipient', () => {
       const template = '{% if %}';
 
