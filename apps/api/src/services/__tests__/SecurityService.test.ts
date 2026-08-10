@@ -130,9 +130,9 @@ describe('SecurityService', () => {
     });
 
     it('should NOT trigger on high absolute complaint count when rate is healthy', async () => {
-      // 100,000 emails, 30 complaints = 0.03% (at warning floor, below critical 0.15%)
+      // 40,000 emails, 30 complaints = 0.075% (below critical: 0.15% 7-day, 0.12% all-time)
       // Old absolute ceiling (25 complaints in 7d critical) would have tripped.
-      await createEmails(100000, {complainedCount: 30});
+      await createEmails(40000, {complainedCount: 30});
 
       const status = await SecurityService.getSecurityStatus(projectId);
       expect(status.shouldDisable).toBe(false);
