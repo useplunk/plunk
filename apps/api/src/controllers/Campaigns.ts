@@ -314,8 +314,9 @@ export class Campaigns {
     const auth = res.locals.auth;
     const {id} = UtilitySchemas.id.parse(req.params);
     const {email} = CampaignSchemas.sendTest.parse(req.body);
+    const {subject, body, from, fromName, replyTo} = req.body;
 
-    await CampaignService.sendTest(auth.projectId, id!, email);
+    await CampaignService.sendTest(auth.projectId, id!, email, {subject, body, from, fromName, replyTo});
 
     return res.json({
       success: true,
