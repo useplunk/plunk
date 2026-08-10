@@ -72,8 +72,23 @@ const KEYWORDS = new Set([
   'tablerowloop',
 ]);
 
-/** Present in every render scope regardless of what a contact's data holds. */
-const RUNTIME_NAMES = ['id', 'email', 'subscribed', 'unsubscribeUrl', 'subscribeUrl', 'manageUrl', 'locale', 'data'];
+/**
+ * Present in the render scope regardless of what a contact's data holds.
+ *
+ * `event` is the workflow trigger's payload: templates used as workflow steps are edited
+ * on the same screen and legitimately read keys that no contact carries.
+ */
+const RUNTIME_NAMES = [
+  'id',
+  'email',
+  'subscribed',
+  'unsubscribeUrl',
+  'subscribeUrl',
+  'manageUrl',
+  'locale',
+  'data',
+  'event',
+];
 
 const IDENTIFIER = /[A-Za-z_][A-Za-z0-9_.]*/g;
 

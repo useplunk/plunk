@@ -72,6 +72,12 @@ describe('lintTemplateFields', () => {
       expect(lintTemplateFields('{{email}} {{unsubscribeUrl}} {{id}} {{locale}}', FIELDS)).toEqual([]);
     });
 
+    it('accepts the workflow event payload', () => {
+      // Workflow step templates are edited on the same screen and read the trigger's
+      // event, whose keys are not contact fields.
+      expect(lintTemplateFields('{% if event %}{{event.plan}}{% endif %}', FIELDS)).toEqual([]);
+    });
+
     it('accepts data-prefixed access', () => {
       expect(lintTemplateFields('{{data.plan}}', FIELDS)).toEqual([]);
     });
