@@ -97,10 +97,10 @@ export default function SegmentDetailPage() {
         ...(segment?.type !== 'STATIC' && {condition}),
         trackMembership,
       });
-      toast.success('Segment updated successfully');
+      toast.success('Segment updated');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update segment');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t save the segment. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -121,7 +121,7 @@ export default function SegmentDetailPage() {
       toast.success(`Membership updated: ${result.added} added, ${result.removed} removed, ${result.total} total`);
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to compute membership');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t recompute membership. Try again.');
     } finally {
       setIsComputing(false);
     }
@@ -144,7 +144,7 @@ export default function SegmentDetailPage() {
       void mutate();
       void mutateContacts();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add contacts');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t add those contacts. Try again.');
     } finally {
       setIsAddingMembers(false);
     }
@@ -160,7 +160,7 @@ export default function SegmentDetailPage() {
       void mutate();
       void mutateContacts();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to remove contact');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t remove the contact. Try again.');
     } finally {
       setRemovingEmail(null);
     }
@@ -169,10 +169,10 @@ export default function SegmentDetailPage() {
   const handleDelete = async () => {
     try {
       await network.fetch('DELETE', `/segments/${id}`);
-      toast.success('Segment deleted successfully');
+      toast.success('Segment deleted');
       void router.push('/segments');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete segment');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the segment. Try again.');
     }
   };
 
@@ -197,7 +197,7 @@ export default function SegmentDetailPage() {
           <Button asChild>
             <Link href="/segments">
               <ArrowLeft className="h-4 w-4" />
-              Back to Segments
+              Back to segments
             </Link>
           </Button>
         </div>
@@ -229,7 +229,7 @@ export default function SegmentDetailPage() {
           </div>
           <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
             <Trash2 className="h-4 w-4" />
-            Delete Segment
+            Delete segment
           </Button>
         </div>
 
@@ -240,12 +240,14 @@ export default function SegmentDetailPage() {
               {/* Basic Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Segment Details</CardTitle>
+                  <CardTitle>Segment details</CardTitle>
                   <CardDescription>Update segment name and description</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="name">Segment Name *</Label>
+                    <Label htmlFor="name">Segment name
+            <span className="text-red-500"> *</span>
+          </Label>
                     <Input
                       id="name"
                       type="text"
@@ -293,7 +295,7 @@ export default function SegmentDetailPage() {
               {!isStatic && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Filter Conditions</CardTitle>
+                    <CardTitle>Filter conditions</CardTitle>
                     <CardDescription>Build complex audience filters with AND/OR logic</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -306,7 +308,7 @@ export default function SegmentDetailPage() {
               <div className="flex items-center justify-end">
                 <Button type="submit" disabled={isSubmitting}>
                   <Save className="h-4 w-4 mr-2" />
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
+                  {isSubmitting ? 'Saving…' : 'Save Changes'}
                 </Button>
               </div>
             </form>
@@ -315,7 +317,7 @@ export default function SegmentDetailPage() {
             {isStatic && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Add Members</CardTitle>
+                  <CardTitle>Add members</CardTitle>
                   <CardDescription>Search and select contacts, or paste a list of emails</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -324,7 +326,7 @@ export default function SegmentDetailPage() {
                     onChange={setPickedEmails}
                     onAdd={handleAddMembers}
                     existing={contactsData?.data.map(c => c.email) ?? []}
-                    placeholder="Search contacts to add..."
+                    placeholder="Search contacts to add…"
                   />
                   {pickedEmails.length > 0 && (
                     <Button
@@ -333,7 +335,7 @@ export default function SegmentDetailPage() {
                       disabled={isAddingMembers}
                       className="w-full"
                     >
-                      {isAddingMembers ? 'Adding...' : `Add ${pickedEmails.length} Contact${pickedEmails.length !== 1 ? 's' : ''}`}
+                      {isAddingMembers ? 'Adding…' : `Add ${pickedEmails.length} Contact${pickedEmails.length !== 1 ? 's' : ''}`}
                     </Button>
                   )}
                 </CardContent>
@@ -353,7 +355,7 @@ export default function SegmentDetailPage() {
                   {!isStatic && trackMembership && (
                     <Button variant="outline" size="sm" onClick={handleComputeMembership} disabled={isComputing}>
                       <RefreshCw className={`h-4 w-4 ${isComputing ? 'animate-spin' : ''}`} />
-                      {isComputing ? 'Computing...' : 'Recompute'}
+                      {isComputing ? 'Computing…' : 'Recompute'}
                     </Button>
                   )}
                 </div>
@@ -497,7 +499,7 @@ export default function SegmentDetailPage() {
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium text-neutral-900">Last Updated</p>
+                  <p className="text-sm font-medium text-neutral-900">Last updated</p>
                   <div className="group relative inline-block cursor-help">
                     <p className="text-sm text-neutral-500">{dayjs(segment.updatedAt).fromNow()}</p>
                     <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
@@ -515,9 +517,9 @@ export default function SegmentDetailPage() {
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         onConfirm={handleDelete}
-        title="Delete Segment"
-        description="Are you sure you want to delete this segment? This action cannot be undone."
-        confirmText="Delete"
+        title={`Delete ${segment.name}?`}
+        description="The contacts in it are kept. Only the segment is deleted."
+        confirmText="Delete segment"
         variant="destructive"
       />
     </DashboardLayout>

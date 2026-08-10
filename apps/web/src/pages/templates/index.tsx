@@ -118,10 +118,10 @@ export default function TemplatesPage() {
 
     try {
       await network.fetch('DELETE', `/templates/${templateToDelete}`);
-      toast.success('Template deleted successfully');
+      toast.success('Template deleted');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete template');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the template. Try again.');
     } finally {
       setTemplateToDelete(null);
     }
@@ -130,10 +130,10 @@ export default function TemplatesPage() {
   const handleDuplicate = async (templateId: string) => {
     try {
       await network.fetch('POST', `/templates/${templateId}/duplicate`);
-      toast.success('Template duplicated successfully');
+      toast.success('Template duplicated');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to duplicate template');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t duplicate the template. Try again.');
     }
   };
 
@@ -156,7 +156,7 @@ export default function TemplatesPage() {
       setRowSelection({});
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete templates');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete those templates. Try again.');
     } finally {
       // ConfirmDialog closes itself after onConfirm resolves.
       setBulkDeleteStatus('idle');
@@ -355,16 +355,16 @@ export default function TemplatesPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Email Templates</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Templates</h1>
               <p className="text-neutral-500 mt-2 text-sm sm:text-base">
-                Create and manage reusable email templates for your campaigns and workflows.{' '}
-                {data?.total ? `${data.total} total templates` : ''}
+                Reusable emails for campaigns and workflows.{' '}
+                {data?.total ? `${data.total} total` : ''}
               </p>
             </div>
             <Button asChild className="w-full sm:w-auto">
               <Link href="/templates/create">
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Create Template</span>
+                <span className="hidden sm:inline">Create template</span>
                 <span className="sm:hidden">Create</span>
               </Link>
             </Button>
@@ -383,7 +383,7 @@ export default function TemplatesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
               <Input
                 type="text"
-                placeholder="Search templates..."
+                placeholder="Search templates…"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 className="pl-10 pr-10 h-8 text-xs"
@@ -469,7 +469,7 @@ export default function TemplatesPage() {
                         <Button asChild>
                           <Link href="/templates/create">
                             <Plus className="h-4 w-4" />
-                            Create Template
+                            Create template
                           </Link>
                         </Button>
                       }
@@ -610,9 +610,9 @@ export default function TemplatesPage() {
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
           onConfirm={handleDelete}
-          title="Delete Template"
-          description="Are you sure you want to delete this template? This action cannot be undone."
-          confirmText="Delete"
+          title="Delete this template?"
+          description="Campaigns already sent with it are unaffected. This can't be undone."
+          confirmText="Delete template"
           variant="destructive"
         />
 
@@ -620,9 +620,9 @@ export default function TemplatesPage() {
           open={showBulkDeleteDialog}
           onOpenChange={setShowBulkDeleteDialog}
           onConfirm={handleBulkDelete}
-          title={`Delete ${selectedIds.length} template${selectedIds.length === 1 ? '' : 's'}`}
-          description="Are you sure you want to delete the selected templates? This action cannot be undone. Templates referenced by a workflow step will block the operation."
-          confirmText="Delete"
+          title={`Delete ${selectedIds.length} template${selectedIds.length === 1 ? '' : 's'}?`}
+          description="Campaigns already sent with them are unaffected, and this can't be undone. A template used by a workflow step can't be deleted — if your selection includes one, nothing will be deleted."
+          confirmText="Delete templates"
           variant="destructive"
           status={bulkDeleteStatus}
         />

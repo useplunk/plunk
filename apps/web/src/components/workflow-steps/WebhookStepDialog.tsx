@@ -145,13 +145,13 @@ export function WebhookStepDialog({step, workflowId, open, onOpenChange, onSucce
             {webhookHeaders.map((header, index) => (
               <div key={index} className="flex gap-2 items-center">
                 <Input
-                  placeholder="Name"
+                  placeholder="e.g., plan"
                   value={header.key}
                   onChange={e => updateHeader(index, {key: e.target.value})}
                   className="text-sm font-mono"
                 />
                 <Input
-                  placeholder="Value"
+                  placeholder="e.g., pro"
                   value={header.value}
                   onChange={e => updateHeader(index, {value: e.target.value})}
                   className="text-sm font-mono"

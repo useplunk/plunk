@@ -70,7 +70,7 @@ export function SendEmailStepDialog({step, workflowId, open, onOpenChange, onSuc
       <div className="space-y-4">
         <div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="editTemplate">Email Template</Label>
+            <Label htmlFor="editTemplate">Email template</Label>
             {templateId && (
               <a
                 href={`/templates/${templateId}`}
@@ -87,7 +87,7 @@ export function SendEmailStepDialog({step, workflowId, open, onOpenChange, onSuc
         </div>
 
         <div>
-          <Label htmlFor="editRecipientType">Send To</Label>
+          <Label htmlFor="editRecipientType">Send to</Label>
           <Select value={recipientType} onValueChange={value => setRecipientType(value as 'CONTACT' | 'CUSTOM')}>
             <SelectTrigger id="editRecipientType" className="mt-1.5">
               <SelectValue />
@@ -100,7 +100,7 @@ export function SendEmailStepDialog({step, workflowId, open, onOpenChange, onSuc
               />
               <SelectItemWithDescription
                 value="CUSTOM"
-                title="Custom Email"
+                title="Custom email"
                 description="Send to a specific email address"
               />
             </SelectContent>
@@ -109,7 +109,7 @@ export function SendEmailStepDialog({step, workflowId, open, onOpenChange, onSuc
 
         {recipientType === 'CUSTOM' && (
           <div>
-            <Label htmlFor="editCustomEmail">Email Address</Label>
+            <Label htmlFor="editCustomEmail">Email address</Label>
             <Input
               id="editCustomEmail"
               type="email"

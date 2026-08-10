@@ -1,4 +1,4 @@
-import {Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, IconSpinner} from '@plunk/ui';
+import {Alert, Badge, Button, Card, CardContent, CardHeader, CardTitle, IconSpinner} from '@plunk/ui';
 import {AlertCircle, Download, ExternalLink, FileText} from 'lucide-react';
 import {useBillingInvoices} from '../lib/hooks/useBillingInvoices';
 
@@ -8,63 +8,54 @@ interface BillingInvoicesProps {
   onManageBilling?: () => void;
 }
 
+/** One header for every state, so the title is written once rather than four times. */
+function InvoicesCard({children}: {children: React.ReactNode}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Invoices</CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
 export function BillingInvoices({projectId, hasSubscription, onManageBilling}: BillingInvoicesProps) {
   const {invoicesData, isLoading, error} = useBillingInvoices(projectId, hasSubscription);
 
   if (!hasSubscription) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Past Invoices</CardTitle>
-          <CardDescription>View and download your billing history</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <div className="ml-2">
-              <p className="text-sm">
-                Invoice history is only available with an active subscription. Start a subscription to view your
-                invoices.
-              </p>
-            </div>
-          </Alert>
-        </CardContent>
-      </Card>
+      <InvoicesCard>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <div className="ml-2">
+            <p className="text-sm">Invoices appear here once you start a subscription.</p>
+          </div>
+        </Alert>
+      </InvoicesCard>
     );
   }
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Past Invoices</CardTitle>
-          <CardDescription>View and download your billing history</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-4">
-            <IconSpinner size="sm" />
-          </div>
-        </CardContent>
-      </Card>
+      <InvoicesCard>
+        <div className="flex items-center justify-center py-4">
+          <IconSpinner size="sm" />
+        </div>
+      </InvoicesCard>
     );
   }
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Past Invoices</CardTitle>
-          <CardDescription>View and download your billing history</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <div className="ml-2">
-              <p className="text-sm">Failed to load invoices. Please try again later.</p>
-            </div>
-          </Alert>
-        </CardContent>
-      </Card>
+      <InvoicesCard>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <div className="ml-2">
+            <p className="text-sm">Couldn’t load your invoices. Try again in a moment.</p>
+          </div>
+        </Alert>
+      </InvoicesCard>
     );
   }
 
@@ -119,17 +110,13 @@ export function BillingInvoices({projectId, hasSubscription, onManageBilling}: B
   const hasMoreInvoices = invoicesData.invoices.length > 5;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent Invoices</CardTitle>
-        <CardDescription>View your latest invoices (showing {recentInvoices.length} most recent)</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <InvoicesCard>
+      <>
         {invoicesData.invoices.length === 0 ? (
           <Alert>
             <FileText className="h-4 w-4" />
             <div className="ml-2">
-              <p className="text-sm">No invoices found. Invoices will appear here after your first billing period.</p>
+              <p className="text-sm">Your first invoice appears here at the end of this billing period.</p>
             </div>
           </Alert>
         ) : (
@@ -160,7 +147,7 @@ export function BillingInvoices({projectId, hasSubscription, onManageBilling}: B
                         )}
                         {isPaid(invoice) ? (
                           <p>
-                            <span className="font-medium">Amount Paid:</span>{' '}
+                            <span className="font-medium">Amount paid:</span>{' '}
                             {formatCurrency(invoice.amountPaid, invoice.currency)}
                           </p>
                         ) : (
@@ -170,7 +157,7 @@ export function BillingInvoices({projectId, hasSubscription, onManageBilling}: B
                               {formatCurrency(invoice.total, invoice.currency)}
                             </p>
                             <p className="text-amber-700 font-medium">
-                              <span className="font-medium">Amount Due:</span>{' '}
+                              <span className="font-medium">Amount due:</span>{' '}
                               {formatCurrency(invoice.amountDue, invoice.currency)}
                             </p>
                           </>
@@ -214,21 +201,20 @@ export function BillingInvoices({projectId, hasSubscription, onManageBilling}: B
                 <FileText className="h-4 w-4" />
                 <div className="ml-2">
                   <p className="text-sm">
-                    Showing 5 most recent invoices. For complete billing history,{' '}
+                    Showing your 5 most recent invoices.{' '}
                     {onManageBilling ? (
                       <>
-                        visit the{' '}
                         <button
                           type="button"
                           onClick={onManageBilling}
                           className="underline font-medium cursor-pointer hover:text-neutral-900"
                         >
-                          Customer Portal
-                        </button>
-                        .
+                          Open the customer portal
+                        </button>{' '}
+                        for your full history.
                       </>
                     ) : (
-                      'use the Manage Billing button above to access the Customer Portal.'
+                      'Use Manage billing above for your full history.'
                     )}
                   </p>
                 </div>
@@ -236,7 +222,7 @@ export function BillingInvoices({projectId, hasSubscription, onManageBilling}: B
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </>
+    </InvoicesCard>
   );
 }

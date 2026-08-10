@@ -57,10 +57,10 @@ export function useStepUpdate(workflowId: string, stepId: string) {
         `/workflows/${workflowId}/steps/${stepId}`,
         input as Parameters<typeof network.fetch>[2],
       );
-      toast.success('Step updated successfully');
+      toast.success('Step updated');
       return true;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update step');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t save the step. Try again.');
       return false;
     } finally {
       setIsSubmitting(false);
@@ -108,7 +108,7 @@ export function StepDialogShell({
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
-            <Label htmlFor="editStepName">Step Name</Label>
+            <Label htmlFor="editStepName">Step name</Label>
             <Input
               id="editStepName"
               type="text"
@@ -127,7 +127,7 @@ export function StepDialogShell({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              {isSubmitting ? 'Saving…' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </form>

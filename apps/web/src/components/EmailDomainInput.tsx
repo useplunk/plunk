@@ -67,9 +67,14 @@ export function EmailDomainInput({value, onChange, id, placeholder, required, la
   if (isLoading) {
     return (
       <div>
-        {label && <Label htmlFor={id}>{label}</Label>}
+        {label && (
+          <Label htmlFor={id}>
+            {label}
+            {required && <span className="text-red-500"> *</span>}
+          </Label>
+        )}
         <div className="flex items-center gap-2">
-          <Input id={id} type="text" placeholder="Loading..." disabled className="flex-1" />
+          <Input id={id} type="text" placeholder="Loading…" disabled className="flex-1" />
         </div>
       </div>
     );
@@ -78,7 +83,12 @@ export function EmailDomainInput({value, onChange, id, placeholder, required, la
   if (verifiedDomains.length === 0) {
     return (
       <div>
-        {label && <Label htmlFor={id}>{label}</Label>}
+        {label && (
+          <Label htmlFor={id}>
+            {label}
+            {required && <span className="text-red-500"> *</span>}
+          </Label>
+        )}
         <Alert variant="destructive" className="mt-2">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -108,7 +118,12 @@ export function EmailDomainInput({value, onChange, id, placeholder, required, la
 
   return (
     <div>
-      {label && <Label htmlFor={id}>{label}</Label>}
+      {label && (
+          <Label htmlFor={id}>
+            {label}
+            {required && <span className="text-red-500"> *</span>}
+          </Label>
+        )}
       <div className="flex items-center gap-2">
         <Input
           id={id}

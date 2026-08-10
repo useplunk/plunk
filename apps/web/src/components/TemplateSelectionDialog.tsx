@@ -128,7 +128,7 @@ export function TemplateSelectionDialog({open, onOpenChange, onSelectTemplate}: 
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
                   <Input
                     type="text"
-                    placeholder="Search templates..."
+                    placeholder="Search templates…"
                     value={searchInput}
                     onChange={e => setSearchInput(e.target.value)}
                     className="pl-10"
@@ -164,7 +164,7 @@ export function TemplateSelectionDialog({open, onOpenChange, onSelectTemplate}: 
                   variant={typeFilter === 'ALL' ? 'default' : 'secondary'}
                   size="sm"
                 >
-                  All Templates
+                  All templates
                 </Button>
                 <Button
                   type="button"
@@ -308,7 +308,7 @@ export function TemplateSelectionDialog({open, onOpenChange, onSelectTemplate}: 
                   />
                   <div className="flex-1">
                     <Label htmlFor="subject" className="text-sm font-medium cursor-pointer">
-                      Email Subject
+                      Email subject
                     </Label>
                     {selectedTemplate?.subject && (
                       <p className="text-xs text-neutral-400 mt-0.5 truncate">{selectedTemplate.subject}</p>
@@ -323,7 +323,7 @@ export function TemplateSelectionDialog({open, onOpenChange, onSelectTemplate}: 
                   <Checkbox id="body" checked={selectedFields.body} onCheckedChange={() => toggleField('body')} />
                   <div className="flex-1">
                     <Label htmlFor="body" className="text-sm font-medium cursor-pointer">
-                      Email Body
+                      Email body
                     </Label>
                     <p className="text-xs text-neutral-400 mt-0.5">Full email content and design</p>
                   </div>
@@ -336,7 +336,7 @@ export function TemplateSelectionDialog({open, onOpenChange, onSelectTemplate}: 
                   <Checkbox id="from" checked={selectedFields.from} onCheckedChange={() => toggleField('from')} />
                   <div className="flex-1">
                     <Label htmlFor="from" className="text-sm font-medium cursor-pointer">
-                      From Email
+                      From email
                     </Label>
                     {selectedTemplate?.from && (
                       <p className="text-xs text-neutral-400 mt-0.5">{selectedTemplate.from}</p>
@@ -355,7 +355,7 @@ export function TemplateSelectionDialog({open, onOpenChange, onSelectTemplate}: 
                   />
                   <div className="flex-1">
                     <Label htmlFor="fromName" className="text-sm font-medium cursor-pointer">
-                      From Name
+                      From name
                     </Label>
                     {selectedTemplate?.fromName && (
                       <p className="text-xs text-neutral-400 mt-0.5">{selectedTemplate.fromName}</p>
@@ -374,7 +374,7 @@ export function TemplateSelectionDialog({open, onOpenChange, onSelectTemplate}: 
                   />
                   <div className="flex-1">
                     <Label htmlFor="replyTo" className="text-sm font-medium cursor-pointer">
-                      Reply-To Email
+                      Reply-To email
                     </Label>
                     {selectedTemplate?.replyTo && (
                       <p className="text-xs text-neutral-400 mt-0.5">{selectedTemplate.replyTo}</p>
@@ -390,7 +390,7 @@ export function TemplateSelectionDialog({open, onOpenChange, onSelectTemplate}: 
                 Back
               </Button>
               <Button onClick={handleConfirm} className="flex-1" disabled={!Object.values(selectedFields).some(v => v)}>
-                Create Campaign
+                Create campaign
               </Button>
             </div>
           </div>

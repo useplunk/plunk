@@ -200,7 +200,7 @@ function CustomNode({
           <div className="mt-3 pt-3 border-t border-neutral-100">
             <div className="flex items-center gap-1 text-xs text-neutral-600">
               <GitBranch className="h-3 w-3" />
-              <span>If/Else Branch</span>
+              <span>If/else branch</span>
             </div>
           </div>
         )}
@@ -278,7 +278,7 @@ export function WorkflowVisualizer({steps}: WorkflowVisualizerProps) {
             type: 'custom',
             position: {x: 0, y: 0},
             data: {
-              label: 'End Workflow',
+              label: 'End workflow',
               type: 'END',
               icon: LogOut,
               color: '#9ca3af',
@@ -295,7 +295,7 @@ export function WorkflowVisualizer({steps}: WorkflowVisualizerProps) {
             type: 'custom',
             position: {x: 0, y: 0},
             data: {
-              label: 'End Workflow',
+              label: 'End workflow',
               type: 'END',
               icon: LogOut,
               color: '#9ca3af',

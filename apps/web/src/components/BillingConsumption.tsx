@@ -9,6 +9,19 @@ interface BillingConsumptionProps {
   hasSubscription: boolean;
 }
 
+/** One header for every state, so the title is written once rather than four times. */
+function UsageCard({period, children}: {period?: string; children: React.ReactNode}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Usage this month</CardTitle>
+        {period && <CardDescription>Billing period: {period}</CardDescription>}
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
 export function BillingConsumption({projectId, hasSubscription}: BillingConsumptionProps) {
   const {data: config} = useConfig();
   const billingEnabled = config?.features.billing.enabled ?? false;
@@ -39,58 +52,37 @@ export function BillingConsumption({projectId, hasSubscription}: BillingConsumpt
 
   if (!hasSubscription) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Usage This Month</CardTitle>
-          <CardDescription>View your current month email consumption and costs</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <div className="ml-2">
-              <p className="text-sm">
-                Usage tracking is only available with an active subscription. Start a subscription to track your email
-                consumption.
-              </p>
-            </div>
-          </Alert>
-        </CardContent>
-      </Card>
+      <UsageCard>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <div className="ml-2">
+            <p className="text-sm">Usage tracking starts when you start a subscription.</p>
+          </div>
+        </Alert>
+      </UsageCard>
     );
   }
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Usage This Month</CardTitle>
-          <CardDescription>View your current month email consumption and costs</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-4">
-            <IconSpinner size="sm" />
-          </div>
-        </CardContent>
-      </Card>
+      <UsageCard>
+        <div className="flex items-center justify-center py-4">
+          <IconSpinner size="sm" />
+        </div>
+      </UsageCard>
     );
   }
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Usage This Month</CardTitle>
-          <CardDescription>View your current month email consumption and costs</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <div className="ml-2">
-              <p className="text-sm">Failed to load consumption data. Please try again later.</p>
-            </div>
-          </Alert>
-        </CardContent>
-      </Card>
+      <UsageCard>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <div className="ml-2">
+            <p className="text-sm">Couldn’t load usage data. Try again in a moment.</p>
+          </div>
+        </Alert>
+      </UsageCard>
     );
   }
 
@@ -99,14 +91,9 @@ export function BillingConsumption({projectId, hasSubscription}: BillingConsumpt
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Usage This Month</CardTitle>
-        <CardDescription>
-          Billing period: {formatDate(consumptionData.period.start)} - {formatDate(consumptionData.period.end)}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <UsageCard
+      period={`${formatDate(consumptionData.period.start)} – ${formatDate(consumptionData.period.end)}`}
+    >
         <div className="space-y-6">
           {/* Total Usage */}
           <div className="border border-neutral-200 rounded-lg p-6">
@@ -115,7 +102,7 @@ export function BillingConsumption({projectId, hasSubscription}: BillingConsumpt
                 <TrendingUp className="h-5 w-5 text-neutral-600" />
               </div>
               <div>
-                <p className="text-sm text-neutral-500">Total Emails Sent</p>
+                <p className="text-sm text-neutral-500">Total emails sent</p>
                 <p className="text-3xl font-bold text-neutral-900">{consumptionData.usage.total.toLocaleString()}</p>
               </div>
             </div>
@@ -129,7 +116,7 @@ export function BillingConsumption({projectId, hasSubscription}: BillingConsumpt
                   <Coins className="h-5 w-5 text-neutral-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-neutral-500">Account Credits</p>
+                  <p className="text-sm text-neutral-500">Account credits</p>
                   <p className="text-2xl font-bold text-neutral-900">
                     {formatCurrency(consumptionData.credits.creditAmount, consumptionData.credits.currency)}
                   </p>
@@ -144,10 +131,10 @@ export function BillingConsumption({projectId, hasSubscription}: BillingConsumpt
           {/* Upcoming Invoice */}
           {consumptionData.upcomingInvoice && (
             <div className="border border-neutral-200 rounded-lg p-6">
-              <h3 className="font-semibold text-neutral-900 mb-4">Upcoming Invoice</h3>
+              <h3 className="font-semibold text-neutral-900 mb-4">Upcoming invoice</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-neutral-600">Billing Period</span>
+                  <span className="text-sm text-neutral-600">Billing period</span>
                   <span className="text-sm font-medium text-neutral-900">
                     {formatDate(consumptionData.upcomingInvoice.periodStart)} -{' '}
                     {formatDate(consumptionData.upcomingInvoice.periodEnd)}
@@ -161,7 +148,7 @@ export function BillingConsumption({projectId, hasSubscription}: BillingConsumpt
                 </div>
                 {consumptionData.credits && consumptionData.credits.hasCredits && (
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-600">Credits Applied</span>
+                    <span className="text-sm text-green-600">Credits applied</span>
                     <span className="text-sm font-medium text-green-600">
                       -{formatCurrency(consumptionData.credits.creditAmount, consumptionData.credits.currency)}
                     </span>
@@ -169,7 +156,7 @@ export function BillingConsumption({projectId, hasSubscription}: BillingConsumpt
                 )}
                 <div className="border-t border-neutral-200 pt-3 mt-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-base font-semibold text-neutral-900">Amount Due</span>
+                    <span className="text-base font-semibold text-neutral-900">Amount due</span>
                     <span className="text-base font-bold text-neutral-900">
                       {formatCurrency(
                         consumptionData.upcomingInvoice.amountDue,
@@ -192,7 +179,6 @@ export function BillingConsumption({projectId, hasSubscription}: BillingConsumpt
             </Alert>
           )}
         </div>
-      </CardContent>
-    </Card>
+    </UsageCard>
   );
 }

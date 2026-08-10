@@ -40,7 +40,7 @@ export function EmailSettings({
         <div>
           <EmailDomainInput
             id="from"
-            label="From Email *"
+            label="From email"
             value={from}
             onChange={onFromChange}
             required
@@ -49,7 +49,7 @@ export function EmailSettings({
         </div>
 
         <div>
-          <Label htmlFor="fromName">From Name</Label>
+          <Label htmlFor="fromName">From name</Label>
           <Input
             id="fromName"
             type="text"
@@ -67,7 +67,7 @@ export function EmailSettings({
         <div>
           <EmailDomainInput
             id="replyTo"
-            label="Reply-To Email"
+            label="Reply-To email"
             value={replyTo}
             onChange={onReplyToChange}
             placeholder={effectiveReplyToPlaceholder}

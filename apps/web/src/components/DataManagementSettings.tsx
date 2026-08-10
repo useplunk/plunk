@@ -101,7 +101,7 @@ export function DataManagementSettings() {
       setSelectedField(null);
       mutateFields();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete field');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the field. Try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -122,7 +122,7 @@ export function DataManagementSettings() {
       setSelectedEvent(null);
       mutateEvents();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete event');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the event. Try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -145,10 +145,9 @@ export function DataManagementSettings() {
       {/* Custom Contact Fields */}
       <Card>
         <CardHeader>
-          <CardTitle>Custom Contact Fields</CardTitle>
+          <CardTitle>Custom contact fields</CardTitle>
           <CardDescription>
-            Manage custom fields stored in your contact data. You can only delete fields that are not used in any
-            segments or campaigns.
+            Fields set on contacts through the API. A field used by a segment or campaign can’t be deleted.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -162,7 +161,7 @@ export function DataManagementSettings() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Field Name</TableHead>
+                  <TableHead>Field name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Coverage</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -194,10 +193,10 @@ export function DataManagementSettings() {
       {/* Custom Events */}
       <Card>
         <CardHeader>
-          <CardTitle>Custom Events</CardTitle>
+          <CardTitle>Custom events</CardTitle>
           <CardDescription>
-            Manage custom events tracked in your project. You can only delete events that are not used in any segments
-            or workflows. System events (email.*, segment.*) cannot be deleted.
+            Events your contacts have triggered. An event used by a segment or workflow can’t be deleted, and
+            neither can system events (email.*, segment.*).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -211,7 +210,7 @@ export function DataManagementSettings() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Event Name</TableHead>
+                  <TableHead>Event name</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -236,11 +235,13 @@ export function DataManagementSettings() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedField ? 'Delete Field' : 'Delete Event'}</DialogTitle>
+            <DialogTitle>
+              {selectedField ? `Delete "${selectedField.replace('data.', '')}"?` : `Delete "${selectedEvent}"?`}
+            </DialogTitle>
             <DialogDescription>
               {selectedField
-                ? `Are you sure you want to delete the field "${selectedField.replace('data.', '')}"?`
-                : `Are you sure you want to delete the event "${selectedEvent}"?`}
+                ? 'The field is removed from every contact that has it. This can’t be undone.'
+                : 'Every recorded instance of this event is deleted. This can’t be undone.'}
             </DialogDescription>
           </DialogHeader>
 

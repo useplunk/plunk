@@ -143,7 +143,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
       VariableMention,
       LogicMention,
       Placeholder.configure({
-        placeholder: placeholder || 'Your next email starts here!',
+        placeholder: placeholder || 'Your next email starts here',
       }),
     ],
     // Only initialize with content if starting in visual mode
@@ -262,7 +262,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
         setShowImageDialog(false);
       } catch (error) {
         console.error('Failed to upload image:', error);
-        alert('Failed to upload image. Please try again.');
+        alert('Couldn’t upload the image. Try again.');
       }
     }
   };
@@ -403,7 +403,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
             onValueChange={val => setSelectedContactId(val === 'none' ? '' : val)}
           >
             <SelectTrigger id="preview-contact" className="h-8 w-full sm:w-[200px] text-xs">
-              <SelectValue placeholder="Select contact..." />
+              <SelectValue placeholder="Select contact…" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">
@@ -556,7 +556,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
                         minHeight: '400px',
                         height: '100%',
                       }}
-                      title="Email Preview"
+                      title="Email preview"
                     />
                   </div>
                 </div>
@@ -570,7 +570,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
             <HtmlEditor
               value={htmlContent}
               onChange={handleHtmlChange}
-              placeholder={placeholder || 'Your next email starts here!'}
+              placeholder={placeholder || 'Your next email starts here'}
             />
           </div>
           {selectedContactId && (
@@ -662,7 +662,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
                         minHeight: '400px',
                         height: '100%',
                       }}
-                      title="Email Preview"
+                      title="Email preview"
                     />
                   </div>
                 </div>
@@ -676,7 +676,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
       <Dialog open={showVariableDialog} onOpenChange={setShowVariableDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Insert Variable</DialogTitle>
+            <DialogTitle>Insert variable</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -751,7 +751,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
                   disabled={!customVariable}
                   className="w-full"
                 >
-                  Insert Variable
+                  Insert variable
                 </Button>
               </div>
               <p className="text-xs text-neutral-500 mt-2">
@@ -776,15 +776,11 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
       >
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Custom HTML Detected</DialogTitle>
+            <DialogTitle>Switching to visual mode will change your HTML</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-neutral-700">
-              Your HTML contains custom formatting, styles, or elements that the visual editor doesn&apos;t support.
-              Switching to visual mode will cause these customizations to be lost or modified.
-            </p>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-sm text-amber-800 font-medium">This may affect:</p>
+              <p className="text-sm text-amber-800 font-medium">The visual editor may strip or rewrite:</p>
               <ul className="text-sm text-amber-700 mt-2 ml-4 list-disc space-y-1">
                 <li>Custom HTML elements and attributes</li>
                 <li>Inline styles and CSS classes</li>
@@ -795,10 +791,10 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
 
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={stayInHtmlMode}>
-                Stay in HTML Mode
+                Stay in HTML mode
               </Button>
               <Button type="button" variant="destructive" onClick={switchToVisualMode}>
-                Switch Anyway
+                Switch anyway
               </Button>
             </div>
           </div>
@@ -809,7 +805,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
       <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Insert Image</DialogTitle>
+            <DialogTitle>Insert image</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>

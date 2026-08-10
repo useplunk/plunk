@@ -146,7 +146,7 @@ export default function Settings() {
     if (router.query.success === 'true') {
       // Use setTimeout to defer state update, avoiding synchronous setState in effect
       const timer = setTimeout(() => {
-        setSuccessMessage('Subscription activated successfully! It may take a moment to update.');
+        setSuccessMessage('Subscription active. Billing details may take a minute to appear.');
         // Clear message and URL after 5 seconds
         setTimeout(() => {
           setSuccessMessage(null);
@@ -207,12 +207,12 @@ export default function Settings() {
       // Refresh projects list
       await projectsMutate();
 
-      setSuccessMessage('Project settings updated successfully');
+      setSuccessMessage('Project settings updated');
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to update project settings');
+      setErrorMessage(error instanceof Error ? error.message : 'Couldn’t save your project settings. Try again.');
     }
   };
 
@@ -234,13 +234,13 @@ export default function Settings() {
       // Refresh projects list
       await projectsMutate();
 
-      setSuccessMessage('API keys regenerated successfully');
+      setSuccessMessage('API keys regenerated');
       setDialog({type: 'none'});
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to regenerate API keys');
+      setErrorMessage(error instanceof Error ? error.message : 'Couldn’t regenerate your API keys. Try again.');
       setDialog({type: 'none'});
     }
   };
@@ -273,7 +273,7 @@ export default function Settings() {
         window.location.href = response.url;
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to start checkout');
+      setErrorMessage(error instanceof Error ? error.message : 'Couldn’t open checkout. Try again in a moment.');
       setIsLoadingBilling(false);
     }
   };
@@ -299,7 +299,7 @@ export default function Settings() {
         window.location.href = response.url;
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to open billing portal');
+      setErrorMessage(error instanceof Error ? error.message : 'Couldn’t open the billing portal. Try again in a moment.');
       setIsLoadingBilling(false);
     }
   };
@@ -313,7 +313,7 @@ export default function Settings() {
 
       await network.fetch('POST', `/users/@me/projects/${activeProject.id}/reset`);
 
-      setSuccessMessage('Project reset successfully. All data has been cleared.');
+      setSuccessMessage('Project reset. All campaigns, contacts, workflows, templates, and events are gone.');
       setDialog({type: 'none'});
       setResetConfirmText('');
 
@@ -322,7 +322,7 @@ export default function Settings() {
         window.location.reload();
       }, 1500);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to reset project');
+      setErrorMessage(error instanceof Error ? error.message : 'Couldn’t reset the project. Try again.');
       setDialog({type: 'none'});
       setResetConfirmText('');
     }
@@ -337,7 +337,7 @@ export default function Settings() {
 
       await network.fetch('DELETE', `/users/@me/projects/${activeProject.id}`);
 
-      setSuccessMessage('Project deleted successfully. Redirecting...');
+      setSuccessMessage('Project deleted. Redirecting…');
       setDialog({type: 'none'});
       setDeleteConfirmText('');
 
@@ -349,7 +349,7 @@ export default function Settings() {
         window.location.href = '/';
       }, 1500);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete project');
+      setErrorMessage(error instanceof Error ? error.message : 'Couldn’t delete the project. Try again.');
       setDialog({type: 'none'});
       setDeleteConfirmText('');
     }
@@ -376,7 +376,7 @@ export default function Settings() {
           {/* Header */}
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Settings</h1>
-            <p className="text-neutral-500 mt-2">Manage your project settings and preferences</p>
+            <p className="text-neutral-500 mt-2">Settings for this project.</p>
           </div>
 
           {/* Tabs */}
@@ -398,8 +398,7 @@ export default function Settings() {
               <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Project Settings</CardTitle>
-                  <CardDescription>Update your project name and basic information</CardDescription>
+                  <CardTitle>Project settings</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Form {...form}>
@@ -409,9 +408,9 @@ export default function Settings() {
                         name="name"
                         render={({field}) => (
                           <FormItem>
-                            <FormLabel>Project Name</FormLabel>
+                            <FormLabel>Project name</FormLabel>
                             <FormControl>
-                              <Input placeholder="My Awesome Project" {...field} />
+                              <Input placeholder="e.g., Acme" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -425,7 +424,7 @@ export default function Settings() {
                           name="tracking"
                           render={({field}) => (
                             <FormItem>
-                              <FormLabel>Email Tracking</FormLabel>
+                              <FormLabel>Email tracking</FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
@@ -445,7 +444,7 @@ export default function Settings() {
                                   />
                                   <SelectItemWithDescription
                                     value={TrackingMode.MARKETING_ONLY}
-                                    title="Marketing Only"
+                                    title="Marketing only"
                                     description="Track only campaigns and workflow emails, not transactional"
                                   />
                                 </SelectContent>
@@ -465,7 +464,7 @@ export default function Settings() {
                         name="language"
                         render={({field}) => (
                           <FormItem>
-                            <FormLabel>Customer Language</FormLabel>
+                            <FormLabel>Customer language</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value || 'en'}>
                               <FormControl>
                                 <SelectTrigger>
@@ -518,7 +517,7 @@ export default function Settings() {
 
                       <div className="flex justify-end">
                         <Button type="submit" disabled={form.formState.isSubmitting}>
-                          {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                          {form.formState.isSubmitting ? 'Saving…' : 'Save Changes'}
                         </Button>
                       </div>
                     </form>
@@ -531,22 +530,22 @@ export default function Settings() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>API Credentials</CardTitle>
+                      <CardTitle>API keys</CardTitle>
                       <CardDescription>Use these keys to integrate with the Plunk API</CardDescription>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={promptRegenerateKeys}>
-                      Regenerate Keys
+                      Regenerate keys
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <ApiKeyDisplay
-                    label="Public API Key"
+                    label="Public key"
                     value={activeProject.public}
                     description="Use this key for client-side integrations"
                   />
                   <ApiKeyDisplay
-                    label="Secret API Key"
+                    label="Secret key"
                     value={activeProject.secret}
                     description="Keep this key secure and never expose it publicly"
                     isSecret
@@ -562,7 +561,7 @@ export default function Settings() {
                       <AlertTriangle className="h-5 w-5 text-red-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg text-red-900">Danger Zone</CardTitle>
+                      <CardTitle className="text-lg text-red-900">Danger zone</CardTitle>
                       <CardDescription className="text-red-700">
                         Irreversible actions that affect your project data
                       </CardDescription>
@@ -576,11 +575,10 @@ export default function Settings() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1.5">
                           <Database className="h-4 w-4 text-amber-700" />
-                          <h4 className="font-semibold text-neutral-900">Reset Project Data</h4>
+                          <h4 className="font-semibold text-neutral-900">Reset project data</h4>
                         </div>
                         <p className="text-sm text-neutral-600 mb-3">
-                          Clear all campaigns, contacts, workflows, templates, and events. This gives you a blank
-                          project to start fresh.
+                          Clear all campaigns, contacts, workflows, templates, and events.
                         </p>
                         <div className="flex items-start gap-2 text-xs text-neutral-500">
                           <span className="font-medium">Preserved:</span>
@@ -588,7 +586,7 @@ export default function Settings() {
                         </div>
                       </div>
                       <Button type="button" variant="outline" onClick={() => setDialog({type: 'reset'})} className="shrink-0">
-                        Reset Data
+                        Reset data
                       </Button>
                     </div>
 
@@ -597,7 +595,7 @@ export default function Settings() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1.5">
                           <AlertTriangle className="h-4 w-4 text-red-600" />
-                          <h4 className="font-semibold text-red-900">Delete Project Permanently</h4>
+                          <h4 className="font-semibold text-red-900">Delete project</h4>
                         </div>
                         <p className="text-sm text-red-800 mb-3">
                           Permanently delete this project and all associated data. This action{' '}
@@ -606,7 +604,7 @@ export default function Settings() {
                         </p>
                         <div className="flex items-center gap-2 text-xs">
                           <span className="px-2 py-1 bg-red-100 text-red-700 rounded font-medium">
-                            Permanent Deletion
+                            Permanent deletion
                           </span>
                           <span className="text-red-600">All data will be lost</span>
                         </div>
@@ -617,7 +615,7 @@ export default function Settings() {
                         onClick={() => setDialog({type: 'delete'})}
                         className="shrink-0"
                       >
-                        Delete Project
+                        Delete project
                       </Button>
                     </div>
                   </div>
@@ -634,8 +632,7 @@ export default function Settings() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Billing & Subscription</CardTitle>
-                    <CardDescription>Manage your subscription and billing information</CardDescription>
+                    <CardTitle>Billing</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
@@ -669,7 +666,7 @@ export default function Settings() {
                           <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                             <div className="flex items-center gap-2 text-green-800 mb-2">
                               <CreditCard className="h-5 w-5" />
-                              <span className="font-medium">Active Subscription</span>
+                              <span className="font-medium">Active subscription</span>
                             </div>
                             <p className="text-sm text-green-700">
                               Your subscription is active. Manage your billing details, update payment methods, or
@@ -679,7 +676,7 @@ export default function Settings() {
 
                           <div className="flex justify-start">
                             <Button onClick={handleManageBilling} disabled={isLoadingBilling}>
-                              {isLoadingBilling ? 'Loading...' : 'Manage Billing'}
+                              {isLoadingBilling ? 'Loading…' : 'Manage Billing'}
                             </Button>
                           </div>
                         </div>
@@ -689,19 +686,23 @@ export default function Settings() {
                           <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
                             <div className="flex items-center gap-2 text-neutral-800 mb-2">
                               <CreditCard className="h-5 w-5" />
-                              <span className="font-medium">No Active Subscription</span>
+                              <span className="font-medium">No active subscription</span>
                             </div>
                             <p className="text-sm text-neutral-600">
-                              Start a subscription and support the development of Plunk. Activation places two charges
-                              of 1.00 on your card, in your billing currency: a one-time onboarding fee, and a second
-                              charge made straight afterwards to confirm your card accepts automatic monthly billing.
-                              Both are credited back to your account in full, so activation costs you nothing.
+                              Activation places two charges of 1.00 on your card, both credited back in full. It costs
+                              you nothing.
                             </p>
-                            <p className="mt-2 text-xs text-neutral-500">
-                              Some cards — most often prepaid, virtual, and single-use cards — accept a payment you
-                              approve yourself but refuse recurring charges later. Checking upfront means you find out
-                              now rather than a month into using Plunk.
-                            </p>
+                            <details className="group mt-2">
+                              <summary className="cursor-pointer text-xs text-neutral-500 hover:text-neutral-700 transition-colors list-none">
+                                Why two charges?
+                              </summary>
+                              <p className="mt-2 text-xs text-neutral-500">
+                                The first is a one-time onboarding fee. The second runs straight afterwards to confirm
+                                your card accepts automatic monthly billing. Prepaid, virtual, and single-use cards
+                                often accept a payment you approve yourself but refuse recurring charges later, so we
+                                check now rather than a month in.
+                              </p>
+                            </details>
                           </div>
 
                           <div className="flex flex-col gap-2">
@@ -710,7 +711,7 @@ export default function Settings() {
                                 onClick={() => handleStartSubscription(selectedCurrency)}
                                 disabled={isLoadingBilling}
                               >
-                                {isLoadingBilling ? 'Loading...' : 'Start Subscription'}
+                                {isLoadingBilling ? 'Loading…' : 'Start Subscription'}
                               </Button>
                             </div>
 
@@ -792,11 +793,11 @@ export default function Settings() {
               ) : (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Security Overview</CardTitle>
+                    <CardTitle>Security overview</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-neutral-500">
-                      {isLoadingSecurityMetrics ? 'Loading...' : 'Unable to load security metrics'}
+                      {isLoadingSecurityMetrics ? 'Loading…' : 'Unable to load security metrics'}
                     </p>
                   </CardContent>
                 </Card>
@@ -826,15 +827,14 @@ export default function Settings() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
-                Regenerate API Keys
+                Regenerate API keys?
               </DialogTitle>
               <DialogDescription className="space-y-3">
-                <p>Are you sure you want to regenerate your API keys?</p>
                 <Alert variant="warning">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Current keys will be <strong>immediately invalidated</strong>. Any integrations using the old keys
-                    will stop working until updated.
+                    Your current keys stop working <strong>immediately</strong>. Every integration using them fails
+                    until you swap in the new keys.
                   </AlertDescription>
                 </Alert>
               </DialogDescription>
@@ -844,7 +844,7 @@ export default function Settings() {
                 Cancel
               </Button>
               <Button variant="destructive" onClick={handleRegenerateKeys}>
-                Regenerate Keys
+                Regenerate keys
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -896,7 +896,7 @@ export default function Settings() {
                 disabled={resetConfirmText !== 'RESET'}
                 className="w-full"
               >
-                Reset Data
+                Reset data
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -954,7 +954,7 @@ export default function Settings() {
                 disabled={deleteConfirmText !== 'DELETE'}
                 className="w-full"
               >
-                Delete Forever
+                Delete forever
               </Button>
             </DialogFooter>
           </DialogContent>

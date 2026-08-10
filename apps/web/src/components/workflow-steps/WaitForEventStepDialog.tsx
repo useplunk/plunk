@@ -99,7 +99,7 @@ export function WaitForEventStepDialog({step, workflowId, open, onOpenChange, on
     >
       <div className="space-y-4">
         <div>
-          <Label htmlFor="editEventName">Event Name</Label>
+          <Label htmlFor="editEventName">Event name</Label>
           <div className="relative">
             <Input
               id="editEventName"

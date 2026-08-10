@@ -510,12 +510,12 @@ type PickerContext = {mode: 'append'; fromStepId: string; branch?: string} | {mo
 
 // Step type options for adding new steps
 const STEP_TYPE_OPTIONS = [
-  {value: 'SEND_EMAIL', label: 'Send Email', icon: Mail, color: STEP_TYPE_COLORS.SEND_EMAIL},
+  {value: 'SEND_EMAIL', label: 'Send email', icon: Mail, color: STEP_TYPE_COLORS.SEND_EMAIL},
   {value: 'DELAY', label: 'Delay', icon: Clock, color: STEP_TYPE_COLORS.DELAY},
-  {value: 'WAIT_FOR_EVENT', label: 'Wait for Event', icon: Clock, color: STEP_TYPE_COLORS.WAIT_FOR_EVENT},
+  {value: 'WAIT_FOR_EVENT', label: 'Wait for event', icon: Clock, color: STEP_TYPE_COLORS.WAIT_FOR_EVENT},
   {value: 'CONDITION', label: 'Condition', icon: GitBranch, color: STEP_TYPE_COLORS.CONDITION},
   {value: 'WEBHOOK', label: 'Webhook', icon: Webhook, color: STEP_TYPE_COLORS.WEBHOOK},
-  {value: 'UPDATE_CONTACT', label: 'Update Contact', icon: UserCog, color: STEP_TYPE_COLORS.UPDATE_CONTACT},
+  {value: 'UPDATE_CONTACT', label: 'Update contact', icon: UserCog, color: STEP_TYPE_COLORS.UPDATE_CONTACT},
   {value: 'EXIT', label: 'Exit', icon: LogOut, color: STEP_TYPE_COLORS.EXIT},
 ];
 
@@ -808,7 +808,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             window.dispatchEvent(event);
           }, 100);
         } catch (error) {
-          toast.error(error instanceof Error ? error.message : 'Failed to insert step');
+          toast.error(error instanceof Error ? error.message : 'Couldn’t insert the step. Try again.');
         }
         return;
       }
@@ -872,7 +872,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           },
         );
 
-        toast.success('Step added successfully');
+        toast.success('Step added');
         setPickerContext(null);
         onUpdate();
 
@@ -882,7 +882,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           window.dispatchEvent(event);
         }, 100);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed to add step');
+        toast.error(error instanceof Error ? error.message : 'Couldn’t add the step. Try again.');
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -941,7 +941,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
 
       onUpdate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete step');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the step. Try again.');
     } finally {
       setStepToDelete(null);
     }
@@ -969,7 +969,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       toast.success('Steps disconnected');
       onUpdate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to disconnect steps');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t disconnect those steps. Try again.');
     } finally {
       setTransitionToDisconnect(null);
     }
@@ -1048,7 +1048,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
         toast.success('Steps connected');
         onUpdate();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed to connect steps');
+        toast.error(error instanceof Error ? error.message : 'Couldn’t connect those steps. Try again.');
       }
     },
     [isValidConnection, steps, workflowId, onUpdate],
@@ -1078,7 +1078,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
         setPickerContext(null);
         onUpdate();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed to connect steps');
+        toast.error(error instanceof Error ? error.message : 'Couldn’t connect those steps. Try again.');
       }
     },
     [pickerContext, steps, workflowId, onUpdate],
@@ -1376,9 +1376,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
                     <p className="text-sm font-medium text-red-600">This action cannot be undone.</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-neutral-600 py-1">
-                    Are you sure you want to delete this step? This action cannot be undone.
-                  </p>
+                  <p className="text-sm text-neutral-600 py-1">This step is removed from the workflow. This can&apos;t be undone.</p>
                 )}
 
                 <DialogFooter>

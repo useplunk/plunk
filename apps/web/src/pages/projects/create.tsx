@@ -64,7 +64,7 @@ export default function CreateProject() {
 
   return (
     <>
-      <NextSeo title="Create Project" />
+      <NextSeo title="Create project" />
       <div
         className={'min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 to-neutral-100 p-4'}
       >
@@ -102,9 +102,9 @@ export default function CreateProject() {
                           name="name"
                           render={({field}) => (
                             <FormItem>
-                              <FormLabel>Project Name</FormLabel>
+                              <FormLabel>Project name</FormLabel>
                               <FormControl>
-                                <Input placeholder="My Awesome Project" {...field} />
+                                <Input placeholder="e.g., Acme" {...field} />
                               </FormControl>
                               <FormDescription>You can change this later</FormDescription>
                               <FormMessage />
@@ -136,7 +136,7 @@ export default function CreateProject() {
                           ) : (
                             <>
                               <FolderPlus className="w-4 h-4 mr-2" />
-                              Create Project
+                              Create project
                             </>
                           )}
                         </Button>
@@ -163,8 +163,7 @@ export default function CreateProject() {
                   <div className="flex-1 flex flex-col justify-center">
                     <div className="bg-neutral-50 rounded-lg p-6 border border-neutral-200">
                       <p className="text-sm text-neutral-600 text-center leading-relaxed">
-                        Contact your project administrator and ask them to add you as a member. They can invite you from
-                        the project settings page.
+                        Ask a project admin to invite you from Settings → Team.
                       </p>
                     </div>
                   </div>

@@ -31,7 +31,7 @@ interface OperatorOption {
 
 const ALL_OPERATORS: OperatorOption[] = [
   {value: 'equals',             label: 'Equals',                 types: ['string', 'number', 'boolean', 'date']},
-  {value: 'notEquals',          label: 'Not Equals',             types: ['string', 'number', 'boolean', 'date']},
+  {value: 'notEquals',          label: 'Not equals',             types: ['string', 'number', 'boolean', 'date']},
   {value: 'contains',           label: 'Contains',               types: ['string']},
   {value: 'notContains',        label: 'Does not contain',       types: ['string']},
   {value: 'greaterThan',        label: 'Greater than',           types: ['number', 'date']},
@@ -303,7 +303,7 @@ function ConditionModeToggle({
 }: ConditionModeToggleProps) {
   return (
     <div>
-      <Label className="text-sm font-medium mb-2 block">Condition Mode</Label>
+      <Label className="text-sm font-medium mb-2 block">Condition mode</Label>
       <div className="flex gap-2">
         <button
           type="button"
@@ -380,7 +380,9 @@ function ConditionFieldPicker({value, onChange, availableFields, loading}: Condi
 
   return (
     <div>
-      <Label htmlFor="editConditionField">Field to Check *</Label>
+      <Label htmlFor="editConditionField">Field to check
+            <span className="text-red-500"> *</span>
+          </Label>
       {loading ? (
         <div className="flex items-center gap-2 px-3 py-2 border border-neutral-200 rounded-lg text-sm text-neutral-500 mt-1.5">
           <IconSpinner size="sm" />
@@ -389,7 +391,7 @@ function ConditionFieldPicker({value, onChange, availableFields, loading}: Condi
       ) : availableFields.length > 0 ? (
         <Select value={value} onValueChange={onChange} required>
           <SelectTrigger id="editConditionField" className="mt-1.5">
-            <SelectValue placeholder="Select a field..." />
+            <SelectValue placeholder="Select a field…" />
           </SelectTrigger>
           <SelectContent>
             {Object.entries(grouped).map(([category, fields]) => (
@@ -544,7 +546,9 @@ function MultiBranchEditor({branches, validOperators, onUpdateBranch, onRemoveBr
           </div>
 
           <div>
-            <Label className="text-xs">Name *</Label>
+            <Label className="text-xs">Name
+            <span className="text-red-500"> *</span>
+          </Label>
             <Input
               type="text"
               value={branch.name}
@@ -581,7 +585,7 @@ function MultiBranchEditor({branches, validOperators, onUpdateBranch, onRemoveBr
                   type="text"
                   value={branch.value}
                   onChange={e => onUpdateBranch(branch.id, {value: e.target.value})}
-                  placeholder="Value..."
+                  placeholder="Value…"
                   className="mt-1 h-8 text-sm"
                 />
               </div>
@@ -597,7 +601,7 @@ function MultiBranchEditor({branches, validOperators, onUpdateBranch, onRemoveBr
           className="flex items-center gap-1.5 text-sm text-neutral-700 hover:text-neutral-900 font-medium"
         >
           <Plus className="h-3.5 w-3.5" />
-          Add Branch
+          Add branch
         </button>
       )}
 

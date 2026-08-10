@@ -57,10 +57,10 @@ export default function ContactDetailPage() {
         },
         typeof ContactSchemas.create
       >('PATCH', `/contacts/${id}`, {email, subscribed, data: customData});
-      toast.success('Contact updated successfully');
+      toast.success('Contact updated');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update contact');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t save the contact. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -69,10 +69,10 @@ export default function ContactDetailPage() {
   const handleDelete = async () => {
     try {
       await network.fetch('DELETE', `/contacts/${id}`);
-      toast.success('Contact deleted successfully');
+      toast.success('Contact deleted');
       void router.push('/contacts');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete contact');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the contact. Try again.');
     }
   };
 
@@ -83,7 +83,7 @@ export default function ContactDetailPage() {
       setTimeout(() => setCopiedId(null), 2000);
       toast.success(`${label} copied to clipboard`);
     } catch {
-      toast.error('Failed to copy');
+      toast.error('Couldn’t copy to your clipboard.');
     }
   };
 
@@ -108,7 +108,7 @@ export default function ContactDetailPage() {
           <Button asChild>
             <Link href="/contacts">
               <ArrowLeft className="h-4 w-4" />
-              Back to Contacts
+              Back to contacts
             </Link>
           </Button>
         </div>
@@ -142,7 +142,7 @@ export default function ContactDetailPage() {
             </div>
             <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} className="flex-shrink-0">
               <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Delete Contact</span>
+              <span className="hidden sm:inline">Delete contact</span>
             </Button>
           </div>
 
@@ -151,12 +151,12 @@ export default function ContactDetailPage() {
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Contact Information</CardTitle>
+                  <CardTitle>Contact information</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <Label htmlFor="email">Email Address</Label>
+                      <Label htmlFor="email">Email address</Label>
                       <Input
                         id="email"
                         type="email"
@@ -191,7 +191,7 @@ export default function ContactDetailPage() {
 
                     <Button type="submit" disabled={isSubmitting}>
                       <Save className="h-4 w-4" />
-                      {isSubmitting ? 'Saving...' : 'Save Changes'}
+                      {isSubmitting ? 'Saving…' : 'Save Changes'}
                     </Button>
                   </form>
                 </CardContent>
@@ -266,7 +266,7 @@ export default function ContactDetailPage() {
                   </div>
 
                   <div>
-                    <p className="text-sm font-medium text-neutral-900">Last Updated</p>
+                    <p className="text-sm font-medium text-neutral-900">Last updated</p>
                     <div className="group relative inline-block cursor-help">
                       <p className="text-sm text-neutral-500">{dayjs(contact.updatedAt).fromNow()}</p>
                       <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
@@ -280,11 +280,11 @@ export default function ContactDetailPage() {
               {/* Public Links Card */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Public Links</CardTitle>
+                  <CardTitle>Public links</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-neutral-700">Subscribe Page</p>
+                    <p className="text-xs font-medium text-neutral-700">Subscribe page</p>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -335,7 +335,7 @@ export default function ContactDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-neutral-700">Unsubscribe Page</p>
+                    <p className="text-xs font-medium text-neutral-700">Unsubscribe page</p>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -386,7 +386,7 @@ export default function ContactDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-neutral-700">Manage Preferences</p>
+                    <p className="text-xs font-medium text-neutral-700">Manage preferences</p>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -445,9 +445,9 @@ export default function ContactDetailPage() {
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
           onConfirm={handleDelete}
-          title="Delete Contact"
-          description="Are you sure you want to delete this contact? This action cannot be undone."
-          confirmText="Delete"
+          title={`Delete ${contact.email}?`}
+          description="Their events and email history are deleted too. This can't be undone."
+          confirmText="Delete contact"
           variant="destructive"
         />
       </DashboardLayout>

@@ -11,7 +11,7 @@ function Document({locale}: {locale: string}) {
         <meta name="title" content="Plunk | Email Platform Dashboard" />
         <meta
           name="description"
-          content="Manage your email campaigns, contacts, and analytics with Plunk - the open-source email platform."
+          content="Manage your email campaigns, contacts, and analytics with Plunk, the open-source email platform."
         />
 
         {/* Open Graph / Facebook */}
@@ -19,7 +19,7 @@ function Document({locale}: {locale: string}) {
         <meta property="og:title" content="Plunk | Email Platform Dashboard" />
         <meta
           property="og:description"
-          content="Manage your email campaigns, contacts, and analytics with Plunk - the open-source email platform."
+          content="Manage your email campaigns, contacts, and analytics with Plunk, the open-source email platform."
         />
         <meta property="og:image" content="https://next-app.useplunk.com/api/og?title=Email%20Platform%20Dashboard" />
 
@@ -28,7 +28,7 @@ function Document({locale}: {locale: string}) {
         <meta property="twitter:title" content="Plunk | Email Platform Dashboard" />
         <meta
           property="twitter:description"
-          content="Manage your email campaigns, contacts, and analytics with Plunk - the open-source email platform."
+          content="Manage your email campaigns, contacts, and analytics with Plunk, the open-source email platform."
         />
         <meta property="twitter:image" content="https://next-app.useplunk.com/api/og?title=Email%20Platform%20Dashboard" />
 

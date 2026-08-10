@@ -65,7 +65,7 @@ function AuthGuard({children}: {children: React.ReactNode}) {
 
   // Show loading state while checking authentication (only for protected routes)
   if (isLoading && !isPublicRoute) {
-    return <Loader message="Authenticating..." />;
+    return <Loader message="Authenticating…" />;
   }
 
   // Don't render protected content if redirecting
@@ -90,7 +90,7 @@ function ProjectGuard({children}: {children: React.ReactNode}) {
 
   // Show loading state while checking projects (only for routes that need a project)
   if (isLoading && !isNoProjectRoute) {
-    return <Loader message="Loading project..." />;
+    return <Loader message="Loading project…" />;
   }
 
   // Don't render protected content if redirecting

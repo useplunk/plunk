@@ -147,7 +147,7 @@ export function CampaignSelectionDialog({open, onOpenChange, onSelectCampaign}: 
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All Campaigns</SelectItem>
+                  <SelectItem value="ALL">All campaigns</SelectItem>
                   <SelectItem value="DRAFT">Draft</SelectItem>
                   <SelectItem value="SCHEDULED">Scheduled</SelectItem>
                   <SelectItem value="SENDING">Sending</SelectItem>
@@ -271,7 +271,7 @@ export function CampaignSelectionDialog({open, onOpenChange, onSelectCampaign}: 
                   />
                   <div className="flex-1">
                     <Label htmlFor="subject" className="text-sm font-medium cursor-pointer">
-                      Email Subject
+                      Email subject
                     </Label>
                     {selectedCampaign?.subject && (
                       <p className="text-xs text-neutral-400 mt-0.5 truncate">{selectedCampaign.subject}</p>
@@ -286,7 +286,7 @@ export function CampaignSelectionDialog({open, onOpenChange, onSelectCampaign}: 
                   <Checkbox id="body" checked={selectedFields.body} onCheckedChange={() => toggleField('body')} />
                   <div className="flex-1">
                     <Label htmlFor="body" className="text-sm font-medium cursor-pointer">
-                      Email Body
+                      Email body
                     </Label>
                     <p className="text-xs text-neutral-400 mt-0.5">Full email content and design</p>
                   </div>
@@ -299,7 +299,7 @@ export function CampaignSelectionDialog({open, onOpenChange, onSelectCampaign}: 
                   <Checkbox id="from" checked={selectedFields.from} onCheckedChange={() => toggleField('from')} />
                   <div className="flex-1">
                     <Label htmlFor="from" className="text-sm font-medium cursor-pointer">
-                      From Email
+                      From email
                     </Label>
                     {selectedCampaign?.from && (
                       <p className="text-xs text-neutral-400 mt-0.5">{selectedCampaign.from}</p>
@@ -318,7 +318,7 @@ export function CampaignSelectionDialog({open, onOpenChange, onSelectCampaign}: 
                   />
                   <div className="flex-1">
                     <Label htmlFor="fromName" className="text-sm font-medium cursor-pointer">
-                      From Name
+                      From name
                     </Label>
                     {selectedCampaign?.fromName && (
                       <p className="text-xs text-neutral-400 mt-0.5">{selectedCampaign.fromName}</p>
@@ -337,7 +337,7 @@ export function CampaignSelectionDialog({open, onOpenChange, onSelectCampaign}: 
                   />
                   <div className="flex-1">
                     <Label htmlFor="replyTo" className="text-sm font-medium cursor-pointer">
-                      Reply-To Email
+                      Reply-To email
                     </Label>
                     {selectedCampaign?.replyTo && (
                       <p className="text-xs text-neutral-400 mt-0.5">{selectedCampaign.replyTo}</p>
@@ -356,7 +356,7 @@ export function CampaignSelectionDialog({open, onOpenChange, onSelectCampaign}: 
                   />
                   <div className="flex-1">
                     <Label htmlFor="audience" className="text-sm font-medium cursor-pointer">
-                      Audience Settings
+                      Audience settings
                     </Label>
                     {selectedCampaign && (
                       <p className="text-xs text-neutral-400 mt-0.5">{getAudienceLabel(selectedCampaign)}</p>
@@ -372,7 +372,7 @@ export function CampaignSelectionDialog({open, onOpenChange, onSelectCampaign}: 
                 Back
               </Button>
               <Button onClick={handleConfirm} className="flex-1" disabled={!Object.values(selectedFields).some(v => v)}>
-                Create Campaign
+                Create campaign
               </Button>
             </div>
           </div>

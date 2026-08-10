@@ -400,7 +400,7 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
               <Collapsible className="mt-2">
                 <CollapsibleTrigger className="flex items-center gap-1 text-xs text-neutral-600 hover:text-neutral-900 transition-colors group">
                   <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-                  <span className="font-medium">Event Data</span>
+                  <span className="font-medium">Event data</span>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <pre className="mt-2 p-3 bg-neutral-50 rounded-md border border-neutral-200 text-xs overflow-x-auto">

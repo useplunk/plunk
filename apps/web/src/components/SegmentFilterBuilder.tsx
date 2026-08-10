@@ -53,10 +53,10 @@ const TIME_UNITS = [
 
 const STANDARD_FIELDS = [
   // Contact fields
-  {value: 'email', label: 'Email', type: 'string', category: 'Contact Fields'},
-  {value: 'subscribed', label: 'Subscribed', type: 'boolean', category: 'Contact Fields'},
-  {value: 'createdAt', label: 'Created At', type: 'date', category: 'Contact Fields'},
-  {value: 'updatedAt', label: 'Updated At', type: 'date', category: 'Contact Fields'},
+  {value: 'email', label: 'Email', type: 'string', category: 'Contact fields'},
+  {value: 'subscribed', label: 'Subscribed', type: 'boolean', category: 'Contact fields'},
+  {value: 'createdAt', label: 'Created at', type: 'date', category: 'Contact fields'},
+  {value: 'updatedAt', label: 'Updated at', type: 'date', category: 'Contact fields'},
 ] as const;
 
 interface FieldOption {
@@ -64,7 +64,7 @@ interface FieldOption {
   label: string;
   description?: string;
   type: 'string' | 'number' | 'boolean' | 'date' | 'event' | 'email' | 'segment';
-  category: 'Contact Fields' | 'Custom Data' | 'Events' | 'Email Activity' | 'Segments';
+  category: 'Contact fields' | 'Custom data' | 'Events' | 'Email activity' | 'Segments';
 }
 
 // Hook to fetch available fields, events, and segments
@@ -91,7 +91,7 @@ function useAvailableOptions(currentSegmentId?: string) {
             value: f.field,
             label: isCustomData ? f.field.replace('data.', '') : f.field,
             type: f.type,
-            category: isCustomData ? ('Custom Data' as const) : ('Contact Fields' as const),
+            category: isCustomData ? ('Custom data' as const) : ('Contact fields' as const),
           };
         });
 
@@ -108,7 +108,7 @@ function useAvailableOptions(currentSegmentId?: string) {
                 .replace(/([A-Z])/g, ' $1')
                 .trim(),
               type: 'event' as const,
-              category: 'Email Activity' as const,
+              category: 'Email activity' as const,
             });
           } else {
             // Ensure event has the 'event.' prefix for backend compatibility
@@ -393,7 +393,7 @@ const FilterRow = memo(function FilterRow({filter, onChange, onRemove, available
               <div className="flex items-center border-b px-3 py-2">
                 <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                 <Input
-                  placeholder="Search fields, events, or email activity..."
+                  placeholder="Search fields, events, or email activity…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   className="border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -552,7 +552,7 @@ const FilterRow = memo(function FilterRow({filter, onChange, onRemove, available
                 onChange({...filter, value: val === '' ? 0 : parseFloat(val) || 0});
               }}
               className="text-sm bg-white"
-              placeholder="Enter number"
+              placeholder="e.g., 30"
             />
           ) : fieldType === 'date' ? (
             <Input
@@ -567,7 +567,7 @@ const FilterRow = memo(function FilterRow({filter, onChange, onRemove, available
               value={String(filter.value ?? '')}
               onChange={e => onChange({...filter, value: e.target.value})}
               className="text-sm bg-white"
-              placeholder="Enter value"
+              placeholder="e.g., pro"
             />
           )}
         </div>
@@ -675,7 +675,7 @@ function FilterGroupComponent({group, onChange, onRemove, depth = 0, availableFi
         {group.conditions && (
           <div className="mt-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-medium text-neutral-600 uppercase tracking-wide">Nested Conditions</span>
+              <span className="text-xs font-medium text-neutral-600 uppercase tracking-wide">Nested conditions</span>
               <Button
                 type="button"
                 variant="destructiveGhost"
@@ -698,12 +698,12 @@ function FilterGroupComponent({group, onChange, onRemove, depth = 0, availableFi
         <div className="flex gap-2 pt-2">
           <Button type="button" variant="outline" size="sm" onClick={addFilter} className="flex-1">
             <Plus className="h-3 w-3 mr-1" />
-            Add Filter
+            Add filter
           </Button>
           {!group.conditions && (
             <Button type="button" variant="outline" size="sm" onClick={addNestedCondition} className="flex-1">
               <Plus className="h-3 w-3 mr-1" />
-              Add Nested Condition
+              Add nested condition
             </Button>
           )}
         </div>
@@ -794,7 +794,7 @@ function FilterConditionComponent({condition, onChange, depth = 0, availableFiel
 
       <Button type="button" variant="outline" onClick={addGroup} className="w-full">
         <Plus className="h-4 w-4 mr-2" />
-        Add Group
+        Add group
       </Button>
     </div>
   );

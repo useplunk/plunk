@@ -155,10 +155,10 @@ export default function CampaignsPage() {
 
     try {
       await network.fetch('POST', `/campaigns/${campaignToCancel}/cancel`);
-      toast.success('Campaign cancelled successfully');
+      toast.success('Campaign canceled');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to cancel campaign');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t cancel the campaign. Try again.');
     } finally {
       setCampaignToCancel(null);
     }
@@ -167,10 +167,10 @@ export default function CampaignsPage() {
   const handleDuplicate = async (campaignId: string) => {
     try {
       await network.fetch('POST', `/campaigns/${campaignId}/duplicate`);
-      toast.success('Campaign duplicated successfully');
+      toast.success('Campaign duplicated');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to duplicate campaign');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t duplicate the campaign. Try again.');
     }
   };
 
@@ -179,10 +179,10 @@ export default function CampaignsPage() {
 
     try {
       await network.fetch('DELETE', `/campaigns/${campaignToDelete}`);
-      toast.success('Campaign deleted successfully');
+      toast.success('Campaign deleted');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete campaign');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the campaign. Try again.');
     } finally {
       setCampaignToDelete(null);
     }
@@ -207,7 +207,7 @@ export default function CampaignsPage() {
       setRowSelection({});
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete campaigns');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete those campaigns. Try again.');
     } finally {
       // ConfirmDialog closes itself after onConfirm resolves.
       setBulkDeleteStatus('idle');
@@ -557,14 +557,14 @@ export default function CampaignsPage() {
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Campaigns</h1>
               <p className="text-neutral-500 mt-2 text-sm sm:text-base">
-                Send one-time email broadcasts to your contacts. {data?.total ? `${data.total} total campaigns` : ''}
+                One-off emails sent to a list of contacts. {data?.total ? `${data.total} total` : ''}
               </p>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="w-full sm:w-auto">
                   <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Create Campaign</span>
+                  <span className="hidden sm:inline">Create campaign</span>
                   <span className="sm:hidden">Create</span>
                   <ChevronDown className="h-4 w-4 ml-1" />
                 </Button>
@@ -574,7 +574,7 @@ export default function CampaignsPage() {
                   <Link href="/campaigns/create" className="flex items-start gap-3">
                     <Mail className="h-4 w-4 mt-0.5 text-neutral-700" />
                     <div className="flex flex-col gap-0.5 flex-1">
-                      <span className="font-medium text-sm">Empty Campaign</span>
+                      <span className="font-medium text-sm">Empty campaign</span>
                       <span className="text-xs text-neutral-500 leading-snug">
                         Start from scratch with a blank canvas
                       </span>
@@ -585,7 +585,7 @@ export default function CampaignsPage() {
                   <div className="flex items-start gap-3">
                     <FileText className="h-4 w-4 mt-0.5 text-neutral-700" />
                     <div className="flex flex-col gap-0.5 flex-1">
-                      <span className="font-medium text-sm">From Template</span>
+                      <span className="font-medium text-sm">From template</span>
                       <span className="text-xs text-neutral-500 leading-snug">
                         Use an existing template as a starting point
                       </span>
@@ -596,7 +596,7 @@ export default function CampaignsPage() {
                   <div className="flex items-start gap-3">
                     <RefreshCw className="h-4 w-4 mt-0.5 text-neutral-700" />
                     <div className="flex flex-col gap-0.5 flex-1">
-                      <span className="font-medium text-sm">From Previous Campaign</span>
+                      <span className="font-medium text-sm">From previous campaign</span>
                       <span className="text-xs text-neutral-500 leading-snug">
                         Copy content and settings from an existing campaign
                       </span>
@@ -620,7 +620,7 @@ export default function CampaignsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
               <Input
                 type="text"
-                placeholder="Search campaigns..."
+                placeholder="Search campaigns…"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 className="pl-10 pr-10 h-8 text-xs"
@@ -716,7 +716,7 @@ export default function CampaignsPage() {
                               <Link href="/campaigns/create" className="flex items-start gap-3">
                                 <Mail className="h-4 w-4 mt-0.5 text-neutral-700" />
                                 <div className="flex flex-col gap-0.5 flex-1">
-                                  <span className="font-medium text-sm">Empty Campaign</span>
+                                  <span className="font-medium text-sm">Empty campaign</span>
                                   <span className="text-xs text-neutral-500 leading-snug">
                                     Start from scratch with a blank canvas
                                   </span>
@@ -727,7 +727,7 @@ export default function CampaignsPage() {
                               <div className="flex items-start gap-3">
                                 <FileText className="h-4 w-4 mt-0.5 text-neutral-700" />
                                 <div className="flex flex-col gap-0.5 flex-1">
-                                  <span className="font-medium text-sm">From Template</span>
+                                  <span className="font-medium text-sm">From template</span>
                                   <span className="text-xs text-neutral-500 leading-snug">
                                     Use an existing template as a starting point
                                   </span>
@@ -738,7 +738,7 @@ export default function CampaignsPage() {
                               <div className="flex items-start gap-3">
                                 <RefreshCw className="h-4 w-4 mt-0.5 text-neutral-700" />
                                 <div className="flex flex-col gap-0.5 flex-1">
-                                  <span className="font-medium text-sm">From Previous Campaign</span>
+                                  <span className="font-medium text-sm">From previous campaign</span>
                                   <span className="text-xs text-neutral-500 leading-snug">
                                     Copy content and settings from an existing campaign
                                   </span>
@@ -947,9 +947,10 @@ export default function CampaignsPage() {
           open={showCancelDialog}
           onOpenChange={setShowCancelDialog}
           onConfirm={handleCancel}
-          title="Cancel Campaign"
-          description="Are you sure you want to cancel this campaign?"
-          confirmText="Cancel Campaign"
+          title="Cancel this campaign?"
+          description="Sending stops now. Contacts who already received it keep their copy."
+          cancelText="Keep sending"
+          confirmText="Cancel campaign"
           variant="destructive"
         />
 
@@ -957,9 +958,9 @@ export default function CampaignsPage() {
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
           onConfirm={handleDelete}
-          title="Delete Campaign"
-          description="Are you sure you want to delete this draft campaign? This action cannot be undone."
-          confirmText="Delete Campaign"
+          title="Delete this draft?"
+          description="The draft and its content are gone for good."
+          confirmText="Delete campaign"
           variant="destructive"
         />
 
@@ -967,9 +968,9 @@ export default function CampaignsPage() {
           open={showBulkDeleteDialog}
           onOpenChange={setShowBulkDeleteDialog}
           onConfirm={handleBulkDelete}
-          title={`Delete ${selectedIds.length} campaign${selectedIds.length === 1 ? '' : 's'}`}
-          description="Are you sure you want to delete the selected campaigns? This action cannot be undone. Only draft campaigns can be deleted — selecting a non-draft campaign will block the operation."
-          confirmText="Delete"
+          title={`Delete ${selectedIds.length} campaign${selectedIds.length === 1 ? '' : 's'}?`}
+          description="Only drafts can be deleted. If your selection includes a sent or scheduled campaign, nothing will be deleted."
+          confirmText="Delete campaigns"
           variant="destructive"
           status={bulkDeleteStatus}
         />

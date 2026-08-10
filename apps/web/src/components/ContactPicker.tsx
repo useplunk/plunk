@@ -38,7 +38,7 @@ export function ContactPicker({
   onChange,
   onAdd,
   existing = [],
-  placeholder = 'Search contacts...',
+  placeholder = 'Search contacts…',
 }: ContactPickerProps) {
   const [mode, setMode] = useState<Mode>('search');
 
@@ -154,7 +154,7 @@ export function ContactPicker({
               <div className="flex items-center border-b border-neutral-200 px-3 py-2">
                 <Search className="mr-2 h-4 w-4 shrink-0 text-neutral-400" />
                 <Input
-                  placeholder="Type an email to search..."
+                  placeholder="Type an email to search…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   className="border-0 p-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"

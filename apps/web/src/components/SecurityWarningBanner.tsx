@@ -34,7 +34,7 @@ export function SecurityWarningBanner({status}: SecurityWarningBannerProps) {
           </p>
         </div>
         <Button asChild size="sm" variant="outline" className="w-full sm:w-auto flex-shrink-0">
-          <Link href="/settings?tab=security">View Details</Link>
+          <Link href="/settings?tab=security">View details</Link>
         </Button>
       </AlertDescription>
     </Alert>

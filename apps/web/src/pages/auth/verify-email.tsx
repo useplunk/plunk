@@ -121,10 +121,10 @@ export default function VerifyEmail() {
         setCooldownExpiry(expiryTime);
         localStorage.setItem('plunk:email-verification-cooldown', expiryTime.toString());
       } else {
-        setResendMessage('Failed to send verification email. Please try again.');
+        setResendMessage('Couldn’t send the verification email. Try again in a moment.');
       }
     } catch (error) {
-      setResendMessage(error instanceof Error ? error.message : 'Failed to send verification email. Please try again.');
+      setResendMessage(error instanceof Error ? error.message : 'Couldn’t send the verification email. Try again in a moment.');
       const expiryTime = Date.now() + 60000;
       setCooldownExpiry(expiryTime);
       localStorage.setItem('plunk:email-verification-cooldown', expiryTime.toString());
@@ -135,7 +135,7 @@ export default function VerifyEmail() {
 
   return (
     <>
-      <NextSeo title="Verify Email" />
+      <NextSeo title="Verify email" />
       <div className="min-h-screen flex items-center justify-center py-12" style={dotGrid}>
         <div className="flex flex-col gap-6 max-w-md w-full px-4">
           <div className="flex items-center justify-center gap-2.5">
@@ -178,7 +178,7 @@ export default function VerifyEmail() {
                       <div className="flex flex-col gap-2 w-full mt-2">
                         <Button onClick={handleResend} disabled={isResending || cooldownExpiry !== null} className="w-full">
                           {isResending
-                            ? 'Sending...'
+                            ? 'Sending…'
                             : cooldownExpiry !== null
                               ? `Resend in ${remainingSeconds}s`
                               : 'Resend verification email'}
@@ -210,7 +210,7 @@ export default function VerifyEmail() {
                         <IconSpinner size="sm" />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <h1 className="text-xl font-bold tracking-tight">Verifying...</h1>
+                        <h1 className="text-xl font-bold tracking-tight">Verifying…</h1>
                         <p className="text-sm text-neutral-500">Please wait a moment.</p>
                       </div>
                     </motion.div>
@@ -259,7 +259,7 @@ export default function VerifyEmail() {
                       <div className="flex flex-col gap-2 w-full mt-2">
                         <Button onClick={handleResend} disabled={isResending || cooldownExpiry !== null} className="w-full">
                           {isResending
-                            ? 'Sending...'
+                            ? 'Sending…'
                             : cooldownExpiry !== null
                               ? `Resend in ${remainingSeconds}s`
                               : 'Resend verification email'}

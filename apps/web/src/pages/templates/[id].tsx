@@ -92,7 +92,7 @@ export default function TemplateEditorPage() {
       // Silent save - no toast notification
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save template');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t save the template. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -101,10 +101,10 @@ export default function TemplateEditorPage() {
   const handleDelete = async () => {
     try {
       await network.fetch('DELETE', `/templates/${id}`);
-      toast.success('Template deleted successfully');
+      toast.success('Template deleted');
       void router.push('/templates');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete template');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the template. Try again.');
     }
   };
 
@@ -128,10 +128,10 @@ export default function TemplateEditorPage() {
             <Link href="/templates"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Edit Template</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Edit template</h1>
             <p className="text-neutral-500 mt-1 text-sm sm:text-base">
               {isSubmitting
-                ? 'Saving...'
+                ? 'Saving…'
                 : hasChanges
                   ? <span className="text-amber-600">Unsaved changes</span>
                   : 'All changes saved'}
@@ -144,19 +144,18 @@ export default function TemplateEditorPage() {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Name and describe your template</CardDescription>
+                <CardTitle>Basic information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Template Name <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="name">Template name <span className="text-red-500">*</span></Label>
                   <Input
                     id="name"
                     type="text"
                     value={editedTemplate.name || ''}
                     onChange={e => setEditedTemplate({...editedTemplate, name: e.target.value})}
                     required
-                    placeholder="Welcome Email"
+                    placeholder="e.g., Welcome email"
                   />
                 </div>
 
@@ -167,7 +166,7 @@ export default function TemplateEditorPage() {
                     type="text"
                     value={editedTemplate.description || ''}
                     onChange={e => setEditedTemplate({...editedTemplate, description: e.target.value})}
-                    placeholder="Sent to new subscribers"
+                    placeholder="e.g., Sent to new subscribers"
                   />
                 </div>
               </CardContent>
@@ -175,8 +174,8 @@ export default function TemplateEditorPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Template Type</CardTitle>
-                <CardDescription>Choose how this template should be treated</CardDescription>
+                <CardTitle>Template type</CardTitle>
+                <CardDescription>Transactional templates skip the subscription check and the footer.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-2">
@@ -228,19 +227,18 @@ export default function TemplateEditorPage() {
           {/* Email Settings */}
           <Card>
             <CardHeader>
-              <CardTitle>Email Settings</CardTitle>
-              <CardDescription>Configure sender information and subject</CardDescription>
+              <CardTitle>Email settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject Line <span className="text-red-500">*</span></Label>
+                <Label htmlFor="subject">Subject line <span className="text-red-500">*</span></Label>
                 <Input
                   id="subject"
                   type="text"
                   value={editedTemplate.subject || ''}
                   onChange={e => setEditedTemplate({...editedTemplate, subject: e.target.value})}
                   required
-                  placeholder="Welcome to our platform!"
+                  placeholder="e.g., Welcome to Acme"
                 />
                 <p className="text-xs text-neutral-500">Use {'{{variableName}}'} for dynamic content</p>
               </div>
@@ -260,8 +258,7 @@ export default function TemplateEditorPage() {
           {/* Email Body */}
           <Card className="overflow-visible">
             <CardHeader>
-              <CardTitle>Email Body</CardTitle>
-              <CardDescription>Create your email using the visual editor or paste custom HTML</CardDescription>
+              <CardTitle>Email body</CardTitle>
             </CardHeader>
             <CardContent>
               <EmailEditor
@@ -279,11 +276,11 @@ export default function TemplateEditorPage() {
               onClick={() => setShowDeleteDialog(true)}
             >
               <Trash2 className="h-4 w-4" />
-              Delete Template
+              Delete template
             </Button>
             <Button type="submit" disabled={!hasChanges || isSubmitting}>
               <Save className="h-4 w-4" />
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              {isSubmitting ? 'Saving…' : 'Save Changes'}
             </Button>
           </div>
         </form>
@@ -297,9 +294,9 @@ export default function TemplateEditorPage() {
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         onConfirm={handleDelete}
-        title="Delete Template"
-        description="Are you sure you want to delete this template? This action cannot be undone."
-        confirmText="Delete Template"
+        title={`Delete ${template.name}?`}
+        description="Campaigns already sent with it are unaffected. This can't be undone."
+        confirmText="Delete template"
         variant="destructive"
       />
     </DashboardLayout>

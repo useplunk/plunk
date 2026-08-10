@@ -38,7 +38,7 @@ export default function ActivityPage() {
 
   const statsCards = [
     {
-      name: 'Events Triggered',
+      name: 'Events triggered',
       value: stats?.totalEvents?.toLocaleString() || '0',
       icon: Zap,
       description: 'Last 30 days',
@@ -46,7 +46,7 @@ export default function ActivityPage() {
       bgColor: 'bg-neutral-100',
     },
     {
-      name: 'Emails Sent',
+      name: 'Emails sent',
       value: stats?.totalEmailsSent?.toLocaleString() || '0',
       icon: Send,
       description: 'Last 30 days',
@@ -54,7 +54,7 @@ export default function ActivityPage() {
       bgColor: 'bg-neutral-100',
     },
     {
-      name: 'Open Rate',
+      name: 'Open rate',
       value: stats?.openRate ? `${stats.openRate.toFixed(1)}%` : '0%',
       icon: Eye,
       description: `${stats?.totalEmailsOpened?.toLocaleString() || '0'} opens`,
@@ -62,7 +62,7 @@ export default function ActivityPage() {
       bgColor: 'bg-neutral-100',
     },
     {
-      name: 'Click Rate',
+      name: 'Click rate',
       value: stats?.clickRate ? `${stats.clickRate.toFixed(1)}%` : '0%',
       icon: MousePointerClick,
       description: `${stats?.totalEmailsClicked?.toLocaleString() || '0'} clicks`,
@@ -80,7 +80,7 @@ export default function ActivityPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Activity</h1>
             <p className="text-neutral-500 mt-2 text-sm sm:text-base">
-              Real-time overview of events, emails, and workflow executions across your project.
+              Events, emails, and workflow runs as they happen.
             </p>
           </div>
 
@@ -117,18 +117,18 @@ export default function ActivityPage() {
                       <SelectValue placeholder="All Activity Types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ALL">All Activity Types</SelectItem>
+                      <SelectItem value="ALL">All activity types</SelectItem>
                       <SelectItem value="event.triggered">Events</SelectItem>
                       <SelectItem value="email.sent,email.delivered,email.received,email.opened,email.clicked,email.bounced,email.complaint">
                         Emails
                       </SelectItem>
-                      <SelectItem value="email.sent">Emails Sent</SelectItem>
-                      <SelectItem value="email.delivered">Emails Delivered</SelectItem>
-                      <SelectItem value="email.received">Emails Received</SelectItem>
-                      <SelectItem value="email.opened">Emails Opened</SelectItem>
-                      <SelectItem value="email.clicked">Emails Clicked</SelectItem>
-                      <SelectItem value="email.bounced">Emails Bounced</SelectItem>
-                      <SelectItem value="email.complaint">Email Complaints</SelectItem>
+                      <SelectItem value="email.sent">Emails sent</SelectItem>
+                      <SelectItem value="email.delivered">Emails delivered</SelectItem>
+                      <SelectItem value="email.received">Emails received</SelectItem>
+                      <SelectItem value="email.opened">Emails opened</SelectItem>
+                      <SelectItem value="email.clicked">Emails clicked</SelectItem>
+                      <SelectItem value="email.bounced">Emails bounced</SelectItem>
+                      <SelectItem value="email.complaint">Email complaints</SelectItem>
                       <SelectItem value="workflow.started,workflow.completed">Workflows</SelectItem>
                     </SelectContent>
                   </Select>
@@ -153,11 +153,7 @@ export default function ActivityPage() {
           {/* Activity Feed */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                Live feed of all activities happening across your project. Updates automatically as new activities
-                occur.
-              </CardDescription>
+              <CardTitle>Recent activity</CardTitle>
             </CardHeader>
             <CardContent>
               <ActivityFeed

@@ -432,7 +432,7 @@ export function Toolbar({editor, onInsertVariable, onInsertImage, canUploadImage
           >
             {/* Custom color input */}
             <div className="mb-3 pb-3 border-b border-neutral-200">
-              <label className="text-xs font-medium text-neutral-600 mb-1 block">Custom Color</label>
+              <label className="text-xs font-medium text-neutral-600 mb-1 block">Custom color</label>
               <div className="flex gap-2">
                 <Input
                   type="text"
@@ -542,7 +542,7 @@ export function Toolbar({editor, onInsertVariable, onInsertImage, canUploadImage
                   onMouseDown={e => e.preventDefault()}
                   onClick={removeLink}
                 >
-                  Remove Link
+                  Remove link
                 </Button>
               </div>
             )}
