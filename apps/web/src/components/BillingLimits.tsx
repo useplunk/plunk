@@ -109,12 +109,12 @@ export function BillingLimits({projectId, tier, billingEnabled}: BillingLimitsPr
       // Revalidate SWR cache
       await mutate();
       setIsEditing(false);
-      setSuccessMessage('Billing limits updated successfully');
+      setSuccessMessage('Billing limits updated');
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to update billing limits');
+      setErrorMessage(error instanceof Error ? error.message : 'Couldn’t save your billing limits. Try again.');
     }
   };
 
@@ -143,7 +143,7 @@ export function BillingLimits({projectId, tier, billingEnabled}: BillingLimitsPr
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Billing Limits</CardTitle>
+          <CardTitle>Billing limits</CardTitle>
           <CardDescription>Set monthly limits for each email category</CardDescription>
         </CardHeader>
         <CardContent>
@@ -158,7 +158,7 @@ export function BillingLimits({projectId, tier, billingEnabled}: BillingLimitsPr
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Billing Limits</CardTitle>
+        <CardTitle>Billing limits</CardTitle>
         <CardDescription>
           {tier === 'paid'
             ? 'Set monthly limits for each email category. Limits reset on the 1st of each month.'
@@ -229,7 +229,7 @@ export function BillingLimits({projectId, tier, billingEnabled}: BillingLimitsPr
 
               {canEditLimits && (
                 <div className="flex justify-end pt-4">
-                  <Button onClick={() => setIsEditing(true)}>Edit Limits</Button>
+                  <Button onClick={() => setIsEditing(true)}>Edit limits</Button>
                 </div>
               )}
             </div>
@@ -249,7 +249,7 @@ export function BillingLimits({projectId, tier, billingEnabled}: BillingLimitsPr
                         : null;
                     return (
                       <FormItem>
-                        <FormLabel>Workflow Emails Limit</FormLabel>
+                        <FormLabel>Workflow emails limit</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -279,7 +279,7 @@ export function BillingLimits({projectId, tier, billingEnabled}: BillingLimitsPr
                         : null;
                     return (
                       <FormItem>
-                        <FormLabel>Campaign Emails Limit</FormLabel>
+                        <FormLabel>Campaign emails limit</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -309,7 +309,7 @@ export function BillingLimits({projectId, tier, billingEnabled}: BillingLimitsPr
                         : null;
                     return (
                       <FormItem>
-                        <FormLabel>Transactional Emails Limit</FormLabel>
+                        <FormLabel>Transactional emails limit</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -339,7 +339,7 @@ export function BillingLimits({projectId, tier, billingEnabled}: BillingLimitsPr
                         : null;
                     return (
                       <FormItem>
-                        <FormLabel>Inbound Emails Limit</FormLabel>
+                        <FormLabel>Inbound emails limit</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -364,7 +364,7 @@ export function BillingLimits({projectId, tier, billingEnabled}: BillingLimitsPr
                     Cancel
                   </Button>
                   <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                    {form.formState.isSubmitting ? 'Saving…' : 'Save Changes'}
                   </Button>
                 </div>
               </form>

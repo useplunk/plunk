@@ -292,10 +292,10 @@ export default function ContactsPage() {
 
     try {
       await network.fetch('DELETE', `/contacts/${contactToDelete}`);
-      toast.success('Contact deleted successfully');
+      toast.success('Contact deleted');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete contact');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the contact. Try again.');
     } finally {
       setContactToDelete(null);
     }
@@ -471,7 +471,7 @@ export default function ContactsPage() {
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Contacts</h1>
               <p className="text-neutral-500 mt-2 text-sm sm:text-base">
-                Manage your email subscribers and their data.{' '}
+                Everyone you can send to.{' '}
                 {totalCount > 0 ? `${totalCount.toLocaleString()} ${hasActiveFilters ? 'matching' : 'total'}` : ''}
               </p>
             </div>
@@ -483,7 +483,7 @@ export default function ContactsPage() {
               </Button>
               <Button onClick={() => setShowCreateDialog(true)} className="flex-1 sm:flex-none">
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Add Contact</span>
+                <span className="hidden sm:inline">Add contact</span>
                 <span className="sm:hidden">Add</span>
               </Button>
             </div>
@@ -501,7 +501,7 @@ export default function ContactsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
               <Input
                 type="text"
-                placeholder="Search by email..."
+                placeholder="Search by email…"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 className="pl-10 pr-10 h-8 text-xs"
@@ -608,7 +608,7 @@ export default function ContactsPage() {
                       action={
                         <Button onClick={() => setShowCreateDialog(true)}>
                           <Plus className="h-4 w-4" />
-                          Add Contact
+                          Add contact
                         </Button>
                       }
                     />
@@ -794,9 +794,9 @@ export default function ContactsPage() {
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
           onConfirm={handleDelete}
-          title="Delete Contact"
-          description="Are you sure you want to delete this contact? This action cannot be undone."
-          confirmText="Delete"
+          title="Delete this contact?"
+          description="Their events and email history are deleted too. This can't be undone."
+          confirmText="Delete contact"
           variant="destructive"
         />
       </DashboardLayout>
@@ -833,7 +833,7 @@ function CreateContactDialog({open, onOpenChange, onSuccess}: CreateContactDialo
       if (response._meta?.isUpdate) {
         toast.success(`Contact ${response.email} already existed and was updated with new data`);
       } else {
-        toast.success('Contact created successfully');
+        toast.success('Contact created');
       }
 
       setEmail('');
@@ -842,7 +842,7 @@ function CreateContactDialog({open, onOpenChange, onSuccess}: CreateContactDialo
       onOpenChange(false);
       onSuccess();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save contact');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t save the contact. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -852,11 +852,13 @@ function CreateContactDialog({open, onOpenChange, onSuccess}: CreateContactDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Contact</DialogTitle>
+          <DialogTitle>Create new contact</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email">Email Address *</Label>
+            <Label htmlFor="email">Email address
+            <span className="text-red-500"> *</span>
+          </Label>
             <Input
               id="email"
               type="email"
@@ -886,7 +888,7 @@ function CreateContactDialog({open, onOpenChange, onSuccess}: CreateContactDialo
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Contact'}
+              {isSubmitting ? 'Creating…' : 'Create Contact'}
             </Button>
           </DialogFooter>
         </form>
@@ -1026,7 +1028,7 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
         pollIntervalRef.current = null;
       }
       setStatus('failed');
-      toast.error('Failed to check import status');
+      toast.error('Lost track of the import. Reopen this dialog to check on it.');
     }
   };
 
@@ -1053,7 +1055,7 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
         void pollJobStatus(data.jobId);
       }, 1000); // Poll every second
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to upload file';
+      const errorMsg = error instanceof Error ? error.message : 'Couldn’t upload the file. Try again.';
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
       setStatus('failed');
@@ -1079,7 +1081,7 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Import Contacts from CSV</DialogTitle>
+            <DialogTitle>Import contacts from CSV</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -1091,7 +1093,7 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
             {/* File Upload */}
             {status === 'idle' || status === 'failed' ? (
               <div>
-                <Label htmlFor="csv-file">Select CSV File</Label>
+                <Label htmlFor="csv-file">Select CSV file</Label>
                 <div className="mt-2">
                   <input
                     ref={fileInputRef}
@@ -1119,7 +1121,7 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-neutral-600">
-                    {status === 'uploading' ? 'Uploading file...' : 'Processing contacts...'}
+                    {status === 'uploading' ? 'Uploading file…' : 'Processing contacts…'}
                   </span>
                   <span className="text-neutral-900 font-medium">{progress}%</span>
                 </div>
@@ -1183,7 +1185,7 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
                   Cancel
                 </Button>
                 <Button type="button" onClick={handleUpload} disabled={!file || isUploading}>
-                  {isUploading ? 'Uploading...' : 'Import Contacts'}
+                  {isUploading ? 'Uploading…' : 'Import Contacts'}
                 </Button>
               </>
             ) : status === 'completed' ? (
@@ -1203,9 +1205,10 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
         open={showCloseConfirmDialog}
         onOpenChange={setShowCloseConfirmDialog}
         onConfirm={confirmClose}
-        title="Close Import"
-        description="Import is still in progress. Are you sure you want to close?"
-        confirmText="Close Anyway"
+        title="Close while the import is running?"
+        description="The import keeps running in the background. You just won't see the result here."
+        cancelText="Keep watching"
+        confirmText="Close anyway"
         variant="destructive"
       />
     </>
@@ -1308,7 +1311,7 @@ function BulkActionsDialog({open, onOpenChange, operation, selector, targetCount
         pollIntervalRef.current = null;
       }
       setStatus('failed');
-      toast.error('Failed to check operation status');
+      toast.error('Lost track of the job. It may still be running.');
     }
   };
 
@@ -1333,7 +1336,7 @@ function BulkActionsDialog({open, onOpenChange, operation, selector, targetCount
         void pollJobStatus(data.jobId);
       }, 1000);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to start operation';
+      const errorMsg = error instanceof Error ? error.message : 'Couldn’t start the job. Try again.';
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
       setStatus('failed');
@@ -1491,7 +1494,8 @@ function BulkActionsDialog({open, onOpenChange, operation, selector, targetCount
         onOpenChange={setShowCloseConfirmDialog}
         onConfirm={confirmClose}
         title="Hide this dialog?"
-        description="The job will keep running in the background. You won't see the result here, but the contacts will still be updated."
+        description="The job keeps running and your contacts are still updated. You just won't see the result here."
+        cancelText="Keep watching"
         confirmText="Hide"
         variant="default"
       />

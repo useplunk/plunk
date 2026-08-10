@@ -74,9 +74,9 @@ export default function CreateCampaignPage() {
           if (queryFromName && typeof queryFromName === 'string') setFromName(queryFromName);
           if (queryReplyTo && typeof queryReplyTo === 'string') setReplyTo(queryReplyTo);
           setBody(template.body);
-          toast.success('Template loaded successfully');
+          toast.success('Template loaded');
         } catch {
-          toast.error('Failed to load template');
+          toast.error('Couldn’t load that template. Try again.');
         } finally {
           setLoadingTemplate(false);
         }
@@ -94,9 +94,9 @@ export default function CreateCampaignPage() {
           }
           if (querySegmentId && typeof querySegmentId === 'string') setSegmentId(querySegmentId);
           setBody(campaign.data.body);
-          toast.success('Campaign loaded successfully');
+          toast.success('Campaign loaded');
         } catch {
-          toast.error('Failed to load campaign');
+          toast.error('Couldn’t load that campaign. Try again.');
         } finally {
           setLoadingTemplate(false);
         }
@@ -144,10 +144,10 @@ export default function CreateCampaignPage() {
         audienceFilter: audienceType === CampaignAudienceType.FILTERED ? [] : undefined,
       } as any);
 
-      toast.success('Campaign created successfully');
+      toast.success('Campaign created');
       void router.push(`/campaigns/${response.data.id}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create campaign');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t create the campaign. Try again.');
       setSaving(false);
     }
   };
@@ -164,7 +164,7 @@ export default function CreateCampaignPage() {
 
   return (
     <>
-      <NextSeo title="Create Campaign" />
+      <NextSeo title="Create campaign" />
       <DashboardLayout>
         {loadingTemplate && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
@@ -181,9 +181,9 @@ export default function CreateCampaignPage() {
               <Link href="/campaigns"><ArrowLeft className="h-4 w-4" /></Link>
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Create Campaign</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Create campaign</h1>
               <p className="text-neutral-500 mt-1 text-sm sm:text-base">
-                Create a new email campaign to send to your contacts
+                A one-off email sent to a list of contacts.
               </p>
             </div>
           </div>
@@ -195,8 +195,7 @@ export default function CreateCampaignPage() {
                 {/* Basic Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Basic Information</CardTitle>
-                    <CardDescription>Name and describe your campaign</CardDescription>
+                    <CardTitle>Basic information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -216,7 +215,7 @@ export default function CreateCampaignPage() {
                       <Label htmlFor="description">Description</Label>
                       <Input
                         id="description"
-                        placeholder="Internal notes about this campaign"
+                        placeholder="e.g., Q2 launch, list A"
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                       />
@@ -227,8 +226,8 @@ export default function CreateCampaignPage() {
                 {/* Campaign Type */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Campaign Type</CardTitle>
-                    <CardDescription>Choose how this campaign should be treated</CardDescription>
+                    <CardTitle>Campaign type</CardTitle>
+                    <CardDescription>Transactional campaigns skip the subscription check and the footer.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-col gap-2">
@@ -280,8 +279,7 @@ export default function CreateCampaignPage() {
               {/* Email Settings */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Email Settings</CardTitle>
-                  <CardDescription>Configure sender information and subject</CardDescription>
+                  <CardTitle>Email settings</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <EmailSettings
@@ -312,8 +310,7 @@ export default function CreateCampaignPage() {
               {/* Email Content */}
               <Card className="overflow-visible">
                 <CardHeader>
-                  <CardTitle>Email Content</CardTitle>
-                  <CardDescription>Design your email message</CardDescription>
+                  <CardTitle>Email content</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <EmailEditor
@@ -328,7 +325,6 @@ export default function CreateCampaignPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Audience</CardTitle>
-                  <CardDescription>Choose who will receive this campaign</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -351,7 +347,7 @@ export default function CreateCampaignPage() {
                         />
                         <SelectItemWithDescription
                           value={CampaignAudienceType.SEGMENT}
-                          title="Specific Segment"
+                          title="Specific segment"
                           description="Target a defined group of contacts"
                         />
                       </SelectContent>
@@ -402,7 +398,7 @@ export default function CreateCampaignPage() {
                   <Link href="/campaigns">Cancel</Link>
                 </Button>
                 <Button type="submit" disabled={saving}>
-                  {saving ? 'Creating...' : 'Create Campaign'}
+                  {saving ? 'Creating…' : 'Create Campaign'}
                 </Button>
               </div>
             </div>

@@ -244,7 +244,7 @@ function CompactActivityRow({activity}: {activity: Activity}) {
 const DISABLED_COPY: Record<string, {detail: string; href: string}> = {
   CARD_VERIFICATION_FAILED: {
     detail:
-      'Your card completed the initial payment but declined the follow-up charge we use to confirm it can be billed automatically each month. This is common with prepaid, virtual, and single-use cards. Add a card that supports recurring payments to continue.',
+      'Add a card that supports recurring payments to continue. Yours took the first payment but declined the follow-up charge that confirms monthly billing works, which is common with prepaid, virtual, and single-use cards.',
     href: '/settings?tab=billing',
   },
   PAYMENT_FAILED: {
@@ -350,19 +350,19 @@ export default function Index() {
 
   const stats = [
     {
-      name: 'Total Contacts',
+      name: 'Total contacts',
       value: totalContacts,
       icon: Users,
       format: (n: number) => n.toLocaleString(),
     },
     {
-      name: 'Emails Sent',
+      name: 'Emails sent',
       value: totalEmailsSent,
       icon: Mail,
       format: (n: number) => n.toLocaleString(),
     },
     {
-      name: 'Open Rate',
+      name: 'Open rate',
       value: openRate,
       icon: TrendingUp,
       format: (n: number) => `${n.toFixed(1)}%`,
@@ -403,10 +403,10 @@ export default function Index() {
       if (response.success) {
         setResendMessage('Verification email sent! Please check your inbox.');
       } else {
-        setResendMessage('Failed to send verification email. Please try again.');
+        setResendMessage('Couldn’t send the verification email. Try again in a moment.');
       }
     } catch {
-      setResendMessage('Failed to send verification email. Please try again.');
+      setResendMessage('Couldn’t send the verification email. Try again in a moment.');
     } finally {
       setIsResending(false);
     }
@@ -443,7 +443,7 @@ export default function Index() {
                       DISABLED_COPY_FALLBACK.href
                     }
                   >
-                    View Details
+                    View details
                   </Link>
                 </Button>
               </AlertDescription>
@@ -466,7 +466,7 @@ export default function Index() {
                     onClick={handleResendVerification}
                     disabled={isResending}
                   >
-                    {isResending ? 'Sending...' : 'Resend verification email'}
+                    {isResending ? 'Sending…' : 'Resend verification email'}
                   </Button>
                   {resendMessage && (
                     <p className={`text-xs ${resendMessage.includes('sent') ? 'text-green-600' : 'text-red-500'}`}>
@@ -496,7 +496,7 @@ export default function Index() {
                     Your emails currently include Plunk branding. Upgrade to a subscription to remove it.
                   </span>
                   <Button asChild size="sm" className="w-full sm:w-auto">
-                    <Link href="/settings?tab=billing">Upgrade Now</Link>
+                    <Link href="/settings?tab=billing">Upgrade now</Link>
                   </Button>
                 </AlertDescription>
               </Alert>
@@ -520,8 +520,8 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
-              const isEmails = stat.name === 'Emails Sent';
-              const isOpenRate = stat.name === 'Open Rate';
+              const isEmails = stat.name === 'Emails sent';
+              const isOpenRate = stat.name === 'Open rate';
               return (
                 <motion.div
                   key={stat.name}
@@ -676,19 +676,19 @@ export default function Index() {
           {/* API Keys — full-width slim band with the two keys side-by-side */}
           <Card>
             <CardHeader>
-              <CardTitle>API Keys</CardTitle>
+              <CardTitle>API keys</CardTitle>
               <CardDescription>Use these keys to integrate with Plunk</CardDescription>
             </CardHeader>
             <CardContent>
               {activeProject ? (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                   <ApiKeyDisplay
-                    label="Public Key"
+                    label="Public key"
                     value={activeProject.public}
                     description="Use this key for client-side integrations"
                   />
                   <ApiKeyDisplay
-                    label="Secret Key"
+                    label="Secret key"
                     value={activeProject.secret}
                     description="Keep this key secure and never expose it publicly"
                     isSecret

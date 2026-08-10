@@ -76,7 +76,7 @@ export default function ResetPassword() {
         }, 2000);
       } else {
         setStatus('error');
-        setErrorMessage('Failed to reset password. The link may be invalid or expired.');
+        setErrorMessage('Couldn’t reset your password. The link may have expired — request a new one.');
       }
     } catch (error) {
       setStatus('error');
@@ -87,7 +87,7 @@ export default function ResetPassword() {
   if (!token) {
     return (
       <>
-        <NextSeo title="Reset Password" />
+        <NextSeo title="Reset password" />
         <div className="min-h-screen flex items-center justify-center py-12" style={dotGrid}>
           <div className="flex flex-col gap-6 max-w-md w-full px-4">
             <Wordmark />
@@ -119,7 +119,7 @@ export default function ResetPassword() {
 
   return (
     <>
-      <NextSeo title="Reset Password" />
+      <NextSeo title="Reset password" />
       <div className="min-h-screen flex items-center justify-center py-12" style={dotGrid}>
         <div className="flex flex-col gap-6 max-w-md w-full px-4">
           <Wordmark />

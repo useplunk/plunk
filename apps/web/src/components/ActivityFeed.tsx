@@ -87,7 +87,7 @@ export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: Activi
         setNextCursor(result.cursor);
         setHasMore(result.hasMore);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load activities');
+        setError(err instanceof Error ? err.message : 'Couldn’t load activity. Try again.');
         console.error('Error fetching activities:', err);
       } finally {
         setIsLoading(false);
@@ -179,7 +179,7 @@ export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: Activi
       <div className="text-center py-12">
         <p className="text-red-600 text-sm">{error}</p>
         <Button onClick={() => fetchActivities()} variant="outline" className="mt-4">
-          Try Again
+          Try again
         </Button>
       </div>
     );
@@ -232,7 +232,7 @@ export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: Activi
             <div className="w-full border-t border-neutral-300" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white px-4 text-sm font-medium text-neutral-500">Upcoming Scheduled</span>
+            <span className="bg-white px-4 text-sm font-medium text-neutral-500">Upcoming scheduled</span>
           </div>
         </div>
       )}

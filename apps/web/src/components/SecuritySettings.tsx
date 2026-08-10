@@ -24,7 +24,7 @@ export function SecuritySettings({metrics, isLoading}: SecuritySettingsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Security Overview</CardTitle>
+          <CardTitle>Security overview</CardTitle>
           <CardDescription>Monitor your project&apos;s email health and reputation</CardDescription>
         </CardHeader>
         <CardContent>
@@ -48,7 +48,7 @@ export function SecuritySettings({metrics, isLoading}: SecuritySettingsProps) {
               <Shield className={`h-5 w-5 ${overallConfig.color}`} />
             </div>
             <div>
-              <CardTitle>Security Overview</CardTitle>
+              <CardTitle>Security overview</CardTitle>
               <CardDescription>
                 {overallLevel === 'healthy' && 'Your project is in good standing'}
                 {overallLevel === 'warning' && 'Your email health needs attention'}
@@ -61,7 +61,7 @@ export function SecuritySettings({metrics, isLoading}: SecuritySettingsProps) {
           {isDisabled && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Project Disabled</AlertTitle>
+              <AlertTitle>Project disabled</AlertTitle>
               <AlertDescription>
                 This project has been disabled. Please contact support for more details.
               </AlertDescription>
@@ -94,7 +94,7 @@ export function SecuritySettings({metrics, isLoading}: SecuritySettingsProps) {
             <Alert>
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription>
-                All security metrics are within acceptable levels. Keep up the good work!
+                Bounce and complaint rates are within limits.
               </AlertDescription>
             </Alert>
           )}
@@ -104,18 +104,18 @@ export function SecuritySettings({metrics, isLoading}: SecuritySettingsProps) {
       {/* Bounce Metrics */}
       <Card>
         <CardHeader>
-          <CardTitle>Bounce Rate</CardTitle>
+          <CardTitle>Bounce rate</CardTitle>
           <CardDescription>Hard bounces indicate invalid or non-existent email addresses</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-neutral-100">
             <HealthMetric
-              label="Last 7 Days"
+              label="Last 7 days"
               level={levels.bounce7Day}
               detail={`${status.sevenDay.bounceRate.toFixed(2)}% bounce rate (${status.sevenDay.bounces.toLocaleString()} of ${status.sevenDay.total.toLocaleString()} emails)`}
             />
             <HealthMetric
-              label="All Time"
+              label="All time"
               level={levels.bounceAllTime}
               detail={`${status.allTime.bounceRate.toFixed(2)}% bounce rate (${status.allTime.bounces.toLocaleString()} of ${status.allTime.total.toLocaleString()} emails)`}
             />
@@ -126,18 +126,18 @@ export function SecuritySettings({metrics, isLoading}: SecuritySettingsProps) {
       {/* Complaint Metrics */}
       <Card>
         <CardHeader>
-          <CardTitle>Complaint Rate</CardTitle>
+          <CardTitle>Complaint rate</CardTitle>
           <CardDescription>Complaints occur when recipients mark emails as spam</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-neutral-100">
             <HealthMetric
-              label="Last 7 Days"
+              label="Last 7 days"
               level={levels.complaint7Day}
               detail={`${status.sevenDay.complaintRate.toFixed(3)}% complaint rate (${status.sevenDay.complaints.toLocaleString()} of ${status.sevenDay.total.toLocaleString()} emails)`}
             />
             <HealthMetric
-              label="All Time"
+              label="All time"
               level={levels.complaintAllTime}
               detail={`${status.allTime.complaintRate.toFixed(3)}% complaint rate (${status.allTime.complaints.toLocaleString()} of ${status.allTime.total.toLocaleString()} emails)`}
             />

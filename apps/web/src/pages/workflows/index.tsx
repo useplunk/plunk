@@ -137,10 +137,10 @@ export default function WorkflowsPage() {
 
     try {
       await network.fetch('DELETE', `/workflows/${workflowToDelete}`);
-      toast.success('Workflow deleted successfully');
+      toast.success('Workflow deleted');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete workflow');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the workflow. Try again.');
     } finally {
       setWorkflowToDelete(null);
     }
@@ -149,10 +149,10 @@ export default function WorkflowsPage() {
   const handleDuplicate = async (workflowId: string) => {
     try {
       await network.fetch('POST', `/workflows/${workflowId}/duplicate`);
-      toast.success('Workflow duplicated successfully');
+      toast.success('Workflow duplicated');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to duplicate workflow');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t duplicate the workflow. Try again.');
     }
   };
 
@@ -161,10 +161,10 @@ export default function WorkflowsPage() {
       await network.fetch<Workflow, typeof WorkflowSchemas.update>('PATCH', `/workflows/${workflowId}`, {
         enabled: !currentlyEnabled,
       });
-      toast.success(`Workflow ${!currentlyEnabled ? 'enabled' : 'disabled'} successfully`);
+      toast.success(`Workflow ${!currentlyEnabled ? 'enabled' : 'disabled'}`);
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to toggle workflow');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t change the workflow. Try again.');
     }
   };
 
@@ -187,7 +187,7 @@ export default function WorkflowsPage() {
       setRowSelection({});
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete workflows');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete those workflows. Try again.');
     } finally {
       // ConfirmDialog closes itself after onConfirm resolves.
       setBulkDeleteStatus('idle');
@@ -434,13 +434,13 @@ export default function WorkflowsPage() {
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Workflows</h1>
               <p className="text-neutral-500 mt-2 text-sm sm:text-base">
-                Automate your email campaigns with powerful workflows.{' '}
-                {data?.total ? `${data.total} total workflows` : ''}
+                Automated emails triggered by contact events.{' '}
+                {data?.total ? `${data.total} total` : ''}
               </p>
             </div>
             <Button onClick={() => setShowCreateDialog(true)} className="w-full sm:w-auto">
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Create Workflow</span>
+              <span className="hidden sm:inline">Create workflow</span>
               <span className="sm:hidden">Create</span>
             </Button>
           </div>
@@ -458,7 +458,7 @@ export default function WorkflowsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
               <Input
                 type="text"
-                placeholder="Search workflows..."
+                placeholder="Search workflows…"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 className="pl-10 pr-10 h-8 text-xs"
@@ -543,7 +543,7 @@ export default function WorkflowsPage() {
                       action={
                         <Button onClick={() => setShowCreateDialog(true)}>
                           <Plus className="h-4 w-4" />
-                          Create Workflow
+                          Create workflow
                         </Button>
                       }
                     />
@@ -714,9 +714,9 @@ export default function WorkflowsPage() {
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
           onConfirm={handleDelete}
-          title="Delete Workflow"
-          description="Are you sure you want to delete this workflow? This action cannot be undone."
-          confirmText="Delete"
+          title="Delete this workflow?"
+          description="Its steps and execution history are deleted too. This can't be undone."
+          confirmText="Delete workflow"
           variant="destructive"
         />
 
@@ -724,9 +724,9 @@ export default function WorkflowsPage() {
           open={showBulkDeleteDialog}
           onOpenChange={setShowBulkDeleteDialog}
           onConfirm={handleBulkDelete}
-          title={`Delete ${selectedIds.length} workflow${selectedIds.length === 1 ? '' : 's'}`}
-          description="Are you sure you want to delete the selected workflows? This action cannot be undone. Workflows with active executions will block the operation."
-          confirmText="Delete"
+          title={`Delete ${selectedIds.length} workflow${selectedIds.length === 1 ? '' : 's'}?`}
+          description="Their steps and execution history go too, and this can't be undone. A workflow with active executions can't be deleted — if your selection includes one, nothing will be deleted."
+          confirmText="Delete workflows"
           variant="destructive"
           status={bulkDeleteStatus}
         />
@@ -767,7 +767,7 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
         enabled: false,
       });
 
-      toast.success('Workflow created successfully');
+      toast.success('Workflow created');
       setName('');
       setDescription('');
       setEventName('');
@@ -778,7 +778,7 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
       // Redirect to the workflow editor
       window.location.href = `/workflows/${workflow.id}`;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create workflow');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t create the workflow. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -788,18 +788,20 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Workflow</DialogTitle>
+          <DialogTitle>Create new workflow</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="name">Name *</Label>
+            <Label htmlFor="name">Name
+            <span className="text-red-500"> *</span>
+          </Label>
             <Input
               id="name"
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               required
-              placeholder="Welcome Email Sequence"
+              placeholder="e.g., Welcome sequence"
             />
           </div>
 
@@ -809,14 +811,16 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
               id="description"
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Send a series of welcome emails to new subscribers"
+              placeholder="e.g., Three emails over the first week"
               className="w-full px-3 py-2 border border-neutral-200 rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               rows={3}
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="createEventName">Trigger Event *</Label>
+            <Label htmlFor="createEventName">Trigger event
+            <span className="text-red-500"> *</span>
+          </Label>
             {/* Combobox: 可自由輸入 event name，同時提供已追蹤 event 的下拉建議 */}
             <div className="relative">
               <Input
@@ -888,7 +892,7 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
             />
             <div className="flex-1">
               <Label htmlFor="allowReentry" className="font-medium cursor-pointer">
-                Allow Re-entry
+                Allow re-entry
               </Label>
               <p className="text-xs text-neutral-500 mt-0.5">
                 When enabled, contacts can enter this workflow multiple times.
@@ -907,7 +911,7 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-              {isSubmitting ? 'Creating...' : 'Create Workflow'}
+              {isSubmitting ? 'Creating…' : 'Create Workflow'}
             </Button>
           </DialogFooter>
         </form>

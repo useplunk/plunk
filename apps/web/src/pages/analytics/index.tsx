@@ -25,7 +25,6 @@ import {
   Activity,
   AlertCircle,
   BarChart3,
-  CheckCircle2,
   Eye,
   Mail,
   Megaphone,
@@ -40,7 +39,7 @@ import {Area, AreaChart, CartesianGrid, Line, LineChart, XAxis, YAxis} from 'rec
 // Chart configurations with sleek blue theme
 const volumeChartConfig = {
   emails: {
-    label: 'Emails Sent',
+    label: 'Emails sent',
     color: 'hsl(221.2 83.2% 53.3%)', // Vibrant blue
   },
   opens: {
@@ -55,7 +54,7 @@ const volumeChartConfig = {
 
 const engagementChartConfig = {
   openRate: {
-    label: 'Open Rate',
+    label: 'Open rate',
     color: 'hsl(221.2 83.2% 53.3%)', // Vibrant blue to match
   },
 } satisfies ChartConfig;
@@ -145,7 +144,7 @@ export default function AnalyticsPage() {
 
   const statsCards = [
     {
-      name: 'Total Emails',
+      name: 'Total emails',
       value: stats?.totalEmailsSent?.toLocaleString() || cumulativeTotals.emails.toLocaleString(),
       icon: Send,
       description: `Last ${days} days`,
@@ -154,7 +153,7 @@ export default function AnalyticsPage() {
       trend: stats?.totalEmailsSent ? (stats.totalEmailsSent > 0 ? 'positive' : 'neutral') : 'neutral',
     },
     {
-      name: 'Open Rate',
+      name: 'Open rate',
       value: stats?.openRate ? `${stats.openRate.toFixed(1)}%` : '0%',
       icon: Eye,
       description: `${stats?.totalEmailsOpened?.toLocaleString() || cumulativeTotals.opens.toLocaleString()} opens`,
@@ -163,7 +162,7 @@ export default function AnalyticsPage() {
       trend: stats?.openRate && stats.openRate > 20 ? 'positive' : 'neutral',
     },
     {
-      name: 'Click Rate',
+      name: 'Click rate',
       value: stats?.clickRate ? `${stats.clickRate.toFixed(1)}%` : '0%',
       icon: MousePointerClick,
       description: `${stats?.totalEmailsClicked?.toLocaleString() || cumulativeTotals.clicks.toLocaleString()} clicks`,
@@ -172,7 +171,7 @@ export default function AnalyticsPage() {
       trend: stats?.clickRate && stats.clickRate > 3 ? 'positive' : 'neutral',
     },
     {
-      name: 'Active Campaigns',
+      name: 'Active campaigns',
       value: campaignStats?.active?.toLocaleString() || '0',
       icon: Megaphone,
       description: `${campaignStats?.total || 0} total campaigns`,
@@ -190,7 +189,7 @@ export default function AnalyticsPage() {
       trend: stats?.totalWorkflowsStarted && stats.totalWorkflowsStarted > 0 ? 'positive' : 'neutral',
     },
     {
-      name: 'Total Events',
+      name: 'Total events',
       value: stats?.totalEvents?.toLocaleString() || '0',
       icon: Zap,
       description: 'Custom events tracked',
@@ -210,7 +209,7 @@ export default function AnalyticsPage() {
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Analytics</h1>
               <p className="text-neutral-500 mt-2 text-sm sm:text-base">
-                Comprehensive insights into your email performance, engagement metrics, and delivery statistics.
+                Opens, clicks, and deliverability for the last {days} days.
               </p>
             </div>
             <div className="flex gap-3">
@@ -233,7 +232,7 @@ export default function AnalyticsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 text-red-700">
                   <AlertCircle className="h-5 w-5" />
-                  <span>Failed to load analytics data. Please try again.</span>
+                  <span>Couldn’t load analytics. Try again in a moment.</span>
                 </div>
               </CardContent>
             </Card>
@@ -265,7 +264,7 @@ export default function AnalyticsPage() {
           {/* Email Volume Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Email Volume Trends</CardTitle>
+              <CardTitle>Email volume trends</CardTitle>
               <CardDescription>Daily email sends, opens, and clicks over the selected period</CardDescription>
             </CardHeader>
             <CardContent>
@@ -375,7 +374,7 @@ export default function AnalyticsPage() {
           {/* Engagement Rate Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Engagement Rate Trends</CardTitle>
+              <CardTitle>Engagement rate trends</CardTitle>
               <CardDescription>Open rate percentage over time</CardDescription>
             </CardHeader>
             <CardContent>
@@ -415,7 +414,7 @@ export default function AnalyticsPage() {
                         <ChartTooltipContent
                           className="w-[150px]"
                           labelFormatter={(value: any) => value}
-                          formatter={(value: any) => [`${value}%`, 'Open Rate']}
+                          formatter={(value: any) => [`${value}%`, 'Open rate']}
                         />
                       }
                       cursor={{
@@ -448,51 +447,22 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* Key Insights */}
+          {/* Events. The former "Performance Insights" card was removed: it dispensed generic
+              advice ("above industry average", "add more compelling calls-to-action") that the
+              charts above already answer with real numbers. */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Performance Insights</CardTitle>
-                <CardDescription>Key metrics and recommendations</CardDescription>
+                <CardTitle>Events</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-neutral-100 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle2 className="h-4 w-4 text-neutral-600" />
-                  </div>
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-neutral-900">Open Rate</p>
-                    <p className="text-sm text-neutral-500">
-                      {stats?.openRate && stats.openRate > 20
-                        ? 'Your open rate is above industry average!'
-                        : 'Consider improving subject lines to increase open rates.'}
-                    </p>
+                    <p className="text-2xl font-bold text-neutral-900">{stats?.totalEvents?.toLocaleString() || '0'}</p>
+                    <p className="text-sm text-neutral-500">triggered in the last {days} days</p>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-neutral-100 flex items-center justify-center flex-shrink-0">
-                    <BarChart3 className="h-4 w-4 text-neutral-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-neutral-900">Click Rate</p>
-                    <p className="text-sm text-neutral-500">
-                      {stats?.clickRate && stats.clickRate > 3
-                        ? 'Great click-through performance!'
-                        : 'Add more compelling calls-to-action to boost clicks.'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-neutral-100 flex items-center justify-center flex-shrink-0">
-                    <Zap className="h-4 w-4 text-neutral-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-neutral-900">Engagement</p>
-                    <p className="text-sm text-neutral-500">
-                      {stats?.totalWorkflowsStarted
-                        ? `${stats.totalWorkflowsStarted.toLocaleString()} workflows started`
-                        : 'Set up workflows to automate your email campaigns.'}
-                    </p>
+                  <div className="h-12 w-12 rounded-lg bg-neutral-100 flex items-center justify-center">
+                    <Zap className="h-6 w-6 text-neutral-600" />
                   </div>
                 </div>
               </CardContent>
@@ -500,24 +470,19 @@ export default function AnalyticsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Event Activity</CardTitle>
-                <CardDescription>Custom events and triggers</CardDescription>
+                <CardTitle>Workflow runs</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-bold text-neutral-900">{stats?.totalEvents?.toLocaleString() || '0'}</p>
-                    <p className="text-sm text-neutral-500">Total Events</p>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {stats?.totalWorkflowsStarted?.toLocaleString() || '0'}
+                    </p>
+                    <p className="text-sm text-neutral-500">started in the last {days} days</p>
                   </div>
                   <div className="h-12 w-12 rounded-lg bg-neutral-100 flex items-center justify-center">
-                    <Zap className="h-6 w-6 text-neutral-600" />
+                    <BarChart3 className="h-6 w-6 text-neutral-600" />
                   </div>
-                </div>
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-neutral-500">
-                    Events triggered by your contacts over the last {days} days. These can trigger workflows and
-                    automations.
-                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -527,7 +492,7 @@ export default function AnalyticsPage() {
           {topCampaigns && topCampaigns.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Campaign Performance</CardTitle>
+                <CardTitle>Campaign performance</CardTitle>
                 <CardDescription>Top performing campaigns in the last {days} days</CardDescription>
               </CardHeader>
               <CardContent>
@@ -539,8 +504,8 @@ export default function AnalyticsPage() {
                         <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Sent</th>
                         <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Opened</th>
                         <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Clicked</th>
-                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Open Rate</th>
-                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Click Rate</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Open rate</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Click rate</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -594,7 +559,7 @@ export default function AnalyticsPage() {
           {topEvents && topEvents.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Top Events</CardTitle>
+                <CardTitle>Top events</CardTitle>
                 <CardDescription>Most frequently triggered events in the last {days} days</CardDescription>
               </CardHeader>
               <CardContent>

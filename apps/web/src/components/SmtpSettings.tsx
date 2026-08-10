@@ -21,7 +21,7 @@ export function SmtpSettings({smtpConfig}: SmtpSettingsProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            SMTP Server
+            SMTP server
           </CardTitle>
           <CardDescription>SMTP server is not configured on this instance</CardDescription>
         </CardHeader>
@@ -44,7 +44,7 @@ export function SmtpSettings({smtpConfig}: SmtpSettingsProps) {
           <CardHeader>
             <CardTitle className="text-yellow-900 text-base flex items-center gap-2">
               <Server className="h-4 w-4" />
-              Development Mode
+              Development mode
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -61,11 +61,10 @@ export function SmtpSettings({smtpConfig}: SmtpSettingsProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            SMTP Server Configuration
+            SMTP server configuration
           </CardTitle>
           <CardDescription>
-            Send emails through standard email clients using SMTP protocol. Works with Outlook, Thunderbird, and any
-            SMTP-compatible application.
+            Send through any SMTP client — Outlook, Thunderbird, or your own.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -73,7 +72,7 @@ export function SmtpSettings({smtpConfig}: SmtpSettingsProps) {
             {/* Server Details */}
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-neutral-700 block mb-2">SMTP Server</label>
+                <label className="text-sm font-medium text-neutral-700 block mb-2">SMTP server</label>
                 <code className="flex-1 px-3 py-2 bg-neutral-50 rounded-lg text-xs font-mono text-neutral-900 border border-neutral-200 block">
                   {smtpConfig.domain}
                 </code>
@@ -117,7 +116,7 @@ export function SmtpSettings({smtpConfig}: SmtpSettingsProps) {
 
             {/* Credentials */}
             <div className="pt-4 border-t border-neutral-200">
-              <h3 className="text-sm font-semibold text-neutral-900 mb-4">Authentication Credentials</h3>
+              <h3 className="text-sm font-semibold text-neutral-900 mb-4">Authentication credentials</h3>
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-neutral-700 block mb-2">Username</label>

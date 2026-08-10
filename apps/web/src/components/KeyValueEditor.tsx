@@ -80,10 +80,10 @@ export function KeyValueEditor({initialData, onChange}: KeyValueEditorProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label>Custom Data</Label>
+        <Label>Custom data</Label>
         <Button type="button" variant="outline" size="sm" onClick={addPair}>
           <Plus className="h-3 w-3" />
-          Add Field
+          Add field
         </Button>
       </div>
 
@@ -99,7 +99,7 @@ export function KeyValueEditor({initialData, onChange}: KeyValueEditorProps) {
               <div className="flex-1">
                 <Input
                   type="text"
-                  placeholder="Key"
+                  placeholder="e.g., plan"
                   value={pair.key}
                   onChange={e => updateKey(pair.id, e.target.value)}
                   className="text-sm"
@@ -108,7 +108,7 @@ export function KeyValueEditor({initialData, onChange}: KeyValueEditorProps) {
               <div className="flex-1">
                 <Input
                   type="text"
-                  placeholder="Value"
+                  placeholder="e.g., pro"
                   value={pair.value}
                   onChange={e => updateValue(pair.id, e.target.value)}
                   className="text-sm"

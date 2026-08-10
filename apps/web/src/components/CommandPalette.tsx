@@ -56,10 +56,10 @@ const NAV_ACTIONS: Action[] = [
 ];
 
 const CREATE_ACTIONS: Action[] = [
-  {label: 'New Campaign', href: '/campaigns/create', icon: Plus, keywords: 'create broadcast', shortcut: ['N', 'C']},
-  {label: 'New Template', href: '/templates/create', icon: Plus, keywords: 'create email design', shortcut: ['N', 'T']},
-  {label: 'New Segment', href: '/segments/new', icon: Plus, keywords: 'create group filter', shortcut: ['N', 'S']},
-  {label: 'New Workflow', href: '/workflows', icon: Plus, keywords: 'create automation trigger', shortcut: ['N', 'W']},
+  {label: 'New campaign', href: '/campaigns/create', icon: Plus, keywords: 'create broadcast', shortcut: ['N', 'C']},
+  {label: 'New template', href: '/templates/create', icon: Plus, keywords: 'create email design', shortcut: ['N', 'T']},
+  {label: 'New segment', href: '/segments/new', icon: Plus, keywords: 'create group filter', shortcut: ['N', 'S']},
+  {label: 'New workflow', href: '/workflows', icon: Plus, keywords: 'create automation trigger', shortcut: ['N', 'W']},
 ];
 
 // Chord map: first-key → second-key → action

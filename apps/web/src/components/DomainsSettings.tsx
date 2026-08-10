@@ -175,9 +175,9 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
 
       await mutateDomains();
       form.reset();
-      showMessage('success', `Domain ${values.domain} added successfully. Please configure DNS records.`);
+      showMessage('success', `Domain ${values.domain} added. Add the DNS records below to verify it.`);
     } catch (error) {
-      showMessage('error', error instanceof Error ? error.message : 'Failed to add domain');
+      showMessage('error', error instanceof Error ? error.message : 'Couldn’t add the domain. Check the spelling and try again.');
     }
   };
 
@@ -214,7 +214,7 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
         showMessage('error', `Domain ${status.domain} is not yet verified. Please check your DNS records.`);
       }
     } catch (error) {
-      showMessage('error', error instanceof Error ? error.message : 'Failed to check verification');
+      showMessage('error', error instanceof Error ? error.message : 'Couldn’t check verification. Try again in a moment.');
     } finally {
       setCheckingVerification(null);
     }
@@ -229,9 +229,9 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
       if (selectedDomain === domainToRemove.id) {
         setSelectedDomain(null);
       }
-      showMessage('success', `Domain ${domainToRemove.name} removed successfully`);
+      showMessage('success', `Domain ${domainToRemove.name} deleted`);
     } catch (error) {
-      showMessage('error', error instanceof Error ? error.message : 'Failed to remove domain');
+      showMessage('error', error instanceof Error ? error.message : 'Couldn’t delete the domain. Try again.');
     } finally {
       setDomainToRemove(null);
     }
@@ -260,8 +260,8 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
       {/* Add Domain Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Add Domain</CardTitle>
-          <CardDescription>Add a custom domain to send emails from</CardDescription>
+          <CardTitle>Add domain</CardTitle>
+          <CardDescription>Send from your own address instead of a Plunk one.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -306,7 +306,7 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
 
               <div className="flex justify-end">
                 <Button type="submit" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? 'Adding...' : 'Add Domain'}
+                  {form.formState.isSubmitting ? 'Adding…' : 'Add Domain'}
                 </Button>
               </div>
             </form>
@@ -317,8 +317,7 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
       {/* Domains List */}
       <Card>
         <CardHeader>
-          <CardTitle>Your Domains</CardTitle>
-          <CardDescription>Manage your verified domains</CardDescription>
+          <CardTitle>Your domains</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -407,15 +406,15 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
                             {/* Required DKIM Records for Sending */}
                             <div>
                               <div className="flex items-center gap-2 mb-2">
-                                <h4 className="text-xs font-semibold text-neutral-900">Required for Sending</h4>
+                                <h4 className="text-xs font-semibold text-neutral-900">Required for sending</h4>
                                 <Badge variant="default" className="text-[10px] px-1.5 py-0">
                                   REQUIRED
                                 </Badge>
                               </div>
                               {!status.verified && (
                                 <p className="text-xs text-neutral-600 mb-2">
-                                  Add these DKIM records to verify your domain and send emails. DNS changes can take up
-                                  to 48 hours to propagate.
+                                  Copy each record into your DNS provider, then hit refresh above. DNS changes can take
+                                  up to 48 hours to propagate.
                                 </p>
                               )}
 
@@ -617,7 +616,7 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
                             {config?.aws?.sesRegion && (
                               <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                  <h4 className="text-xs font-semibold text-neutral-900">Inbound Email</h4>
+                                  <h4 className="text-xs font-semibold text-neutral-900">Inbound email</h4>
                                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                                     OPTIONAL
                                   </Badge>
@@ -694,21 +693,6 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
                               </div>
                             )}
 
-                            <div className="flex items-start gap-2 p-3 bg-neutral-50 rounded-lg border border-neutral-200 mt-3">
-                              <div className="text-neutral-500 mt-0.5">
-                                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </div>
-                              <p className="text-xs text-neutral-600">
-                                Click the copy icon to copy record values. After adding all records to your DNS
-                                provider, use the refresh button above to verify your domain.
-                              </p>
-                            </div>
                           </div>
                         )}
                       </div>
@@ -725,9 +709,9 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
         open={showRemoveDialog}
         onOpenChange={setShowRemoveDialog}
         onConfirm={handleRemoveDomain}
-        title="Remove Domain"
-        description={`Are you sure you want to remove ${domainToRemove?.name}?`}
-        confirmText="Remove"
+        title={`Delete ${domainToRemove?.name}?`}
+        description="You'll stop being able to send from this address until you add and verify it again."
+        confirmText="Delete domain"
         variant="destructive"
       />
     </div>

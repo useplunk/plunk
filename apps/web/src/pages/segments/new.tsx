@@ -62,12 +62,12 @@ export default function NewSegmentPage() {
           toast.warning('Segment created, but some contacts could not be added');
         }
       } else {
-        toast.success('Segment created successfully');
+        toast.success('Segment created');
       }
 
       void router.push('/segments');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create segment');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t create the segment. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +75,7 @@ export default function NewSegmentPage() {
 
   return (
     <>
-      <NextSeo title="Create Segment" />
+      <NextSeo title="Create segment" />
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
@@ -84,7 +84,7 @@ export default function NewSegmentPage() {
               <Link href="/segments"><ArrowLeft className="h-4 w-4" /></Link>
             </Button>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Create Segment</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Create segment</h1>
               <p className="text-neutral-500 mt-1">
                 {segmentType === 'DYNAMIC'
                   ? 'Build complex audience filters with AND/OR logic'
@@ -123,12 +123,14 @@ export default function NewSegmentPage() {
             {/* Basic Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Segment Details</CardTitle>
+                <CardTitle>Segment details</CardTitle>
                 <CardDescription>Give your segment a name and description</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Segment Name *</Label>
+                  <Label htmlFor="name">Segment name
+            <span className="text-red-500"> *</span>
+          </Label>
                   <Input
                     id="name"
                     type="text"
@@ -176,7 +178,7 @@ export default function NewSegmentPage() {
             {segmentType === 'DYNAMIC' ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>Filter Conditions</CardTitle>
+                  <CardTitle>Filter conditions</CardTitle>
                   <CardDescription>Build complex audience filters with AND/OR logic</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -186,7 +188,7 @@ export default function NewSegmentPage() {
             ) : (
               <Card>
                 <CardHeader>
-                  <CardTitle>Initial Members</CardTitle>
+                  <CardTitle>Initial members</CardTitle>
                   <CardDescription>
                     Optionally add contacts now — you can always add or remove members later
                   </CardDescription>
@@ -196,7 +198,7 @@ export default function NewSegmentPage() {
                     selected={selectedContacts}
                     onChange={setSelectedContacts}
                     onAdd={async (emails, _subscribed) => setSelectedContacts(prev => [...new Set([...prev, ...emails])])}
-                    placeholder="Search and select contacts..."
+                    placeholder="Search and select contacts…"
                   />
                 </CardContent>
               </Card>
@@ -209,7 +211,7 @@ export default function NewSegmentPage() {
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 <Save className="h-4 w-4 mr-2" />
-                {isSubmitting ? 'Creating...' : 'Create Segment'}
+                {isSubmitting ? 'Creating…' : 'Create Segment'}
               </Button>
             </div>
           </form>

@@ -68,10 +68,10 @@ export default function SegmentsPage() {
 
     try {
       await network.fetch('DELETE', `/segments/${segmentToDelete}`);
-      toast.success('Segment deleted successfully');
+      toast.success('Segment deleted');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete segment');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the segment. Try again.');
     } finally {
       setSegmentToDelete(null);
     }
@@ -87,13 +87,13 @@ export default function SegmentsPage() {
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Segments</h1>
               <p className="text-neutral-500 mt-2 text-sm sm:text-base">
-                Create dynamic audience groups based on contact attributes and behaviors
+                Groups of contacts, defined by filters or picked by hand.
               </p>
             </div>
             <Button asChild className="w-full sm:w-auto">
               <Link href="/segments/new">
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Create Segment</span>
+                <span className="hidden sm:inline">Create segment</span>
                 <span className="sm:hidden">Create</span>
               </Link>
             </Button>
@@ -104,7 +104,7 @@ export default function SegmentsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
             <Input
               type="text"
-              placeholder="Search segments..."
+              placeholder="Search segments…"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               className="pl-10 pr-10"
@@ -148,7 +148,7 @@ export default function SegmentsPage() {
                       <Button asChild>
                         <Link href="/segments/new">
                           <Plus className="h-4 w-4" />
-                          Create Segment
+                          Create segment
                         </Link>
                       </Button>
                     ) : undefined
@@ -229,9 +229,9 @@ export default function SegmentsPage() {
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
           onConfirm={handleDelete}
-          title="Delete Segment"
-          description="Are you sure you want to delete this segment? This action cannot be undone."
-          confirmText="Delete"
+          title="Delete this segment?"
+          description="The contacts in it are kept. Only the segment is deleted."
+          confirmText="Delete segment"
           variant="destructive"
         />
       </DashboardLayout>

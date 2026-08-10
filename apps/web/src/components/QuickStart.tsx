@@ -1,4 +1,4 @@
-import {Button, Card, CardContent, CardDescription, CardHeader, CardTitle} from '@plunk/ui';
+import {Button, Card, CardContent, CardHeader, CardTitle} from '@plunk/ui';
 import {AnimatePresence, motion} from 'framer-motion';
 import {BookOpen, Check, CheckCircle2, Mail, MessageCircle, Shield, Users, Zap} from 'lucide-react';
 import Link from 'next/link';
@@ -103,8 +103,7 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
     return (
       <Card className="flex flex-col h-full">
         <CardHeader>
-          <CardTitle>Quick Start</CardTitle>
-          <CardDescription>Get started with Plunk in minutes</CardDescription>
+          <CardTitle>Quick start</CardTitle>
         </CardHeader>
         <CardContent className="flex-1 min-h-0 overflow-y-auto">
           <div className="space-y-3">
@@ -141,10 +140,10 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
     allSteps.push({
       id: 'domain',
       icon: Shield,
-      title: 'Verify Your Domain',
-      description: 'Essential for email deliverability and avoiding spam',
+      title: 'Verify your domain',
+      description: 'Unverified domains land in spam.',
       link: '/settings?tab=domains',
-      linkText: 'Add Domain',
+      linkText: 'Add domain',
       isCompleted: false,
     });
   }
@@ -154,10 +153,10 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
     allSteps.push({
       id: 'contacts',
       icon: Users,
-      title: 'Add Your First Contacts',
-      description: 'Import your subscriber list to start sending emails',
+      title: 'Add your first contacts',
+      description: 'Import a CSV or add them through the API.',
       link: '/contacts',
-      linkText: 'Add Contacts',
+      linkText: 'Add contacts',
       isCompleted: false,
     });
   }
@@ -167,10 +166,10 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
     allSteps.push({
       id: 'campaign',
       icon: Mail,
-      title: 'Send Your First Campaign',
-      description: 'Create and send your first email campaign',
+      title: 'Send your first campaign',
+      description: 'Write it, preview it, send it.',
       link: '/campaigns',
-      linkText: 'Create Campaign',
+      linkText: 'Create campaign',
       isCompleted: false,
     });
   }
@@ -180,10 +179,10 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
     allSteps.push({
       id: 'workflows',
       icon: Zap,
-      title: 'Set Up Automation',
-      description: 'Create automated workflows to engage your audience',
+      title: 'Set up automation',
+      description: 'Send email automatically when contacts trigger an event.',
       link: '/workflows',
-      linkText: 'Create Workflow',
+      linkText: 'Create workflow',
       isCompleted: false,
     });
   }
@@ -193,8 +192,8 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
     allSteps.push({
       id: 'subscription',
       icon: Shield,
-      title: 'Upgrade Your Plan',
-      description: 'Remove Plunk branding and unlock more features',
+      title: 'Upgrade your plan',
+      description: 'Remove Plunk branding from your emails.',
       link: '/settings?tab=billing',
       linkText: 'Upgrade',
       isCompleted: false,
@@ -206,10 +205,10 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
     allSteps.push({
       id: 'campaign-reengagement',
       icon: Mail,
-      title: 'Re-engage Your Audience',
-      description: `It's been ${daysSinceLastCampaign} days since your last campaign`,
+      title: 'Re-engage your contacts',
+      description: `${daysSinceLastCampaign} days since your last campaign.`,
       link: '/campaigns',
-      linkText: 'Create Campaign',
+      linkText: 'Create campaign',
       isCompleted: false,
     });
   }
@@ -219,8 +218,7 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
     return (
       <Card className="flex flex-col h-full">
         <CardHeader>
-          <CardTitle>Quick Start</CardTitle>
-          <CardDescription>Your project is fully set up</CardDescription>
+          <CardTitle>Quick start</CardTitle>
         </CardHeader>
         <CardContent className="flex-1 min-h-0 overflow-y-auto">
           <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
@@ -230,7 +228,7 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
             <div className="flex-1 pt-0.5">
               <p className="text-sm font-semibold text-green-900 mb-1">All set!</p>
               <p className="text-xs text-green-700 leading-relaxed">
-                Domain verified, contacts imported, campaigns running. Everything is set up correctly.
+                Domain verified, contacts imported, campaigns running.
               </p>
             </div>
           </div>
@@ -246,10 +244,7 @@ export function QuickStart({setupState, isLoading}: QuickStartProps) {
   return (
     <Card className="flex flex-col h-full">
       <CardHeader>
-        <CardTitle>Quick Start</CardTitle>
-        <CardDescription>
-          {visibleSteps.length === 0 ? 'Your project is set up' : 'Get started with Plunk in minutes'}
-        </CardDescription>
+        <CardTitle>Quick start</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 min-h-0 overflow-y-auto">
         <div className="space-y-3">

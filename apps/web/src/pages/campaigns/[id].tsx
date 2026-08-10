@@ -127,20 +127,20 @@ export default function CampaignDetailsPage() {
   const handleCancel = async () => {
     try {
       await network.fetch('POST', `/campaigns/${id}/cancel`);
-      toast.success('Campaign cancelled successfully');
+      toast.success('Campaign canceled');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to cancel campaign');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t cancel the campaign. Try again.');
     }
   };
 
   const handleDelete = async () => {
     try {
       await network.fetch('DELETE', `/campaigns/${id}`);
-      toast.success('Campaign deleted successfully');
+      toast.success('Campaign deleted');
       void router.push('/campaigns');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete campaign');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t delete the campaign. Try again.');
     }
   };
 
@@ -150,7 +150,7 @@ export default function CampaignDetailsPage() {
       toast.success('Campaign is being sent!');
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send campaign');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t send the campaign. Try again.');
     }
   };
 
@@ -183,7 +183,7 @@ export default function CampaignDetailsPage() {
       setSelectedPreset(null);
       void mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to schedule campaign');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t schedule the campaign. Try again.');
     }
   };
 
@@ -204,7 +204,7 @@ export default function CampaignDetailsPage() {
       setDialog({type: 'none'});
       setTestEmailAddress('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send test email');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t send the test email. Try again.');
     } finally {
       setDialog(d => (d.type === 'testEmail' ? {type: 'testEmail', sending: false} : d));
     }
@@ -249,7 +249,7 @@ export default function CampaignDetailsPage() {
         });
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update campaign');
+      toast.error(error instanceof Error ? error.message : 'Couldn’t save the campaign. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -360,7 +360,7 @@ export default function CampaignDetailsPage() {
                   <Badge variant="secondary">Draft</Badge>
                 </div>
                 <p className="text-neutral-500 mt-1 text-sm sm:text-base">
-                  Make changes to your campaign before sending
+                  Not sent yet. Edit freely.
                 </p>
               </div>
             </div>
@@ -390,7 +390,7 @@ export default function CampaignDetailsPage() {
                   className="flex-1 sm:flex-none"
                 >
                   <Save className="h-4 w-4" />
-                  <span className="hidden sm:inline">{isSubmitting ? 'Saving...' : 'Save'}</span>
+                  <span className="hidden sm:inline">{isSubmitting ? 'Saving…' : 'Save'}</span>
                   <span className="sm:hidden">Save</span>
                 </Button>
                 <DropdownMenu>
@@ -406,7 +406,7 @@ export default function CampaignDetailsPage() {
                       <div className="flex items-start gap-3">
                         <TestTube className="h-4 w-4 mt-0.5 text-neutral-700" />
                         <div className="flex flex-col gap-0.5 flex-1">
-                          <span className="font-medium text-sm">Send Test Email</span>
+                          <span className="font-medium text-sm">Send test email</span>
                           <span className="text-xs text-neutral-500 leading-snug">
                             Preview in your inbox before sending
                           </span>
@@ -417,7 +417,7 @@ export default function CampaignDetailsPage() {
                       <div className="flex items-start gap-3">
                         <Send className="h-4 w-4 mt-0.5 text-neutral-700" />
                         <div className="flex flex-col gap-0.5 flex-1">
-                          <span className="font-medium text-sm">Send Now</span>
+                          <span className="font-medium text-sm">Send now</span>
                           <span className="text-xs text-neutral-500 leading-snug">
                             Send immediately to all recipients
                           </span>
@@ -428,7 +428,7 @@ export default function CampaignDetailsPage() {
                       <div className="flex items-start gap-3">
                         <Calendar className="h-4 w-4 mt-0.5 text-neutral-700" />
                         <div className="flex flex-col gap-0.5 flex-1">
-                          <span className="font-medium text-sm">Schedule for Later</span>
+                          <span className="font-medium text-sm">Schedule for later</span>
                           <span className="text-xs text-neutral-500 leading-snug">Choose a specific date and time</span>
                         </div>
                       </div>
@@ -483,7 +483,7 @@ export default function CampaignDetailsPage() {
                       />
                       <SelectItemWithDescription
                         value={CampaignAudienceType.SEGMENT}
-                        title="Specific Segment"
+                        title="Specific segment"
                         description="Target a defined group of contacts"
                       />
                     </SelectContent>
@@ -558,7 +558,7 @@ export default function CampaignDetailsPage() {
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>Basic information</CardTitle>
                 <CardDescription>Name and describe your campaign</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -579,7 +579,7 @@ export default function CampaignDetailsPage() {
                   <Label htmlFor="description">Description</Label>
                   <Input
                     id="description"
-                    placeholder="Internal notes about this campaign"
+                    placeholder="e.g., Q2 launch, list A"
                     value={editedCampaign.description || ''}
                     onChange={e => setEditedCampaign({...editedCampaign, description: e.target.value})}
                   />
@@ -590,7 +590,7 @@ export default function CampaignDetailsPage() {
             {/* Campaign Type */}
             <Card>
               <CardHeader>
-                <CardTitle>Campaign Type</CardTitle>
+                <CardTitle>Campaign type</CardTitle>
                 <CardDescription>Choose how this campaign should be treated</CardDescription>
               </CardHeader>
               <CardContent>
@@ -644,7 +644,7 @@ export default function CampaignDetailsPage() {
           {/* Email Settings */}
           <Card>
             <CardHeader>
-              <CardTitle>Email Settings</CardTitle>
+              <CardTitle>Email settings</CardTitle>
               <CardDescription>Configure sender information and subject</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -676,7 +676,7 @@ export default function CampaignDetailsPage() {
           {/* Email Content */}
           <Card className="overflow-visible">
             <CardHeader>
-              <CardTitle>Email Content</CardTitle>
+              <CardTitle>Email content</CardTitle>
               <CardDescription>Design your email message</CardDescription>
             </CardHeader>
             <CardContent>
@@ -759,7 +759,7 @@ export default function CampaignDetailsPage() {
                   disabled={(dialog.type === 'testEmail' && dialog.sending) || !testEmailAddress}
                 >
                   <TestTube className="h-4 w-4" />
-                  {dialog.type === 'testEmail' && dialog.sending ? 'Sending...' : 'Send preview'}
+                  {dialog.type === 'testEmail' && dialog.sending ? 'Sending…' : 'Send preview'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -955,9 +955,9 @@ export default function CampaignDetailsPage() {
           open={dialog.type === 'delete'}
           onOpenChange={open => !open && setDialog({type: 'none'})}
           onConfirm={handleDelete}
-          title="Delete Campaign"
-          description="Are you sure you want to delete this draft campaign? This action cannot be undone."
-          confirmText="Delete Campaign"
+          title={`Delete ${c.name}?`}
+          description="This draft and its content are gone for good."
+          confirmText="Delete campaign"
           variant="destructive"
         />
       </DashboardLayout>
@@ -989,7 +989,7 @@ export default function CampaignDetailsPage() {
             <div className="flex justify-end">
               <Button variant="destructive" onClick={() => setDialog({type: 'cancel'})} className="w-full sm:w-auto">
                 <XCircle className="h-4 w-4" />
-                <span className="hidden sm:inline">Cancel Campaign</span>
+                <span className="hidden sm:inline">Cancel campaign</span>
                 <span className="sm:hidden">Cancel</span>
               </Button>
             </div>
@@ -1021,7 +1021,7 @@ export default function CampaignDetailsPage() {
                     style={{width: `${(s.sentCount / s.totalRecipients) * 100}%`}}
                   />
                 </div>
-                <p className="text-xs text-neutral-400">This page updates automatically every 5 seconds</p>
+                <p className="text-xs text-neutral-400">Updating every 5 seconds</p>
               </div>
             </CardContent>
           </Card>
@@ -1032,7 +1032,7 @@ export default function CampaignDetailsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-neutral-500">Total Recipients</CardTitle>
+                <CardTitle className="text-sm font-medium text-neutral-500">Total recipients</CardTitle>
                 <Users className="h-4 w-4 text-neutral-400" />
               </CardHeader>
               <CardContent>
@@ -1045,7 +1045,7 @@ export default function CampaignDetailsPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-neutral-500">Delivery Rate</CardTitle>
+                <CardTitle className="text-sm font-medium text-neutral-500">Delivery rate</CardTitle>
                 <Mail className="h-4 w-4 text-neutral-400" />
               </CardHeader>
               <CardContent>
@@ -1059,7 +1059,7 @@ export default function CampaignDetailsPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-neutral-500">Open Rate</CardTitle>
+                <CardTitle className="text-sm font-medium text-neutral-500">Open rate</CardTitle>
                 <TrendingUp className="h-4 w-4 text-neutral-400" />
               </CardHeader>
               <CardContent>
@@ -1070,7 +1070,7 @@ export default function CampaignDetailsPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-neutral-500">Click Rate</CardTitle>
+                <CardTitle className="text-sm font-medium text-neutral-500">Click rate</CardTitle>
                 <MousePointer className="h-4 w-4 text-neutral-400" />
               </CardHeader>
               <CardContent>
@@ -1086,7 +1086,7 @@ export default function CampaignDetailsPage() {
           {/* Email Content - Takes 2 columns */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Email Preview</CardTitle>
+              <CardTitle>Email preview</CardTitle>
               <CardDescription>How your email will appear to recipients</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1114,7 +1114,7 @@ export default function CampaignDetailsPage() {
 
               {/* Email Body Preview */}
               <div>
-                <p className="text-sm font-medium text-neutral-700 mb-3">Message Content</p>
+                <p className="text-sm font-medium text-neutral-700 mb-3">Message content</p>
                 <div className="border-2 border-neutral-200 rounded-lg overflow-hidden bg-white">
                   <div className="p-6 max-h-96 overflow-y-auto">
                     <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(c.body)}} />
@@ -1127,7 +1127,7 @@ export default function CampaignDetailsPage() {
           {/* Campaign Details */}
           <Card>
             <CardHeader>
-              <CardTitle>Campaign Info</CardTitle>
+              <CardTitle>Campaign info</CardTitle>
               <CardDescription>Configuration and metadata</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1156,7 +1156,7 @@ export default function CampaignDetailsPage() {
               {/* Scheduling Info */}
               {c.scheduledFor && (
                 <div className="pb-3 border-b border-neutral-100">
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-2">Scheduled For</p>
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-2">Scheduled for</p>
                   <div className="flex items-start gap-2">
                     <Calendar className="h-4 w-4 text-neutral-400 mt-0.5" />
                     <div className="space-y-2">
@@ -1179,7 +1179,7 @@ export default function CampaignDetailsPage() {
               {/* Sent At */}
               {c.sentAt && (
                 <div className="pb-3 border-b border-neutral-100">
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-2">Sent On</p>
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-2">Sent on</p>
                   <div className="flex items-center gap-2">
                     <Send className="h-4 w-4 text-neutral-400" />
                     <p className="text-sm font-medium text-neutral-900">{formatFullDateTime(new Date(c.sentAt))}</p>
@@ -1195,9 +1195,10 @@ export default function CampaignDetailsPage() {
         open={dialog.type === 'cancel'}
         onOpenChange={open => !open && setDialog({type: 'none'})}
         onConfirm={handleCancel}
-        title="Cancel Campaign"
-        description="Are you sure you want to cancel this campaign?"
-        confirmText="Cancel Campaign"
+        title="Cancel this campaign?"
+        description="Sending stops now. Contacts who already received it keep their copy."
+        cancelText="Keep sending"
+        confirmText="Cancel campaign"
         variant="destructive"
       />
     </DashboardLayout>
