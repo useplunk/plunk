@@ -35,7 +35,16 @@ const MAX_CACHEABLE_LENGTH = 200_000;
 /** Cap on distinct templates we remember having warned about. */
 const MAX_REPORTED_SOURCES = 64;
 
-type ParseResult = {templates: Template[]; error?: undefined} | {templates?: undefined; error: Error};
+/**
+ * `renderFailed` latches the first render-time failure (a runtime limit hit, e.g. an
+ * unbounded loop). It lives on the cached parse result rather than in a `compileTemplate`
+ * closure because the per-email call sites re-compile the same source for every
+ * recipient, so a closure-local flag would reset on each one and every recipient would
+ * pay the render budget again.
+ */
+type ParseResult =
+  | {templates: Template[]; renderFailed: boolean; error?: undefined}
+  | {templates?: undefined; renderFailed?: undefined; error: Error};
 
 const parseCache = new Map<string, ParseResult>();
 
@@ -59,7 +68,7 @@ function reportOnce(source: string, stage: string, error: unknown): void {
 
 function parse(source: string): ParseResult {
   try {
-    return {templates: renderEngine.parse(preprocessTemplate(source))};
+    return {templates: renderEngine.parse(preprocessTemplate(source)), renderFailed: false};
   } catch (error) {
     reportOnce(source, 'parse', error);
     return {error: error instanceof Error ? error : new Error(String(error))};
@@ -131,10 +140,18 @@ export function compileTemplate(source: string): CompiledTemplate {
     source,
     valid: true,
     render: variables => {
+      // A template that already blew a runtime limit will blow it again for every other
+      // recipient, so stop asking. Retrying spends the render budget per contact on a
+      // campaign that is going out through the legacy renderer regardless.
+      if (parsed.renderFailed) {
+        return renderLegacyTemplate(source, variables);
+      }
+
       try {
         return String(renderEngine.renderSync(parsed.templates, buildScope(variables)));
       } catch (error) {
         // A render error means a runtime limit was hit (e.g. an unbounded loop).
+        parsed.renderFailed = true;
         reportOnce(source, 'render', error);
         return renderLegacyTemplate(source, variables);
       }

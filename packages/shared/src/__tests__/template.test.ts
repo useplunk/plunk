@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
+import {renderEngine} from '../template/engine.js';
 import {clearTemplateCache, compileTemplate, renderTemplate, validateTemplate} from '../template/index.js';
 
 /**
@@ -299,6 +300,37 @@ describe('renderTemplate', () => {
       // Falls back to legacy substitution, which leaves the tag as literal text.
       expect(result).toContain('{% for i in (1..100000000) %}');
       expect(console.warn).toHaveBeenCalled();
+    });
+
+    it('stops re-running a template that blew a runtime limit', () => {
+      // A campaign renders the same body once per recipient. Without a latch, every one
+      // of them re-enters the engine and spends the budget again before falling back.
+      const renderSync = vi.spyOn(renderEngine, 'renderSync').mockImplementation(() => {
+        throw new Error('memory alloc limit exceeded');
+      });
+
+      for (let recipient = 0; recipient < 5; recipient += 1) {
+        expect(renderTemplate('{{name}} x', {name: 'Ada'})).toBe('Ada x');
+      }
+
+      expect(renderSync).toHaveBeenCalledTimes(1);
+      renderSync.mockRestore();
+    });
+
+    it('latches per template, not globally', () => {
+      const renderSync = vi.spyOn(renderEngine, 'renderSync');
+      let calls = 0;
+      renderSync.mockImplementation(() => {
+        calls += 1;
+        throw new Error('memory alloc limit exceeded');
+      });
+
+      renderTemplate('{{name}} first', {name: 'Ada'});
+      renderTemplate('{{name}} second', {name: 'Ada'});
+
+      // Each template gets its own chance; one failing does not poison its neighbour.
+      expect(calls).toBe(2);
+      renderSync.mockRestore();
     });
   });
 
