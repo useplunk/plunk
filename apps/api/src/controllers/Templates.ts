@@ -7,6 +7,7 @@ import {DomainService} from '../services/DomainService.js';
 import {TemplateService} from '../services/TemplateService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 import {parseListSort} from '../utils/listSort.js';
+import {assertValidTemplateSyntax} from '../utils/templateValidation.js';
 
 @Controller('templates')
 export class Templates {
@@ -84,6 +85,8 @@ export class Templates {
       return res.status(400).json({error: 'From address is required'});
     }
 
+    assertValidTemplateSyntax({subject, body});
+
     // Verify domain ownership and verification
     await DomainService.verifyEmailDomain(from, auth.projectId!);
 
@@ -116,6 +119,8 @@ export class Templates {
     if (!templateId) {
       return res.status(400).json({error: 'Template ID is required'});
     }
+
+    assertValidTemplateSyntax({subject, body});
 
     // Verify domain ownership and verification if 'from' is being updated
     if (from) {

@@ -665,4 +665,78 @@ describe('CampaignService', () => {
       expect(scheduledCampaign.totalRecipients).toBe(10);
     });
   });
+
+  // ========================================
+  // TEMPLATE RENDERING (processBatch)
+  // ========================================
+  describe('processBatch template rendering', () => {
+    /** Create a SENDING campaign plus contacts, then run the first batch. */
+    async function sendBatch({subject, body}: {subject: string; body: string}, contacts: Record<string, unknown>[]) {
+      for (const data of contacts) {
+        await factories.createContact({projectId, subscribed: true, data});
+      }
+
+      const campaign = await factories.createCampaign({
+        projectId,
+        subject,
+        body,
+        status: CampaignStatus.SENDING,
+        audienceType: CampaignAudienceType.ALL,
+      });
+
+      await CampaignService.processBatch(campaign.id, 1, 0, 500);
+
+      return prisma.email.findMany({
+        where: {campaignId: campaign.id},
+        include: {contact: true},
+      });
+    }
+
+    it('renders each contact through the Liquid template', async () => {
+      const emails = await sendBatch(
+        {
+          subject: '{% if locale == "es" %}Tu oferta{% else %}Your offer{% endif %}',
+          body: '<p>Hi {{firstName ?? there}}, you are on {{plan | upcase}}.</p>',
+        },
+        [
+          {firstName: 'Ada', plan: 'pro', locale: 'en'},
+          {firstName: 'Bruno', plan: 'free', locale: 'es'},
+          {plan: 'free', locale: 'en'},
+        ],
+      );
+
+      expect(emails).toHaveLength(3);
+
+      const byFirstName = new Map(
+        emails.map(email => [(email.contact.data as Record<string, unknown>)?.firstName ?? null, email]),
+      );
+
+      expect(byFirstName.get('Ada')?.subject).toBe('Your offer');
+      expect(byFirstName.get('Ada')?.body).toBe('<p>Hi Ada, you are on PRO.</p>');
+
+      expect(byFirstName.get('Bruno')?.subject).toBe('Tu oferta');
+      expect(byFirstName.get('Bruno')?.body).toBe('<p>Hi Bruno, you are on FREE.</p>');
+
+      // Contact without a firstName falls back
+      expect(byFirstName.get(null)?.body).toBe('<p>Hi there, you are on FREE.</p>');
+    });
+
+    it('renders loops over contact data', async () => {
+      const emails = await sendBatch(
+        {
+          subject: 'Your cart',
+          body: '<ul>{% for item in cart %}<li>{{item.name}}</li>{% endfor %}</ul>',
+        },
+        [{cart: [{name: 'Starter'}, {name: 'Team'}]}],
+      );
+
+      expect(emails[0]?.body).toBe('<ul><li>Starter</li><li>Team</li></ul>');
+    });
+
+    it('still injects the per-recipient unsubscribe URL', async () => {
+      const emails = await sendBatch({subject: 'Hi', body: '<a href="{{unsubscribeUrl}}">Unsubscribe</a>'}, [{}]);
+
+      expect(emails[0]?.body).toContain(`/unsubscribe/${emails[0]?.contactId}`);
+    });
+  });
 });

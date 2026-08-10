@@ -1,5 +1,6 @@
 import type {Campaign, Contact, Prisma} from '@plunk/db';
 import {CampaignAudienceType, CampaignStatus, EmailSourceType, EmailStatus, TemplateType} from '@plunk/db';
+import {compileTemplate} from '@plunk/shared';
 import type {CreateCampaignData, FilterCondition, PaginatedResponse, UpdateCampaignData} from '@plunk/types';
 import {fromPrismaJson, toPrismaJson} from '@plunk/types';
 import signale from 'signale';
@@ -537,6 +538,11 @@ export class CampaignService {
     // Get batch of recipients using cursor-based pagination
     const {contacts, nextCursor, hasMore} = await this.getRecipientsCursor(campaign.projectId, campaign, limit, cursor);
 
+    // Parse the Liquid templates once per batch rather than once per recipient. The
+    // subject and body are identical for every contact, only the variables differ.
+    const subjectTemplate = compileTemplate(campaign.subject);
+    const bodyTemplate = compileTemplate(campaign.body);
+
     // Queue emails for each contact
     for (const contact of contacts) {
       try {
@@ -553,17 +559,8 @@ export class CampaignService {
           manageUrl: `${DASHBOARD_URI}/manage/${contact.id}`,
         };
 
-        const renderedSubject = EmailService.format({
-          subject: campaign.subject,
-          body: '',
-          data: variables,
-        }).subject;
-
-        const renderedBody = EmailService.format({
-          subject: '',
-          body: campaign.body,
-          data: variables,
-        }).body;
+        const renderedSubject = subjectTemplate.render(variables);
+        const renderedBody = bodyTemplate.render(variables);
 
         await EmailService.sendCampaignEmail({
           projectId: campaign.projectId,

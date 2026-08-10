@@ -8,6 +8,7 @@
     "idempotency",
     "localization",
     "webhooks",
+    "template-language",
     "importing-contacts",
     "custom-fields",
     "segment-filters",

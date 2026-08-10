@@ -31,7 +31,28 @@ if (process.env.REDIS_URL) {
 }
 
 process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing';
+
+// constants.ts calls validateEnv() with no default for the SES credentials, so
+// importing any module that transitively pulls in constants.ts throws when they
+// are unset — which is exactly what `cp apps/api/.env.example .env` leaves you
+// with, since those two ship empty. Tests never reach SES, so fill in placeholders
+// rather than requiring every contributor to invent credentials.
+//
+// Only these two: every other required var (JWT_SECRET, the *_URI values,
+// AWS_SES_REGION, DATABASE_URL, REDIS_URL) ships with a value in .env.example and
+// is set by the CI workflow, and the DB/Redis URLs must point at real services.
+const TEST_ENV_DEFAULTS: Record<string, string> = {
+  JWT_SECRET: 'test-jwt-secret-key-for-testing',
+  AWS_SES_ACCESS_KEY_ID: 'test-ses-access-key-id',
+  AWS_SES_SECRET_ACCESS_KEY: 'test-ses-secret-access-key',
+};
+
+for (const [key, value] of Object.entries(TEST_ENV_DEFAULTS)) {
+  // Empty strings count as unset — validateEnv treats "" as missing.
+  if (!process.env[key]) {
+    process.env[key] = value;
+  }
+}
 
 // Static import is safe: database.ts only reads env in initialize(), which runs
 // in beforeAll — well after the env mutations above.

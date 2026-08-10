@@ -8,11 +8,14 @@ import {Link} from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import {Variable} from './VariableExtension';
 import {setAvailableVariables, VariableMention} from './VariableMention';
+import {LogicMention} from './LogicMention';
+import {subscribeSuggestionOpen} from './suggestionPopup';
 import {Toolbar} from './Toolbar';
 import {ResizableImage} from './ResizableImage';
 import {HtmlEditor} from './HtmlEditor';
 import {useContactFields, useContacts, useSegmentContacts} from '../../lib/hooks/useContacts';
 import {useConfig} from '../../lib/hooks/useConfig';
+import {useTemplateFieldWarnings, useTemplateValidation} from '../../lib/hooks/useTemplateValidation';
 import {useEffect, useRef, useState} from 'react';
 import {renderTemplate} from '@plunk/shared';
 import {
@@ -29,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@plunk/ui';
-import {Code2, Eye, Monitor, Smartphone, Tablet, Upload, X} from 'lucide-react';
+import {AlertTriangle, Code2, Eye, Monitor, Smartphone, Tablet, Upload, X} from 'lucide-react';
 import {network} from '../../lib/network';
 import {detectCustomHtmlPatterns, wrapEmailWithStyles} from '../../lib/emailStyles';
 import 'tippy.js/dist/tippy.css';
@@ -74,7 +77,21 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available contact fields using SWR
-  const {fields: availableFields} = useContactFields();
+  const {fields: availableFields, fieldDetails} = useContactFields();
+
+  // Surface Liquid syntax errors while editing. Saving rejects an unparseable template
+  // anyway, so the alternative is learning about a typo from a 400 after the fact.
+  const syntaxIssue = useTemplateValidation(htmlContent);
+
+  // Fields that parse but resolve to nothing: a typo, or a field so few contacts carry
+  // that the template is blank for most of the audience. Only shown once the template
+  // parses — a broken template makes every reference in it suspect.
+  const fieldWarnings = useTemplateFieldWarnings(htmlContent, fieldDetails);
+
+  // A trigger being completed (`{%ema` with its menu open) is not valid Liquid yet.
+  // Reporting that as an error would contradict the menu offering to finish it.
+  const [suggestionOpen, setSuggestionOpen] = useState(false);
+  useEffect(() => subscribeSuggestionOpen(setSuggestionOpen), []);
 
   // Fetch contacts for preview using SWR.
   // When the campaign targets a segment, scope the dropdown to that segment's
@@ -84,10 +101,10 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
   const contacts = segmentId ? segmentContacts : allContacts;
 
   useEffect(() => {
-    if (availableFields.length > 0) {
-      setAvailableVariables(availableFields);
+    if (fieldDetails.length > 0) {
+      setAvailableVariables(fieldDetails);
     }
-  }, [availableFields]);
+  }, [fieldDetails]);
 
   // Clear the preview selection when the chosen contact is no longer in the
   // available list (e.g. the segment changed). Otherwise the preview stays
@@ -124,6 +141,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
       ResizableImage,
       Variable,
       VariableMention,
+      LogicMention,
       Placeholder.configure({
         placeholder: placeholder || 'Your next email starts here!',
       }),
@@ -400,6 +418,42 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
           </Select>
         </div>
       </div>
+
+      {/* Template syntax errors, reported as you type rather than on save */}
+      {syntaxIssue && !suggestionOpen && (
+        <div className="flex items-start gap-2 border-t border-red-200 bg-red-50 px-4 py-2.5">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600" />
+          <div className="min-w-0 space-y-1">
+            <p className="text-xs font-medium text-red-800">{syntaxIssue.message}</p>
+            {syntaxIssue.excerpt && (
+              <code className="block truncate rounded border border-red-200 bg-white px-1.5 py-0.5 font-mono text-xs text-red-900">
+                {syntaxIssue.excerpt}
+              </code>
+            )}
+            <p className="text-[11px] text-red-700">
+              {/* Line numbers only exist in the HTML editor's gutter. */}
+              {mode === 'html' && syntaxIssue.line !== undefined
+                ? `Line ${syntaxIssue.line}, column ${syntaxIssue.column} — saving will fail until this is fixed.`
+                : 'Saving will fail until this is fixed.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Field references that parse but will not resolve */}
+      {!syntaxIssue && !suggestionOpen && fieldWarnings.length > 0 && (
+        <div className="flex items-start gap-2 border-t border-amber-200 bg-amber-50 px-4 py-2.5">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+          <div className="min-w-0 space-y-1">
+            {fieldWarnings.map(warning => (
+              <p key={warning.field} className="text-xs text-amber-900">
+                {warning.message}
+              </p>
+            ))}
+            <p className="text-[11px] text-amber-700">This still sends. Nothing here blocks saving.</p>
+          </div>
+        </div>
+      )}
 
       {/* Editor content */}
       {mode === 'visual' ? (
@@ -850,6 +904,22 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
           font-size: 14px;
         }
 
+        /*
+         * Logic tags are structure, not data, so they read as a different kind of thing
+         * from the blue value chips above rather than as a second accent colour.
+         * Decoration-only: these never appear in the sent email, where the tag has
+         * already been rendered away.
+         */
+        .logic-highlight {
+          background-color: #f5f5f5;
+          color: #171717;
+          padding: 2px 6px;
+          border-radius: 3px;
+          border: 1px solid #e5e5e5;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+        }
+
         .ProseMirror table {
           border-collapse: collapse;
           width: 100%;
@@ -930,45 +1000,73 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
           padding: 0;
         }
 
-        .variable-suggestion-list {
-          min-width: 200px;
+        .suggestion-menu {
+          width: 320px;
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
         }
 
-        .suggestion-item {
+        .suggestion-row {
           display: flex;
-          align-items: center;
-          padding: 8px 12px;
+          flex-direction: column;
+          gap: 2px;
+          padding: 7px 10px;
           cursor: pointer;
           border-radius: 4px;
-          transition: background-color 0.15s;
+          /* Selection follows the pointer, so this only ever paints one row. */
+          transition: background-color 0.12s ease-out;
         }
 
-        .suggestion-item:hover,
-        .suggestion-item.is-selected {
-          background-color: #e5e7eb;
+        /* Matches the focus:bg-neutral-100 used by Select and DropdownMenu: the same
+           gesture gets the same highlight. Legible on its own because pointer movement
+           moves the selection, so this is the only painted row rather than one of two
+           competing ones. */
+        .suggestion-row.is-selected {
+          background-color: #f5f5f5;
         }
 
-        .suggestion-item:hover code,
-        .suggestion-item.is-selected code {
-          background-color: #dbeafe;
-          color: #1e3a8a;
+        .suggestion-row-head {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 12px;
         }
 
-        .suggestion-item code {
-          font-size: 14px;
+        .suggestion-row-label {
+          font-size: 13px;
+          line-height: 1.3;
+          color: #171717;
+        }
+
+        .suggestion-row-meta {
+          flex-shrink: 0;
+          font-size: 11px;
+          color: #525252;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .suggestion-row-syntax {
           font-family: 'Courier New', monospace;
-          font-weight: 500;
-          color: #1f2937;
-          background-color: #f3f4f6;
-          padding: 4px 8px;
-          border-radius: 4px;
+          font-size: 11px;
+          line-height: 1.3;
+          color: #525252;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        .suggestion-item-empty {
+        .suggestion-empty {
           padding: 12px;
           text-align: center;
-          color: #9ca3af;
+          color: #525252;
           font-size: 13px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .suggestion-row {
+            transition: none;
+          }
         }
 
         .variable-mention {

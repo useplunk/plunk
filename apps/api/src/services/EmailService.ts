@@ -642,8 +642,12 @@ export class EmailService {
   }
 
   /**
-   * Format email template by replacing variables in subject and body
-   * Uses shared template rendering from @plunk/shared
+   * Render a single email's subject and body.
+   *
+   * Uses the shared Liquid renderer from @plunk/shared, which caches parsed templates,
+   * so the per-email call sites here don't re-parse the same body for every recipient.
+   * When rendering a known template for many contacts in one pass, prefer
+   * `compileTemplate` to hoist the parse out of the loop entirely (see CampaignService).
    */
   public static format({subject, body, data}: {subject: string; body: string; data: Record<string, unknown>}): {
     subject: string;
