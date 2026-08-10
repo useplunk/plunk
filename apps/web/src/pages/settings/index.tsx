@@ -692,8 +692,15 @@ export default function Settings() {
                               <span className="font-medium">No Active Subscription</span>
                             </div>
                             <p className="text-sm text-neutral-600">
-                              Start a subscription and support the development of Plunk. You will be charged a one-time
-                              onboarding fee which will be credited to your first invoice.
+                              Start a subscription and support the development of Plunk. Activation places two charges
+                              of 1.00 on your card, in your billing currency: a one-time onboarding fee, and a second
+                              charge made straight afterwards to confirm your card accepts automatic monthly billing.
+                              Both are credited back to your account in full, so activation costs you nothing.
+                            </p>
+                            <p className="mt-2 text-xs text-neutral-500">
+                              Some cards — most often prepaid, virtual, and single-use cards — accept a payment you
+                              approve yourself but refuse recurring charges later. Checking upfront means you find out
+                              now rather than a month into using Plunk.
                             </p>
                           </div>
 

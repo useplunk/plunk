@@ -19,6 +19,7 @@ import {EventService} from '../services/EventService.js';
 import {MembershipService} from '../services/MembershipService.js';
 import {MeterService} from '../services/MeterService.js';
 import {NtfyService} from '../services/NtfyService.js';
+import {QueueService} from '../services/QueueService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
@@ -521,36 +522,41 @@ export class Webhooks {
             break;
           }
 
-          // Update project with customer and subscription IDs
+          // Update project with customer and subscription IDs. PENDING until the off-session
+          // charge returns a verdict; the project is usable in the meantime, which is a few
+          // seconds of exposure against a signal that otherwise takes a month to arrive.
           const updatedProject = await prisma.project.update({
             where: {id: projectId},
             data: {
               customer: customerId,
               subscription: subscriptionId,
+              cardVerification: 'PENDING',
+              cardVerificationAt: new Date(),
+              cardVerificationSession: session.id,
             },
           });
 
-          // Base onboarding credit: refund the 1-unit card-verification charge
-          let creditBalance = -100;
+          await stripe.customers.update(customerId, {name: updatedProject.name});
 
-          // Switching-offer promo: 2 extra units of credit if the customer typed SWITCH
-          // into the Promo code custom field on Stripe Checkout.
           const promoField = session.custom_fields?.find((f) => f.key === 'promo_code');
           const promoCode = promoField?.text?.value?.trim().toUpperCase();
-          if (promoCode === 'SWITCH') {
-            creditBalance -= 200;
-            signale.success(`[WEBHOOK] SWITCH promo applied for project ${projectId}`);
-          } else if (promoCode) {
+          if (promoCode && promoCode !== 'SWITCH') {
             signale.info(`[WEBHOOK] Unknown promo code "${promoCode}" entered for project ${projectId}`);
           }
 
-          // Update Stripe customer name to match project name and add credit for onboarding fee
-          await stripe.customers.update(customerId, {
-            name: updatedProject.name,
-            balance: creditBalance,
+          // Verify the card accepts a merchant-initiated charge before trusting it with a
+          // month of usage. Queued rather than inline: confirming a PaymentIntent can outlast
+          // Stripe's webhook timeout, and a timeout means a redelivery — and a second charge.
+          // Credit for the onboarding fee is applied by the job, once the outcome is known.
+          await QueueService.queueCardVerification({
+            projectId,
+            customerId,
+            currency: session.currency ?? 'eur',
+            sessionId: session.id,
+            ...(promoCode && {promoCode}),
           });
 
-          signale.success(`[WEBHOOK] Checkout completed for project ${projectId}`);
+          signale.success(`[WEBHOOK] Checkout completed for project ${projectId}, card verification queued`);
 
           // Send notification about subscription started
           await NtfyService.notifySubscriptionStarted(updatedProject.name, projectId, subscriptionId);

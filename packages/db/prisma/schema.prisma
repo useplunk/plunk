@@ -50,6 +50,15 @@ model Project {
   customer     String? @unique
   subscription String? @unique
 
+  // Card verification: the onboarding charge is customer-initiated and on-session, which
+  // proves nothing about whether the card accepts the merchant-initiated renewal a month
+  // later. A second, off-session charge tests that directly. See CardVerificationService.
+  cardVerification       CardVerificationStatus?
+  cardVerificationIntent String? // PaymentIntent of the last attempt, for support/debugging
+  cardVerificationAt     DateTime? // When the current status was set; drives the reconciliation sweep
+  cardVerificationSession String? // Checkout session, so a retry reuses the same Stripe idempotency key
+  cardVerificationAttempts Int @default(0) // Sweep retries spent; bounds them and marks escalation
+
   // Billing Limits (per calendar month, null = unlimited)
   billingLimitWorkflows     Int? // Max workflow emails per month
   billingLimitCampaigns     Int? // Max campaign emails per month
@@ -80,6 +89,7 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([cardVerification, cardVerificationAt]) // Supports the reconciliation sweep
   @@map("projects")
 }
 
@@ -670,7 +680,16 @@ enum ProjectDisabledReason {
   PAYMENT_FAILED // Subscription renewal payment failed
   EMAIL_REPUTATION // Bounce or complaint rate thresholds exceeded
   PHISHING_DETECTED // Phishing content detected by LLM scan
+  CARD_VERIFICATION_FAILED // Card hard-declined the off-session onboarding charge
   MANUAL // Disabled by support/admin (e.g. directly in DB)
+}
+
+enum CardVerificationStatus {
+  PENDING // Off-session charge queued or in flight
+  VERIFIED // Card accepted a merchant-initiated charge
+  REQUIRES_ACTION // Issuer demanded SCA. Recoverable, NOT a fraud signal -- the project
+  // stays enabled and the owner is asked to re-authenticate the card.
+  FAILED // Hard decline. Project disabled, subscription cancelled.
 }
 
 enum AuthMethod {

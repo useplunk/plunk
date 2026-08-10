@@ -182,6 +182,73 @@ export class NtfyService {
   }
 
   /**
+   * Notify that a card refused a merchant-initiated charge at onboarding - URGENT
+   */
+  public static async notifyCardVerificationFailed(
+    projectName: string,
+    projectId: string,
+    declineCode: string,
+  ): Promise<void> {
+    await this.sendUrgent(
+      'Project Disabled - Card Verification Failed',
+      `Project "${projectName}" (${projectId}) was disabled: the card refused an off-session charge (${declineCode}). Subscription cancelled.`,
+      [NtfyTag.SHIELD, NtfyTag.MONEY, NtfyTag.ERROR],
+    );
+  }
+
+  /**
+   * Notify that card verification needs a human - LOW priority.
+   *
+   * Not a fraud signal: an SCA challenge or a soft decline on an otherwise good card. The
+   * project stays enabled. Watch the volume here — if it stops being rare, the hosted
+   * re-authentication flow is worth building.
+   */
+  public static async notifyCardVerificationRequiresAction(
+    projectName: string,
+    projectId: string,
+    reason: string,
+  ): Promise<void> {
+    await this.send({
+      title: 'Card Verification Needs Attention',
+      message: `Project "${projectName}" (${projectId}) could not complete card verification: ${reason}. Project left enabled.`,
+      priority: NtfyPriority.LOW,
+      tags: [NtfyTag.WARNING, NtfyTag.MONEY],
+    });
+  }
+
+  /**
+   * Notify that a project never reached a verification verdict.
+   *
+   * Urgent past the escalation window, because by then the project has been sending for a day
+   * on a card nothing has confirmed — the exact state verification exists to prevent.
+   */
+  public static async notifyCardVerificationStalled(
+    projectName: string,
+    projectId: string,
+    status: string,
+    stalledForMinutes: number,
+    beyondEscalation: boolean,
+  ): Promise<void> {
+    const message = `Project "${projectName}" (${projectId}) has been ${status} for ${stalledForMinutes} minute(s) and is still able to send. Verify the card manually or disable the project.`;
+
+    if (beyondEscalation) {
+      await this.sendUrgent('Card Verification Stalled', message, [
+        NtfyTag.SHIELD,
+        NtfyTag.WARNING,
+        NtfyTag.ERROR,
+      ]);
+      return;
+    }
+
+    await this.send({
+      title: 'Card Verification Stalled',
+      message,
+      priority: NtfyPriority.DEFAULT,
+      tags: [NtfyTag.WARNING, NtfyTag.MONEY],
+    });
+  }
+
+  /**
    * Notify about successful invoice payment - MIN priority (routine)
    */
   public static async notifyInvoicePaid(projectName: string, projectId: string): Promise<void> {

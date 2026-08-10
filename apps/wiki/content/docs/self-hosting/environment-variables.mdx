@@ -107,6 +107,14 @@ Required if you want to enable billing features. All Stripe variables must be se
 | `STRIPE_PRICE_EMAIL_USAGE` | No       | Stripe price ID for metered pay-per-email usage.    |
 | `STRIPE_METER_EVENT_NAME`  | No       | Stripe meter event name.                            | `emails` (default) |
 
+On top of the onboarding fee, activating a subscription places a second charge of 1.00 (in the customer's billing currency) to confirm the card accepts off-session, merchant-initiated payments. This charge is created directly rather than from a price ID, so there's no variable for it. Both charges are credited back to the customer's Stripe balance once verification succeeds. See [Billing](/concepts/billing) for the customer-facing description.
+
+<Callout type="warn">
+  If you use a Stripe Radar rule to request 3D Secure, exclude off-session payments from it
+  (`and not :is_off_session:`). The verification charge runs with no cardholder present, so a 3DS request it
+  cannot satisfy will leave every verification unresolved.
+</Callout>
+
 ## Platform Emails
 
 When configured, Plunk will send email notifications to users for critical events (e.g. project disabled, billing limits reached). Without these, only ntfy notifications are sent.

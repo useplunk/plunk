@@ -340,10 +340,22 @@ export default function TermsOfService() {
                   <li>Invoices available in dashboard</li>
                 </ul>
 
+                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Activation Charges</h3>
+                <p className="mb-4 leading-relaxed text-neutral-700">
+                  Activating a subscription places two charges of 1.00, in your billing currency, on your card: a
+                  one-time onboarding fee, and a card verification charge made immediately afterwards to confirm your
+                  card accepts automatic recurring billing. Both amounts are credited in full to your account balance
+                  and applied against your usage, so activation carries no net cost. If the verification charge is
+                  declined, the second charge is not completed, the onboarding fee is refunded in full, and your
+                  subscription is cancelled.
+                </p>
+
                 <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">No Refunds</h3>
                 <p className="mb-4 leading-relaxed text-neutral-700">
-                  Due to the pay-as-you-go nature of our service, refunds are not offered. Usage is calculated and
-                  billed after emails are sent. Disputes must be raised within 30 days of charge.
+                  Due to the pay-as-you-go nature of our service, refunds are not offered on usage charges. Usage is
+                  calculated and billed after emails are sent. Disputes must be raised within 30 days of charge. The
+                  sole exception is the onboarding fee, which is refunded in full if card verification fails during
+                  activation, as described above.
                 </p>
 
                 <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Usage Limits</h3>

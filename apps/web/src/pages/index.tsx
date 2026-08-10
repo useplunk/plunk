@@ -237,6 +237,27 @@ function CompactActivityRow({activity}: {activity: Activity}) {
   );
 }
 
+/**
+ * Reason-specific copy for the disabled banner. A card that refused recurring billing is
+ * something the owner can act on themselves, so saying so beats sending them to support.
+ */
+const DISABLED_COPY: Record<string, {detail: string; href: string}> = {
+  CARD_VERIFICATION_FAILED: {
+    detail:
+      'Your card completed the initial payment but declined the follow-up charge we use to confirm it can be billed automatically each month. This is common with prepaid, virtual, and single-use cards. Add a card that supports recurring payments to continue.',
+    href: '/settings?tab=billing',
+  },
+  PAYMENT_FAILED: {
+    detail: 'A recurring payment could not be processed. Update your payment method to re-enable the project.',
+    href: '/settings?tab=billing',
+  },
+};
+
+const DISABLED_COPY_FALLBACK = {
+  detail: 'Please contact support for more details and to get your project re-enabled.',
+  href: '/settings?tab=security',
+};
+
 export default function Index() {
   const {activeProject} = useActiveProject();
   const {totalContacts, totalEmailsSent, totalCampaigns, openRate, isLoading} = useDashboardStats();
@@ -411,11 +432,19 @@ export default function Index() {
                     create, update, or delete anything.
                   </p>
                   <p className="text-xs text-red-800 mt-2">
-                    Please contact support for more details and to get your project re-enabled.
+                    {(activeProject.disabledReason && DISABLED_COPY[activeProject.disabledReason]?.detail) ??
+                      DISABLED_COPY_FALLBACK.detail}
                   </p>
                 </div>
                 <Button asChild size="sm" variant="outline" className="w-full sm:w-auto flex-shrink-0">
-                  <Link href="/settings?tab=security">View Details</Link>
+                  <Link
+                    href={
+                      (activeProject.disabledReason && DISABLED_COPY[activeProject.disabledReason]?.href) ??
+                      DISABLED_COPY_FALLBACK.href
+                    }
+                  >
+                    View Details
+                  </Link>
                 </Button>
               </AlertDescription>
             </Alert>

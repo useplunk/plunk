@@ -45,6 +45,7 @@ import {ErrorCode, type FieldError, HttpException, ValidationError} from './exce
 import {
   apiRequestCleanupQueue,
   domainVerificationQueue,
+  cardVerificationSweepQueue,
   emailBodyCleanupQueue,
   idempotencyKeyCleanupQueue,
   segmentCountQueue,
@@ -539,4 +540,20 @@ void prisma.$connect().then(async () => {
   );
 
   signale.info('[BACKGROUND-JOB] Email body cleanup scheduled (BullMQ repeatable job, runs daily at 4 AM)');
+
+  // Set up repeatable job for card verification reconciliation (BullMQ)
+  // Every 15 minutes: a project stuck without a verification verdict is still able to send,
+  // so the window between the stall and someone noticing is the exposure being closed.
+  await cardVerificationSweepQueue.add(
+    'sweep-stalled-verifications',
+    {},
+    {
+      repeat: {
+        pattern: '*/15 * * * *', // Every 15 minutes
+      },
+      jobId: 'card-verification-sweep-repeatable', // Fixed ID to prevent duplicates
+    },
+  );
+
+  signale.info('[BACKGROUND-JOB] Card verification sweep scheduled (BullMQ repeatable job, runs every 15 minutes)');
 });

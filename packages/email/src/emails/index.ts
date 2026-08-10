@@ -1,5 +1,6 @@
 export {ProjectDisabledEmail} from './ProjectDisabled';
 export {ProjectDisabledPaymentEmail} from './ProjectDisabledPayment';
+export {CardVerificationFailedEmail} from './CardVerificationFailed';
 export {BillingLimitWarningEmail} from './BillingLimitWarning';
 export {BillingLimitExceededEmail} from './BillingLimitExceeded';
 export {EmailVerificationEmail} from './EmailVerification';
