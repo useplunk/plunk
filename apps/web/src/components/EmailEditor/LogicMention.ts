@@ -29,7 +29,7 @@ function inlineSuffix(block: LogicBlock): string {
 const FIELD_PLACEHOLDER = 'field';
 
 /** Rows per matching field, so a query surfaces several fields rather than one field's variants. */
-const SHAPES_PER_FIELD = 3;
+const SHAPES_PER_FIELD = 4;
 const MAX_ROWS = 9;
 
 /**
@@ -49,11 +49,11 @@ function block(label: string, ...lines: string[]): LogicBlock {
 /**
  * The shapes worth offering for a field, ordered by how often they are the right answer.
  *
- * Type-aware because the alternative is offering nonsense: `== "value"` on a boolean, or
- * a numeric comparison on a name. The type comes from the same endpoint that populates
- * the `{{` menu.
+ * Type-aware because the alternative is offering nonsense: `== "value"` on a boolean, a
+ * numeric comparison on a name, or a multi-way `case` on something with two states. The
+ * type comes from the same endpoint that populates the `{{` menu.
  */
-function blocksForField(field: string, type?: string): LogicBlock[] {
+export function blocksForField(field: string, type?: string): LogicBlock[] {
   if (type === 'boolean') {
     return [
       block(`Show when ${field} is true`, `{% if ${field} %}`, '', '{% endif %}'),
@@ -65,6 +65,7 @@ function blocksForField(field: string, type?: string): LogicBlock[] {
   if (type === 'number' || type === 'date') {
     return [
       block(`Show when ${field} is above a value`, `{% if ${field} > 0 %}`, '', '{% endif %}'),
+      block(`Show when ${field} is below a value`, `{% if ${field} < 0 %}`, '', '{% endif %}'),
       block(`Show when ${field} is set`, `{% if ${field} %}`, '', '{% endif %}'),
       block(`Show one thing, or another if not`, `{% if ${field} %}`, '', '{% else %}', '', '{% endif %}'),
     ];
@@ -73,17 +74,41 @@ function blocksForField(field: string, type?: string): LogicBlock[] {
   return [
     block(`Show when ${field} is set`, `{% if ${field} %}`, '', '{% endif %}'),
     block(`Show when ${field} matches a value`, `{% if ${field} == "value" %}`, '', '{% endif %}'),
+    block(
+      `Pick a version per ${field} value`,
+      `{% case ${field} %}`,
+      `{% when "value" %}`,
+      '',
+      '{% else %}',
+      '',
+      '{% endcase %}',
+    ),
     block(`Show one thing, or another if missing`, `{% if ${field} %}`, '', '{% else %}', '', '{% endif %}'),
+    block(`Show when ${field} contains a value`, `{% if ${field} contains "value" %}`, '', '{% endif %}'),
     block(`Hide when ${field} is set`, `{% unless ${field} %}`, '', '{% endunless %}'),
   ];
 }
 
-/** Offered before a field is named. The loop lives here: field types can't identify lists. */
-function defaultBlocks(): LogicBlock[] {
+/**
+ * Offered before a field is named: the shapes above against a placeholder, plus the ones
+ * that are about structure rather than a particular field. Loops live here because field
+ * types cannot identify a list — the endpoint reports arrays as strings.
+ */
+export function defaultBlocks(): LogicBlock[] {
   return [
-    ...blocksForField(FIELD_PLACEHOLDER).slice(0, 3),
+    ...blocksForField(FIELD_PLACEHOLDER).slice(0, 4),
     block(`Hide when ${FIELD_PLACEHOLDER} is set`, `{% unless ${FIELD_PLACEHOLDER} %}`, '', '{% endunless %}'),
     block('Repeat for each item in a list', '{% for item in items %}', '', '{% endfor %}'),
+    block(
+      'Repeat for each item, or show a fallback when empty',
+      '{% for item in items %}',
+      '',
+      '{% else %}',
+      '',
+      '{% endfor %}',
+    ),
+    block('Add a note that never sends', '{% comment %}', '', '{% endcomment %}'),
+    block('Show template markup as literal text', '{% raw %}', '', '{% endraw %}'),
   ];
 }
 
