@@ -15,7 +15,7 @@ import {ResizableImage} from './ResizableImage';
 import {HtmlEditor} from './HtmlEditor';
 import {useContactFields, useContacts, useSegmentContacts} from '../../lib/hooks/useContacts';
 import {useConfig} from '../../lib/hooks/useConfig';
-import {useTemplateValidation} from '../../lib/hooks/useTemplateValidation';
+import {useTemplateFieldWarnings, useTemplateValidation} from '../../lib/hooks/useTemplateValidation';
 import {useEffect, useRef, useState} from 'react';
 import {renderTemplate} from '@plunk/shared';
 import {
@@ -82,6 +82,11 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
   // Surface Liquid syntax errors while editing. Saving rejects an unparseable template
   // anyway, so the alternative is learning about a typo from a 400 after the fact.
   const syntaxIssue = useTemplateValidation(htmlContent);
+
+  // Fields that parse but resolve to nothing: a typo, or a field so few contacts carry
+  // that the template is blank for most of the audience. Only shown once the template
+  // parses — a broken template makes every reference in it suspect.
+  const fieldWarnings = useTemplateFieldWarnings(htmlContent, fieldDetails);
 
   // A trigger being completed (`{%ema` with its menu open) is not valid Liquid yet.
   // Reporting that as an error would contradict the menu offering to finish it.
@@ -431,6 +436,21 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
                 ? `Line ${syntaxIssue.line}, column ${syntaxIssue.column} — saving will fail until this is fixed.`
                 : 'Saving will fail until this is fixed.'}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Field references that parse but will not resolve */}
+      {!syntaxIssue && !suggestionOpen && fieldWarnings.length > 0 && (
+        <div className="flex items-start gap-2 border-t border-amber-200 bg-amber-50 px-4 py-2.5">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+          <div className="min-w-0 space-y-1">
+            {fieldWarnings.map(warning => (
+              <p key={warning.field} className="text-xs text-amber-900">
+                {warning.message}
+              </p>
+            ))}
+            <p className="text-[11px] text-amber-700">This still sends. Nothing here blocks saving.</p>
           </div>
         </div>
       )}

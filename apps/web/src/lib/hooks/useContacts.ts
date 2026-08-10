@@ -7,6 +7,9 @@ interface UseContactsOptions {
   search?: string;
 }
 
+/** Stable identity so consumers' effect dependencies don't churn before the fetch lands. */
+const NO_FIELDS: ContactField[] = [];
+
 /** A contact field as reported by `GET /contacts/fields`. */
 export interface ContactField {
   field: string;
@@ -80,7 +83,7 @@ export function useContactFields() {
     dedupingInterval: 60000, // 1 minute
   });
 
-  const fieldDetails = data?.fields || [];
+  const fieldDetails = data?.fields ?? NO_FIELDS;
   const fieldNames = fieldDetails.map(f => f.field);
 
   return {

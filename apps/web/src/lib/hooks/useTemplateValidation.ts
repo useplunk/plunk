@@ -1,6 +1,9 @@
 import {validateTemplate} from '@plunk/shared';
 import {useEffect, useState} from 'react';
 
+import {lintTemplateFields, type TemplateFieldWarning} from '../templateLint';
+import type {ContactField} from './useContacts';
+
 export interface TemplateSyntaxIssue {
   /** Human-readable description of the problem, without Liquid's trailing position. */
   message: string;
@@ -131,4 +134,26 @@ export function useTemplateValidation(source: string): TemplateSyntaxIssue | nul
   }, [source]);
 
   return issue;
+}
+
+/**
+ * Warn about field references that parse but will not resolve.
+ *
+ * The counterpart to `useTemplateValidation`: that one catches markup Liquid cannot
+ * read, this one catches markup Liquid reads happily and then silently does nothing
+ * with. Debounced on the same cadence so the two strips never disagree about whether
+ * the author has stopped typing.
+ */
+export function useTemplateFieldWarnings(source: string, fields: ContactField[]): TemplateFieldWarning[] {
+  const [warnings, setWarnings] = useState<TemplateFieldWarning[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setWarnings(lintTemplateFields(source || '', fields));
+    }, DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [source, fields]);
+
+  return warnings;
 }
