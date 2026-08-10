@@ -7,6 +7,14 @@ interface UseContactsOptions {
   search?: string;
 }
 
+/** A contact field as reported by `GET /contacts/fields`. */
+export interface ContactField {
+  field: string;
+  type: 'string' | 'number' | 'boolean' | 'date';
+  /** Percentage of the project's contacts that carry this field. */
+  coverage: number;
+}
+
 /**
  * Hook to fetch contacts with optional search
  */
@@ -66,19 +74,21 @@ export function useSegmentContacts(segmentId?: string, pageSize = 50) {
  * Hook to fetch available contact fields for variable usage
  */
 export function useContactFields() {
-  const {data, error, mutate, isLoading} = useSWR<{fields: {field: string; type: string}[]; count: number}>(
-    '/contacts/fields',
-    {
-      revalidateOnFocus: false,
-      // Cache fields for longer since they don't change often
-      dedupingInterval: 60000, // 1 minute
-    },
-  );
+  const {data, error, mutate, isLoading} = useSWR<{fields: ContactField[]; count: number}>('/contacts/fields', {
+    revalidateOnFocus: false,
+    // Cache fields for longer since they don't change often
+    dedupingInterval: 60000, // 1 minute
+  });
 
-    const fieldNames = (data?.fields || []).map(f => f.field);
+  const fieldDetails = data?.fields || [];
+  const fieldNames = fieldDetails.map(f => f.field);
 
   return {
     fields: fieldNames,
+    // The endpoint also returns an inferred type and what share of contacts actually
+    // carry each field. The editor's suggestion menus use both: a field only 4% of
+    // contacts have is the difference between a working template and a silent blank.
+    fieldDetails,
     error,
     isLoading,
     mutate,

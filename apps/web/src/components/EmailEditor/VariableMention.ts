@@ -1,108 +1,70 @@
 import {Mention} from '@tiptap/extension-mention';
 import type {Editor, Range} from '@tiptap/core';
-import tippy, {Instance as TippyInstance, sticky} from 'tippy.js';
-import type {SuggestionProps} from '@tiptap/suggestion';
 
-// This will be set from the component
-let availableVariables: string[] = [];
+import type {ContactField} from '../../lib/hooks/useContacts';
+import {createSuggestionRenderer, SuggestionMenu, type SuggestionRow} from './suggestionPopup';
 
-export function setAvailableVariables(variables: string[]) {
-  availableVariables = variables || [];
+interface VariableRow extends SuggestionRow {
+  /** Named `id` to satisfy Mention's node-attribute shape for the command callback. */
+  id: string;
 }
 
-// Suggestion component that will be rendered
-class VariableSuggestionList {
-  public element: HTMLDivElement;
-  private items: string[];
-  private selectedIndex: number;
-  private command: (props: {id: string}) => void;
+/**
+ * Variables always available at send time, whatever a contact's data holds. Typed and
+ * covered like real fields so every row in the menu reads the same way.
+ */
+const RUNTIME_FIELDS: ContactField[] = [
+  {field: 'id', type: 'string', coverage: 100},
+  {field: 'email', type: 'string', coverage: 100},
+  {field: 'unsubscribeUrl', type: 'string', coverage: 100},
+  {field: 'subscribeUrl', type: 'string', coverage: 100},
+  {field: 'manageUrl', type: 'string', coverage: 100},
+  {field: 'locale', type: 'string', coverage: 100},
+];
 
-  constructor(props: SuggestionProps) {
-    this.items = Array.isArray(props.items) ? props.items : [];
-    this.selectedIndex = 0;
-    this.command = props.command;
+const TYPE_LABELS: Record<ContactField['type'], string> = {
+  string: 'text',
+  number: 'number',
+  boolean: 'true/false',
+  date: 'date',
+};
 
-    this.element = document.createElement('div');
-    this.element.className = 'variable-suggestion-list';
-    this.render();
-  }
+// Set from the component once the project's fields have loaded.
+let contactFields: ContactField[] = [];
 
-  render() {
-    if (!Array.isArray(this.items) || this.items.length === 0) {
-      this.element.innerHTML = '<div class="suggestion-item-empty">No variables found</div>';
-      return;
-    }
+export function setAvailableVariables(fields: ContactField[]) {
+  contactFields = fields || [];
+}
 
-    this.element.innerHTML = this.items
-      .map(
-        (item, index) => `
-        <div class="suggestion-item${index === this.selectedIndex ? ' is-selected' : ''}" data-index="${index}">
-          <code>{{${item}}}</code>
-        </div>
-      `,
-      )
-      .join('');
+/** The project's fields, runtime variables first. Shared with the `{%` logic menu. */
+export function getSuggestionFields(): ContactField[] {
+  const seen = new Set(RUNTIME_FIELDS.map(field => field.field));
+  return [...RUNTIME_FIELDS, ...contactFields.filter(field => !seen.has(field.field))];
+}
 
-    // Add click handlers
-    this.element.querySelectorAll('.suggestion-item').forEach((el, index) => {
-      el.addEventListener('click', () => {
-        this.selectItem(index);
-      });
-    });
-  }
+/**
+ * Describe a field in the terms that decide whether a template works.
+ *
+ * Coverage is the number that matters and was previously not surfaced anywhere: a
+ * `{{plan}}` that only 4% of contacts carry renders blank for everyone else, and the
+ * only way to find that out used to be sending the campaign.
+ */
+function describe(field: ContactField): string | undefined {
+  const type = TYPE_LABELS[field.type] ?? 'text';
+  return field.coverage < 100 ? `${type} · ${Math.round(field.coverage)}% of contacts` : type;
+}
 
-  selectItem(index: number) {
-    const item = this.items[index];
-    if (item && this.command) {
-      this.command({id: item});
-    }
-  }
+function variableItems(query: string): VariableRow[] {
+  const fields = getSuggestionFields();
+  const lowerQuery = query.toLowerCase();
+  const matches = lowerQuery ? fields.filter(field => field.field.toLowerCase().includes(lowerQuery)) : fields;
 
-  onKeyDown(event: KeyboardEvent): boolean {
-    if (event.key === 'ArrowUp') {
-      this.upHandler();
-      return true;
-    }
-
-    if (event.key === 'ArrowDown') {
-      this.downHandler();
-      return true;
-    }
-
-    if (event.key === 'Enter') {
-      this.enterHandler();
-      return true;
-    }
-
-    return false;
-  }
-
-  upHandler() {
-    if (!Array.isArray(this.items) || this.items.length === 0) return;
-    this.selectedIndex = (this.selectedIndex + this.items.length - 1) % this.items.length;
-    this.render();
-  }
-
-  downHandler() {
-    if (!Array.isArray(this.items) || this.items.length === 0) return;
-    this.selectedIndex = (this.selectedIndex + 1) % this.items.length;
-    this.render();
-  }
-
-  enterHandler() {
-    if (!Array.isArray(this.items) || this.items.length === 0) return;
-    this.selectItem(this.selectedIndex);
-  }
-
-  update(props: SuggestionProps) {
-    this.items = Array.isArray(props.items) ? props.items : [];
-    this.selectedIndex = 0;
-    this.render();
-  }
-
-  destroy() {
-    this.element.remove();
-  }
+  return matches.slice(0, 10).map(field => ({
+    id: field.field,
+    label: field.field,
+    syntax: `{{${field.field}}}`,
+    meta: describe(field),
+  }));
 }
 
 export const VariableMention = Mention.configure({
@@ -115,106 +77,16 @@ export const VariableMention = Mention.configure({
   suggestion: {
     char: '{{',
 
-    items: ({query}) => {
-      const safeVariables = Array.isArray(availableVariables) ? availableVariables : [];
-      const allVariables = ['id', 'email', 'unsubscribeUrl', 'subscribeUrl', 'manageUrl', 'locale', ...safeVariables];
-      const uniqueVariables = Array.from(new Set(allVariables)).filter(v => typeof v === 'string');
-
-      if (!query) {
-        return uniqueVariables.slice(0, 10);
-      }
-
-      const lowerQuery = query.toLowerCase();
-      return uniqueVariables.filter(item => item.toLowerCase().startsWith(lowerQuery)).slice(0, 10);
-    },
+    items: ({query}: {query: string}) => variableItems(query),
 
     command: ({editor, range, props}: {editor: Editor; range: Range; props: {id: string | null}}) => {
-      // Delete the {{ trigger characters and insert the variable as plain text
-      if (!props.id) return;
+      if (!props?.id) {
+        return;
+      }
+
       editor.chain().focus().deleteRange(range).insertContent(`{{${props.id}}}`).run();
     },
 
-    render: () => {
-      let component: VariableSuggestionList;
-      let popup: TippyInstance[];
-      let scrollHandler: (() => void) | null = null;
-
-      return {
-        onStart: (props: SuggestionProps) => {
-          component = new VariableSuggestionList(props);
-
-          if (!props.clientRect) {
-            return;
-          }
-
-          popup = tippy('body', {
-            getReferenceClientRect: props.clientRect as () => DOMRect,
-            appendTo: () => document.body,
-            content: component.element,
-            showOnCreate: true,
-            interactive: true,
-            trigger: 'manual',
-            placement: 'bottom-start',
-            theme: 'variable-suggestion',
-            plugins: [sticky],
-            sticky: 'reference',
-            popperOptions: {
-              strategy: 'fixed',
-            },
-          });
-
-          // Update position on scroll
-          scrollHandler = () => {
-            if (popup?.[0] && props.clientRect) {
-              popup[0].setProps({
-                getReferenceClientRect: props.clientRect as () => DOMRect,
-              });
-            }
-          };
-
-          // Find the scrolling editor container and add listener
-          const editorContainer = document.querySelector('.overflow-y-auto');
-          if (editorContainer) {
-            editorContainer.addEventListener('scroll', scrollHandler);
-          }
-          window.addEventListener('scroll', scrollHandler, true);
-        },
-
-        onUpdate(props: SuggestionProps) {
-          component?.update(props);
-
-          if (!props.clientRect) {
-            return;
-          }
-
-          popup?.[0]?.setProps({
-            getReferenceClientRect: props.clientRect as () => DOMRect,
-          });
-        },
-
-        onKeyDown(props: {event: KeyboardEvent}) {
-          if (props.event.key === 'Escape') {
-            popup?.[0]?.hide();
-            return true;
-          }
-
-          return component?.onKeyDown(props.event) || false;
-        },
-
-        onExit() {
-          // Clean up scroll listeners
-          if (scrollHandler) {
-            const editorContainer = document.querySelector('.overflow-y-auto');
-            if (editorContainer) {
-              editorContainer.removeEventListener('scroll', scrollHandler);
-            }
-            window.removeEventListener('scroll', scrollHandler, true);
-          }
-
-          popup?.[0]?.destroy();
-          component?.destroy();
-        },
-      };
-    },
+    render: createSuggestionRenderer(props => new SuggestionMenu<VariableRow>(props, 'No matching field')),
   },
 });
