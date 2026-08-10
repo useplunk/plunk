@@ -291,6 +291,12 @@ function handleData(
     // Build from object with name if available
     const from = fromName ? {name: fromName, email: fromAddress} : fromAddress;
 
+    // Reply-To is in `standardHeaders` below, so it is deliberately excluded from
+    // `customHeaders`. Carry it in the API's own `reply` field instead — without
+    // this the header is parsed and then silently dropped, and the recipient's
+    // reply goes to the From address.
+    const replyTo = parsed.replyTo?.value[0]?.address;
+
     // Parse recipients with names from To/CC headers
     // Build a map of email -> name from the parsed headers
     const recipientNameMap = new Map<string, string>();
@@ -402,6 +408,7 @@ function handleData(
           to: recipients,
           subject: parsed.subject,
           body: bodyContent,
+          reply: replyTo,
           headers: Object.keys(customHeaders).length > 0 ? customHeaders : undefined,
           attachments: attachments,
         }),
