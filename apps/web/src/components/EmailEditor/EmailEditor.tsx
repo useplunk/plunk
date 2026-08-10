@@ -13,6 +13,7 @@ import {ResizableImage} from './ResizableImage';
 import {HtmlEditor} from './HtmlEditor';
 import {useContactFields, useContacts, useSegmentContacts} from '../../lib/hooks/useContacts';
 import {useConfig} from '../../lib/hooks/useConfig';
+import {useTemplateValidation} from '../../lib/hooks/useTemplateValidation';
 import {useEffect, useRef, useState} from 'react';
 import {renderTemplate} from '@plunk/shared';
 import {
@@ -29,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@plunk/ui';
-import {Code2, Eye, Monitor, Smartphone, Tablet, Upload, X} from 'lucide-react';
+import {AlertTriangle, Code2, Eye, Monitor, Smartphone, Tablet, Upload, X} from 'lucide-react';
 import {network} from '../../lib/network';
 import {detectCustomHtmlPatterns, wrapEmailWithStyles} from '../../lib/emailStyles';
 import 'tippy.js/dist/tippy.css';
@@ -75,6 +76,10 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
 
   // Fetch available contact fields using SWR
   const {fields: availableFields} = useContactFields();
+
+  // Surface Liquid syntax errors while editing. Saving rejects an unparseable template
+  // anyway, so the alternative is learning about a typo from a 400 after the fact.
+  const syntaxIssue = useTemplateValidation(htmlContent);
 
   // Fetch contacts for preview using SWR.
   // When the campaign targets a segment, scope the dropdown to that segment's
@@ -400,6 +405,27 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
           </Select>
         </div>
       </div>
+
+      {/* Template syntax errors, reported as you type rather than on save */}
+      {syntaxIssue && (
+        <div className="flex items-start gap-2 border-t border-red-200 bg-red-50 px-4 py-2.5">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600" />
+          <div className="min-w-0 space-y-1">
+            <p className="text-xs font-medium text-red-800">{syntaxIssue.message}</p>
+            {syntaxIssue.excerpt && (
+              <code className="block truncate rounded border border-red-200 bg-white px-1.5 py-0.5 font-mono text-xs text-red-900">
+                {syntaxIssue.excerpt}
+              </code>
+            )}
+            <p className="text-[11px] text-red-700">
+              {/* Line numbers only exist in the HTML editor's gutter. */}
+              {mode === 'html' && syntaxIssue.line !== undefined
+                ? `Line ${syntaxIssue.line}, column ${syntaxIssue.column} — saving will fail until this is fixed.`
+                : 'Saving will fail until this is fixed.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Editor content */}
       {mode === 'visual' ? (
