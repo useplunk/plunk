@@ -876,6 +876,22 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
           font-size: 14px;
         }
 
+        /*
+         * Logic tags are structure, not data, so they read as a different kind of thing
+         * from the blue value chips above rather than as a second accent colour.
+         * Decoration-only: these never appear in the sent email, where the tag has
+         * already been rendered away.
+         */
+        .logic-highlight {
+          background-color: #f5f5f5;
+          color: #171717;
+          padding: 2px 6px;
+          border-radius: 3px;
+          border: 1px solid #e5e5e5;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+        }
+
         .ProseMirror table {
           border-collapse: collapse;
           width: 100%;

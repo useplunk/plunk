@@ -91,20 +91,34 @@ export const Variable = Node.create<VariableOptions>({
         props: {
           decorations: ({doc}) => {
             const decorations: Decoration[] = [];
-            const regex = /\{\{([^}]+)\}\}/g;
+
+            // Two kinds of markup, deliberately styled apart: `{{ }}` outputs a value,
+            // `{% %}` controls structure. Left as plain prose, a conditional is
+            // indistinguishable from the sentence around it and a template with a few
+            // branches reads as one undifferentiated block of text.
+            const patterns = [
+              {regex: /\{\{([^}]+)\}\}/g, class: 'variable-highlight'},
+              // Any tag, not an allow-list of names: if/else/for/assign/raw and anything
+              // Liquid gains later all read as structure. Lazy, so `{% if %}{% endif %}`
+              // side by side stays two chips rather than one long one.
+              {regex: /\{%[\s\S]*?%\}/g, class: 'logic-highlight'},
+            ];
 
             doc.descendants((node, pos) => {
-              if (node.isText && node.text) {
+              if (!node.isText || !node.text) {
+                return;
+              }
+
+              for (const pattern of patterns) {
+                // Shared regex objects carry lastIndex between nodes.
+                pattern.regex.lastIndex = 0;
+
                 let match;
-                while ((match = regex.exec(node.text)) !== null) {
+                while ((match = pattern.regex.exec(node.text)) !== null) {
                   const from = pos + match.index;
                   const to = from + match[0].length;
 
-                  decorations.push(
-                    Decoration.inline(from, to, {
-                      class: 'variable-highlight',
-                    }),
-                  );
+                  decorations.push(Decoration.inline(from, to, {class: pattern.class}));
                 }
               }
             });
