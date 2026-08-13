@@ -556,6 +556,7 @@ export class WorkflowExecutionService {
       ...contactData,
       ...executionContext,
       data: contactData,
+      event: executionContext,
       unsubscribeUrl: `${DASHBOARD_URI}/unsubscribe/${contact.id}`,
       subscribeUrl: `${DASHBOARD_URI}/subscribe/${contact.id}`,
       manageUrl: `${DASHBOARD_URI}/manage/${contact.id}`,
@@ -877,7 +878,7 @@ export class WorkflowExecutionService {
     }
 
     const toHextets = (part: string) =>
-      part === '' ? [] : part.split(':').map((h) => (/^[0-9a-f]{1,4}$/.test(h) ? Number.parseInt(h, 16) : Number.NaN));
+      part === '' ? [] : part.split(':').map(h => (/^[0-9a-f]{1,4}$/.test(h) ? Number.parseInt(h, 16) : Number.NaN));
 
     const left = toHextets(halves[0] ?? '');
     const right = halves.length === 2 ? toHextets(halves[1] ?? '') : [];
@@ -1060,9 +1061,7 @@ export class WorkflowExecutionService {
 
     const renderedUrl = this.renderTemplate(url, variables);
     const renderedHeaders = headers
-      ? Object.fromEntries(
-          Object.entries(headers).map(([key, value]) => [key, this.renderTemplate(value, variables)]),
-        )
+      ? Object.fromEntries(Object.entries(headers).map(([key, value]) => [key, this.renderTemplate(value, variables)]))
       : undefined;
     const renderedBody = body ? this.renderJsonTemplate(body, variables) : undefined;
 
