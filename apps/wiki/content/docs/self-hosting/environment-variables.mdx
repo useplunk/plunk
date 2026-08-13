@@ -64,6 +64,26 @@ Plunk supports attachments on transactional emails. AWS SES caps total message s
 | `MAX_ATTACHMENT_SIZE_MB` | No       | Maximum total attachment size in megabytes per email. Hard upper bound enforced by AWS SES is 40 MB.                     | `10`    |
 | `MAX_ATTACHMENTS_COUNT`  | No       | Maximum number of attachments per email.                                                                                 | `10`    |
 
+## API Rate Limiting
+
+The high-traffic API endpoints are protected by per-project token buckets stored in Redis. Each bucket has a sustained rate (`*_PER_SECOND`) and a burst ceiling (`*_BURST`) that absorbs spikes — useful for callers like real-time contact sync, which drains a backlog all at once and then idles.
+
+Limits are keyed on the project rather than the IP address, so one customer's runaway integration cannot consume another's budget. Every response carries `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`; a throttled request returns `429` with a `Retry-After` header. If Redis is unreachable, requests are allowed through rather than rejected.
+
+Rate limiting is **off by default** — upgrading Plunk will never start refusing traffic your callers were already sending. Set `RATE_LIMIT_ENABLED=true` to switch it on; none of the other variables have any effect until you do. Once enabled, set an individual `*_PER_SECOND` to `0` to disable a single bucket while leaving the others active.
+
+| Variable                        | Required | Description                                                                                             | Default |
+| ------------------------------- | -------- | --------------------------------------------------------------------------------------------------------- | ------- |
+| `RATE_LIMIT_ENABLED`            | No       | Master switch for all API rate limiting. Turn on when exposed to untrusted API clients.                 | `false` |
+| `RATE_LIMIT_TRACK_PER_SECOND`   | No       | Sustained requests per second for `POST /v1/track`, usually the highest-volume endpoint.                | `100`   |
+| `RATE_LIMIT_TRACK_BURST`        | No       | Burst ceiling for `POST /v1/track`.                                                                     | `200`   |
+| `RATE_LIMIT_SEND_PER_SECOND`    | No       | Sustained requests per second for `POST /v1/send`. Also bounded by the project's billing limit.         | `20`    |
+| `RATE_LIMIT_SEND_BURST`         | No       | Burst ceiling for `POST /v1/send`.                                                                      | `50`    |
+| `RATE_LIMIT_CONTACTS_PER_SECOND`| No       | Sustained requests per second across contact writes (`POST`, `PATCH`, `DELETE` on `/contacts`).         | `50`    |
+| `RATE_LIMIT_CONTACTS_BURST`     | No       | Burst ceiling shared by those contact writes.                                                           | `100`   |
+
+Contact writes share one budget because a sync integration drives create, update and delete from the same upstream change feed — separate budgets would let a single runaway sync spend three times the intended allowance.
+
 ## Idempotency
 
 Callers can pass an `Idempotency-Key` header to `POST /v1/track` and `POST /v1/send` to guarantee the request runs at most once. See [Idempotency](/guides/idempotency).

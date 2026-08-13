@@ -110,6 +110,25 @@ export const logger = {
   },
 
   /**
+   * The request's full path, safe to read at any point in the lifecycle.
+   *
+   * `req.path` is derived from `req.url`, which Express rewrites to be relative to
+   * the router's mount point for as long as that router is handling the request,
+   * restoring it once the router unwinds. Anything that reads `req.path` lazily —
+   * from a `res.json` override, a `finish` listener, a promise — therefore sees a
+   * truncated path (`/track` instead of `/v1/track`, or bare `/` for a controller's
+   * root route), while the app-level error handler sees the full one. That split
+   * makes the same endpoint log under two different names depending on outcome.
+   *
+   * `req.originalUrl` is never rewritten, so it is correct whenever it is read.
+   */
+  path(req: Request): string {
+    // split always yields at least one element; the fallback only satisfies
+    // noUncheckedIndexedAccess.
+    return req.originalUrl.split('?')[0] ?? req.originalUrl;
+  },
+
+  /**
    * Log an API request (called by middleware)
    */
   request(req: Request, res: Response) {
@@ -118,7 +137,7 @@ export const logger = {
 
     signale.info({
       prefix: requestId ? `[${requestId}]` : '',
-      message: `${req.method} ${req.path}`,
+      message: `${req.method} ${logger.path(req)}`,
       ...context,
       ip: req.ip,
       userAgent: req.get('user-agent'),
@@ -136,7 +155,7 @@ export const logger = {
 
     logFn({
       prefix: requestId ? `[${requestId}]` : '',
-      message: `${req.method} ${req.path} → ${statusCode}`,
+      message: `${req.method} ${logger.path(req)} → ${statusCode}`,
       ...context,
       statusCode,
       duration: `${duration}ms`,

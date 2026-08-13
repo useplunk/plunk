@@ -5,6 +5,7 @@ import {ContactSchemas} from '@plunk/shared';
 import type {BulkContactActionSelector} from '@plunk/types';
 import signale from 'signale';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
+import {contactWriteRateLimit} from '../middleware/rateLimit.js';
 import {ContactService} from '../services/ContactService.js';
 import {QueueService} from '../services/QueueService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
@@ -139,7 +140,7 @@ export class Contacts {
    * Create or update a contact (upsert)
    */
   @Post('')
-  @Middleware([requireAuth, requireEmailVerified])
+  @Middleware([requireAuth, requireEmailVerified, contactWriteRateLimit])
   @CatchAsync
   public async create(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;
@@ -169,7 +170,7 @@ export class Contacts {
    * Update a contact
    */
   @Patch(':id')
-  @Middleware([requireAuth, requireEmailVerified])
+  @Middleware([requireAuth, requireEmailVerified, contactWriteRateLimit])
   @CatchAsync
   public async update(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;
@@ -190,7 +191,7 @@ export class Contacts {
    * Delete a contact
    */
   @Delete(':id')
-  @Middleware([requireAuth, requireEmailVerified])
+  @Middleware([requireAuth, requireEmailVerified, contactWriteRateLimit])
   @CatchAsync
   public async delete(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;

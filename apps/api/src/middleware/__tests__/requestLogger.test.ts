@@ -32,7 +32,7 @@ describe('Request Logger Middleware', () => {
 
     req = {
       method: 'POST',
-      path: '/v1/send',
+      originalUrl: '/v1/send',
       ip: '192.168.1.100',
       socket: {remoteAddress: '192.168.1.100'} as Request['socket'],
       get: vi.fn((header: string) => {
@@ -213,7 +213,7 @@ describe('Request Logger Middleware', () => {
   // ========================================
   describe('Skip Logging for Excluded Paths', () => {
     it('should skip logging for health check endpoint', async () => {
-      req.path = '/health';
+      req.originalUrl = '/health';
 
       databaseRequestLogger(req as Request, res as Response, next);
 
@@ -233,7 +233,7 @@ describe('Request Logger Middleware', () => {
       const sessionPaths = ['/users/@me', '/users/@me/projects', '/users/me', '/users/me/projects'];
 
       for (const path of sessionPaths) {
-        req.path = path;
+        req.originalUrl = path;
         res.locals!.requestId = `skip-${path}`;
 
         databaseRequestLogger(req as Request, res as Response, next);
@@ -252,7 +252,7 @@ describe('Request Logger Middleware', () => {
       const assetPaths = ['/assets/logo.png', '/assets/styles.css', '/assets/script.js'];
 
       for (const path of assetPaths) {
-        req.path = path;
+        req.originalUrl = path;
         res.locals!.requestId = `asset-${path}`;
 
         databaseRequestLogger(req as Request, res as Response, next);
@@ -268,7 +268,7 @@ describe('Request Logger Middleware', () => {
     });
 
     it('should skip logging for config endpoints', async () => {
-      const reqConfig = {...req, path: '/config'};
+      const reqConfig = {...req, originalUrl: '/config'};
       const resConfig = {
         ...res,
         locals: {...res.locals!, requestId: 'test-config-skip'},
@@ -289,7 +289,7 @@ describe('Request Logger Middleware', () => {
       const importantPaths = ['/v1/send', '/v1/track', '/contacts', '/campaigns', '/templates'];
 
       for (const path of importantPaths) {
-        req.path = path;
+        req.originalUrl = path;
         res.locals!.requestId = `log-${path.replace(/\//g, '-')}`;
 
         databaseRequestLogger(req as Request, res as Response, next);
@@ -460,6 +460,98 @@ describe('Request Logger Middleware', () => {
       const expectedSize = JSON.stringify(largeResponse).length;
       expect(loggedRequest?.responseSize).toBe(expectedSize);
       expect(loggedRequest?.responseSize).toBeGreaterThan(1000);
+    });
+  });
+
+  // ========================================
+  // PATH RESOLUTION UNDER A MOUNTED ROUTER
+  // ========================================
+  describe('Path Resolution', () => {
+    /**
+     * These run a real Express app rather than a mock request, because the bug they
+     * guard against only exists once a router is mounted: Express rewrites req.url
+     * (and so req.path) to be relative to the mount point while the router runs, and
+     * the logger writes its row from a res.json override that executes inside it.
+     * A hand-built req object has no mount point and cannot reproduce that.
+     *
+     * The symptom was POST /contacts logging as "/" and POST /v1/track logging as
+     * "/track" on success but "/v1/track" when it errored — the same endpoint under
+     * two names, which silently breaks any per-endpoint analysis of the table.
+     */
+    async function callMounted(basePath: string, routePath: string, requestId: string) {
+      const {default: express} = await import('express');
+
+      const app = express();
+      app.use(express.json());
+      app.use((_req, res, next) => {
+        res.locals.requestId = requestId;
+        next();
+      });
+      app.use(databaseRequestLogger);
+
+      const router = express.Router();
+      router.post(routePath, (_req, res) => {
+        res.json({success: true});
+      });
+      app.use(basePath, router);
+
+      const server = app.listen(0);
+      await new Promise(resolve => server.once('listening', resolve));
+
+      try {
+        const {port} = server.address() as {port: number};
+        await fetch(`http://127.0.0.1:${port}${basePath}${routePath === '/' ? '' : routePath}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({}),
+        });
+      } finally {
+        await new Promise(resolve => server.close(resolve));
+      }
+
+      return waitForLog(prisma, requestId);
+    }
+
+    it("logs a controller's root route under its mount path, not '/'", async () => {
+      const loggedRequest = await callMounted('/contacts', '/', 'mounted-root-route');
+
+      expect(loggedRequest?.path).toBe('/contacts');
+    });
+
+    it('logs a nested route under its full path, not the router-relative one', async () => {
+      const loggedRequest = await callMounted('/v1', '/track', 'mounted-nested-route');
+
+      expect(loggedRequest?.path).toBe('/v1/track');
+    });
+
+    it('records the path without its query string', async () => {
+      const {default: express} = await import('express');
+
+      const app = express();
+      app.use((_req, res, next) => {
+        res.locals.requestId = 'mounted-query-string';
+        next();
+      });
+      app.use(databaseRequestLogger);
+
+      const router = express.Router();
+      router.get('/', (_req, res) => res.json({success: true}));
+      app.use('/contacts', router);
+
+      const server = app.listen(0);
+      await new Promise(resolve => server.once('listening', resolve));
+
+      try {
+        const {port} = server.address() as {port: number};
+        await fetch(`http://127.0.0.1:${port}/contacts?search=jane&limit=20`);
+      } finally {
+        await new Promise(resolve => server.close(resolve));
+      }
+
+      const loggedRequest = await waitForLog(prisma, 'mounted-query-string');
+
+      // Query strings would fragment the table into one "endpoint" per parameter set.
+      expect(loggedRequest?.path).toBe('/contacts');
     });
   });
 });

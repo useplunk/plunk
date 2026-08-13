@@ -65,7 +65,7 @@ const SKIP_LOGGING_PATTERNS = [
  * Check if a request should be logged to the database
  */
 function shouldLogRequest(req: Request): boolean {
-  const path = req.path;
+  const path = logger.path(req);
 
   // Check exact path matches
   if (SKIP_LOGGING_PATHS.includes(path)) {
@@ -163,7 +163,9 @@ async function logRequestToDatabase(
       data: {
         id: requestId || crypto.randomUUID(), // Use request ID as primary key
         method: req.method,
-        path: req.path,
+        // logger.path, not req.path: this runs from the res.json override, i.e.
+        // inside the router, where req.path has been rewritten mount-relative.
+        path: logger.path(req),
         statusCode,
         duration,
         projectId: auth?.projectId || null,
@@ -185,7 +187,7 @@ async function logRequestToDatabase(
   } catch (error) {
     // Log the error but don't throw - we don't want logging failures to affect the API
     logger.error('Failed to log request to database', error, {
-      path: req.path,
+      path: logger.path(req),
       method: req.method,
     });
   }

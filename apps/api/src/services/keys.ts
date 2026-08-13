@@ -19,6 +19,12 @@ export const Keys = {
       return `auth:password_reset_rate:${email}`;
     },
   },
+  RateLimit: {
+    /** Per-project token bucket for an API endpoint group. See middleware/rateLimit.ts. */
+    bucket(name: string, projectId: string): string {
+      return `ratelimit:${name}:${projectId}`;
+    },
+  },
   Domain: {
     id(id: string): string {
       return `domain:id:${id}`;

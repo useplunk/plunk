@@ -54,6 +54,12 @@ for (const [key, value] of Object.entries(TEST_ENV_DEFAULTS)) {
   }
 }
 
+// API rate limiting ships disabled so that upgrading Plunk never starts refusing a
+// self-hoster's existing traffic. The suite has to exercise it regardless, so it is
+// forced on here rather than defaulted above — otherwise the rate limit tests would
+// assert against a middleware that returns immediately, and still pass.
+process.env.RATE_LIMIT_ENABLED = 'true';
+
 // Static import is safe: database.ts only reads env in initialize(), which runs
 // in beforeAll — well after the env mutations above.
 import {testDatabase} from './helpers/database';

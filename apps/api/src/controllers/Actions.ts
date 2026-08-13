@@ -3,6 +3,7 @@ import {ActionSchemas} from '@plunk/shared';
 import type {NextFunction, Request, Response} from 'express';
 import {requirePublicKey, requireSecretKey} from '../middleware/auth.js';
 import {idempotency} from '../middleware/idempotency.js';
+import {sendRateLimit, trackRateLimit} from '../middleware/rateLimit.js';
 import {prisma} from '../database/prisma.js';
 import {ContactService} from '../services/ContactService.js';
 import {DomainService} from '../services/DomainService.js';
@@ -52,7 +53,7 @@ export class Actions {
    * }
    */
   @Post('track')
-  @Middleware([requirePublicKey, idempotency])
+  @Middleware([requirePublicKey, trackRateLimit, idempotency])
   @CatchAsync
   public async track(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;
@@ -179,7 +180,7 @@ export class Actions {
    * }
    */
   @Post('send')
-  @Middleware([requireSecretKey, idempotency])
+  @Middleware([requireSecretKey, sendRateLimit, idempotency])
   @CatchAsync
   public async send(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;

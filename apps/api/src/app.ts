@@ -16,6 +16,10 @@ import {
   NODE_ENV,
   PLUNK_ENABLED,
   PORT,
+  RATE_LIMIT_CONTACTS_PER_SECOND,
+  RATE_LIMIT_ENABLED,
+  RATE_LIMIT_SEND_PER_SECOND,
+  RATE_LIMIT_TRACK_PER_SECOND,
   S3_ENABLED,
   SMTP_ENABLED,
   STRIPE_ENABLED,
@@ -447,6 +451,13 @@ void prisma.$connect().then(async () => {
       name: 'Platform emails',
       enabled: PLUNK_ENABLED,
       details: PLUNK_ENABLED ? 'Platform email notifications enabled' : 'PLUNK_API_KEY not configured',
+    },
+    {
+      name: 'API rate limiting',
+      enabled: RATE_LIMIT_ENABLED,
+      details: RATE_LIMIT_ENABLED
+        ? `track ${RATE_LIMIT_TRACK_PER_SECOND}/s, send ${RATE_LIMIT_SEND_PER_SECOND}/s, contacts ${RATE_LIMIT_CONTACTS_PER_SECOND}/s`
+        : 'Disabled via RATE_LIMIT_ENABLED=false',
     },
   ];
 
