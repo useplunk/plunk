@@ -5,11 +5,10 @@ name: NPM Publish
 # Authentication is npm trusted publishing (GitHub Actions OIDC) — there is no
 # NPM_TOKEN secret to store, rotate, or leak.
 #
-# OIDC cannot perform a package's FIRST publish: npm only lets you attach a
-# trusted publisher from an existing package's settings page. So @plunk/mcp has
-# to be created once by hand before this workflow can do anything. Until that
-# happens the publish step skips with instructions instead of failing the build.
-# See the bootstrap notes at the bottom of this file.
+# A trusted publisher can only be attached from an existing package's settings
+# page, so the @plunk/mcp name had to be registered on npm before this workflow
+# could do anything. That is done — the name exists with the trusted publisher
+# attached, and this workflow publishes the first actual version.
 #
 # The release detection mirrors docker-publish.yml so the npm package and the
 # Docker image are always cut from the same commit: on a release-please merge
@@ -114,20 +113,6 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
 
-          # The package must exist before a trusted publisher can be attached to
-          # it, so a brand-new package cannot be published from CI. Skip loudly
-          # rather than failing the release.
-          if ! npm view "@plunk/mcp" version >/dev/null 2>&1; then
-            echo "::warning::@plunk/mcp does not exist on npm yet."
-            echo "OIDC cannot perform a package's first publish. Bootstrap it once by hand:"
-            echo "    npm login"
-            echo "    yarn build --filter=@plunk/mcp"
-            echo "    cd apps/mcp && npm publish --access public"
-            echo "Then add this repo and workflow as a trusted publisher in the"
-            echo "@plunk/mcp package settings on npmjs.com. Subsequent releases publish here automatically."
-            exit 0
-          fi
-
           # The version is pinned to the platform version, so a release that
           # touched nothing under apps/mcp still lands here. Skipping is the
           # correct outcome, not a failure.
@@ -140,22 +125,16 @@ jobs:
           npm publish --access public --provenance
 
 # ---------------------------------------------------------------------------
-# One-time bootstrap (no token required, nothing to rotate)
+# Trusted publishing setup (already done — recorded here for the next person)
 #
-#   1. Merge this work and let release-please cut the release, so the version on
-#      npm matches what is on `next`. This workflow will skip with the warning
-#      above.
-#   2. Locally, on that release commit:
-#          npm login                       # interactive, uses your 2FA
-#          yarn build --filter=@plunk/mcp
-#          cd apps/mcp && npm publish --access public
-#   3. On npmjs.com open @plunk/mcp -> Settings -> Trusted Publisher, and add:
-#          Organization/user: useplunk
-#          Repository:        plunk        (the repo; `next` is the branch)
-#          Workflow filename: npm-publish.yml
-#          Environment name:  leave blank unless this job also declares
-#                             `environment:` — npm requires the two to match.
-#          Allowed actions:   tick "Allow npm publish" only.
-#   4. Nothing else. Every later release publishes from here over OIDC, with
-#      provenance attestation, and no stored credential.
+#   The @plunk/mcp name is registered on npm with a trusted publisher attached:
+#       Organization/user: useplunk
+#       Repository:        plunk        (the repo; `next` is the branch)
+#       Workflow filename: npm-publish.yml
+#       Environment name:  blank — if you ever set one, this job must declare a
+#                          matching `environment:` or the publish fails.
+#       Allowed actions:   "Allow npm publish"
+#
+#   No NPM_TOKEN, nothing to rotate. If a publish ever fails with an OIDC error,
+#   check those four fields first; a mismatch there is the usual cause.
 # ---------------------------------------------------------------------------

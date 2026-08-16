@@ -25,7 +25,12 @@ COPY .yarn/releases ./.yarn/releases
 COPY package.json yarn.lock ./
 
 # Copy workspace package.json files
+# Every workspace listed in the root package.json must be present here, even if
+# it is never built or run in the image: `yarn install --immutable` re-resolves
+# the whole workspace graph and fails if a manifest is missing, because the
+# lockfile it produces would differ from the committed one.
 COPY apps/api/package.json ./apps/api/
+COPY apps/mcp/package.json ./apps/mcp/
 COPY apps/smtp/package.json ./apps/smtp/
 COPY apps/web/package.json ./apps/web/
 COPY apps/landing/package.json ./apps/landing/
@@ -128,7 +133,11 @@ COPY docker/generate-url-manifest.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/generate-url-manifest.sh
 
 # Step 1: Copy and build shared packages (these change less frequently)
-# Shared packages are dependencies for apps, so build them first
+# Shared packages are dependencies for apps, so build them first.
+# @plunk/mcp is excluded from the build below: it matches the "@plunk/*" filter
+# by name but lives in apps/, so its source is not copied here — and it does not
+# belong in the image anyway. It is an stdio server that users run via
+# `npx @plunk/mcp` on their own machine, published to npm by npm-publish.yml.
 COPY packages ./packages
 RUN yarn workspace @plunk/db db:generate
 RUN --mount=type=cache,target=/app/.turbo,sharing=locked \
@@ -140,7 +149,7 @@ RUN --mount=type=cache,target=/app/.turbo,sharing=locked \
     NEXT_PUBLIC_DASHBOARD_URI=${DASHBOARD_URI} \
     NEXT_PUBLIC_LANDING_URI=${LANDING_URI} \
     NEXT_PUBLIC_WIKI_URI=${WIKI_URI} \
-    yarn turbo build --filter="@plunk/*"
+    yarn turbo build --filter="@plunk/*" --filter="!@plunk/mcp"
 
 # Step 2: Copy and build API (backend services)
 COPY apps/api ./apps/api
