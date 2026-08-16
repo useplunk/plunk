@@ -11,7 +11,7 @@ function getRequestId(res?: Response): string | undefined {
 /**
  * Extract user/project context from Express response locals
  */
-function getRequestContext(res?: Response): Record<string, unknown> {
+function getRequestContext(res?: Response) {
   const auth = res?.locals?.auth as {type?: string; userId?: string; projectId?: string} | undefined;
 
   if (!auth) {

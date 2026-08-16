@@ -345,7 +345,7 @@ export class ContactService {
    * This is useful for template rendering
    */
   public static getMergedData(contact: Contact, temporaryData?: Record<string, unknown>): Record<string, unknown> {
-    const mergedData: Record<string, unknown> = {
+    const mergedData: {plunk_id: string; plunk_email: string; [key: string]: unknown} = {
       plunk_id: contact.id,
       plunk_email: contact.email,
     };
