@@ -134,10 +134,13 @@ RUN chmod +x /usr/local/bin/generate-url-manifest.sh
 
 # Step 1: Copy and build shared packages (these change less frequently)
 # Shared packages are dependencies for apps, so build them first.
-# @plunk/mcp is excluded from the build below: it matches the "@plunk/*" filter
-# by name but lives in apps/, so its source is not copied here — and it does not
-# belong in the image anyway. It is an stdio server that users run via
-# `npx @plunk/mcp` on their own machine, published to npm by npm-publish.yml.
+#
+# Note on @plunk/mcp: despite the name it lives in apps/, and no stage copies
+# apps/mcp source into the builder, so the "@plunk/*" filter below never matches
+# it. Do not "fix" this with an explicit --filter="!@plunk/mcp" — turbo errors
+# with "No package found with name" when a negative filter names a workspace
+# that is not on disk. The MCP server is an stdio binary users run via
+# `npx @plunk/mcp`; it is published to npm by npm-publish.yml, not shipped here.
 COPY packages ./packages
 RUN yarn workspace @plunk/db db:generate
 RUN --mount=type=cache,target=/app/.turbo,sharing=locked \
@@ -149,7 +152,7 @@ RUN --mount=type=cache,target=/app/.turbo,sharing=locked \
     NEXT_PUBLIC_DASHBOARD_URI=${DASHBOARD_URI} \
     NEXT_PUBLIC_LANDING_URI=${LANDING_URI} \
     NEXT_PUBLIC_WIKI_URI=${WIKI_URI} \
-    yarn turbo build --filter="@plunk/*" --filter="!@plunk/mcp"
+    yarn turbo build --filter="@plunk/*"
 
 # Step 2: Copy and build API (backend services)
 COPY apps/api ./apps/api
