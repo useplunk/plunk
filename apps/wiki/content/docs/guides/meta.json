@@ -5,6 +5,7 @@
     "receiving-emails",
     "tracking",
     "api-keys",
+    "mcp-server",
     "idempotency",
     "localization",
     "webhooks",

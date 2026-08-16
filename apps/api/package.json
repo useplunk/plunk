@@ -41,7 +41,8 @@
     "multer": "^2.2.0",
     "sanitize-html": "^2.17.5",
     "signale": "^1.4.0",
-    "stripe": "^20.0.0"
+    "stripe": "^20.0.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

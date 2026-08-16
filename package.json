@@ -20,6 +20,7 @@
   "resolutions": {
     "fumadocs-core": "16.0.8"
   },
+  "//zod": "apps/mcp needs zod 4 (the MCP SDK requires it) while the rest of the monorepo is on zod 3. Declaring zod 3 here keeps it as the hoisted root copy so packages that import zod without declaring it — @hookform/resolvers in web, and anything else that relies on hoisting — keep resolving 3. zod 4 nests under apps/mcp. Remove this only when the whole repo moves to zod 4.",
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@formatjs/cli": "^6.7.4",
@@ -39,7 +40,8 @@
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.48.0",
     "vitest": "^4.1.0",
-    "vitest-mock-extended": "^3.1.0"
+    "vitest-mock-extended": "^3.1.0",
+    "zod": "^3.23.8"
   },
   "engines": {
     "node": ">=20"

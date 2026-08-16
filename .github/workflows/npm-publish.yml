@@ -1,0 +1,161 @@
+name: NPM Publish
+
+# Publishes @plunk/mcp when release-please cuts a release.
+#
+# Authentication is npm trusted publishing (GitHub Actions OIDC) — there is no
+# NPM_TOKEN secret to store, rotate, or leak.
+#
+# OIDC cannot perform a package's FIRST publish: npm only lets you attach a
+# trusted publisher from an existing package's settings page. So @plunk/mcp has
+# to be created once by hand before this workflow can do anything. Until that
+# happens the publish step skips with instructions instead of failing the build.
+# See the bootstrap notes at the bottom of this file.
+#
+# The release detection mirrors docker-publish.yml so the npm package and the
+# Docker image are always cut from the same commit: on a release-please merge
+# the tag appears moments after the push, so we poll briefly rather than race it.
+
+on:
+  push:
+    branches:
+      - next
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Publish the current version even if this commit is not a release'
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for OIDC: lets the runner mint the token npm exchanges for
+      # short-lived publish credentials.
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if this commit is a release
+        id: check-release
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.force }}" == "true" ]]; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+            echo "Manual publish requested"
+            exit 0
+          fi
+
+          git fetch --tags
+
+          if git log -1 --pretty=%B | grep -q "release-please--branches--next"; then
+            echo "This is a release commit, waiting for tag..."
+            for i in {1..12}; do
+              sleep 5
+              git fetch --tags
+              TAG=$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || echo "")
+              if [[ -n "$TAG" ]]; then
+                echo "is_release=true" >> $GITHUB_OUTPUT
+                echo "Found release tag: $TAG"
+                exit 0
+              fi
+              echo "Waiting for tag... ($i/12)"
+            done
+            echo "ERROR: Release commit but no tag found after 60s"
+            exit 1
+          fi
+
+          TAG=$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || echo "")
+          if [[ -n "$TAG" ]]; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+            echo "This is a release: $TAG"
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+            echo "Regular commit, nothing to publish"
+          fi
+
+      - name: Setup Node
+        if: steps.check-release.outputs.is_release == 'true'
+        uses: actions/setup-node@v4
+        with:
+          # Trusted publishing needs Node >= 22.14.0. This applies only to the
+          # publish job; @plunk/mcp itself still supports Node >= 20.
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm for trusted publishing
+        if: steps.check-release.outputs.is_release == 'true'
+        # Node 22 ships npm 10.x; OIDC publishing needs >= 11.5.1.
+        run: npm install -g npm@latest
+
+      - name: Enable Corepack
+        if: steps.check-release.outputs.is_release == 'true'
+        run: corepack enable && corepack prepare yarn@4.9.1 --activate
+
+      - name: Install dependencies
+        if: steps.check-release.outputs.is_release == 'true'
+        run: yarn install --immutable
+
+      - name: Build
+        if: steps.check-release.outputs.is_release == 'true'
+        run: yarn build --filter=@plunk/mcp
+
+      - name: Test
+        if: steps.check-release.outputs.is_release == 'true'
+        run: yarn vitest run apps/mcp
+
+      - name: Publish to npm
+        if: steps.check-release.outputs.is_release == 'true'
+        working-directory: apps/mcp
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+
+          # The package must exist before a trusted publisher can be attached to
+          # it, so a brand-new package cannot be published from CI. Skip loudly
+          # rather than failing the release.
+          if ! npm view "@plunk/mcp" version >/dev/null 2>&1; then
+            echo "::warning::@plunk/mcp does not exist on npm yet."
+            echo "OIDC cannot perform a package's first publish. Bootstrap it once by hand:"
+            echo "    npm login"
+            echo "    yarn build --filter=@plunk/mcp"
+            echo "    cd apps/mcp && npm publish --access public"
+            echo "Then add this repo and workflow as a trusted publisher in the"
+            echo "@plunk/mcp package settings on npmjs.com. Subsequent releases publish here automatically."
+            exit 0
+          fi
+
+          # The version is pinned to the platform version, so a release that
+          # touched nothing under apps/mcp still lands here. Skipping is the
+          # correct outcome, not a failure.
+          if npm view "@plunk/mcp@$VERSION" version >/dev/null 2>&1; then
+            echo "@plunk/mcp@$VERSION is already on npm — nothing to do."
+            exit 0
+          fi
+
+          echo "Publishing @plunk/mcp@$VERSION"
+          npm publish --access public --provenance
+
+# ---------------------------------------------------------------------------
+# One-time bootstrap (no token required, nothing to rotate)
+#
+#   1. Merge this work and let release-please cut the release, so the version on
+#      npm matches what is on `next`. This workflow will skip with the warning
+#      above.
+#   2. Locally, on that release commit:
+#          npm login                       # interactive, uses your 2FA
+#          yarn build --filter=@plunk/mcp
+#          cd apps/mcp && npm publish --access public
+#   3. On npmjs.com open @plunk/mcp -> Settings -> Trusted Publisher, and add:
+#          Organization/user: useplunk
+#          Repository:        plunk        (the repo; `next` is the branch)
+#          Workflow filename: npm-publish.yml
+#          Environment name:  leave blank unless this job also declares
+#                             `environment:` — npm requires the two to match.
+#          Allowed actions:   tick "Allow npm publish" only.
+#   4. Nothing else. Every later release publishes from here over OIDC, with
+#      provenance attestation, and no stored credential.
+# ---------------------------------------------------------------------------

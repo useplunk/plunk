@@ -1,0 +1,57 @@
+{
+  "name": "@plunk/mcp",
+  "version": "0.13.0",
+  "description": "Official Model Context Protocol server for Plunk — send email, manage contacts, campaigns and segments from an AI agent",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "mcpName": "com.useplunk/plunk",
+  "bin": {
+    "plunk-mcp": "./dist/index.js"
+  },
+  "main": "./dist/server.js",
+  "exports": {
+    ".": "./dist/server.js",
+    "./stdio": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/useplunk/plunk.git",
+    "directory": "apps/mcp"
+  },
+  "homepage": "https://docs.useplunk.com",
+  "keywords": [
+    "plunk",
+    "mcp",
+    "modelcontextprotocol",
+    "email",
+    "transactional-email"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "lint": "eslint .",
+    "clean": "rimraf node_modules dist .turbo"
+  },
+  "//scripts": "No `dev` or `start` script on purpose: turbo runs those across every workspace, and an stdio MCP server is spawned by the MCP client rather than run as a long-lived dev service. Adding them would make `yarn dev` try to start this and fail without an API key. Use `yarn workspace @plunk/mcp inspect` to drive it locally.",
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "^2.0.0",
+    "@plunk/typescript-config": "*",
+    "@types/node": "^24.10.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

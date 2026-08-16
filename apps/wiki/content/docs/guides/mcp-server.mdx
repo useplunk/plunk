@@ -1,0 +1,131 @@
+---
+title: MCP Server
+description: Connect Plunk to Claude, Cursor, and other AI agents with the official Model Context Protocol server
+icon: Bot
+---
+
+The official Plunk [MCP](https://modelcontextprotocol.io) server lets an AI agent work in your Plunk
+project: sending transactional email, managing contacts and segments, and drafting and sending
+campaigns. It works with both the hosted product and self-hosted instances.
+
+The package is published as [`@plunk/mcp`](https://www.npmjs.com/package/@plunk/mcp).
+
+## Setup
+
+You need a **secret key** (`sk_…`) from **Settings → API Keys**. See [API Keys](/docs/guides/api-keys)
+for how the two key types differ.
+
+import {Tab, Tabs} from 'fumadocs-ui/components/tabs';
+
+<Tabs items={['Claude Code', 'Claude Desktop / Cursor', 'Self-hosted']}>
+
+<Tab value="Claude Code">
+
+```bash
+claude mcp add plunk --env PLUNK_API_KEY=sk_your_key -- npx -y @plunk/mcp
+```
+
+</Tab>
+
+<Tab value="Claude Desktop / Cursor">
+
+```json
+{
+  "mcpServers": {
+    "plunk": {
+      "command": "npx",
+      "args": ["-y", "@plunk/mcp"],
+      "env": {
+        "PLUNK_API_KEY": "sk_your_key"
+      }
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab value="Self-hosted">
+
+Point `PLUNK_API_URL` at your own API domain:
+
+```json
+{
+  "mcpServers": {
+    "plunk": {
+      "command": "npx",
+      "args": ["-y", "@plunk/mcp"],
+      "env": {
+        "PLUNK_API_KEY": "sk_your_key",
+        "PLUNK_API_URL": "https://api.your-domain.com"
+      }
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+## Configuration
+
+| Variable                        | Required | Description                                                                                          |
+| ------------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `PLUNK_API_KEY`                 | Yes      | Your project's secret key (`sk_…`).                                                                    |
+| `PLUNK_API_URL`                 | No       | API base URL. Defaults to the hosted API; set it when self-hosting.                                    |
+| `PLUNK_PUBLIC_KEY`              | No       | Public key (`pk_…`). Makes event tracking a single request instead of two.                             |
+| `PLUNK_READ_ONLY`               | No       | `true` registers only read-only tools.                                                                 |
+| `PLUNK_ALLOW_UNCONFIRMED_SENDS` | No       | `true` skips the confirmation prompt before sending. Headless automation only.                         |
+| `PLUNK_MCP_API_KEY`             | No       | Takes precedence over `PLUNK_API_KEY`, for environments where that name is already taken.               |
+| `PLUNK_MCP_API_URL`             | No       | Takes precedence over `PLUNK_API_URL`, for the same reason.                                             |
+
+<Callout type="warn">
+If you self-host, the Plunk API server itself uses a variable called `PLUNK_API_KEY` for its platform
+notification emails — and that key belongs to a different project. When both live in the same
+environment, set `PLUNK_MCP_API_KEY` so the agent works on the project you intend.
+</Callout>
+
+## Available tools
+
+**Read-only** — the only tools registered when `PLUNK_READ_ONLY=true`:
+
+`plunk_list_contacts`, `plunk_get_contact`, `plunk_verify_email`, `plunk_list_templates`,
+`plunk_list_campaigns`, `plunk_list_segments`
+
+**Writing:**
+
+`plunk_create_contact`, `plunk_update_contact`, `plunk_delete_contact`, `plunk_send_email`,
+`plunk_track_event`, `plunk_create_template`, `plunk_create_campaign`, `plunk_send_campaign`,
+`plunk_create_segment`
+
+## Safety
+
+A Plunk secret key grants full access to its project, so the server adds its own limits on top:
+
+- **Sends ask for confirmation.** Sending a campaign, or an email to more than one recipient, prompts
+  you first and tells you how many people will receive it. Confirmation is not something the model can
+  supply itself — it comes from you, through your MCP client. A client that cannot show a prompt
+  cannot send.
+- **Read-only mode is structural.** With `PLUNK_READ_ONLY=true` the mutating tools are never
+  registered, so they cannot be invoked even by name.
+- **Account-level actions are out of reach.** Billing, project deletion, and key rotation all require
+  a dashboard session rather than an API key, so no tool can reach them.
+
+Use a separate project for anything you would rather an agent could not change, and rotate the key
+(**Settings → API Keys**) if you stop trusting a machine that held it. Note that rotation replaces both
+keys at once.
+
+## Things to know
+
+**Transactional versus campaign.** `plunk_send_email` is for one-off messages to specific people.
+Reaching a whole list means creating a campaign and then sending it. The agent is instructed not to
+loop sends over an audience, which would hit the [rate limit](/docs/api-reference/overview) and skip
+unsubscribe handling.
+
+**Verified domains.** Sender addresses must be on a domain verified for the project, or the send is
+rejected. See [Verifying domains](/docs/guides/verifying-domains).
+
+**Event tracking.** `/v1/track` requires the public key. Without `PLUNK_PUBLIC_KEY` the server gets
+the same result using the secret key, creating or updating the contact first and then recording the
+event. Either way the contact is created if it does not exist.
