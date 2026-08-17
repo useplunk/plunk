@@ -817,6 +817,7 @@ export class CampaignService {
       content: {
         subject: `[TEST] ${campaign.subject}`,
         html: campaign.body,
+        text: EmailService.htmlToText(campaign.body),
       },
       reply: campaign.replyTo || undefined,
       headers: buildEmailHeaders({

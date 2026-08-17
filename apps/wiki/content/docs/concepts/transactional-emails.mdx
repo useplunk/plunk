@@ -11,6 +11,10 @@ Plunk supports sending attachments with transactional emails. By default, you ca
 
 The total message size cannot exceed 40 MB. Self-hosters can adjust the defaults — see [Environment variables](/self-hosting/environment-variables).
 
+## Plaintext and HTML in one email
+
+Every email Plunk sends is a multipart message containing both a plaintext and an HTML part. The plaintext version is generated automatically from the email's HTML at send time, so recipients whose clients prefer plaintext (or that can't render HTML) still get the full message — including the unsubscribe link on marketing emails. You don't need to provide a text version yourself.
+
 ## Sending from a template
 You can also send transactional emails using a [template](/concepts/templates) you have created in the dashboard. This allows you to reuse the same design and content for multiple emails, while still personalizing them with contact data.
 

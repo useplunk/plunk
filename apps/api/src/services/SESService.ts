@@ -32,6 +32,8 @@ interface SendRawEmailParams {
   content: {
     subject: string;
     html: string;
+    /** Plaintext alternative part. When omitted, the email is HTML-only. */
+    text?: string;
   };
   reply?: string;
   headers?: Record<string, string> | null;
@@ -156,14 +158,27 @@ Content-Type: ${rootContentType}${extraHeaders}
     rawMessage += `Content-Type: multipart/alternative; boundary="${altBoundary}"\n\n`;
   }
 
-  // The alternative part content (always contains HTML)
-  rawMessage += `--${altBoundary}
+  // The alternative part content. Per RFC 2046, the plaintext part must come
+  // first inside multipart/alternative so clients pick the last part they support
+  // (HTML when available, plaintext otherwise).
+  const altParts: string[] = [];
+
+  if (content.text !== undefined && content.text.trim() !== '') {
+    altParts.push(`--${altBoundary}
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+${breakLongLines(content.text, 500)}`);
+  }
+
+  altParts.push(`--${altBoundary}
 Content-Type: text/html; charset=utf-8
 Content-Transfer-Encoding: 7bit
 
 ${breakLongLines(content.html, 500)}
---${altBoundary}--
-`;
+--${altBoundary}--`);
+
+  rawMessage += altParts.join('\n') + '\n';
 
   // Add inline attachments to the related container
   if (relatedBoundary) {

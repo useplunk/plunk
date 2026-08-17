@@ -1100,6 +1100,75 @@ describe('SES MIME Boundary Structure', () => {
     expect(rawMessage).toContain(`--${relatedBoundary}--`);
     expect(rawMessage).toContain(`--${mixedBoundary}--`);
   });
+
+  it('should emit a plaintext part before the HTML part inside multipart/alternative', async () => {
+    const {sendRawEmail: realSendRawEmail, ses} = await vi.importActual<typeof import('../SESService')>('../SESService');
+
+    const params = {
+      from: {name: 'Sender', email: 'sender@example.com'},
+      to: ['recipient@example.com'],
+      content: {subject: 'Test Subject', html: '<p>Hello world</p>', text: 'Hello world'},
+    };
+
+    await realSendRawEmail(params);
+
+    const callArgs = (ses.sendRawEmail as Mock).mock.calls[0][0];
+    const rawMessage = new TextDecoder().decode(callArgs.RawMessage.Data);
+
+    // Plaintext part comes first, then the HTML part, both inside alternative.
+    const plainTextIndex = rawMessage.indexOf('Content-Type: text/plain; charset=utf-8');
+    const htmlIndex = rawMessage.indexOf('Content-Type: text/html; charset=utf-8');
+
+    expect(plainTextIndex).toBeGreaterThan(-1);
+    expect(htmlIndex).toBeGreaterThan(-1);
+    expect(plainTextIndex).toBeLessThan(htmlIndex);
+    expect(rawMessage).toContain('Hello world');
+
+    // The plaintext part is NOT emitted when no text is provided.
+    const {sendRawEmail: htmlOnlySendRawEmail} = await vi.importActual<typeof import('../SESService')>('../SESService');
+    await htmlOnlySendRawEmail({
+      from: {name: 'Sender', email: 'sender@example.com'},
+      to: ['recipient@example.com'],
+      content: {subject: 'Test Subject', html: '<p>Hello world</p>'},
+    });
+
+    const htmlOnlyCallArgs = (ses.sendRawEmail as Mock).mock.calls[1][0];
+    const htmlOnlyRawMessage = new TextDecoder().decode(htmlOnlyCallArgs.RawMessage.Data);
+
+    expect(htmlOnlyRawMessage).not.toContain('Content-Type: text/plain; charset=utf-8');
+    expect(htmlOnlyRawMessage).toContain('Content-Type: text/html; charset=utf-8');
+  });
+});
+
+describe('EmailService.htmlToText', () => {
+  it('should convert HTML to readable plaintext', () => {
+    const html = '<h1>Hello</h1><p>This is <strong>bold</strong> text with a <a href="https://example.com">link</a>.</p>';
+    const text = EmailService.htmlToText(html);
+
+    expect(text).toContain('Hello');
+    expect(text).toContain('This is bold text with a link (https://example.com).');
+  });
+
+  it('should drop style and script blocks', () => {
+    const html = '<style>.prose { color: red; }</style><p>Visible content</p><script>alert(1)</script>';
+    const text = EmailService.htmlToText(html);
+
+    expect(text).toContain('Visible content');
+    expect(text).not.toContain('color: red');
+    expect(text).not.toContain('alert(1)');
+  });
+
+  it('should preserve unsubscribe links', () => {
+    const html = '<p>Unsubscribe: <a href="https://app.useplunk.com/unsubscribe/123">here</a></p>';
+    const text = EmailService.htmlToText(html);
+
+    expect(text).toContain('here (https://app.useplunk.com/unsubscribe/123)');
+  });
+
+  it('should handle empty input', () => {
+    expect(EmailService.htmlToText('')).toBe('');
+    expect(EmailService.htmlToText('<p></p>')).toBe('');
+  });
 });
 
 describe('SES header serialization', () => {
