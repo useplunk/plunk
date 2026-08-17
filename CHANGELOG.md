@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.14.0](https://github.com/useplunk/plunk/compare/v0.13.0...v0.14.0) (2026-08-17)
+
+
+### Features
+
+* Add additional card verification in worker ([33cc815](https://github.com/useplunk/plunk/commit/33cc81547c2d2d936f2977680239429ef025c6eb))
+* Add additional tools to MCP for contacts and campaigns ([24b48cb](https://github.com/useplunk/plunk/commit/24b48cbfbde3cc15b784a3aca1701194305dd9f0))
+* Add event context to send email step ([4fa6379](https://github.com/useplunk/plunk/commit/4fa63795a07afea5740bccf7d55c2976d4e0e1b8))
+* Add foundations for Plunk MCP Server ([5828309](https://github.com/useplunk/plunk/commit/5828309ce41794bf39d35df49639c5cfe8e3b7fc))
+* Add foundations for Plunk MCP Server ([00b0a92](https://github.com/useplunk/plunk/commit/00b0a92bf9dd883f05bd5d44e5fde026e1a35ca2))
+* Add foundations for Plunk MCP Server ([7167a0a](https://github.com/useplunk/plunk/commit/7167a0a2bba5992f230292240ef9d582511ec775))
+* Add optional rate limiting for track, send and contact endpoints ([05080e7](https://github.com/useplunk/plunk/commit/05080e71714edaa5d13875e313504c748315d39f))
+* **web:** highlight Liquid logic tags in the visual editor ([556167d](https://github.com/useplunk/plunk/commit/556167da9085f053fc703abf42be626df0381042))
+* **web:** insert logic blocks across lines when starting a fresh line ([bfa3ee9](https://github.com/useplunk/plunk/commit/bfa3ee94c4783e8398e753d5ad3c2a834b46a932))
+* **web:** offer case, contains, for/else, comment and raw blocks ([54c8f30](https://github.com/useplunk/plunk/commit/54c8f302fe898a1176c937296d3eff586429aa09))
+* **web:** offer ready-made Liquid blocks, and rebuild both suggestion menus ([7c3b2ca](https://github.com/useplunk/plunk/commit/7c3b2ca8fa267261d1950fc18bf6af5edea225ef))
+* **web:** report template syntax errors while editing ([c48401b](https://github.com/useplunk/plunk/commit/c48401bd79ea3558f3772dbcd58fac27caf59b02))
+* **web:** warn about field references that will never resolve ([066470c](https://github.com/useplunk/plunk/commit/066470c77bcc1a1139d3e5a8ad764b682ad6ae16))
+
+
+### Bug Fixes
+
+* improve performance tests to work on CI and fix test config ([a3de94d](https://github.com/useplunk/plunk/commit/a3de94d78954129ced8b673fb327712caba318c2))
+* **smtp:** preserve Reply-To when relaying to /v1/send ([ce3bcf0](https://github.com/useplunk/plunk/commit/ce3bcf05afb97ab37be944b9b6037d5c60ef8d31))
+* **smtp:** preserve Reply-To when relaying to /v1/send ([73d0d5a](https://github.com/useplunk/plunk/commit/73d0d5a6726539e65edbcdb5d5956be6a850d839))
+* **templates:** stop rejecting inline bodies on /v1/send ([474034d](https://github.com/useplunk/plunk/commit/474034df9b521a600ca25147b616dcccbba48624))
+* **web:** don't warn about the workflow event payload ([1fac3a8](https://github.com/useplunk/plunk/commit/1fac3a883d9b7ec2ca3bc1c9021759333177f08a))
+
+
+### Performance Improvements
+
+* **templates:** stop re-rendering a template that blew a runtime limit ([e78abb7](https://github.com/useplunk/plunk/commit/e78abb70ce07a9807dc19a420b4fbf9980aed375))
+
+
+### Code Refactoring
+
+* Remove md documents ([df936f3](https://github.com/useplunk/plunk/commit/df936f342dce295e0ffd31bdc5e76f7740186527))
+* **web:** rewrite UX copy for clarity and consistency ([15ecf58](https://github.com/useplunk/plunk/commit/15ecf583c5fa747fbd2e13845f1caf588a879feb))
+* **web:** rewrite UX copy for clarity and consistency ([a62001e](https://github.com/useplunk/plunk/commit/a62001e23c78bf512526d35b495e71f51686ffd7))
+
 ## [0.13.0](https://github.com/useplunk/plunk/compare/v0.12.0...v0.13.0) (2026-08-09)
 
 
