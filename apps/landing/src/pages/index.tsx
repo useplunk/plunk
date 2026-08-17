@@ -148,7 +148,7 @@ const capabilities: Capability[] = [
   },
   {
     name: 'MCP server',
-    description: 'Fifteen tools that let Claude, Cursor and other agents run your email.',
+    description: 'Twenty-three tools that let Claude, Cursor and other agents run your email.',
     href: '/features/mcp',
   },
   // Inbound email moved up to a row of its own. Campaigns and analytics came
@@ -684,7 +684,7 @@ export default function Index() {
 
                 <div className={'lg:col-span-5'}>
                   <p className={'text-lead text-neutral-600'}>
-                    Fifteen tools, the same ground the dashboard covers: contacts, segments, templates, campaigns and
+                    Twenty-three tools, the same ground the dashboard covers: contacts, segments, templates, campaigns and
                     sends.
                   </p>
                   {/* "Anything that reaches a real inbox stops and asks you

@@ -11,6 +11,7 @@ import {PlunkClient} from './client.js';
 import type {PlunkMcpConfig} from './config.js';
 import {registerCampaignTools} from './tools/campaigns.js';
 import {registerContactTools} from './tools/contacts.js';
+import {registerDomainTools} from './tools/domains.js';
 import {registerEmailTools} from './tools/email.js';
 import {registerEventTools} from './tools/events.js';
 import {registerSegmentTools} from './tools/segments.js';
@@ -18,7 +19,7 @@ import {registerTemplateTools} from './tools/templates.js';
 import type {ToolContext} from './tools/shared.js';
 
 export const SERVER_NAME = 'plunk';
-export const SERVER_VERSION = '0.13.0';
+export const SERVER_VERSION = '0.14.0';
 
 const INSTRUCTIONS = [
   'Plunk is an email platform: transactional email, contacts, segments, campaigns and automation.',
@@ -31,10 +32,15 @@ const INSTRUCTIONS = [
   '',
   '2. **Sends are irreversible.** Sending a campaign cannot be undone, so `plunk_send_campaign` will',
   '   ask the user to confirm and will show them the recipient count. Do not try to work around that',
-  '   prompt. Prefer showing the user a draft, or sending a single test with `plunk_send_email`,',
-  '   before any bulk send.',
+  '   prompt. Prefer `plunk_test_campaign` to send the user a single copy for review before any bulk',
+  '   send. If a send is already scheduled or in flight, `plunk_cancel_campaign` stops the remainder.',
   '',
-  'Sender addresses must be on a domain verified for the project, or the send is rejected.',
+  'Sender addresses must be on a domain verified for the project, or the send is rejected — check with',
+  '`plunk_list_domains` when you are choosing a `from` address or a send was refused.',
+  '',
+  'To act on a contact the user identified by email address, pass that address to the contact tools',
+  'directly. `plunk_get_contact`, `plunk_subscribe_contact` and `plunk_unsubscribe_contact` all accept',
+  '`email` as well as `id`, so there is no need to search for the ID first.',
 ].join('\n');
 
 export function buildServer(config: PlunkMcpConfig): McpServer {
@@ -54,6 +60,7 @@ export function buildServer(config: PlunkMcpConfig): McpServer {
   registerTemplateTools(ctx, client);
   registerCampaignTools(ctx, client);
   registerSegmentTools(ctx, client);
+  registerDomainTools(ctx, client);
 
   return server;
 }

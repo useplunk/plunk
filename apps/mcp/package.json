@@ -1,6 +1,6 @@
 {
   "name": "@plunk/mcp",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Official Model Context Protocol server for Plunk — send email, manage contacts, campaigns and segments from an AI agent",
   "license": "AGPL-3.0-only",
   "type": "module",

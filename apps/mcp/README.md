@@ -74,28 +74,49 @@ Flags `--read-only` and `--api-url=<url>` do the same as their environment varia
 
 Read-only tools (the only ones registered when `PLUNK_READ_ONLY=true`):
 
-| Tool                   | Description                                     |
-| ---------------------- | ----------------------------------------------- |
-| `plunk_list_contacts`  | Browse or search contacts, cursor-paginated     |
-| `plunk_get_contact`    | Fetch one contact by ID                         |
-| `plunk_verify_email`   | Check whether an address is deliverable         |
-| `plunk_list_templates` | List reusable email templates                   |
-| `plunk_list_campaigns` | List campaigns and their status                 |
-| `plunk_list_segments`  | List audience segments                          |
+| Tool                      | Description                                             |
+| ------------------------- | ------------------------------------------------------- |
+| `plunk_list_contacts`     | Browse or search contacts, cursor-paginated             |
+| `plunk_get_contact`       | Fetch one contact by ID **or email address**            |
+| `plunk_verify_email`      | Check whether an address is deliverable                 |
+| `plunk_list_templates`    | List reusable email templates                           |
+| `plunk_list_campaigns`    | List campaigns and their status                         |
+| `plunk_get_campaign`      | Fetch one campaign in full, including its audience size |
+| `plunk_get_campaign_stats`| Opens, clicks, bounces and rates for one campaign       |
+| `plunk_list_segments`     | List audience segments                                  |
+| `plunk_list_domains`      | List sender domains and whether each is verified        |
+| `plunk_check_domain`      | Re-check a domain's DNS verification status             |
 
 Writing tools:
 
-| Tool                    | Description                                              |
-| ----------------------- | -------------------------------------------------------- |
-| `plunk_create_contact`  | Create or update a contact (upsert)                      |
-| `plunk_update_contact`  | Change an existing contact                               |
-| `plunk_delete_contact`  | Permanently delete a contact *(destructive)*             |
-| `plunk_send_email`      | Send a transactional email to specific recipients        |
-| `plunk_track_event`     | Record an event, which can trigger automation workflows  |
-| `plunk_create_template` | Create a reusable template                               |
-| `plunk_create_campaign` | Create a campaign as a draft                             |
-| `plunk_send_campaign`   | Send or schedule a campaign *(destructive, irreversible)* |
-| `plunk_create_segment`  | Create an audience segment                               |
+| Tool                         | Description                                               |
+| ---------------------------- | --------------------------------------------------------- |
+| `plunk_create_contact`       | Create or update a contact (upsert)                       |
+| `plunk_update_contact`       | Change a contact's email or custom data                   |
+| `plunk_subscribe_contact`    | Re-subscribe an existing contact, by email or ID           |
+| `plunk_unsubscribe_contact`  | Opt a contact out of marketing email, by email or ID       |
+| `plunk_delete_contact`       | Permanently delete a contact *(destructive)*              |
+| `plunk_send_email`           | Send a transactional email to specific recipients         |
+| `plunk_track_event`          | Record an event, which can trigger automation workflows   |
+| `plunk_create_template`      | Create a reusable template                                |
+| `plunk_create_campaign`      | Create a campaign as a draft                              |
+| `plunk_test_campaign`        | Send one copy of a campaign to a project member           |
+| `plunk_send_campaign`        | Send or schedule a campaign *(destructive, irreversible)* |
+| `plunk_cancel_campaign`      | Stop a scheduled or in-flight campaign *(destructive)*    |
+| `plunk_create_segment`       | Create an audience segment                                |
+
+### Addressing contacts by email
+
+`plunk_get_contact`, `plunk_subscribe_contact` and `plunk_unsubscribe_contact` all take either `id` or
+`email`. Passing `email` resolves it to the contact for you, matching exactly and case-insensitively,
+so an agent handed "unsubscribe ada@example.com" does it in one call instead of searching first and
+guessing which row to patch.
+
+### Managing domains
+
+Adding and removing sender domains is deliberately **not** exposed. Those endpoints skip the
+admin-role check when called with an API key, so a tool would hand an agent authority that a non-admin
+member of the same project does not have. Use the Plunk dashboard for those; the tools here only read.
 
 ## Safety
 

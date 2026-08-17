@@ -35,14 +35,22 @@ const capabilities: Spec[] = [
     machine: 'plunk_send_email',
   },
   {
-    title: 'Manage contacts',
-    description: 'Create, look up, update, and delete contacts, including custom data and subscription status.',
-    machine: 'plunk_create_contact, plunk_get_contact, plunk_update_contact',
+    title: 'Manage contacts by email',
+    description:
+      'Create, look up, update and delete contacts. Subscribing and unsubscribing take an email address directly, so no ID lookup first.',
+    machine: 'plunk_get_contact, plunk_unsubscribe_contact, plunk_update_contact',
   },
   {
-    title: 'Draft and send campaigns',
-    description: 'Have your agent write a campaign, review it yourself, then send it to a list or segment.',
-    machine: 'plunk_create_campaign, plunk_send_campaign',
+    title: 'Draft, test and send campaigns',
+    description:
+      'Have your agent write a campaign, send yourself a test copy, then release it to a list or segment — and cancel it if you change your mind.',
+    machine: 'plunk_create_campaign, plunk_test_campaign, plunk_send_campaign',
+  },
+  {
+    title: 'Check before it sends',
+    description:
+      'Your agent can see which domains are verified and how a campaign performed, so it stops guessing at what will be accepted.',
+    machine: 'plunk_list_domains, plunk_get_campaign_stats',
   },
   {
     title: 'Track events',
@@ -85,7 +93,7 @@ const faqs: FAQ[] = [
   {
     question: 'How do I stop an agent writing to my project at all?',
     answer:
-      'Set PLUNK_READ_ONLY=true. The nine mutating tools are then never registered with the client, so they cannot be invoked even by name. The agent is left with six read tools.',
+      'Set PLUNK_READ_ONLY=true. The thirteen mutating tools are then never registered with the client, so they cannot be invoked even by name. The agent is left with ten read tools.',
   },
   {
     question: 'Does it work with a self-hosted Plunk instance?',
@@ -145,18 +153,26 @@ const readTools = [
   'plunk_verify_email',
   'plunk_list_templates',
   'plunk_list_campaigns',
+  'plunk_get_campaign',
+  'plunk_get_campaign_stats',
   'plunk_list_segments',
+  'plunk_list_domains',
+  'plunk_check_domain',
 ];
 
 const writeTools = [
   'plunk_create_contact',
   'plunk_update_contact',
+  'plunk_subscribe_contact',
+  'plunk_unsubscribe_contact',
   'plunk_delete_contact',
   'plunk_send_email',
   'plunk_track_event',
   'plunk_create_template',
   'plunk_create_campaign',
+  'plunk_test_campaign',
   'plunk_send_campaign',
+  'plunk_cancel_campaign',
   'plunk_create_segment',
 ];
 
@@ -171,7 +187,7 @@ const safety = [
     title: 'Read-only mode is structural',
     description:
       'Set PLUNK_READ_ONLY=true and the mutating tools are never registered with the client. They cannot be invoked, even by name. The agent simply has no way to write.',
-    benefit: 'Six read tools, nothing else',
+    benefit: 'Ten read tools, nothing else',
   },
   {
     title: 'Account actions stay out of reach',
@@ -193,7 +209,7 @@ export default function MCPFeature() {
         openGraph={{
           title: 'MCP Server - Plunk for AI Agents | Plunk',
           description:
-            'Connect Plunk to Claude, Cursor, and any MCP client. 15 tools for email, contacts, campaigns, and segments, with read-only mode and send confirmations built in.',
+            'Connect Plunk to Claude, Cursor, and any MCP client. 23 tools for email, contacts, campaigns, and segments, with read-only mode and send confirmations built in.',
           url: 'https://www.useplunk.com/features/mcp',
           images: [
             {
@@ -217,7 +233,7 @@ export default function MCPFeature() {
               an email platform.
             </>
           }
-          subtitle={'Fifteen tools for email, contacts, segments and campaigns. Sends still ask you first.'}
+          subtitle={'Twenty-three tools for email, contacts, segments and campaigns. Sends still ask you first.'}
           docsHref={`${WIKI_URI}/guides/mcp-server`}
           docsLabel={'MCP docs'}
           artifact={<AgentExchange exchange={exchange} />}
@@ -269,8 +285,8 @@ export default function MCPFeature() {
             groups and one of them can be switched off. */}
         <FeatureSection
           tone={'muted'}
-          title={'Fifteen tools, two halves'}
-          intro={'Read-only mode registers the first six and nothing else, so an agent can look without touching.'}
+          title={'Twenty-three tools, two halves'}
+          intro={'Read-only mode registers the first ten and nothing else, so an agent can look without touching.'}
         >
           <div className={'grid gap-5 lg:grid-cols-2'}>
             <Surface label={'read'} meta={<Chip>always on</Chip>} bodyClassName={'flex flex-wrap gap-2 p-5'}>

@@ -56,8 +56,14 @@ function mockApi() {
       return json({status: 'SENDING'});
     }
 
-    // `totalRecipients` is the field the API actually returns.
-    return json({id: 'camp-1', name: 'March newsletter', subject: 'Hello', totalRecipients: 43812});
+    // GET /campaigns/:id wraps its payload as `{success, data}` — unlike
+    // GET /campaigns, which returns the page bare. Mocking the bare shape here
+    // is what let the tool read `totalRecipients` off the envelope (always
+    // undefined) while this test still passed, so the mock mirrors the envelope.
+    return json({
+      success: true,
+      data: {id: 'camp-1', name: 'March newsletter', subject: 'Hello', totalRecipients: 43812},
+    });
   });
 
   return calls;

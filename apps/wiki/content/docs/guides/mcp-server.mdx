@@ -91,13 +91,15 @@ environment, set `PLUNK_MCP_API_KEY` so the agent works on the project you inten
 **Read-only** — the only tools registered when `PLUNK_READ_ONLY=true`:
 
 `plunk_list_contacts`, `plunk_get_contact`, `plunk_verify_email`, `plunk_list_templates`,
-`plunk_list_campaigns`, `plunk_list_segments`
+`plunk_list_campaigns`, `plunk_get_campaign`, `plunk_get_campaign_stats`, `plunk_list_segments`,
+`plunk_list_domains`, `plunk_check_domain`
 
 **Writing:**
 
-`plunk_create_contact`, `plunk_update_contact`, `plunk_delete_contact`, `plunk_send_email`,
-`plunk_track_event`, `plunk_create_template`, `plunk_create_campaign`, `plunk_send_campaign`,
-`plunk_create_segment`
+`plunk_create_contact`, `plunk_update_contact`, `plunk_subscribe_contact`,
+`plunk_unsubscribe_contact`, `plunk_delete_contact`, `plunk_send_email`, `plunk_track_event`,
+`plunk_create_template`, `plunk_create_campaign`, `plunk_test_campaign`, `plunk_send_campaign`,
+`plunk_cancel_campaign`, `plunk_create_segment`
 
 ## Safety
 
@@ -124,7 +126,19 @@ loop sends over an audience, which would hit the [rate limit](/docs/api-referenc
 unsubscribe handling.
 
 **Verified domains.** Sender addresses must be on a domain verified for the project, or the send is
-rejected. See [Verifying domains](/docs/guides/verifying-domains).
+rejected. `plunk_list_domains` lets the agent check before it sends, and `plunk_check_domain` re-runs
+the DNS check after you add records. Adding and removing domains stays in the dashboard — those
+endpoints skip the admin-role check for API keys, so exposing them would give an agent authority a
+non-admin member does not have. See [Verifying domains](/docs/guides/verifying-domains).
+
+**Unsubscribing someone.** `plunk_unsubscribe_contact` takes an email address directly, so "unsubscribe
+ada@example.com" is a single call. It matches exactly and case-insensitively rather than patching the
+first result of a substring search. `plunk_subscribe_contact` reverses it, but only for a contact that
+already exists — opting someone in never creates a new record.
+
+**Testing before a campaign goes out.** `plunk_test_campaign` sends one copy for review. The recipient
+must be a member of the Plunk project; any other address is rejected. If a send is already scheduled or
+in flight, `plunk_cancel_campaign` stops whatever has not gone out yet — it cannot recall what has.
 
 **Event tracking.** `/v1/track` requires the public key. Without `PLUNK_PUBLIC_KEY` the server gets
 the same result using the secret key, creating or updating the contact first and then recording the

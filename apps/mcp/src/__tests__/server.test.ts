@@ -74,7 +74,7 @@ describe('tool registration', () => {
     expect(names).toContain('plunk_send_email');
     expect(names).toContain('plunk_send_campaign');
     expect(names).toContain('plunk_delete_contact');
-    expect(tools).toHaveLength(15);
+    expect(tools).toHaveLength(23);
 
     await close();
   });
@@ -99,7 +99,7 @@ describe('tool registration', () => {
     const {tools} = await client.listTools();
     const destructive = tools.filter((t) => t.annotations?.destructiveHint).map((t) => t.name);
 
-    expect(destructive.sort()).toEqual(['plunk_delete_contact', 'plunk_send_campaign']);
+    expect(destructive.sort()).toEqual(['plunk_cancel_campaign', 'plunk_delete_contact', 'plunk_send_campaign']);
 
     await close();
   });
@@ -255,6 +255,100 @@ describe('tool behaviour', () => {
     });
 
     expect(calls).toEqual(['https://api.example.com/v1/track']);
+
+    await close();
+  });
+});
+
+describe('addressing contacts by email', () => {
+  it('resolves an email to the exact contact before patching it', async () => {
+    const calls: {url: string; method?: string; body?: string}[] = [];
+
+    mockApi((url, init) => {
+      calls.push({url, method: init?.method, body: init?.body as string | undefined});
+
+      if (url.includes('/contacts?')) {
+        // A substring search legitimately returns near-misses; the tool must not
+        // patch whichever one came back first.
+        return json({
+          data: [
+            {id: 'wrong', email: 'ada@example.com.au', subscribed: true},
+            {id: 'right', email: 'ada@example.com', subscribed: true},
+          ],
+          cursor: null,
+          hasMore: false,
+          total: 2,
+        });
+      }
+
+      return json({id: 'right', email: 'ada@example.com', subscribed: false});
+    });
+
+    const {client, close} = await connect(baseConfig);
+
+    const result = await client.callTool({
+      name: 'plunk_unsubscribe_contact',
+      arguments: {email: 'Ada@Example.com'},
+    });
+
+    expect(result.isError).toBeFalsy();
+
+    const patch = calls.find((call) => call.method === 'PATCH');
+    expect(patch?.url).toBe('https://api.example.com/contacts/right');
+    expect(JSON.parse(patch?.body ?? '{}')).toEqual({subscribed: false});
+
+    await close();
+  });
+
+  it('reports a missing email without patching anything', async () => {
+    mockApi((url) => {
+      if (url.includes('/contacts?')) {
+        return json({data: [], cursor: null, hasMore: false, total: 0});
+      }
+
+      throw new Error('must not write when the contact does not exist');
+    });
+
+    const {client, close} = await connect(baseConfig);
+
+    const result = await client.callTool({
+      name: 'plunk_unsubscribe_contact',
+      arguments: {email: 'nobody@example.com'},
+    });
+
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain('No contact found');
+
+    await close();
+  });
+
+  it('rejects being given both an id and an email', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch');
+
+    const {client, close} = await connect(baseConfig);
+
+    const result = await client.callTool({
+      name: 'plunk_subscribe_contact',
+      arguments: {id: 'abc', email: 'ada@example.com'},
+    });
+
+    expect(result.isError).toBe(true);
+    expect(spy.mock.calls.filter(([u]) => String(u).includes('api.example.com'))).toHaveLength(0);
+
+    await close();
+  });
+});
+
+describe('single-campaign envelope', () => {
+  it('unwraps {success, data} so campaign fields are readable', async () => {
+    mockApi(() => json({success: true, data: {id: 'camp-1', name: 'Win-back', status: 'DRAFT'}}));
+
+    const {client, close} = await connect(baseConfig);
+
+    const result = await client.callTool({name: 'plunk_get_campaign', arguments: {id: 'camp-1'}});
+
+    // The model must see the campaign, not a {success, data} wrapper around it.
+    expect(result.structuredContent).toMatchObject({id: 'camp-1', name: 'Win-back', status: 'DRAFT'});
 
     await close();
   });
