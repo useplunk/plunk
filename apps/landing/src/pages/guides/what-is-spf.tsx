@@ -130,38 +130,38 @@ export default function WhatIsSPF() {
               <table className="w-full">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-900">Mechanism</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-900">Description</th>
+                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Mechanism</th>
+                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Description</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">ip4:192.0.2.1</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Authorize specific IPv4 address</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">ip4:192.0.2.1</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Authorize specific IPv4 address</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">ip6:2001:db8::1</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Authorize specific IPv6 address</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">ip6:2001:db8::1</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Authorize specific IPv6 address</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">include:domain.com</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Include another domain's SPF record</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">include:domain.com</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Include another domain's SPF record</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">a</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Authorize domain's A record IP</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">a</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Authorize domain's A record IP</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">mx</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Authorize domain's MX record IPs</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">mx</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Authorize domain's MX record IPs</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">~all</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Soft fail (treat others as suspicious)</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">~all</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Soft fail (treat others as suspicious)</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">-all</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Hard fail (reject all others)</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">-all</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Hard fail (reject all others)</td>
                   </tr>
                 </tbody>
               </table>
@@ -221,7 +221,7 @@ export default function WhatIsSPF() {
 
         <div className="space-y-4 mb-8">
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div>
@@ -234,7 +234,7 @@ export default function WhatIsSPF() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div className="w-full max-w-full wrap-break-word">
@@ -249,7 +249,7 @@ export default function WhatIsSPF() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div>
@@ -260,7 +260,7 @@ export default function WhatIsSPF() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div>
@@ -273,7 +273,7 @@ export default function WhatIsSPF() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               5
             </div>
             <div>
@@ -341,21 +341,21 @@ export default function WhatIsSPF() {
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is DKIM?</h3>
-            <p className="text-sm text-neutral-600">Learn how DKIM complements SPF for email authentication.</p>
+            <p className="text-ui text-neutral-600">Learn how DKIM complements SPF for email authentication.</p>
           </Link>
           <Link
             href="/guides/what-is-dmarc"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is DMARC?</h3>
-            <p className="text-sm text-neutral-600">Implement DMARC using SPF and DKIM together.</p>
+            <p className="text-ui text-neutral-600">Implement DMARC using SPF and DKIM together.</p>
           </Link>
           <Link
             href="/guides/email-deliverability"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability Guide</h3>
-            <p className="text-sm text-neutral-600">Complete guide to improving email deliverability.</p>
+            <p className="text-ui text-neutral-600">Complete guide to improving email deliverability.</p>
           </Link>
         </div>
       </section>

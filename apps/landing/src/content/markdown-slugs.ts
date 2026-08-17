@@ -6,6 +6,7 @@ export const MARKDOWN_SLUGS: ReadonlySet<string> = new Set([
   'features/inbound-email',
   'features/email-editor',
   'features/smtp',
+  'features/mcp',
 ]);
 
 export function hasMarkdownVariant(pathname: string): boolean {

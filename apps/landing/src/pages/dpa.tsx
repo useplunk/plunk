@@ -29,14 +29,14 @@ export default function DataProcessingAgreement() {
             {/* Hero */}
             <div className="mb-12">
               <h1 className="text-4xl font-bold text-neutral-900">Data Processing Agreement</h1>
-              <p className="mt-2 text-sm text-neutral-600">Last Updated: February 18, 2026</p>
+              <p className="mt-2 text-ui text-neutral-600">Last Updated: February 18, 2026</p>
               <p className="mt-4 text-base leading-relaxed text-neutral-700">
                 This Data Processing Agreement ("DPA") forms part of the Terms of Service between you ("Customer", "Data
                 Controller") and Plunk ("Processor", "we", "us") and governs the processing of Personal Data in
                 accordance with GDPR requirements.
               </p>
-              <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm leading-relaxed text-blue-900">
+              <div className="mt-6 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                <p className="text-ui leading-relaxed text-blue-900">
                   <strong className="font-semibold">GDPR Requirement:</strong> This DPA is required under Article 28 of
                   the GDPR. By using Plunk's hosted service, you accept and agree to the terms of this DPA.
                 </p>
@@ -46,69 +46,69 @@ export default function DataProcessingAgreement() {
             {/* Table of Contents */}
             <nav className="mb-12 rounded-lg border border-neutral-200 bg-neutral-50 p-6">
               <h2 className="mb-4 text-lg font-semibold text-neutral-900">Contents</h2>
-              <ol className="space-y-2 text-sm text-neutral-700">
+              <ol className="space-y-2 text-ui text-neutral-700">
                 <li>
-                  <a href="#definitions" className="text-blue-600 hover:underline">
+                  <a href="#definitions" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     1. Definitions
                   </a>
                 </li>
                 <li>
-                  <a href="#scope" className="text-blue-600 hover:underline">
+                  <a href="#scope" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     2. Scope & Applicability
                   </a>
                 </li>
                 <li>
-                  <a href="#processing-details" className="text-blue-600 hover:underline">
+                  <a href="#processing-details" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     3. Processing Details
                   </a>
                 </li>
                 <li>
-                  <a href="#obligations" className="text-blue-600 hover:underline">
+                  <a href="#obligations" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     4. Data Processor Obligations
                   </a>
                 </li>
                 <li>
-                  <a href="#security" className="text-blue-600 hover:underline">
+                  <a href="#security" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     5. Security Measures
                   </a>
                 </li>
                 <li>
-                  <a href="#sub-processors" className="text-blue-600 hover:underline">
+                  <a href="#sub-processors" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     6. Sub-Processors
                   </a>
                 </li>
                 <li>
-                  <a href="#data-subject-rights" className="text-blue-600 hover:underline">
+                  <a href="#data-subject-rights" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     7. Data Subject Rights
                   </a>
                 </li>
                 <li>
-                  <a href="#data-breach" className="text-blue-600 hover:underline">
+                  <a href="#data-breach" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     8. Data Breach Notification
                   </a>
                 </li>
                 <li>
-                  <a href="#international-transfers" className="text-blue-600 hover:underline">
+                  <a href="#international-transfers" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     9. International Data Transfers
                   </a>
                 </li>
                 <li>
-                  <a href="#audits" className="text-blue-600 hover:underline">
+                  <a href="#audits" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     10. Audits & Compliance
                   </a>
                 </li>
                 <li>
-                  <a href="#deletion" className="text-blue-600 hover:underline">
+                  <a href="#deletion" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     11. Data Deletion & Return
                   </a>
                 </li>
                 <li>
-                  <a href="#liability" className="text-blue-600 hover:underline">
+                  <a href="#liability" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     12. Liability & Indemnification
                   </a>
                 </li>
                 <li>
-                  <a href="#term" className="text-blue-600 hover:underline">
+                  <a href="#term" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     13. Term & Termination
                   </a>
                 </li>
@@ -309,56 +309,56 @@ export default function DataProcessingAgreement() {
                   <table className="min-w-full border border-neutral-300">
                     <thead className="bg-neutral-50">
                       <tr>
-                        <th className="border border-neutral-300 px-4 py-2 text-left text-sm font-semibold text-neutral-900">
+                        <th className="border border-neutral-300 px-4 py-2 text-left text-ui font-semibold text-neutral-900">
                           Sub-Processor
                         </th>
-                        <th className="border border-neutral-300 px-4 py-2 text-left text-sm font-semibold text-neutral-900">
+                        <th className="border border-neutral-300 px-4 py-2 text-left text-ui font-semibold text-neutral-900">
                           Service
                         </th>
-                        <th className="border border-neutral-300 px-4 py-2 text-left text-sm font-semibold text-neutral-900">
+                        <th className="border border-neutral-300 px-4 py-2 text-left text-ui font-semibold text-neutral-900">
                           Location
                         </th>
-                        <th className="border border-neutral-300 px-4 py-2 text-left text-sm font-semibold text-neutral-900">
+                        <th className="border border-neutral-300 px-4 py-2 text-left text-ui font-semibold text-neutral-900">
                           Purpose
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white">
                       <tr>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           Amazon Web Services (AWS SES)
                         </td>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">Email Delivery</td>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">Email Delivery</td>
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           Global (data in transit only)
                         </td>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           Sending emails to recipients
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">Stripe, Inc.</td>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">Stripe, Inc.</td>
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           Payment Processing
                         </td>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           USA (PCI-DSS compliant)
                         </td>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           Billing for paid accounts
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           Hetzner Online GmbH
                         </td>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           Infrastructure Hosting
                         </td>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           EU/EEA (Germany)
                         </td>
-                        <td className="border border-neutral-300 px-4 py-2 text-sm text-neutral-700">
+                        <td className="border border-neutral-300 px-4 py-2 text-ui text-neutral-700">
                           Database and application hosting
                         </td>
                       </tr>
@@ -681,7 +681,7 @@ export default function DataProcessingAgreement() {
                 <p className="mb-4 leading-relaxed text-neutral-700">
                   <strong className="font-semibold text-neutral-900">Response Time:</strong> Within 10 business days
                 </p>
-                <p className="text-sm text-neutral-600">
+                <p className="text-ui text-neutral-600">
                   For Data Subject rights requests, Customers should use the API (see Section 7) or contact
                   legal@useplunk.com with Data Subject's email address and nature of request.
                 </p>

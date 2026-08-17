@@ -9,16 +9,17 @@ import {network} from '../lib/network';
 import {hasMarkdownVariant} from '../content/markdown-slugs';
 import {DefaultSeo} from 'next-seo';
 import Script from 'next/script';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
+import {MotionConfig} from 'framer-motion';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -53,16 +54,18 @@ function App({Component, pageProps}: AppProps) {
   }, []);
 
   return (
-    <div className={`${display.variable} ${body.variable} ${mono.variable}`}>
-      <Head>
-        <title>Plunk | The Open-Source Email Platform</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" key={'viewport'} />
-        {markdownHref && <link rel="alternate" type="text/markdown" href={markdownHref} />}
-      </Head>
-      <Toaster position={'top-right'} />
+    <MotionConfig reducedMotion="user">
+      <div className={`${display.variable} ${body.variable} ${mono.variable}`}>
+        <Head>
+          <title>Plunk | The Open-Source Email Platform</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" key={'viewport'} />
+          {markdownHref && <link rel="alternate" type="text/markdown" href={markdownHref} />}
+        </Head>
+        <Toaster position={'top-right'} />
 
-      <Component {...pageProps} />
-    </div>
+        <Component {...pageProps} />
+      </div>
+    </MotionConfig>
   );
 }
 

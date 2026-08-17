@@ -1,4 +1,5 @@
-import {Footer, Navbar} from '../../components';
+import {Footer, Navbar, StepSequence} from '../../components';
+import type {Step} from '../../components';
 import {motion} from 'framer-motion';
 import {DASHBOARD_URI, WIKI_URI} from '../../lib/constants';
 import React from 'react';
@@ -26,7 +27,7 @@ const features = [
   },
   {
     icon: <Sparkles className="h-6 w-6" strokeWidth={1.5} />,
-    title: 'Powerful Variables',
+    title: 'Variables with autocomplete',
     description: 'Autocomplete with {{variable}} syntax. Supports fallbacks, nested properties, and custom contact fields.',
   },
   {
@@ -37,7 +38,7 @@ const features = [
   {
     icon: <Palette className="h-6 w-6" strokeWidth={1.5} />,
     title: 'Email-Safe HTML',
-    description: 'Automatic CSS inlining and email-client-friendly code generation. Yes, even in Outlook.',
+    description: 'Automatic CSS inlining and email-client-friendly output, including for Outlook.',
   },
 ];
 
@@ -46,7 +47,7 @@ const useCases = [
     icon: <Code2 className="h-6 w-6" strokeWidth={1.5} />,
     title: 'For Developers',
     description:
-      'Full HTML control when you need it. Powerful variable system with autocomplete and fallbacks. Use templates in API calls, workflows, and campaigns.',
+      'Full HTML control when you need it, and a variable system with autocomplete and fallbacks. Use templates in API calls, workflows, and campaigns.',
     example: 'Password resets → API-triggered alerts → Webhook notifications',
   },
   {
@@ -65,6 +66,21 @@ const useCases = [
   },
 ];
 
+const steps: Step[] = [
+  {
+    title: 'Create your template',
+    body: 'Use the visual editor for quick formatting or write custom HTML. Add variables with autocomplete.',
+  },
+  {
+    title: 'Preview with real data',
+    body: 'Select any contact and see exactly what they\'ll receive. Test on desktop, tablet, and mobile.',
+  },
+  {
+    title: 'Use everywhere',
+    body: 'Use your template in campaigns, workflows, and API calls. One template, unlimited uses.',
+  },
+];
+
 export default function EmailEditorFeature() {
   return (
     <>
@@ -72,12 +88,12 @@ export default function EmailEditorFeature() {
         <title>Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk</title>
         <meta
           name="description"
-          content="The email editor that speaks both languages. Switch seamlessly between visual and code editing, preview with real data, and create templates that work everywhere."
+          content="The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere."
         />
         <meta property="og:title" content="Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk" />
         <meta
           property="og:description"
-          content="The email editor that speaks both languages. Switch seamlessly between visual and code editing, preview with real data, and create templates that work everywhere."
+          content="The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere."
         />
         <meta property="og:image" content="https://www.useplunk.com/api/og?title=Email+Editor&tag=Feature" />
         <meta property="twitter:card" content="summary_large_image" />
@@ -102,26 +118,18 @@ export default function EmailEditorFeature() {
               animate={{opacity: 1, y: 0}}
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
             >
-              <div
-                style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-10 border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700'}
-              >
-                <span className={'text-neutral-400'}>Features</span>
-                <span className={'mx-3 text-neutral-300'}>—</span>
-                <span className={'font-medium text-neutral-900'}>Email Editor & Templates</span>
-              </div>
               <h1
                 style={{fontFamily: 'var(--font-display)'}}
                 className={
-                  'text-[clamp(2.75rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
+                  'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
                 }
               >
                 The editor that
                 <br />
                 speaks both languages.
               </h1>
-              <p className={'mt-6 max-w-2xl text-xl text-neutral-600'}>
-                Switch seamlessly between visual and code editing. Preview with real customer data. Create templates that
+              <p className={'mt-6 max-w-2xl text-lead text-neutral-600'}>
+                Switch between visual and code editing. Preview with real customer data. Create templates that
                 work everywhere.
               </p>
 
@@ -138,7 +146,7 @@ export default function EmailEditorFeature() {
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </motion.a>
                 <Link
-                  href={WIKI_URI}
+                  href={`${WIKI_URI}/docs/guides/templates`}
                   target={'_blank'}
                   className={
                     'inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-8 py-4 text-base font-semibold text-neutral-900 transition hover:border-neutral-900'
@@ -163,11 +171,11 @@ export default function EmailEditorFeature() {
             >
               <h2
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
+                className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
               >
                 Two editors, one experience
               </h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>Visual editing for speed, code editing for control</p>
+              <p className={'mt-4 text-lead text-neutral-600'}>Visual editing for speed, code editing for control</p>
             </motion.div>
 
             <div className={'grid gap-5 sm:grid-cols-2 lg:grid-cols-3'}>
@@ -182,27 +190,19 @@ export default function EmailEditorFeature() {
                     transition={{duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1]}}
                     className={
                       highlighted
-                        ? 'flex min-h-[16rem] flex-col justify-between rounded-[28px] border border-neutral-900 bg-neutral-900 p-8 text-white'
-                        : 'flex min-h-[16rem] flex-col justify-between rounded-[28px] border border-neutral-200 bg-white p-8 transition hover:border-neutral-900'
+                        ? 'flex min-h-[16rem] flex-col justify-between rounded-card border border-neutral-900 bg-neutral-900 p-8 text-white'
+                        : 'flex min-h-[16rem] flex-col justify-between rounded-card border border-neutral-200 bg-white p-8 transition hover:border-neutral-900'
                     }
                   >
-                    <div className={'flex items-start justify-between'}>
                       <div className={highlighted ? 'text-white' : 'text-neutral-900'}>{feature.icon}</div>
-                      <span
-                        style={{fontFamily: 'var(--font-mono)'}}
-                        className={`text-[11px] uppercase tracking-[0.18em] ${highlighted ? 'text-neutral-500' : 'text-neutral-400'}`}
-                      >
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
-                    </div>
                     <div>
                       <h3
                         style={{fontFamily: 'var(--font-display)'}}
-                        className={`mt-8 text-xl font-bold tracking-[-0.02em] ${highlighted ? 'text-white' : 'text-neutral-900'}`}
+                        className={`mt-8 text-h3 font-bold tracking-[-0.02em] ${highlighted ? 'text-white' : 'text-neutral-900'}`}
                       >
                         {feature.title}
                       </h3>
-                      <p className={`mt-2 text-sm leading-relaxed ${highlighted ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                      <p className={`mt-2 leading-relaxed ${highlighted ? 'text-neutral-300' : 'text-neutral-600'}`}>
                         {feature.description}
                       </p>
                     </div>
@@ -225,51 +225,15 @@ export default function EmailEditorFeature() {
             >
               <h2
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
+                className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
               >
                 From first draft to send
               </h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>Create, preview, and deploy templates in minutes</p>
+              <p className={'mt-4 text-lead text-neutral-600'}>Create, preview, and deploy templates in minutes</p>
             </motion.div>
 
             <div className={'mx-auto max-w-4xl'}>
-              <div className={'grid gap-px bg-neutral-200 sm:grid-cols-3'}>
-                {[
-                  {
-                    step: '01',
-                    title: 'Create your template',
-                    body: 'Use the visual editor for quick formatting or write custom HTML. Add variables with autocomplete.',
-                  },
-                  {
-                    step: '02',
-                    title: 'Preview with real data',
-                    body: 'Select any contact and see exactly what they\'ll receive. Test on desktop, tablet, and mobile.',
-                  },
-                  {
-                    step: '03',
-                    title: 'Use everywhere',
-                    body: 'Use your template in campaigns, workflows, and API calls. One template, unlimited uses.',
-                  },
-                ].map((item, i) => (
-                  <motion.div
-                    key={item.step}
-                    initial={{opacity: 0, y: 20}}
-                    whileInView={{opacity: 1, y: 0}}
-                    viewport={{once: true}}
-                    transition={{duration: 0.5, delay: i * 0.1, ease: [0.22, 1, 0.36, 1]}}
-                    className={'bg-white p-10'}
-                  >
-                    <div
-                      style={{fontFamily: 'var(--font-mono)'}}
-                      className={'mb-6 text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
-                    >
-                      Step {item.step}
-                    </div>
-                    <h3 className={'text-lg font-semibold text-neutral-900'}>{item.title}</h3>
-                    <p className={'mt-2 text-sm leading-relaxed text-neutral-600'}>{item.body}</p>
-                  </motion.div>
-                ))}
-              </div>
+              <StepSequence steps={steps} />
             </div>
           </div>
         </section>
@@ -286,11 +250,11 @@ export default function EmailEditorFeature() {
             >
               <h2
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
+                className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
               >
                 Built for every team
               </h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>Whether you&apos;re a developer, marketer, or founder</p>
+              <p className={'mt-4 text-lead text-neutral-600'}>Whether you&apos;re a developer, marketer, or founder</p>
             </motion.div>
 
             <ul className={'divide-y divide-neutral-200 border-y border-neutral-200'}>
@@ -303,15 +267,9 @@ export default function EmailEditorFeature() {
                   transition={{duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1]}}
                   className={'grid grid-cols-12 gap-6 py-10 sm:py-12'}
                 >
-                  <span
-                    style={{fontFamily: 'var(--font-mono)'}}
-                    className={'col-span-12 text-[11px] uppercase tracking-[0.18em] text-neutral-400 sm:col-span-1 sm:pt-1.5'}
-                  >
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
                   <h3
                     style={{fontFamily: 'var(--font-display)'}}
-                    className={'col-span-12 text-xl font-bold tracking-[-0.02em] text-neutral-900 sm:col-span-3'}
+                    className={'col-span-12 text-h3 font-bold tracking-[-0.02em] text-neutral-900 sm:col-span-4'}
                   >
                     {useCase.title}
                   </h3>
@@ -319,7 +277,7 @@ export default function EmailEditorFeature() {
                     <p className={'leading-relaxed text-neutral-600'}>{useCase.description}</p>
                     <p
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'mt-5 text-[11px] uppercase tracking-[0.16em] text-neutral-400'}
+                      className={'mt-5 text-label text-neutral-500'}
                     >
                       {useCase.example}
                     </p>
@@ -340,7 +298,7 @@ export default function EmailEditorFeature() {
                 viewport={{once: true}}
                 transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
               >
                 Build your first template today.
               </motion.h2>
@@ -351,7 +309,7 @@ export default function EmailEditorFeature() {
                 transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                 className={'flex max-w-md flex-col gap-6'}
               >
-                <p className={'text-base text-neutral-300 sm:text-lg'}>
+                <p className={'text-lead text-neutral-300'}>
                   Free plan available. $0.001 per email on paid. No credit card required.
                 </p>
                 <div className={'flex flex-wrap gap-3'}>
@@ -359,14 +317,14 @@ export default function EmailEditorFeature() {
                     whileHover={{scale: 1.015}}
                     whileTap={{scale: 0.985}}
                     href={`${DASHBOARD_URI}/auth/signup`}
-                    className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}
+                    className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
                   >
                     Get started for free
                     <ArrowRight className="h-4 w-4" />
                   </motion.a>
                   <Link
                     href={'/pricing'}
-                    className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}
+                    className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
                   >
                     View pricing
                   </Link>

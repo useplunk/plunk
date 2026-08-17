@@ -417,7 +417,7 @@ export function MarkdownEmailToolbar({editor}: ToolbarProps) {
                 value={linkUrl}
                 onChange={e => setLinkUrl(e.target.value)}
                 placeholder="https://example.com"
-                className="px-2 py-1 text-sm border border-neutral-200 rounded w-64"
+                className="px-2 py-1 text-ui border border-neutral-200 rounded w-64"
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     addLink();
@@ -469,7 +469,7 @@ export function MarkdownEmailToolbar({editor}: ToolbarProps) {
                 value={imageUrl}
                 onChange={e => setImageUrl(e.target.value)}
                 placeholder="https://example.com/image.jpg"
-                className="px-2 py-1 text-sm border border-neutral-200 rounded w-64"
+                className="px-2 py-1 text-ui border border-neutral-200 rounded w-64"
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     addImage();

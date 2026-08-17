@@ -5,18 +5,18 @@ import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
 import {AlertTriangle, ArrowRight, CheckCircle, ShieldAlert, XCircle} from 'lucide-react';
 import {Button, Input} from '@plunk/ui';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import Link from 'next/link';
 import type {FAQ} from '../../components/FAQSection';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -180,12 +180,12 @@ function analyzeSpam(subject: string, body: string): SpamResult {
 }
 
 function ScoreBadge({score}: {score: number}) {
-  const color = score >= 80 ? 'text-green-700 bg-green-50 border-green-200' : score >= 60 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-red-700 bg-red-50 border-red-200';
+  const color = score >= 80 ? 'text-ok bg-ok-surface border-ok/25' : score >= 60 ? 'text-warn bg-warn-surface border-warn/25' : 'text-err bg-err-surface border-err/25';
   const label = score >= 80 ? 'Likely Clean' : score >= 60 ? 'Risky' : 'High Spam Risk';
   return (
     <div className={`inline-flex flex-col items-center rounded-2xl border-2 px-8 py-6 ${color}`}>
       <span className={'text-5xl font-extrabold'}>{score}</span>
-      <span className={'mt-1 text-sm font-semibold uppercase tracking-widest'}>{label}</span>
+      <span className={'mt-1 text-ui font-semibold st'}>{label}</span>
     </div>
   );
 }
@@ -262,7 +262,7 @@ export default function SpamCheckerPage() {
                 transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-mono)'}}
                 className={
-                  'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700 sm:mb-24'
+                  'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'
                 }
               >
                 <span className={'font-medium text-neutral-900'}>§ T-03 &nbsp;— &nbsp;Tool</span>
@@ -280,7 +280,7 @@ export default function SpamCheckerPage() {
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
                   className={
-                    'text-[clamp(2.5rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
+                    'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
                   }
                 >
                   Email spam
@@ -304,13 +304,13 @@ export default function SpamCheckerPage() {
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
               className={'mx-auto max-w-2xl'}
             >
-              <div className={'overflow-hidden rounded-[20px] border border-neutral-200 bg-white'}>
+              <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
                 <div className={'border-b border-neutral-200 px-8 py-5'}>
                   <div className={'flex items-center gap-3'}>
                     <ShieldAlert className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       Analyze email content
                     </span>
@@ -319,8 +319,8 @@ export default function SpamCheckerPage() {
 
                 <form onSubmit={handleCheck} className={'space-y-4 p-8'}>
                   <div>
-                    <label htmlFor="subject" className={'mb-2 block text-sm font-medium text-neutral-900'}>
-                      Subject line <span className={'text-red-500'}>*</span>
+                    <label htmlFor="subject" className={'mb-2 block text-ui font-medium text-neutral-900'}>
+                      Subject line <span className={'text-err'}>*</span>
                     </label>
                     <Input
                       id="subject"
@@ -334,8 +334,8 @@ export default function SpamCheckerPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="body" className={'mb-2 block text-sm font-medium text-neutral-900'}>
-                      Email body text <span className={'text-neutral-400 text-xs font-normal'}>(optional)</span>
+                    <label htmlFor="body" className={'mb-2 block text-ui font-medium text-neutral-900'}>
+                      Email body text <span className={'text-neutral-500 text-xs font-normal'}>(optional)</span>
                     </label>
                     <textarea
                       id="body"
@@ -343,7 +343,7 @@ export default function SpamCheckerPage() {
                       onChange={e => setBodyText(e.target.value)}
                       placeholder="Paste your email body text here (plain text, no HTML needed)..."
                       rows={6}
-                      className={'w-full rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900 resize-none'}
+                      className={'w-full rounded-lg border border-neutral-200 bg-white px-4 py-3 text-ui text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900 resize-none'}
                     />
                   </div>
 
@@ -362,10 +362,10 @@ export default function SpamCheckerPage() {
                   className={'mt-6 space-y-4'}
                 >
                   {/* Score */}
-                  <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                  <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                     <div className={'flex flex-col items-center gap-4 text-center'}>
                       <ScoreBadge score={result.score} />
-                      <p className={'max-w-sm text-sm text-neutral-600'}>
+                      <p className={'max-w-sm text-ui text-neutral-600'}>
                         {result.score >= 80
                           ? 'Your email looks clean. No major spam signals detected.'
                           : result.score >= 60
@@ -376,7 +376,7 @@ export default function SpamCheckerPage() {
                   </div>
 
                   {/* Issues */}
-                  <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                  <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                     <h3
                       style={{fontFamily: 'var(--font-display)'}}
                       className={'mb-6 text-lg font-bold text-neutral-900'}
@@ -387,14 +387,14 @@ export default function SpamCheckerPage() {
                       {result.checks.map((check, i) => (
                         <li key={i} className={'flex items-start gap-3'}>
                           {check.type === 'pass' ? (
-                            <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-green-600'} />
+                            <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-ok'} />
                           ) : check.type === 'warning' ? (
-                            <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-amber-500'} />
+                            <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-warn'} />
                           ) : (
-                            <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                            <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                           )}
                           <div>
-                            <p className={'text-sm font-medium text-neutral-900'}>{check.label}</p>
+                            <p className={'text-ui font-medium text-neutral-900'}>{check.label}</p>
                             <p className={'mt-0.5 text-xs text-neutral-500'}>{check.detail}</p>
                           </div>
                         </li>
@@ -403,16 +403,16 @@ export default function SpamCheckerPage() {
                   </div>
 
                   {result.triggeredWords.length > 0 && (
-                    <div className={'rounded-[20px] border border-red-100 bg-red-50 p-6'}>
-                      <h3 className={'mb-3 text-sm font-semibold text-red-900'}>Flagged phrases</h3>
+                    <div className={'rounded-card border border-err/25 bg-err-surface p-6'}>
+                      <h3 className={'mb-3 text-ui font-semibold text-err'}>Flagged phrases</h3>
                       <div className={'flex flex-wrap gap-2'}>
                         {result.triggeredWords.map((word, i) => (
-                          <span key={i} className={'rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800'}>
+                          <span key={i} className={'rounded-full bg-err-surface px-3 py-1 text-xs font-medium text-err'}>
                             {word}
                           </span>
                         ))}
                       </div>
-                      <p className={'mt-3 text-xs text-red-700'}>
+                      <p className={'mt-3 text-xs text-err'}>
                         Replace these with natural, conversational language to improve deliverability.
                       </p>
                     </div>
@@ -426,8 +426,6 @@ export default function SpamCheckerPage() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'01'}
-                label={'Spam factors'}
                 title={'Why emails go to spam.'}
                 subtitle={'Spam filters look at dozens of signals. Content is just one part of the picture.'}
               />
@@ -466,16 +464,16 @@ export default function SpamCheckerPage() {
                     viewport={{once: true}}
                     transition={{duration: 0.5, delay: i * 0.05, ease: [0.22, 1, 0.36, 1]}}
                     className={
-                      'flex flex-col gap-4 rounded-[20px] border border-neutral-200 bg-white p-8'
+                      'flex flex-col gap-4 rounded-card border border-neutral-200 bg-white p-8'
                     }
                   >
                     <h3
                       style={{fontFamily: 'var(--font-display)'}}
-                      className={'text-xl font-bold tracking-[-0.02em] text-neutral-900'}
+                      className={'text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
                     >
                       {item.title}
                     </h3>
-                    <p className={'text-sm leading-relaxed text-neutral-600'}>{item.body}</p>
+                    <p className={'text-ui leading-relaxed text-neutral-600'}>{item.body}</p>
                   </motion.div>
                 ))}
               </div>
@@ -492,7 +490,7 @@ export default function SpamCheckerPage() {
                   viewport={{once: true}}
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
                 >
                   Send emails that reach the inbox.
                 </motion.h2>
@@ -504,7 +502,7 @@ export default function SpamCheckerPage() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Plunk automatically handles SPF, DKIM, and DMARC authentication — the most critical deliverability
                     factor. Start free, no credit card required.
                   </p>
@@ -514,7 +512,7 @@ export default function SpamCheckerPage() {
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
                       className={
-                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'
+                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'
                       }
                     >
                       Start with Plunk
@@ -523,7 +521,7 @@ export default function SpamCheckerPage() {
                     <Link
                       href="/guides/email-deliverability"
                       className={
-                        'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'
+                        'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'
                       }
                     >
                       Deliverability guide

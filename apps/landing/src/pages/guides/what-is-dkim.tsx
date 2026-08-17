@@ -221,7 +221,7 @@ export default function WhatIsDKIM() {
 
         <div className="space-y-4 mb-8">
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div>
@@ -233,7 +233,7 @@ export default function WhatIsDKIM() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div>
@@ -245,7 +245,7 @@ export default function WhatIsDKIM() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div>
@@ -257,7 +257,7 @@ export default function WhatIsDKIM() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div>
@@ -341,36 +341,36 @@ export default function WhatIsDKIM() {
           <table className="w-full">
             <thead className="bg-neutral-50">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-900">Feature</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-900">DKIM</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-900">SPF</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold text-neutral-900">Feature</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold text-neutral-900">DKIM</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold text-neutral-900">SPF</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 bg-white">
               <tr>
-                <td className="px-6 py-4 text-sm font-medium text-neutral-900">What it validates</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Email content integrity</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Sending server authorization</td>
+                <td className="px-6 py-4 text-ui font-medium text-neutral-900">What it validates</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Email content integrity</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Sending server authorization</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm font-medium text-neutral-900">How it works</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Cryptographic signature in headers</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">IP address check against DNS list</td>
+                <td className="px-6 py-4 text-ui font-medium text-neutral-900">How it works</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Cryptographic signature in headers</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">IP address check against DNS list</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm font-medium text-neutral-900">Survives forwarding</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Yes (if content unchanged)</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">No (forwarded IP changes)</td>
+                <td className="px-6 py-4 text-ui font-medium text-neutral-900">Survives forwarding</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Yes (if content unchanged)</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">No (forwarded IP changes)</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm font-medium text-neutral-900">DNS record type</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">TXT at selector._domainkey.*</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">TXT at root domain</td>
+                <td className="px-6 py-4 text-ui font-medium text-neutral-900">DNS record type</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">TXT at selector._domainkey.*</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">TXT at root domain</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm font-medium text-neutral-900">Required for DMARC</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Yes (one of SPF/DKIM required)</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Yes (one of SPF/DKIM required)</td>
+                <td className="px-6 py-4 text-ui font-medium text-neutral-900">Required for DMARC</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Yes (one of SPF/DKIM required)</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Yes (one of SPF/DKIM required)</td>
               </tr>
             </tbody>
           </table>
@@ -452,21 +452,21 @@ nslookup -type=TXT default._domainkey.yourdomain.com`}
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is SPF?</h3>
-            <p className="text-sm text-neutral-600">Learn about SPF records and how they complement DKIM.</p>
+            <p className="text-ui text-neutral-600">Learn about SPF records and how they complement DKIM.</p>
           </Link>
           <Link
             href="/guides/what-is-dmarc"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is DMARC?</h3>
-            <p className="text-sm text-neutral-600">Complete guide to DMARC policies and email security.</p>
+            <p className="text-ui text-neutral-600">Complete guide to DMARC policies and email security.</p>
           </Link>
           <Link
             href="/guides/email-deliverability"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability Guide</h3>
-            <p className="text-sm text-neutral-600">Improve your email deliverability with best practices.</p>
+            <p className="text-ui text-neutral-600">Improve your email deliverability with best practices.</p>
           </Link>
         </div>
       </section>

@@ -137,18 +137,15 @@ export default function CompetitorsIndex() {
               animate={{opacity: 1, y: 0}}
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
             >
-              <div style={{fontFamily: 'var(--font-mono)'}} className={'mb-6 text-[11px] uppercase tracking-[0.18em] text-neutral-500'}>
-                Comparisons
-              </div>
               <h1
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2.75rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
+                className={'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
               >
                 Plunk vs the
                 <br />
                 competition.
               </h1>
-              <p className={'mt-6 max-w-2xl text-xl text-neutral-600'}>
+              <p className={'mt-6 max-w-2xl text-lead text-neutral-600'}>
                 Most email platforms charge by the contact, lock you in, and split transactional from marketing. Plunk does all three in one open-source platform at $0.001 per email.
               </p>
               <div className={'mt-10 flex flex-wrap gap-3'}>
@@ -185,11 +182,11 @@ export default function CompetitorsIndex() {
             >
               <h2
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
+                className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
               >
                 All comparisons
               </h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>See how Plunk stacks up against popular email platforms</p>
+              <p className={'mt-4 text-lead text-neutral-600'}>See how Plunk stacks up against popular email platforms</p>
             </motion.div>
 
             <div className={'grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}>
@@ -204,26 +201,26 @@ export default function CompetitorsIndex() {
                 >
                   <Link
                     href={`/vs/${competitor.slug}`}
-                    className={'group flex h-full flex-col justify-between rounded-[28px] border border-neutral-200 bg-white p-6 sm:p-8 transition hover:border-neutral-900'}
+                    className={'group flex h-full flex-col justify-between rounded-card border border-neutral-200 bg-white p-6 sm:p-8 transition hover:border-neutral-900'}
                   >
                     <div className={'flex items-start justify-between'}>
                       <h3
                         style={{fontFamily: 'var(--font-display)'}}
-                        className={'text-xl font-bold tracking-[-0.02em] text-neutral-900'}
+                        className={'text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
                       >
                         {competitor.name}
                       </h3>
-                      <ArrowRight className="h-4 w-4 text-neutral-400 transition-transform group-hover:translate-x-0.5 group-hover:text-neutral-900" />
+                      <ArrowRight className="h-4 w-4 text-neutral-500 transition-transform group-hover:translate-x-0.5 group-hover:text-neutral-900" />
                     </div>
                     <div>
-                      <p className={'text-sm text-neutral-600'}>{competitor.description}</p>
+                      <p className={'text-ui text-neutral-600'}>{competitor.description}</p>
                       <div className={'mt-4 flex flex-wrap items-center gap-x-2 gap-y-1'}>
                         {competitor.features.map((feature, i) => (
                           <React.Fragment key={feature}>
                             {i > 0 && <span className={'text-neutral-300'} aria-hidden>·</span>}
                             <span
                               style={{fontFamily: 'var(--font-mono)'}}
-                              className={'text-[10px] uppercase tracking-[0.12em] text-neutral-400'}
+                              className={'text-label text-neutral-500'}
                             >
                               {feature}
                             </span>
@@ -250,11 +247,11 @@ export default function CompetitorsIndex() {
             >
               <h2
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
+                className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
               >
                 Why Plunk wins
               </h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>One platform for all your email needs</p>
+              <p className={'mt-4 text-lead text-neutral-600'}>One platform for all your email needs</p>
             </motion.div>
 
             <div className={'grid gap-px bg-neutral-200 sm:grid-cols-3'}>
@@ -288,7 +285,7 @@ export default function CompetitorsIndex() {
                   </div>
                   <h3
                     style={{fontFamily: 'var(--font-display)'}}
-                    className={'mt-6 text-xl font-bold tracking-[-0.02em] text-neutral-900'}
+                    className={'mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
                   >
                     {item.title}
                   </h3>
@@ -309,7 +306,7 @@ export default function CompetitorsIndex() {
                 viewport={{once: true}}
                 transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
               >
                 Ready to try Plunk?
               </motion.h2>
@@ -320,7 +317,7 @@ export default function CompetitorsIndex() {
                 transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                 className={'flex max-w-md flex-col gap-6'}
               >
-                <p className={'text-base text-neutral-300 sm:text-lg'}>
+                <p className={'text-lead text-neutral-300'}>
                   Start free. No credit card required.
                 </p>
                 <div className={'flex flex-wrap gap-3'}>
@@ -328,14 +325,14 @@ export default function CompetitorsIndex() {
                     whileHover={{scale: 1.015}}
                     whileTap={{scale: 0.985}}
                     href={`${DASHBOARD_URI}/auth/signup`}
-                    className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}
+                    className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
                   >
                     Get started free
                     <ArrowRight className="h-4 w-4" />
                   </motion.a>
                   <Link
                     href={'/pricing'}
-                    className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}
+                    className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
                   >
                     View pricing
                   </Link>

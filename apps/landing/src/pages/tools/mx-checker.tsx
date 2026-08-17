@@ -5,18 +5,18 @@ import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
 import {AlertTriangle, ArrowRight, CheckCircle, Mail, XCircle} from 'lucide-react';
 import {Button, Input} from '@plunk/ui';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import Link from 'next/link';
 import type {FAQ} from '../../components/FAQSection';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -194,7 +194,7 @@ export default function MxCheckerPage() {
                 animate={{opacity: 1, y: 0}}
                 transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700 sm:mb-24'}
+                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'}
               >
                 <span className={'font-medium text-neutral-900'}>§ T-08 &nbsp;— &nbsp;Tool</span>
                 <Link href="/tools" className={'text-neutral-500 transition hover:text-neutral-900'}>
@@ -210,7 +210,7 @@ export default function MxCheckerPage() {
               >
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
+                  className={'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
                 >
                   MX record
                   <br />
@@ -232,11 +232,11 @@ export default function MxCheckerPage() {
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
               className={'mx-auto max-w-2xl'}
             >
-              <div className={'overflow-hidden rounded-[20px] border border-neutral-200 bg-white'}>
+              <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
                 <div className={'border-b border-neutral-200 px-8 py-5'}>
                   <div className={'flex items-center gap-3'}>
                     <Mail className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
-                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}>
+                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>
                       MX record lookup
                     </span>
                   </div>
@@ -245,8 +245,8 @@ export default function MxCheckerPage() {
                 <form onSubmit={handleCheck} className={'p-8'}>
                   <div className={'space-y-4'}>
                     <div>
-                      <label htmlFor="mxDomain" className={'mb-2 block text-sm font-medium text-neutral-900'}>
-                        Domain name <span className={'text-red-500'}>*</span>
+                      <label htmlFor="mxDomain" className={'mb-2 block text-ui font-medium text-neutral-900'}>
+                        Domain name <span className={'text-err'}>*</span>
                       </label>
                       <Input
                         id="mxDomain"
@@ -257,7 +257,7 @@ export default function MxCheckerPage() {
                         required
                         className={'w-full'}
                       />
-                      <p className={'mt-1.5 text-xs text-neutral-400'}>Enter the domain without http:// or www.</p>
+                      <p className={'mt-1.5 text-xs text-neutral-500'}>Enter the domain without http:// or www.</p>
                     </div>
                     <Button type="submit" className={'w-full gap-2'} disabled={loading}>
                       <Mail className={'h-4 w-4'} />
@@ -275,31 +275,31 @@ export default function MxCheckerPage() {
                   className={'mt-6 space-y-4'}
                 >
                   {result.error ? (
-                    <div className={'rounded-[20px] border border-red-100 bg-red-50 p-8'}>
+                    <div className={'rounded-card border border-err/25 bg-err-surface p-8'}>
                       <div className={'flex items-start gap-3'}>
-                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                         <div>
-                          <p className={'font-semibold text-red-900'}>DNS lookup failed</p>
-                          <p className={'mt-1 text-sm text-red-700'}>Could not query MX records for {result.domain}. Check the domain name and try again.</p>
+                          <p className={'font-semibold text-err'}>DNS lookup failed</p>
+                          <p className={'mt-1 text-ui text-err'}>Could not query MX records for {result.domain}. Check the domain name and try again.</p>
                         </div>
                       </div>
                     </div>
                   ) : (
                     <>
                       {!result.found || result.records.length === 0 ? (
-                        <div className={'rounded-[20px] border border-red-100 bg-red-50 p-8'}>
+                        <div className={'rounded-card border border-err/25 bg-err-surface p-8'}>
                           <div className={'flex items-start gap-3'}>
-                            <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                            <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                             <div>
-                              <p className={'font-semibold text-red-900'}>No MX records found</p>
-                              <p className={'mt-1 text-sm text-red-700'}>
+                              <p className={'font-semibold text-err'}>No MX records found</p>
+                              <p className={'mt-1 text-ui text-err'}>
                                 {result.domain} has no MX records. Email cannot be delivered to this domain. Add at least one MX record in your DNS provider.
                               </p>
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                        <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                           <h3 style={{fontFamily: 'var(--font-display)'}} className={'mb-6 text-lg font-bold text-neutral-900'}>
                             MX records for {result.domain}
                           </h3>
@@ -312,7 +312,7 @@ export default function MxCheckerPage() {
                                   </span>
                                 </div>
                                 <div className={'min-w-0 flex-1'}>
-                                  <span style={{fontFamily: 'var(--font-mono)'}} className={'block truncate text-sm font-medium text-neutral-900'}>
+                                  <span style={{fontFamily: 'var(--font-mono)'}} className={'block truncate text-ui font-medium text-neutral-900'}>
                                     {rec.exchange || '(empty)'}
                                   </span>
                                   <span className={'text-xs text-neutral-500'}>Priority {rec.priority} · {priorityLabel(rec.priority)}</span>
@@ -324,7 +324,7 @@ export default function MxCheckerPage() {
                       )}
 
                       {result.issues.length > 0 && (
-                        <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                        <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                           <h3 style={{fontFamily: 'var(--font-display)'}} className={'mb-6 text-lg font-bold text-neutral-900'}>
                             Analysis
                           </h3>
@@ -332,14 +332,14 @@ export default function MxCheckerPage() {
                             {result.issues.map((issue, i) => (
                               <li key={i} className={'flex items-start gap-3'}>
                                 {issue.type === 'pass' ? (
-                                  <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-green-600'} />
+                                  <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-ok'} />
                                 ) : issue.type === 'warning' ? (
-                                  <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-amber-500'} />
+                                  <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-warn'} />
                                 ) : (
-                                  <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                                  <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                                 )}
                                 <div>
-                                  <p className={'text-sm font-medium text-neutral-900'}>{issue.label}</p>
+                                  <p className={'text-ui font-medium text-neutral-900'}>{issue.label}</p>
                                   <p className={'mt-0.5 text-xs text-neutral-500'}>{issue.detail}</p>
                                 </div>
                               </li>
@@ -358,8 +358,6 @@ export default function MxCheckerPage() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'01'}
-                label={'MX records explained'}
                 title={'How email finds its destination.'}
                 subtitle={'MX records are the address book of email routing — without them, no one can send you mail.'}
               />
@@ -391,15 +389,15 @@ export default function MxCheckerPage() {
                     whileInView={{opacity: 1, y: 0}}
                     viewport={{once: true}}
                     transition={{duration: 0.5, delay: i * 0.08, ease: [0.22, 1, 0.36, 1]}}
-                    className={`flex flex-col gap-5 rounded-[20px] border-2 bg-white p-8 ${item.cls}`}
+                    className={`flex flex-col gap-5 rounded-card border-2 bg-white p-8 ${item.cls}`}
                   >
-                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-[11px] uppercase tracking-[0.18em] text-neutral-400'}>
+                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>
                       Step {item.step}
                     </span>
                     <h3 style={{fontFamily: 'var(--font-display)'}} className={'text-2xl font-bold tracking-[-0.02em] text-neutral-900'}>
                       {item.title}
                     </h3>
-                    <p className={'text-sm leading-relaxed text-neutral-600'}>{item.body}</p>
+                    <p className={'text-ui leading-relaxed text-neutral-600'}>{item.body}</p>
                   </motion.div>
                 ))}
               </div>
@@ -416,7 +414,7 @@ export default function MxCheckerPage() {
                   viewport={{once: true}}
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
                 >
                   Email that reaches the inbox.
                 </motion.h2>
@@ -428,7 +426,7 @@ export default function MxCheckerPage() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Plunk handles SPF, DKIM, and DMARC setup and keeps your sending reputation clean so email lands in the inbox.
                   </p>
                   <div className={'flex flex-wrap gap-3'}>
@@ -436,14 +434,14 @@ export default function MxCheckerPage() {
                       whileHover={{scale: 1.015}}
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
-                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}
+                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
                     >
                       Start with Plunk
                       <ArrowRight className={'h-4 w-4'} />
                     </motion.a>
                     <Link
                       href="/tools/spf-checker"
-                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}
+                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
                     >
                       Check SPF record
                     </Link>

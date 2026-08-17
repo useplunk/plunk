@@ -7,17 +7,17 @@ import {ArrowRight, Check, Code2, Copy} from 'lucide-react';
 import {MarkdownEmailEditor} from '../../components/tools/MarkdownEmailEditor';
 import {convertToCompleteEmailHtml} from '../../lib/emailHtmlConverter';
 import {Button} from '@plunk/ui';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import Link from 'next/link';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -78,7 +78,7 @@ export default function MarkdownToEmail() {
                 transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-mono)'}}
                 className={
-                  'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700 sm:mb-24'
+                  'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'
                 }
               >
                 <span className={'font-medium text-neutral-900'}>§ T-01 &nbsp;— &nbsp;Tool</span>
@@ -99,7 +99,7 @@ export default function MarkdownToEmail() {
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
                   className={
-                    'text-[clamp(2.5rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
+                    'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
                   }
                 >
                   Markdown to
@@ -129,7 +129,7 @@ export default function MarkdownToEmail() {
                     <Code2 className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       Visual Editor
                     </span>
@@ -143,7 +143,7 @@ export default function MarkdownToEmail() {
                 <div className={'mb-4 flex items-center justify-between'}>
                   <span
                     style={{fontFamily: 'var(--font-mono)'}}
-                    className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                    className={'text-label text-neutral-500'}
                   >
                     Email-Safe HTML
                   </span>
@@ -176,8 +176,6 @@ export default function MarkdownToEmail() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'01'}
-                label={'How it works'}
                 title={'Write once,'}
                 titleAccent={'send everywhere.'}
                 subtitle={
@@ -216,7 +214,7 @@ export default function MarkdownToEmail() {
                   >
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.2em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       / {item.tag}
                     </span>
@@ -250,7 +248,7 @@ export default function MarkdownToEmail() {
                   viewport={{once: true}}
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
                 >
                   Ready to send great emails?
                 </motion.h2>
@@ -262,7 +260,7 @@ export default function MarkdownToEmail() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Plunk handles everything: templates, sending, tracking, and deliverability. Start free, no credit card required.
                   </p>
                   <div className={'flex flex-wrap gap-3'}>
@@ -271,7 +269,7 @@ export default function MarkdownToEmail() {
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
                       className={
-                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'
+                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'
                       }
                     >
                       Start with Plunk

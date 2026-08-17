@@ -81,48 +81,48 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
           <table className="w-full">
             <thead>
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Industry</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Average CTR</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Good CTR</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Average CTOR</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Industry</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Average CTR</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Good CTR</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Average CTOR</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 bg-white">
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">SaaS / Technology</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">2-3%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">4%+</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">10-15%</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">SaaS / Technology</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">2-3%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">4%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">10-15%</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">E-commerce / Retail</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">3-5%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">6%+</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">12-18%</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">E-commerce / Retail</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">3-5%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">6%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">12-18%</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Media / Publishing</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">4-6%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">7%+</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">15-20%</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Media / Publishing</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">4-6%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">7%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">15-20%</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Financial Services</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">2-4%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">5%+</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">10-14%</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Financial Services</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">2-4%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">5%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">10-14%</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Non-Profit</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">2-4%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">5%+</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">10-16%</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Non-Profit</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">2-4%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">5%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">10-16%</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Education</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">3-5%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">6%+</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">12-17%</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Education</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">3-5%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">6%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">12-17%</td>
               </tr>
             </tbody>
           </table>
@@ -197,7 +197,7 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
 
         <div className="space-y-4">
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div>
@@ -208,36 +208,36 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
               <div className="rounded-lg bg-neutral-100 p-4 space-y-2">
                 <div className="flex items-start gap-2">
                   <span className="text-green-600 font-bold">✓</span>
-                  <span className="text-sm text-neutral-700">"Download your free guide"</span>
+                  <span className="text-ui text-neutral-700">"Download your free guide"</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-green-600 font-bold">✓</span>
-                  <span className="text-sm text-neutral-700">"Start your 14-day free trial"</span>
+                  <span className="text-ui text-neutral-700">"Start your 14-day free trial"</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-green-600 font-bold">✓</span>
-                  <span className="text-sm text-neutral-700">"Get 20% off today only"</span>
+                  <span className="text-ui text-neutral-700">"Get 20% off today only"</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-red-600 font-bold">✗</span>
-                  <span className="text-sm text-neutral-700">"Click here"</span>
+                  <span className="text-ui text-neutral-700">"Click here"</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-red-600 font-bold">✗</span>
-                  <span className="text-sm text-neutral-700">"Learn more"</span>
+                  <span className="text-ui text-neutral-700">"Learn more"</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div>
               <h3 className="font-semibold text-neutral-900 mb-2">Design Prominent CTA Buttons</h3>
               <p className="text-neutral-700 mb-3">Button best practices:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-neutral-700">
+              <ul className="list-disc list-inside space-y-1 text-ui text-neutral-700">
                 <li>Use contrasting colors that stand out from email design</li>
                 <li>Make buttons large enough to tap on mobile (44x44px minimum)</li>
                 <li>Add white space around buttons for visual prominence</li>
@@ -248,7 +248,7 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div>
@@ -261,7 +261,7 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div>
@@ -274,13 +274,13 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               5
             </div>
             <div>
               <h3 className="font-semibold text-neutral-900 mb-2">Optimize for Mobile</h3>
               <p className="text-neutral-700 mb-3">Mobile optimization is critical:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-neutral-700">
+              <ul className="list-disc list-inside space-y-1 text-ui text-neutral-700">
                 <li>Responsive design that adapts to screen size</li>
                 <li>Large, tappable buttons (not small text links)</li>
                 <li>Single-column layout for easy scrolling</li>
@@ -291,7 +291,7 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               6
             </div>
             <div>
@@ -304,7 +304,7 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               7
             </div>
             <div>
@@ -317,7 +317,7 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               8
             </div>
             <div>
@@ -330,13 +330,13 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               9
             </div>
             <div>
               <h3 className="font-semibold text-neutral-900 mb-2">A/B Test CTAs</h3>
               <p className="text-neutral-700 mb-3">Test systematically:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-neutral-700">
+              <ul className="list-disc list-inside space-y-1 text-ui text-neutral-700">
                 <li>Button copy ("Get started" vs "Start free trial")</li>
                 <li>Button color (brand color vs high-contrast color)</li>
                 <li>Button placement (top, middle, bottom)</li>
@@ -347,7 +347,7 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               10
             </div>
             <div>
@@ -368,13 +368,13 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
         <div className="grid gap-6 md:grid-cols-3">
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Short Emails (&lt;200 words)</h3>
-            <p className="text-sm text-neutral-700 mb-3">One CTA in the middle or at the end.</p>
+            <p className="text-ui text-neutral-700 mb-3">One CTA in the middle or at the end.</p>
             <div className="rounded-lg bg-neutral-50 p-3 text-xs text-neutral-600">Intro → Value prop → CTA</div>
           </div>
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Medium Emails (200-500 words)</h3>
-            <p className="text-sm text-neutral-700 mb-3">CTAs at the beginning and end.</p>
+            <p className="text-ui text-neutral-700 mb-3">CTAs at the beginning and end.</p>
             <div className="rounded-lg bg-neutral-50 p-3 text-xs text-neutral-600">
               Intro + CTA → Content → Final CTA
             </div>
@@ -382,7 +382,7 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Long Emails (&gt;500 words)</h3>
-            <p className="text-sm text-neutral-700 mb-3">Multiple CTAs throughout.</p>
+            <p className="text-ui text-neutral-700 mb-3">Multiple CTAs throughout.</p>
             <div className="rounded-lg bg-neutral-50 p-3 text-xs text-neutral-600">
               CTA → Content → CTA → More content → Final CTA
             </div>
@@ -451,21 +451,21 @@ CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Open Rates</h3>
-            <p className="text-sm text-neutral-600">Improve opens to get more clicks.</p>
+            <p className="text-ui text-neutral-600">Improve opens to get more clicks.</p>
           </Link>
           <Link
             href="/guides/email-marketing-best-practices"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Marketing Best Practices</h3>
-            <p className="text-sm text-neutral-600">Complete email marketing guide.</p>
+            <p className="text-ui text-neutral-600">Complete email marketing guide.</p>
           </Link>
           <Link
             href="/guides/email-deliverability"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-            <p className="text-sm text-neutral-600">Reach the inbox for better engagement.</p>
+            <p className="text-ui text-neutral-600">Reach the inbox for better engagement.</p>
           </Link>
         </div>
       </section>

@@ -340,6 +340,55 @@ Plunk provides SMTP credentials so you can send emails from any application or f
 
 [Back to features](/features) | [Pricing](/pricing) | [Documentation](https://docs.useplunk.com)
 `,
+
+  'features/mcp': `# MCP Server — Plunk
+
+Connect Plunk to Claude, Cursor, and any Model Context Protocol client. Fifteen tools for transactional email, contacts, segments, and campaigns.
+
+[Get started free](https://next-app.useplunk.com/auth/signup) | [Documentation](https://docs.useplunk.com/docs/guides/mcp-server)
+
+---
+
+## Setup
+
+The server is published as \`@plunk/mcp\`. You need a secret key (\`sk_…\`) from Settings → API Keys.
+
+\`\`\`bash
+claude mcp add plunk --env PLUNK_API_KEY=sk_your_key -- npx -y @plunk/mcp
+\`\`\`
+
+For Claude Desktop, Cursor, or any other client, add it to your MCP config:
+
+\`\`\`json
+{
+  "mcpServers": {
+    "plunk": {
+      "command": "npx",
+      "args": ["-y", "@plunk/mcp"],
+      "env": {
+        "PLUNK_API_KEY": "sk_your_key"
+      }
+    }
+  }
+}
+\`\`\`
+
+Self-hosting? Set \`PLUNK_API_URL\` to your own API domain.
+
+## Tools
+
+**Read-only** — the only tools registered when \`PLUNK_READ_ONLY=true\`: \`plunk_list_contacts\`, \`plunk_get_contact\`, \`plunk_verify_email\`, \`plunk_list_templates\`, \`plunk_list_campaigns\`, \`plunk_list_segments\`
+
+**Writing**: \`plunk_create_contact\`, \`plunk_update_contact\`, \`plunk_delete_contact\`, \`plunk_send_email\`, \`plunk_track_event\`, \`plunk_create_template\`, \`plunk_create_campaign\`, \`plunk_send_campaign\`, \`plunk_create_segment\`
+
+## Safety
+
+- **Sends ask you first.** Sending a campaign, or an email to more than one recipient, prompts you and shows the recipient count. The confirmation comes from you through your MCP client, not from the model.
+- **Read-only mode is structural.** With \`PLUNK_READ_ONLY=true\` the mutating tools are never registered, so they cannot be invoked at all.
+- **Account actions are out of reach.** Billing, project deletion, and key rotation require a dashboard session, so no tool can touch them.
+
+[Back to features](/features) | [Pricing](/pricing) | [Documentation](https://docs.useplunk.com/docs/guides/mcp-server)
+`,
 };
 
 export {MARKDOWN_SLUGS, hasMarkdownVariant} from './markdown-slugs';

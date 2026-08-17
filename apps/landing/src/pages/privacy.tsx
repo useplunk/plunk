@@ -30,7 +30,7 @@ export default function PrivacyPolicy() {
             {/* Hero */}
             <div className="mb-12">
               <h1 className="text-4xl font-bold text-neutral-900">Privacy Policy</h1>
-              <p className="mt-2 text-sm text-neutral-600">Last Updated: February 18, 2026</p>
+              <p className="mt-2 text-ui text-neutral-600">Last Updated: February 18, 2026</p>
               <p className="mt-4 text-base leading-relaxed text-neutral-700">
                 This Privacy Policy explains how Plunk collects, uses, stores, and protects your personal information.
                 We are committed to transparency and your privacy rights under GDPR and EU law.
@@ -40,79 +40,79 @@ export default function PrivacyPolicy() {
             {/* Table of Contents */}
             <nav className="mb-12 rounded-lg border border-neutral-200 bg-neutral-50 p-6">
               <h2 className="mb-4 text-lg font-semibold text-neutral-900">Contents</h2>
-              <ol className="space-y-2 text-sm text-neutral-700">
+              <ol className="space-y-2 text-ui text-neutral-700">
                 <li>
-                  <a href="#introduction" className="text-blue-600 hover:underline">
+                  <a href="#introduction" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     1. Introduction & Data Controller
                   </a>
                 </li>
                 <li>
-                  <a href="#data-collect" className="text-blue-600 hover:underline">
+                  <a href="#data-collect" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     2. Data We Collect
                   </a>
                 </li>
                 <li>
-                  <a href="#data-use" className="text-blue-600 hover:underline">
+                  <a href="#data-use" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     3. How We Use Your Data
                   </a>
                 </li>
                 <li>
-                  <a href="#legal-basis" className="text-blue-600 hover:underline">
+                  <a href="#legal-basis" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     4. Legal Basis for Processing (GDPR)
                   </a>
                 </li>
                 <li>
-                  <a href="#data-storage" className="text-blue-600 hover:underline">
+                  <a href="#data-storage" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     5. Data Storage & Security
                   </a>
                 </li>
                 <li>
-                  <a href="#data-sharing" className="text-blue-600 hover:underline">
+                  <a href="#data-sharing" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     6. Data Sharing & Sub-Processors
                   </a>
                 </li>
                 <li>
-                  <a href="#data-retention" className="text-blue-600 hover:underline">
+                  <a href="#data-retention" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     7. Data Retention
                   </a>
                 </li>
                 <li>
-                  <a href="#your-rights" className="text-blue-600 hover:underline">
+                  <a href="#your-rights" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     8. Your Rights Under GDPR
                   </a>
                 </li>
                 <li>
-                  <a href="#email-tracking" className="text-blue-600 hover:underline">
+                  <a href="#email-tracking" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     9. Email Tracking
                   </a>
                 </li>
                 <li>
-                  <a href="#cookies" className="text-blue-600 hover:underline">
+                  <a href="#cookies" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     10. Cookies & Local Storage
                   </a>
                 </li>
                 <li>
-                  <a href="#international" className="text-blue-600 hover:underline">
+                  <a href="#international" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     11. International Data Transfers
                   </a>
                 </li>
                 <li>
-                  <a href="#children" className="text-blue-600 hover:underline">
+                  <a href="#children" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     12. Children's Privacy
                   </a>
                 </li>
                 <li>
-                  <a href="#self-hosted" className="text-blue-600 hover:underline">
+                  <a href="#self-hosted" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     13. Self-Hosted Deployments
                   </a>
                 </li>
                 <li>
-                  <a href="#policy-changes" className="text-blue-600 hover:underline">
+                  <a href="#policy-changes" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     14. Changes to Privacy Policy
                   </a>
                 </li>
                 <li>
-                  <a href="#contact" className="text-blue-600 hover:underline">
+                  <a href="#contact" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     15. Contact Information
                   </a>
                 </li>
@@ -143,7 +143,7 @@ export default function PrivacyPolicy() {
                 <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Contact Information</h3>
                 <p className="mb-4 leading-relaxed text-neutral-700">
                   Email:{' '}
-                  <a href="mailto:legal@useplunk.com" className="text-blue-600 hover:underline">
+                  <a href="mailto:legal@useplunk.com" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     legal@useplunk.com
                   </a>
                   <br />
@@ -224,8 +224,8 @@ export default function PrivacyPolicy() {
                   <li>unsubscribeUrl (auto-generated)</li>
                 </ul>
 
-                <div className="my-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                  <p className="text-sm leading-relaxed text-blue-900">
+                <div className="my-6 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="text-ui leading-relaxed text-blue-900">
                     <strong className="font-semibold">Important:</strong> YOU control what data to collect from your
                     contacts. WE process this data on your behalf (data processor role). YOU are responsible for
                     obtaining consent from your contacts.
@@ -288,8 +288,8 @@ export default function PrivacyPolicy() {
                 </ul>
 
                 <div className="my-6 rounded-lg border border-green-200 bg-green-50 p-4">
-                  <p className="mb-2 text-sm font-semibold text-green-900">We DO NOT use:</p>
-                  <ul className="ml-6 list-disc space-y-1 text-sm text-green-900">
+                  <p className="mb-2 text-ui font-semibold text-green-900">We DO NOT use:</p>
+                  <ul className="ml-6 list-disc space-y-1 text-ui text-green-900">
                     <li>Google Analytics</li>
                     <li>Facebook Pixel</li>
                     <li>Third-party tracking scripts</li>
@@ -499,7 +499,7 @@ export default function PrivacyPolicy() {
               {/* Section 6 */}
               <section id="data-sharing" className="mb-12">
                 <h2 className="mb-4 text-2xl font-bold text-neutral-900">6. Data Sharing & Sub-Processors</h2>
-                <div className="my-6 rounded-lg border-2 border-blue-200 bg-blue-50 p-6">
+                <div className="my-6 rounded-lg border-2 border-neutral-200 bg-neutral-50 p-6">
                   <p className="text-lg font-bold text-blue-900">We DO NOT sell your data. Ever.</p>
                 </div>
 
@@ -530,7 +530,7 @@ export default function PrivacyPolicy() {
                       href="https://aws.amazon.com/ses/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900"
                     >
                       aws.amazon.com/ses/
                     </a>
@@ -560,7 +560,7 @@ export default function PrivacyPolicy() {
                       href="https://stripe.com/privacy"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900"
                     >
                       stripe.com/privacy
                     </a>
@@ -589,7 +589,7 @@ export default function PrivacyPolicy() {
                       href="https://hetzner.com/legal/privacy-policy"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900"
                     >
                       hetzner.com/legal/privacy-policy
                     </a>
@@ -761,7 +761,7 @@ export default function PrivacyPolicy() {
                       href="https://edpb.europa.eu/about-edpb/about-edpb/members_en"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900"
                     >
                       edpb.europa.eu
                     </a>
@@ -776,7 +776,7 @@ export default function PrivacyPolicy() {
                     <li>Include: Your account email and specific request</li>
                     <li>Response time: Within 30 days (GDPR requirement)</li>
                   </ol>
-                  <p className="mt-4 text-sm text-neutral-600">No fees for exercising your rights.</p>
+                  <p className="mt-4 text-ui text-neutral-600">No fees for exercising your rights.</p>
                 </div>
               </section>
 
@@ -792,7 +792,7 @@ export default function PrivacyPolicy() {
                 <div className="mb-4 space-y-4">
                   <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
                     <p className="mb-2 font-semibold text-neutral-900">ENABLED (Default):</p>
-                    <ul className="ml-6 list-disc space-y-1 text-sm text-neutral-700">
+                    <ul className="ml-6 list-disc space-y-1 text-ui text-neutral-700">
                       <li>Tracks all emails (transactional, campaigns, workflows)</li>
                       <li>Open tracking via 1x1 pixel image</li>
                       <li>Click tracking via redirect links</li>
@@ -802,7 +802,7 @@ export default function PrivacyPolicy() {
 
                   <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
                     <p className="mb-2 font-semibold text-neutral-900">DISABLED:</p>
-                    <ul className="ml-6 list-disc space-y-1 text-sm text-neutral-700">
+                    <ul className="ml-6 list-disc space-y-1 text-ui text-neutral-700">
                       <li>No tracking for any emails</li>
                       <li>No pixels or redirect links</li>
                       <li>Emails sent via AWS SES no-tracking configuration set</li>
@@ -812,7 +812,7 @@ export default function PrivacyPolicy() {
 
                   <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
                     <p className="mb-2 font-semibold text-neutral-900">MARKETING ONLY:</p>
-                    <ul className="ml-6 list-disc space-y-1 text-sm text-neutral-700">
+                    <ul className="ml-6 list-disc space-y-1 text-ui text-neutral-700">
                       <li>Tracks only campaigns and workflows</li>
                       <li>Transactional emails not tracked</li>
                       <li>Balance between privacy and analytics</li>
@@ -896,7 +896,7 @@ export default function PrivacyPolicy() {
                   </ul>
 
                   <p className="mb-2 mt-4 font-semibold text-neutral-900">Security Features:</p>
-                  <ul className="ml-6 list-disc space-y-1 text-sm text-neutral-700">
+                  <ul className="ml-6 list-disc space-y-1 text-ui text-neutral-700">
                     <li>httpOnly: Not accessible via JavaScript (XSS protection)</li>
                     <li>secure: HTTPS-only (no transmission over HTTP)</li>
                     <li>SameSite: 'none' (for cross-subdomain access)</li>
@@ -977,7 +977,7 @@ export default function PrivacyPolicy() {
                     href="https://stripe.com/privacy-center/legal"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900"
                   >
                     stripe.com/privacy-center/legal
                   </a>
@@ -1103,12 +1103,12 @@ export default function PrivacyPolicy() {
                   <p className="mb-2 font-semibold text-neutral-900">Privacy Inquiries & GDPR Requests:</p>
                   <p className="mb-1 text-neutral-700">
                     Email:{' '}
-                    <a href="mailto:legal@useplunk.com" className="text-blue-600 hover:underline">
+                    <a href="mailto:legal@useplunk.com" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                       legal@useplunk.com
                     </a>
                   </p>
-                  <p className="mb-1 text-sm text-neutral-600">Subject: "Privacy Inquiry" or "GDPR Request"</p>
-                  <p className="text-sm text-neutral-600">
+                  <p className="mb-1 text-ui text-neutral-600">Subject: "Privacy Inquiry" or "GDPR Request"</p>
+                  <p className="text-ui text-neutral-600">
                     Response time: Within 7 business days (30 days for GDPR requests)
                   </p>
                 </div>
@@ -1129,7 +1129,7 @@ export default function PrivacyPolicy() {
                     href="https://edpb.europa.eu/about-edpb/about-edpb/members_en"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900"
                   >
                     edpb.europa.eu
                   </a>
@@ -1143,14 +1143,14 @@ export default function PrivacyPolicy() {
                       href="https://github.com/useplunk/plunk/discussions"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900"
                     >
                       github.com/useplunk/plunk/discussions
                     </a>
                   </li>
                   <li>
                     Discord:{' '}
-                    <Link href="/discord" className="text-blue-600 hover:underline">
+                    <Link href="/discord" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                       useplunk.com/discord
                     </Link>
                   </li>
@@ -1163,13 +1163,13 @@ export default function PrivacyPolicy() {
               <p className="mb-2 text-lg font-semibold text-neutral-900">Questions about your privacy?</p>
               <p className="mb-4 text-neutral-700">
                 We're committed to protecting your data. Contact us at{' '}
-                <a href="mailto:legal@useplunk.com" className="text-blue-600 hover:underline">
+                <a href="mailto:legal@useplunk.com" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                   legal@useplunk.com
                 </a>
               </p>
-              <p className="text-sm text-neutral-600">
+              <p className="text-ui text-neutral-600">
                 For service terms, please review our{' '}
-                <Link href="/terms" className="text-blue-600 hover:underline">
+                <Link href="/terms" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                   Terms of Service
                 </Link>
                 .

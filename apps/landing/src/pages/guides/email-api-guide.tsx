@@ -38,7 +38,7 @@ export default function EmailAPIGuide() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="w-full max-w-full wrap-break-word">
               <h3 className="text-lg font-semibold text-neutral-900 mb-3">SMTP (Traditional)</h3>
-              <ul className="space-y-2 text-sm text-neutral-700">
+              <ul className="space-y-2 text-ui text-neutral-700">
                 <li>• Direct protocol for sending email</li>
                 <li>• Requires managing connections</li>
                 <li>• Manual error handling</li>
@@ -52,7 +52,7 @@ export default function EmailAPIGuide() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="w-full max-w-full wrap-break-word">
               <h3 className="text-lg font-semibold text-neutral-900 mb-3">Email API (Modern)</h3>
-              <ul className="space-y-2 text-sm text-neutral-700">
+              <ul className="space-y-2 text-ui text-neutral-700">
                 <li>• HTTP-based RESTful interface</li>
                 <li>• No connection management needed</li>
                 <li>• Structured error responses</li>
@@ -330,7 +330,7 @@ func main() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="w-full max-w-full wrap-break-word">
               <h3 className="text-lg font-semibold text-neutral-900 mb-3">Sending Features</h3>
-              <ul className="space-y-2 text-sm text-neutral-700">
+              <ul className="space-y-2 text-ui text-neutral-700">
                 <li>• Send individual or batch emails</li>
                 <li>• HTML and plain text support</li>
                 <li>• Attachments</li>
@@ -345,7 +345,7 @@ func main() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="w-full max-w-full wrap-break-word">
               <h3 className="text-lg font-semibold text-neutral-900 mb-3">Tracking & Analytics</h3>
-              <ul className="space-y-2 text-sm text-neutral-700">
+              <ul className="space-y-2 text-ui text-neutral-700">
                 <li>• Delivery status tracking</li>
                 <li>• Open tracking</li>
                 <li>• Click tracking</li>
@@ -360,7 +360,7 @@ func main() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="w-full max-w-full wrap-break-word">
               <h3 className="text-lg font-semibold text-neutral-900 mb-3">Webhooks & Events</h3>
-              <ul className="space-y-2 text-sm text-neutral-700">
+              <ul className="space-y-2 text-ui text-neutral-700">
                 <li>• Delivery notifications</li>
                 <li>• Bounce notifications</li>
                 <li>• Spam complaint alerts</li>
@@ -374,7 +374,7 @@ func main() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="w-full max-w-full wrap-break-word">
               <h3 className="text-lg font-semibold text-neutral-900 mb-3">Management Features</h3>
-              <ul className="space-y-2 text-sm text-neutral-700">
+              <ul className="space-y-2 text-ui text-neutral-700">
                 <li>• Suppression list management</li>
                 <li>• Contact management</li>
                 <li>• Domain verification</li>
@@ -393,7 +393,7 @@ func main() {
 
         <div className="space-y-4">
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div>
@@ -406,13 +406,13 @@ func main() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div>
               <h3 className="font-semibold text-neutral-900 mb-2">Implement Proper Error Handling</h3>
               <p className="text-neutral-700 mb-3">Handle different HTTP status codes appropriately:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-neutral-700">
+              <ul className="list-disc list-inside space-y-1 text-ui text-neutral-700">
                 <li>200: Success</li>
                 <li>400-499: Client errors (bad request, validation failed) - don't retry</li>
                 <li>500-599: Server errors - retry with exponential backoff</li>
@@ -422,7 +422,7 @@ func main() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div>
@@ -435,7 +435,7 @@ func main() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div>
@@ -448,7 +448,7 @@ func main() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               5
             </div>
             <div>
@@ -461,7 +461,7 @@ func main() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               6
             </div>
             <div>
@@ -474,7 +474,7 @@ func main() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               7
             </div>
             <div>
@@ -487,7 +487,7 @@ func main() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               8
             </div>
             <div>
@@ -500,7 +500,7 @@ func main() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               9
             </div>
             <div>
@@ -513,7 +513,7 @@ func main() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               10
             </div>
             <div>
@@ -595,7 +595,7 @@ func main() {
           >
             <div className="w-full max-w-full wrap-break-word">
               <h3 className="text-lg font-semibold text-neutral-900 mb-2">Transactional vs Marketing Email</h3>
-              <p className="text-sm text-neutral-600">Understand email types for APIs.</p>
+              <p className="text-ui text-neutral-600">Understand email types for APIs.</p>
             </div>
           </Link>
           <Link
@@ -604,7 +604,7 @@ func main() {
           >
             <div className="w-full max-w-full wrap-break-word">
               <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-              <p className="text-sm text-neutral-600">Ensure API-sent emails reach the inbox.</p>
+              <p className="text-ui text-neutral-600">Ensure API-sent emails reach the inbox.</p>
             </div>
           </Link>
           <Link
@@ -613,7 +613,7 @@ func main() {
           >
             <div className="w-full max-w-full wrap-break-word">
               <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Sender Reputation</h3>
-              <p className="text-sm text-neutral-600">Maintain good sender reputation.</p>
+              <p className="text-ui text-neutral-600">Maintain good sender reputation.</p>
             </div>
           </Link>
         </div>

@@ -45,7 +45,7 @@ export function FAQSection({faqs, schemaId = 'faq-schema'}: FAQSectionProps) {
           >
             <h2
               style={{fontFamily: 'var(--font-display)'}}
-              className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
+              className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
             >
               Frequently asked questions
             </h2>

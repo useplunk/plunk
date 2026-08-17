@@ -5,18 +5,18 @@ import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
 import {AlertTriangle, ArrowRight, CheckCircle, ShieldCheck, XCircle} from 'lucide-react';
 import {Button, Input} from '@plunk/ui';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import Link from 'next/link';
 import type {FAQ} from '../../components/FAQSection';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -98,22 +98,22 @@ function analyzeDmarc(tags: Record<string, string>): DmarcAnalysis {
 
 function PolicyBadge({policy}: {policy: string}) {
   if (policy === 'reject') {
-    return <span className={'rounded-full bg-green-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-green-700 border border-green-200'}>reject</span>;
+    return <span className={'rounded-full bg-ok-surface px-3 py-1 text-xs font-bold text-ok border border-ok/25'}>reject</span>;
   }
   if (policy === 'quarantine') {
-    return <span className={'rounded-full bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-700 border border-amber-200'}>quarantine</span>;
+    return <span className={'rounded-full bg-warn-surface px-3 py-1 text-xs font-bold text-warn border border-warn/25'}>quarantine</span>;
   }
   if (policy === 'none') {
-    return <span className={'rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-neutral-600 border border-neutral-300'}>none</span>;
+    return <span className={'rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600 border border-neutral-300'}>none</span>;
   }
-  return <span className={'rounded-full bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-red-700 border border-red-200'}>missing</span>;
+  return <span className={'rounded-full bg-err-surface px-3 py-1 text-xs font-bold text-err border border-err/25'}>missing</span>;
 }
 
 function GradeBadge({grade, policy}: {grade: 'pass' | 'warning' | 'fail'; policy: string}) {
   const map = {
-    pass: {cls: 'bg-green-50 border-green-200 text-green-700', label: 'Valid'},
-    warning: {cls: 'bg-amber-50 border-amber-200 text-amber-700', label: 'Needs attention'},
-    fail: {cls: 'bg-red-50 border-red-200 text-red-700', label: 'Action required'},
+    pass: {cls: 'bg-ok-surface border-ok/25 text-ok', label: 'Valid'},
+    warning: {cls: 'bg-warn-surface border-warn/25 text-warn', label: 'Needs attention'},
+    fail: {cls: 'bg-err-surface border-err/25 text-err', label: 'Action required'},
   };
   const {cls, label} = map[grade];
   const sub = policy === 'reject' ? 'Full DMARC protection' : policy === 'quarantine' ? 'Partial protection' : policy === 'none' ? 'Monitoring only — no enforcement' : 'DMARC not enforcing';
@@ -258,7 +258,7 @@ export default function DmarcCheckerPage() {
                 animate={{opacity: 1, y: 0}}
                 transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700 sm:mb-24'}
+                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'}
               >
                 <span className={'font-medium text-neutral-900'}>§ T-05 &nbsp;— &nbsp;Tool</span>
                 <Link href="/tools" className={'text-neutral-500 transition hover:text-neutral-900'}>
@@ -274,7 +274,7 @@ export default function DmarcCheckerPage() {
               >
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
+                  className={'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
                 >
                   DMARC record
                   <br />
@@ -297,13 +297,13 @@ export default function DmarcCheckerPage() {
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
               className={'mx-auto max-w-2xl'}
             >
-              <div className={'overflow-hidden rounded-[20px] border border-neutral-200 bg-white'}>
+              <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
                 <div className={'border-b border-neutral-200 px-8 py-5'}>
                   <div className={'flex items-center gap-3'}>
                     <ShieldCheck className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       DMARC record lookup
                     </span>
@@ -313,8 +313,8 @@ export default function DmarcCheckerPage() {
                 <form onSubmit={handleCheck} className={'p-8'}>
                   <div className={'space-y-4'}>
                     <div>
-                      <label htmlFor="domain" className={'mb-2 block text-sm font-medium text-neutral-900'}>
-                        Domain name <span className={'text-red-500'}>*</span>
+                      <label htmlFor="domain" className={'mb-2 block text-ui font-medium text-neutral-900'}>
+                        Domain name <span className={'text-err'}>*</span>
                       </label>
                       <Input
                         id="domain"
@@ -325,7 +325,7 @@ export default function DmarcCheckerPage() {
                         required
                         className={'w-full'}
                       />
-                      <p className={'mt-1.5 text-xs text-neutral-400'}>Enter the domain without http:// or www.</p>
+                      <p className={'mt-1.5 text-xs text-neutral-500'}>Enter the domain without http:// or www.</p>
                     </div>
                     <Button type="submit" className={'w-full gap-2'} disabled={loading}>
                       <ShieldCheck className={'h-4 w-4'} />
@@ -343,36 +343,36 @@ export default function DmarcCheckerPage() {
                   className={'mt-6 space-y-4'}
                 >
                   {!result.found ? (
-                    <div className={'rounded-[20px] border border-red-100 bg-red-50 p-8'}>
+                    <div className={'rounded-card border border-err/25 bg-err-surface p-8'}>
                       <div className={'flex items-start gap-3'}>
-                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                         <div>
-                          <p className={'font-semibold text-red-900'}>No DMARC record found</p>
-                          <p className={'mt-1 text-sm text-red-700'}>
+                          <p className={'font-semibold text-err'}>No DMARC record found</p>
+                          <p className={'mt-1 text-ui text-err'}>
                             {result.error
                               ? 'DNS lookup failed. Please check the domain and try again.'
                               : `No DMARC record was found at _dmarc.${result.domain}. Without DMARC, your domain has no enforcement policy and you won't receive authentication reports.`}
                           </p>
-                          <p className={'mt-3 text-sm font-medium text-red-800'}>
+                          <p className={'mt-3 text-ui font-medium text-err'}>
                             Add a TXT record to <span style={{fontFamily: 'var(--font-mono)'}}>_dmarc.{result.domain}</span>:
                           </p>
                           <code
                             style={{fontFamily: 'var(--font-mono)'}}
-                            className={'mt-2 block rounded-lg bg-red-100 px-4 py-3 text-xs text-red-900 break-all'}
+                            className={'mt-2 block rounded-lg bg-err-surface px-4 py-3 text-xs text-err break-all'}
                           >
                             {`v=DMARC1; p=none; rua=mailto:dmarc@${result.domain}`}
                           </code>
-                          <p className={'mt-2 text-xs text-red-600'}>Start with p=none to monitor, then progress to quarantine and reject.</p>
+                          <p className={'mt-2 text-xs text-err'}>Start with p=none to monitor, then progress to quarantine and reject.</p>
                         </div>
                       </div>
                     </div>
                   ) : (
                     <>
                       {/* Raw record */}
-                      <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                      <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                         <p
                           style={{fontFamily: 'var(--font-mono)'}}
-                          className={'mb-2 text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                          className={'mb-2 text-label text-neutral-500'}
                         >
                           Raw record — _dmarc.{result.domain}
                         </p>
@@ -387,14 +387,14 @@ export default function DmarcCheckerPage() {
                       {analysis && (
                         <>
                           {/* Grade */}
-                          <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                             <div className={'flex flex-col items-center gap-4 text-center'}>
                               <GradeBadge grade={analysis.grade} policy={analysis.policy} />
                             </div>
                           </div>
 
                           {/* Tags */}
-                          <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                             <h3
                               style={{fontFamily: 'var(--font-display)'}}
                               className={'mb-6 text-lg font-bold text-neutral-900'}
@@ -417,7 +417,7 @@ export default function DmarcCheckerPage() {
                                     )}
                                   </div>
                                   {TAG_DESCRIPTIONS[key] && (
-                                    <span className={'shrink-0 text-xs text-neutral-400'}>{TAG_DESCRIPTIONS[key]}</span>
+                                    <span className={'shrink-0 text-xs text-neutral-500'}>{TAG_DESCRIPTIONS[key]}</span>
                                   )}
                                 </div>
                               ))}
@@ -425,7 +425,7 @@ export default function DmarcCheckerPage() {
                           </div>
 
                           {/* Analysis */}
-                          <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                             <h3
                               style={{fontFamily: 'var(--font-display)'}}
                               className={'mb-6 text-lg font-bold text-neutral-900'}
@@ -436,14 +436,14 @@ export default function DmarcCheckerPage() {
                               {analysis.issues.map((issue, i) => (
                                 <li key={i} className={'flex items-start gap-3'}>
                                   {issue.type === 'pass' ? (
-                                    <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-green-600'} />
+                                    <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-ok'} />
                                   ) : issue.type === 'warning' ? (
-                                    <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-amber-500'} />
+                                    <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-warn'} />
                                   ) : (
-                                    <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                                    <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                                   )}
                                   <div>
-                                    <p className={'text-sm font-medium text-neutral-900'}>{issue.label}</p>
+                                    <p className={'text-ui font-medium text-neutral-900'}>{issue.label}</p>
                                     <p className={'mt-0.5 text-xs text-neutral-500'}>{issue.detail}</p>
                                   </div>
                                 </li>
@@ -463,8 +463,6 @@ export default function DmarcCheckerPage() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'01'}
-                label={'DMARC explained'}
                 title={'From monitoring to full enforcement.'}
                 subtitle={'DMARC is a journey. Start with none, build confidence, then enforce.'}
               />
@@ -483,14 +481,14 @@ export default function DmarcCheckerPage() {
                     policy: 'p=quarantine',
                     title: 'Quarantine',
                     body: 'Once you\'re confident all legitimate senders pass, move to quarantine. Failing messages are sent to spam, reducing spoofing impact.',
-                    cls: 'border-amber-300',
+                    cls: 'border-warn/25',
                   },
                   {
                     step: '03',
                     policy: 'p=reject',
                     title: 'Reject',
                     body: 'Full enforcement. Failing messages are rejected by receiving servers. This is the goal — it completely prevents domain spoofing.',
-                    cls: 'border-green-400',
+                    cls: 'border-ok/25',
                   },
                 ].map((item, i) => (
                   <motion.div
@@ -499,12 +497,12 @@ export default function DmarcCheckerPage() {
                     whileInView={{opacity: 1, y: 0}}
                     viewport={{once: true}}
                     transition={{duration: 0.5, delay: i * 0.08, ease: [0.22, 1, 0.36, 1]}}
-                    className={`flex flex-col gap-5 rounded-[20px] border-2 bg-white p-8 ${item.cls}`}
+                    className={`flex flex-col gap-5 rounded-card border-2 bg-white p-8 ${item.cls}`}
                   >
                     <div className={'flex items-center justify-between'}>
                       <span
                         style={{fontFamily: 'var(--font-mono)'}}
-                        className={'text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                        className={'text-label text-neutral-500'}
                       >
                         Step {item.step}
                       </span>
@@ -521,7 +519,7 @@ export default function DmarcCheckerPage() {
                     >
                       {item.title}
                     </h3>
-                    <p className={'text-sm leading-relaxed text-neutral-600'}>{item.body}</p>
+                    <p className={'text-ui leading-relaxed text-neutral-600'}>{item.body}</p>
                   </motion.div>
                 ))}
               </div>
@@ -538,7 +536,7 @@ export default function DmarcCheckerPage() {
                   viewport={{once: true}}
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
                 >
                   Email that reaches the inbox.
                 </motion.h2>
@@ -550,7 +548,7 @@ export default function DmarcCheckerPage() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Plunk walks you through SPF, DKIM, and DMARC setup and monitors your sending reputation over time.
                   </p>
                   <div className={'flex flex-wrap gap-3'}>
@@ -558,14 +556,14 @@ export default function DmarcCheckerPage() {
                       whileHover={{scale: 1.015}}
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
-                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}
+                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
                     >
                       Start with Plunk
                       <ArrowRight className={'h-4 w-4'} />
                     </motion.a>
                     <Link
                       href="/guides/what-is-dmarc"
-                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}
+                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
                     >
                       What is DMARC?
                     </Link>

@@ -73,15 +73,12 @@ export default function PostmarkComparison() {
           <div aria-hidden className={'absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#eeeeee_1px,transparent_1px),linear-gradient(to_bottom,#eeeeee_1px,transparent_1px)] bg-[size:6rem_6rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_95%)]'} />
           <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pt-28 sm:pb-28'}>
             <motion.div initial={{opacity: 0, y: 16}} animate={{opacity: 1, y: 0}} transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}>
-              <div style={{fontFamily: 'var(--font-mono)'}} className={'mb-6 text-[11px] uppercase tracking-[0.18em] text-neutral-500'}>
-                Plunk vs Postmark
-              </div>
-              <h1 style={{fontFamily: 'var(--font-display)'}} className={'text-[clamp(2.75rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}>
+              <h1 style={{fontFamily: 'var(--font-display)'}} className={'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}>
                 Open-source alternative
                 <br />
                 for Postmark
               </h1>
-              <p className={'mt-6 max-w-2xl text-xl text-neutral-600'}>Everything Postmark offers for transactional emails, plus marketing campaigns, workflow automation, and segmentation. One platform, no extra cost.</p>
+              <p className={'mt-6 max-w-2xl text-lead text-neutral-600'}>Everything Postmark offers for transactional emails, plus marketing campaigns, workflow automation, and segmentation. One platform, no extra cost.</p>
               <div className={'mt-10 flex flex-wrap gap-3'}>
                 <motion.a whileHover={{scale: 1.015}} whileTap={{scale: 0.985}} href={`${DASHBOARD_URI}/auth/signup`} className={'group inline-flex items-center gap-2 rounded-full bg-neutral-900 px-8 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(23,23,23,0.35)] transition hover:bg-neutral-800'}>
                   Get started free <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -98,32 +95,32 @@ export default function PostmarkComparison() {
         <section className={'border-t border-neutral-200'}>
           <div className={'mx-auto max-w-[88rem] px-6 py-16 sm:py-20 sm:px-10'}>
             <motion.div initial={{opacity: 0, y: 20}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}} className={'mb-10'}>
-              <h2 style={{fontFamily: 'var(--font-display)'}} className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}>
+              <h2 style={{fontFamily: 'var(--font-display)'}} className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}>
                 One Platform for All Your Emails
               </h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>Transactional reliability meets marketing power</p>
+              <p className={'mt-4 text-lead text-neutral-600'}>Transactional reliability meets marketing power</p>
             </motion.div>
             <div className={'grid gap-4 lg:grid-cols-2'}>
-              <motion.div initial={{opacity: 0, x: -20}} whileInView={{opacity: 1, x: 0}} viewport={{once: true}} transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}} className={'rounded-[24px] border border-neutral-900 bg-neutral-900 p-10 text-white'}>
-                <div style={{fontFamily: 'var(--font-mono)'}} className={'text-[11px] uppercase tracking-[0.18em] text-neutral-400'}>Plunk</div>
+              <motion.div initial={{opacity: 0, x: -20}} whileInView={{opacity: 1, x: 0}} viewport={{once: true}} transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}} className={'rounded-card border border-neutral-900 bg-neutral-900 p-10 text-white'}>
+                <div style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-400'}>Plunk</div>
                 <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-2xl font-bold tracking-[-0.025em] text-white'}>Transactional + Marketing</h3>
                 <p className={'mt-3 leading-relaxed text-neutral-300'}>Reliable transactional emails plus marketing campaigns, workflows, and segmentation in one platform.</p>
                 <div style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-4xl font-extrabold tracking-[-0.03em] text-white'}>All-in-one</div>
                 <ul className={'mt-8 space-y-3'}>
-                  <li className={'flex items-center gap-3 text-sm text-neutral-300'}><Check className="h-4 w-4 flex-shrink-0 text-neutral-400" />Transactional emails included</li>
-                  <li className={'flex items-center gap-3 text-sm text-neutral-300'}><Check className="h-4 w-4 flex-shrink-0 text-neutral-400" />Marketing campaigns included</li>
-                  <li className={'flex items-center gap-3 text-sm text-neutral-300'}><Check className="h-4 w-4 flex-shrink-0 text-neutral-400" />Workflow automation included</li>
+                  <li className={'flex items-center gap-3 text-ui text-neutral-300'}><Check className="h-4 w-4 flex-shrink-0 text-neutral-400" />Transactional emails included</li>
+                  <li className={'flex items-center gap-3 text-ui text-neutral-300'}><Check className="h-4 w-4 flex-shrink-0 text-neutral-400" />Marketing campaigns included</li>
+                  <li className={'flex items-center gap-3 text-ui text-neutral-300'}><Check className="h-4 w-4 flex-shrink-0 text-neutral-400" />Workflow automation included</li>
                 </ul>
               </motion.div>
-              <motion.div initial={{opacity: 0, x: 20}} whileInView={{opacity: 1, x: 0}} viewport={{once: true}} transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}} className={'rounded-[24px] border border-neutral-200 bg-white p-10'}>
-                <div style={{fontFamily: 'var(--font-mono)'}} className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}>Postmark</div>
+              <motion.div initial={{opacity: 0, x: 20}} whileInView={{opacity: 1, x: 0}} viewport={{once: true}} transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}} className={'rounded-card border border-neutral-200 bg-white p-10'}>
+                <div style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>Postmark</div>
                 <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-2xl font-bold tracking-[-0.025em] text-neutral-900'}>Transactional only</h3>
                 <p className={'mt-3 leading-relaxed text-neutral-600'}>Excellent for transactional emails, but no marketing features. Need a second service for campaigns.</p>
                 <div style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-4xl font-extrabold tracking-[-0.03em] text-neutral-900'}>Limited scope</div>
                 <ul className={'mt-8 space-y-3'}>
-                  <li className={'flex items-center gap-3 text-sm text-neutral-600'}><div className={'h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-400'} />Transactional emails only</li>
-                  <li className={'flex items-center gap-3 text-sm text-neutral-600'}><div className={'h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-400'} />No marketing campaigns</li>
-                  <li className={'flex items-center gap-3 text-sm text-neutral-600'}><div className={'h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-400'} />No workflow automation</li>
+                  <li className={'flex items-center gap-3 text-ui text-neutral-600'}><div className={'h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-400'} />Transactional emails only</li>
+                  <li className={'flex items-center gap-3 text-ui text-neutral-600'}><div className={'h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-400'} />No marketing campaigns</li>
+                  <li className={'flex items-center gap-3 text-ui text-neutral-600'}><div className={'h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-400'} />No workflow automation</li>
                 </ul>
               </motion.div>
             </div>
@@ -134,43 +131,43 @@ export default function PostmarkComparison() {
         <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
           <div className={'mx-auto max-w-[88rem] px-6 py-16 sm:py-20 sm:px-10'}>
             <motion.div initial={{opacity: 0, y: 20}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}} className={'mb-10'}>
-              <h2 style={{fontFamily: 'var(--font-display)'}} className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}>Why Choose Plunk Over Postmark</h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>Do more with one platform instead of two</p>
+              <h2 style={{fontFamily: 'var(--font-display)'}} className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}>Why Choose Plunk Over Postmark</h2>
+              <p className={'mt-4 text-lead text-neutral-600'}>Do more with one platform instead of two</p>
             </motion.div>
             <div className={'grid gap-px bg-neutral-200 sm:grid-cols-2 lg:grid-cols-3'}>
               <motion.div initial={{opacity: 0, y: 20}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1]}} className={'bg-white p-10'}>
                 <div className={'flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-900 text-white'}><BarChart3 className="h-5 w-5" /></div>
-                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-xl font-bold tracking-[-0.02em] text-neutral-900'}>Marketing Campaigns Included</h3>
+                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}>Marketing Campaigns Included</h3>
                 <p className={'mt-3 leading-relaxed text-neutral-600'}>Send newsletters, announcements, and promotional emails without needing a separate marketing platform. One platform, one bill.</p>
               </motion.div>
 
               <motion.div initial={{opacity: 0, y: 20}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1]}} className={'bg-white p-10'}>
                 <div className={'flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-900 text-white'}><Zap className="h-5 w-5" /></div>
-                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-xl font-bold tracking-[-0.02em] text-neutral-900'}>Workflow Automation</h3>
+                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}>Workflow Automation</h3>
                 <p className={'mt-3 leading-relaxed text-neutral-600'}>Build automated email sequences with triggers, delays, and conditions. Onboard users, nurture leads, re-engage customers. All automated.</p>
               </motion.div>
 
               <motion.div initial={{opacity: 0, y: 20}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1]}} className={'bg-white p-10'}>
                 <div className={'flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-900 text-white'}><Users className="h-5 w-5" /></div>
-                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-xl font-bold tracking-[-0.02em] text-neutral-900'}>Dynamic Segmentation</h3>
+                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}>Dynamic Segmentation</h3>
                 <p className={'mt-3 leading-relaxed text-neutral-600'}>Segment your audience based on behavior, properties, and engagement. Send targeted emails to the right people at the right time.</p>
               </motion.div>
 
               <motion.div initial={{opacity: 0, y: 20}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1]}} className={'bg-white p-10'}>
                 <div className={'flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-900 text-white'}><PackageOpen className="h-5 w-5" /></div>
-                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-xl font-bold tracking-[-0.02em] text-neutral-900'}>Open Source & Transparent</h3>
+                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}>Open Source & Transparent</h3>
                 <p className={'mt-3 leading-relaxed text-neutral-600'}>AGPL-3.0 licensed. Inspect the code, contribute features, understand exactly how it works. No proprietary black boxes.</p>
               </motion.div>
 
               <motion.div initial={{opacity: 0, y: 20}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1]}} className={'bg-white p-10'}>
                 <div className={'flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-900 text-white'}><Globe className="h-5 w-5" /></div>
-                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-xl font-bold tracking-[-0.02em] text-neutral-900'}>Self-Hostable</h3>
+                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}>Self-Hostable</h3>
                 <p className={'mt-3 leading-relaxed text-neutral-600'}>Run on your infrastructure with Docker. Full data control, compliance-ready, cost-optimized. Postmark is cloud-only.</p>
               </motion.div>
 
               <motion.div initial={{opacity: 0, y: 20}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.5, delay: 0.6, ease: [0.22, 1, 0.36, 1]}} className={'bg-white p-10'}>
                 <div className={'flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-900 text-white'}><DollarSign className="h-5 w-5" /></div>
-                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-xl font-bold tracking-[-0.02em] text-neutral-900'}>Pay-As-You-Go Pricing</h3>
+                <h3 style={{fontFamily: 'var(--font-display)'}} className={'mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}>Pay-As-You-Go Pricing</h3>
                 <p className={'mt-3 leading-relaxed text-neutral-600'}>Simple per-email pricing with all features included. No separate charges for transactional vs marketing emails. No tiers, no commitments.</p>
               </motion.div>
             </div>
@@ -181,7 +178,7 @@ export default function PostmarkComparison() {
         <section className={'border-t border-neutral-200'}>
           <div className={'mx-auto max-w-[88rem] px-6 py-16 sm:py-20 sm:px-10'}>
             <motion.div initial={{opacity: 0, y: 20}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}} className={'mb-10'}>
-              <h2 style={{fontFamily: 'var(--font-display)'}} className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}>Feature comparison</h2>
+              <h2 style={{fontFamily: 'var(--font-display)'}} className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}>Feature comparison</h2>
             </motion.div>
             <ComparisonTable competitorName="Postmark" rows={comparisonData} />
           </div>
@@ -196,16 +193,16 @@ export default function PostmarkComparison() {
         <section className={'relative overflow-hidden border-t border-neutral-900 bg-neutral-900 text-white'}>
           <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
             <div className={'flex flex-col items-start gap-12 lg:flex-row lg:items-end lg:justify-between'}>
-              <motion.h2 initial={{opacity: 0, y: 16}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}} style={{fontFamily: 'var(--font-display)'}} className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}>
+              <motion.h2 initial={{opacity: 0, y: 16}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}} style={{fontFamily: 'var(--font-display)'}} className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}>
                 Get more from your email platform
               </motion.h2>
               <motion.div initial={{opacity: 0, y: 16}} whileInView={{opacity: 1, y: 0}} viewport={{once: true}} transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}} className={'flex max-w-md flex-col gap-6'}>
-                <p className={'text-base text-neutral-300 sm:text-lg'}>Stop juggling multiple tools. Get transactional reliability plus marketing power in one platform. Start free.</p>
+                <p className={'text-lead text-neutral-300'}>Stop juggling multiple tools. Get transactional reliability plus marketing power in one platform. Start free.</p>
                 <div className={'flex flex-wrap gap-3'}>
-                  <motion.a whileHover={{scale: 1.015}} whileTap={{scale: 0.985}} href={`${DASHBOARD_URI}/auth/signup`} className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}>
+                  <motion.a whileHover={{scale: 1.015}} whileTap={{scale: 0.985}} href={`${DASHBOARD_URI}/auth/signup`} className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}>
                     Get started free <ArrowRight className="h-4 w-4" />
                   </motion.a>
-                  <Link href={'/pricing'} className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}>
+                  <Link href={'/pricing'} className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}>
                     View pricing
                   </Link>
                 </div>

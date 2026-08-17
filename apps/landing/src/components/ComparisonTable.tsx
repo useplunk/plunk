@@ -15,16 +15,16 @@ interface ComparisonTableProps {
 
 export function ComparisonTable({competitorName, rows}: ComparisonTableProps) {
   return (
-    <div className={'overflow-hidden rounded-[24px] border border-neutral-200'}>
+    <div className={'overflow-hidden rounded-card border border-neutral-200'}>
       <div className={'grid grid-cols-3 gap-px bg-neutral-200'}>
         <div className={'bg-neutral-50 p-6'}>
-          <span style={{fontFamily: 'var(--font-mono)'}} className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}>Feature</span>
+          <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>Feature</span>
         </div>
         <div className={'bg-neutral-900 p-6 text-center'}>
-          <span style={{fontFamily: 'var(--font-mono)'}} className={'text-[11px] uppercase tracking-[0.18em] text-white'}>Plunk</span>
+          <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-white'}>Plunk</span>
         </div>
         <div className={'bg-neutral-50 p-6 text-center'}>
-          <span style={{fontFamily: 'var(--font-mono)'}} className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}>{competitorName}</span>
+          <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>{competitorName}</span>
         </div>
       </div>
 
@@ -39,7 +39,7 @@ export function ComparisonTable({competitorName, rows}: ComparisonTableProps) {
             className={'grid grid-cols-3 gap-px bg-neutral-200'}
           >
             <div className={'bg-white p-6'}>
-              <span className={'text-sm text-neutral-700'}>{row.feature}</span>
+              <span className={'text-ui text-neutral-700'}>{row.feature}</span>
             </div>
             <div className={'bg-neutral-50/70 p-6'}>
               <div className={'flex justify-center'}>
@@ -50,7 +50,7 @@ export function ComparisonTable({competitorName, rows}: ComparisonTableProps) {
                     <X className="h-5 w-5 text-neutral-300" strokeWidth={2} />
                   )
                 ) : (
-                  <span className={'text-sm font-medium text-neutral-900'}>{row.plunk}</span>
+                  <span className={'text-ui font-medium text-neutral-900'}>{row.plunk}</span>
                 )}
               </div>
             </div>
@@ -63,7 +63,7 @@ export function ComparisonTable({competitorName, rows}: ComparisonTableProps) {
                     <X className="h-5 w-5 text-neutral-300" strokeWidth={2} />
                   )
                 ) : (
-                  <span className={'text-sm text-neutral-600'}>{row.competitor}</span>
+                  <span className={'text-ui text-neutral-600'}>{row.competitor}</span>
                 )}
               </div>
             </div>

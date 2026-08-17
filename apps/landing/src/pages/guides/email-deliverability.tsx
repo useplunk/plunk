@@ -36,7 +36,7 @@ export default function EmailDeliverability() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="text-3xl font-bold text-green-600 mb-2">95%+</div>
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Excellent</h3>
-            <p className="text-sm text-neutral-700">
+            <p className="text-ui text-neutral-700">
               Strong sender reputation, proper authentication, engaged audience
             </p>
           </div>
@@ -44,13 +44,13 @@ export default function EmailDeliverability() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="text-3xl font-bold text-amber-600 mb-2">85-94%</div>
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Good</h3>
-            <p className="text-sm text-neutral-700">Room for improvement in authentication or engagement</p>
+            <p className="text-ui text-neutral-700">Room for improvement in authentication or engagement</p>
           </div>
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="text-3xl font-bold text-red-600 mb-2">&lt;85%</div>
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Poor</h3>
-            <p className="text-sm text-neutral-700">Serious issues requiring immediate attention</p>
+            <p className="text-ui text-neutral-700">Serious issues requiring immediate attention</p>
           </div>
         </div>
 
@@ -122,7 +122,7 @@ export default function EmailDeliverability() {
             <h3 className="text-xl font-semibold text-neutral-900 mb-4">Authentication & Technical Setup</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
                   1
                 </div>
                 <div>
@@ -135,7 +135,7 @@ export default function EmailDeliverability() {
               </div>
 
               <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
                   2
                 </div>
                 <div>
@@ -148,7 +148,7 @@ export default function EmailDeliverability() {
               </div>
 
               <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
                   3
                 </div>
                 <div>
@@ -166,7 +166,7 @@ export default function EmailDeliverability() {
             <h3 className="text-xl font-semibold text-neutral-900 mb-4">List Management</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
                   4
                 </div>
                 <div>
@@ -179,7 +179,7 @@ export default function EmailDeliverability() {
               </div>
 
               <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
                   5
                 </div>
                 <div>
@@ -192,7 +192,7 @@ export default function EmailDeliverability() {
               </div>
 
               <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
                   6
                 </div>
                 <div>
@@ -210,7 +210,7 @@ export default function EmailDeliverability() {
             <h3 className="text-xl font-semibold text-neutral-900 mb-4">Content Best Practices</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
                   7
                 </div>
                 <div>
@@ -223,7 +223,7 @@ export default function EmailDeliverability() {
               </div>
 
               <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
                   8
                 </div>
                 <div>
@@ -236,7 +236,7 @@ export default function EmailDeliverability() {
               </div>
 
               <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
                   9
                 </div>
                 <div>
@@ -290,8 +290,8 @@ export default function EmailDeliverability() {
             </p>
           </div>
 
-          <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-6">
-            <h3 className="text-xl font-semibold text-purple-900 mb-3">Problem: Blacklisted IP or Domain</h3>
+          <div className="rounded-xl border-2 border-neutral-200 bg-neutral-50 p-6">
+            <h3 className="text-xl font-semibold text-neutral-900 mb-3">Problem: Blacklisted IP or Domain</h3>
             <p className="text-neutral-700 mb-3">
               <strong>Causes:</strong> Spam complaints, sending to spam traps, compromised account
             </p>
@@ -355,21 +355,21 @@ export default function EmailDeliverability() {
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is DKIM?</h3>
-            <p className="text-sm text-neutral-600">Learn about DKIM email authentication.</p>
+            <p className="text-ui text-neutral-600">Learn about DKIM email authentication.</p>
           </Link>
           <Link
             href="/guides/what-is-spf"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is SPF?</h3>
-            <p className="text-sm text-neutral-600">Understand SPF records and sender authorization.</p>
+            <p className="text-ui text-neutral-600">Understand SPF records and sender authorization.</p>
           </Link>
           <Link
             href="/guides/email-sender-reputation"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Sender Reputation</h3>
-            <p className="text-sm text-neutral-600">Build and maintain sender reputation.</p>
+            <p className="text-ui text-neutral-600">Build and maintain sender reputation.</p>
           </Link>
         </div>
       </section>

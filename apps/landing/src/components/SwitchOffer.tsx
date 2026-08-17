@@ -64,7 +64,7 @@ export function SwitchOffer({competitorName}: SwitchOfferProps) {
                 <Gift className="h-3 w-3 text-neutral-700" />
                 <span
                   style={{fontFamily: 'var(--font-mono)'}}
-                  className={'text-[10px] uppercase tracking-[0.18em] text-neutral-600'}
+                  className={'text-label text-neutral-600'}
                 >
                   Switching offer
                 </span>

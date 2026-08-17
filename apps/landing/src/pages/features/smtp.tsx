@@ -112,25 +112,17 @@ export default function SMTPFeature() {
               animate={{opacity: 1, y: 0}}
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
             >
-              <div
-                style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-10 border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700'}
-              >
-                <span className={'text-neutral-400'}>Features</span>
-                <span className={'mx-3 text-neutral-300'}>—</span>
-                <span className={'font-medium text-neutral-900'}>SMTP</span>
-              </div>
               <h1
                 style={{fontFamily: 'var(--font-display)'}}
                 className={
-                  'text-[clamp(2.75rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
+                  'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
                 }
               >
                 Send via SMTP
                 <br />
                 or API. Your call.
               </h1>
-              <p className={'mt-6 max-w-2xl text-xl text-neutral-600'}>
+              <p className={'mt-6 max-w-2xl text-lead text-neutral-600'}>
                 Use our HTTP API for modern apps or drop in SMTP credentials for any legacy system. Same deliverability,
                 same pricing, zero lock-in.
               </p>
@@ -148,7 +140,7 @@ export default function SMTPFeature() {
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </motion.a>
                 <Link
-                  href={WIKI_URI}
+                  href={`${WIKI_URI}/docs/guides/smtp`}
                   target={'_blank'}
                   className={
                     'inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-8 py-4 text-base font-semibold text-neutral-900 transition hover:border-neutral-900'
@@ -173,11 +165,11 @@ export default function SMTPFeature() {
             >
               <h2
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
+                className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
               >
                 SMTP that works with everything
               </h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>
+              <p className={'mt-4 text-lead text-neutral-600'}>
                 Full authentication, tracking, and deliverability out of the box
               </p>
             </motion.div>
@@ -194,27 +186,19 @@ export default function SMTPFeature() {
                     transition={{duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1]}}
                     className={
                       highlighted
-                        ? 'flex min-h-[16rem] flex-col justify-between rounded-[28px] border border-neutral-900 bg-neutral-900 p-8 text-white'
-                        : 'flex min-h-[16rem] flex-col justify-between rounded-[28px] border border-neutral-200 bg-white p-8 transition hover:border-neutral-900'
+                        ? 'flex min-h-[16rem] flex-col justify-between rounded-card border border-neutral-900 bg-neutral-900 p-8 text-white'
+                        : 'flex min-h-[16rem] flex-col justify-between rounded-card border border-neutral-200 bg-white p-8 transition hover:border-neutral-900'
                     }
                   >
-                    <div className={'flex items-start justify-between'}>
                       <div className={highlighted ? 'text-white' : 'text-neutral-900'}>{feature.icon}</div>
-                      <span
-                        style={{fontFamily: 'var(--font-mono)'}}
-                        className={`text-[11px] uppercase tracking-[0.18em] ${highlighted ? 'text-neutral-500' : 'text-neutral-400'}`}
-                      >
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
-                    </div>
                     <div>
                       <h3
                         style={{fontFamily: 'var(--font-display)'}}
-                        className={`mt-8 text-xl font-bold tracking-[-0.02em] ${highlighted ? 'text-white' : 'text-neutral-900'}`}
+                        className={`mt-8 text-h3 font-bold tracking-[-0.02em] ${highlighted ? 'text-white' : 'text-neutral-900'}`}
                       >
                         {feature.title}
                       </h3>
-                      <p className={`mt-2 text-sm leading-relaxed ${highlighted ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                      <p className={`mt-2 leading-relaxed ${highlighted ? 'text-neutral-300' : 'text-neutral-600'}`}>
                         {feature.description}
                       </p>
                     </div>
@@ -237,36 +221,36 @@ export default function SMTPFeature() {
             >
               <h2
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
+                className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
               >
                 SMTP vs API
               </h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>Choose the right option for your use case</p>
+              <p className={'mt-4 text-lead text-neutral-600'}>Choose the right option for your use case</p>
             </motion.div>
 
-            <div className={'overflow-hidden rounded-[24px] border border-neutral-200 bg-white'}>
+            <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
               <table className={'w-full'}>
                 <thead className={'border-b border-neutral-200 bg-neutral-50'}>
                   <tr>
-                    <th className={'px-6 py-4 text-left text-sm font-semibold text-neutral-900'}>Feature</th>
-                    <th className={'px-6 py-4 text-center text-sm font-semibold text-neutral-500'}>Traditional SMTP</th>
-                    <th className={'bg-neutral-900 px-6 py-4 text-center text-sm font-semibold text-white'}>Plunk SMTP</th>
-                    <th className={'px-6 py-4 text-center text-sm font-semibold text-neutral-500'}>Plunk API</th>
+                    <th className={'px-6 py-4 text-left font-semibold text-neutral-900'}>Feature</th>
+                    <th className={'px-6 py-4 text-center font-semibold text-neutral-500'}>Traditional SMTP</th>
+                    <th className={'bg-neutral-900 px-6 py-4 text-center font-semibold text-white'}>Plunk SMTP</th>
+                    <th className={'px-6 py-4 text-center font-semibold text-neutral-500'}>Plunk API</th>
                   </tr>
                 </thead>
                 <tbody className={'divide-y divide-neutral-100'}>
                   {comparisonData.map((row, index) => (
                     <tr key={index} className={'transition hover:bg-neutral-50'}>
-                      <td className={'px-6 py-4 text-sm font-medium text-neutral-900'}>{row.feature}</td>
-                      <td className={'px-6 py-4 text-center text-sm text-neutral-500'}>{row.traditional}</td>
-                      <td className={'bg-neutral-50 px-6 py-4 text-center text-sm font-semibold text-neutral-900'}>{row.plunkSMTP}</td>
-                      <td className={'px-6 py-4 text-center text-sm text-neutral-500'}>{row.plunkAPI}</td>
+                      <td className={'px-6 py-4 font-medium text-neutral-900'}>{row.feature}</td>
+                      <td className={'px-6 py-4 text-center text-neutral-500'}>{row.traditional}</td>
+                      <td className={'bg-neutral-50 px-6 py-4 text-center font-semibold text-neutral-900'}>{row.plunkSMTP}</td>
+                      <td className={'px-6 py-4 text-center text-neutral-500'}>{row.plunkAPI}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className={'mt-4 text-sm text-neutral-500'}>
+            <p className={'mt-4 text-neutral-500'}>
               Recommendation: Use the API for modern applications with workflow automation. Use SMTP for email clients
               and legacy systems.
             </p>
@@ -285,11 +269,11 @@ export default function SMTPFeature() {
             >
               <h2
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2rem,5vw,4rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
+                className={'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'}
               >
                 When to use SMTP
               </h2>
-              <p className={'mt-4 text-lg text-neutral-600'}>Perfect for these scenarios</p>
+              <p className={'mt-4 text-lead text-neutral-600'}>Perfect for these scenarios</p>
             </motion.div>
 
             <ul className={'divide-y divide-neutral-200 border-y border-neutral-200'}>
@@ -302,15 +286,9 @@ export default function SMTPFeature() {
                   transition={{duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1]}}
                   className={'grid grid-cols-12 gap-6 py-10 sm:py-12'}
                 >
-                  <span
-                    style={{fontFamily: 'var(--font-mono)'}}
-                    className={'col-span-12 text-[11px] uppercase tracking-[0.18em] text-neutral-400 sm:col-span-1 sm:pt-1.5'}
-                  >
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
                   <h3
                     style={{fontFamily: 'var(--font-display)'}}
-                    className={'col-span-12 text-xl font-bold tracking-[-0.02em] text-neutral-900 sm:col-span-3'}
+                    className={'col-span-12 text-h3 font-bold tracking-[-0.02em] text-neutral-900 sm:col-span-4'}
                   >
                     {useCase.title}
                   </h3>
@@ -318,7 +296,7 @@ export default function SMTPFeature() {
                     <p className={'leading-relaxed text-neutral-600'}>{useCase.description}</p>
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'mt-5 inline-block text-[11px] uppercase tracking-[0.16em] text-neutral-400'}
+                      className={'mt-5 inline-block text-label text-neutral-500'}
                     >
                       → {useCase.benefit}
                     </span>
@@ -339,7 +317,7 @@ export default function SMTPFeature() {
                 viewport={{once: true}}
                 transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
               >
                 Start sending via SMTP today.
               </motion.h2>
@@ -350,7 +328,7 @@ export default function SMTPFeature() {
                 transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                 className={'flex max-w-md flex-col gap-6'}
               >
-                <p className={'text-base text-neutral-300 sm:text-lg'}>
+                <p className={'text-lead text-neutral-300'}>
                   Get your SMTP credentials and start sending from any client or application. No credit card required.
                 </p>
                 <div className={'flex flex-wrap gap-3'}>
@@ -358,14 +336,14 @@ export default function SMTPFeature() {
                     whileHover={{scale: 1.015}}
                     whileTap={{scale: 0.985}}
                     href={`${DASHBOARD_URI}/auth/signup`}
-                    className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}
+                    className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
                   >
                     Get started for free
                     <ArrowRight className="h-4 w-4" />
                   </motion.a>
                   <Link
                     href={'/pricing'}
-                    className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}
+                    className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
                   >
                     View pricing
                   </Link>

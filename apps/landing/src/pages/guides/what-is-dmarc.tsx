@@ -132,51 +132,51 @@ export default function WhatIsDMARC() {
               <table className="w-full">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-900">Tag</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-900">Description</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-900">Required</th>
+                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Tag</th>
+                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Description</th>
+                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Required</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">v</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">DMARC version (always DMARC1)</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Yes</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">v</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">DMARC version (always DMARC1)</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Yes</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">p</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Policy: none, quarantine, or reject</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Yes</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">p</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Policy: none, quarantine, or reject</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Yes</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">rua</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Aggregate report email address</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Recommended</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">rua</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Aggregate report email address</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Recommended</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">ruf</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Forensic report email address</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Optional</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">ruf</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Forensic report email address</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">pct</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Percentage of mail to filter (0-100)</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Optional</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">pct</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Percentage of mail to filter (0-100)</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">sp</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Policy for subdomains</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Optional</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">sp</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Policy for subdomains</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">adkim</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">DKIM alignment: r (relaxed) or s (strict)</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Optional</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">adkim</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">DKIM alignment: r (relaxed) or s (strict)</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-mono text-sm text-neutral-900">aspf</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">SPF alignment: r (relaxed) or s (strict)</td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">Optional</td>
+                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">aspf</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">SPF alignment: r (relaxed) or s (strict)</td>
+                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
                   </tr>
                 </tbody>
               </table>
@@ -205,7 +205,7 @@ export default function WhatIsDMARC() {
                   authentication without affecting delivery.
                 </p>
                 <CodeBlock language="dns" code={`v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com`} showCopy={false} />
-                <p className="text-sm text-neutral-600 mt-3">
+                <p className="text-ui text-neutral-600 mt-3">
                   <strong>Best for:</strong> Initial setup, gathering data, testing configuration
                 </p>
               </div>
@@ -228,7 +228,7 @@ export default function WhatIsDMARC() {
                   code={`v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com; pct=100`}
                   showCopy={false}
                 />
-                <p className="text-sm text-neutral-600 mt-3">
+                <p className="text-ui text-neutral-600 mt-3">
                   <strong>Best for:</strong> After monitoring, when you're confident in your setup
                 </p>
               </div>
@@ -251,7 +251,7 @@ export default function WhatIsDMARC() {
                   code={`v=DMARC1; p=reject; rua=mailto:dmarc@yourdomain.com; pct=100`}
                   showCopy={false}
                 />
-                <p className="text-sm text-neutral-600 mt-3">
+                <p className="text-ui text-neutral-600 mt-3">
                   <strong>Best for:</strong> Mature implementations with complete authentication coverage
                 </p>
               </div>
@@ -273,7 +273,7 @@ export default function WhatIsDMARC() {
 
         <div className="space-y-4 mb-8">
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div>
@@ -286,7 +286,7 @@ export default function WhatIsDMARC() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div>
@@ -299,7 +299,7 @@ export default function WhatIsDMARC() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div>
@@ -310,7 +310,7 @@ export default function WhatIsDMARC() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div>
@@ -322,7 +322,7 @@ export default function WhatIsDMARC() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               5
             </div>
             <div>
@@ -335,7 +335,7 @@ export default function WhatIsDMARC() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               6
             </div>
             <div>
@@ -358,21 +358,21 @@ export default function WhatIsDMARC() {
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is DKIM?</h3>
-            <p className="text-sm text-neutral-600">Learn how DKIM authenticates email content.</p>
+            <p className="text-ui text-neutral-600">Learn how DKIM authenticates email content.</p>
           </Link>
           <Link
             href="/guides/what-is-spf"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is SPF?</h3>
-            <p className="text-sm text-neutral-600">Understand SPF records and server authorization.</p>
+            <p className="text-ui text-neutral-600">Understand SPF records and server authorization.</p>
           </Link>
           <Link
             href="/guides/email-deliverability"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability Guide</h3>
-            <p className="text-sm text-neutral-600">Complete guide to improving email deliverability.</p>
+            <p className="text-ui text-neutral-600">Complete guide to improving email deliverability.</p>
           </Link>
         </div>
       </section>

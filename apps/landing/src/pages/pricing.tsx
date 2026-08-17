@@ -113,12 +113,12 @@ export default function Pricing() {
               <h1
                 style={{fontFamily: 'var(--font-display)'}}
                 className={
-                  'text-[clamp(2.75rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
+                  'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
                 }
               >
                 Simple, transparent pricing
               </h1>
-              <p className={'mx-auto mt-6 max-w-2xl text-xl text-neutral-600'}>
+              <p className={'mx-auto mt-6 max-w-2xl text-lead text-neutral-600'}>
                 Free plan: 1,000 emails per month. Paid plan: $0.001 per email. Unlimited contacts, no hidden fees.
               </p>
             </motion.div>
@@ -138,7 +138,7 @@ export default function Pricing() {
               >
                 <p
                   style={{fontFamily: 'var(--font-mono)'}}
-                  className={'text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400'}
+                  className={'text-label font-semibold text-neutral-500'}
                 >
                   Free forever
                 </p>
@@ -151,7 +151,7 @@ export default function Pricing() {
                   </span>
                   <span className={'text-lg text-neutral-500'}>emails / mo</span>
                 </div>
-                <p className={'mt-2 text-sm text-neutral-500'}>No credit card required</p>
+                <p className={'mt-2 text-ui text-neutral-500'}>No credit card required</p>
 
                 <ul className={'mt-8 flex-1 space-y-3'}>
                   {[
@@ -162,12 +162,12 @@ export default function Pricing() {
                     'Click & open tracking',
                     'Unlimited contacts',
                   ].map(item => (
-                    <li key={item} className={'flex items-center gap-3 text-sm text-neutral-600'}>
+                    <li key={item} className={'flex items-center gap-3 text-ui text-neutral-600'}>
                       <Check className={'h-4 w-4 flex-shrink-0 text-neutral-900'} />
                       {item}
                     </li>
                   ))}
-                  <li className={'flex items-center gap-3 text-sm text-neutral-400'}>
+                  <li className={'flex items-center gap-3 text-ui text-neutral-500'}>
                     <X className={'h-4 w-4 flex-shrink-0'} />
                     Plunk branding on emails
                   </li>
@@ -178,7 +178,7 @@ export default function Pricing() {
                   whileHover={{scale: 1.02}}
                   whileTap={{scale: 0.98}}
                   className={
-                    'mt-10 block w-full rounded-full border border-neutral-300 px-6 py-3 text-center text-sm font-semibold text-neutral-900 transition hover:border-neutral-900'
+                    'mt-10 block w-full rounded-full border border-neutral-300 px-6 py-3 text-center text-ui font-semibold text-neutral-900 transition hover:border-neutral-900'
                   }
                 >
                   Start for free
@@ -194,7 +194,7 @@ export default function Pricing() {
               >
                 <p
                   style={{fontFamily: 'var(--font-mono)'}}
-                  className={'text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400'}
+                  className={'text-label font-semibold text-neutral-400'}
                 >
                   Pay as you grow
                 </p>
@@ -207,11 +207,11 @@ export default function Pricing() {
                   </span>
                   <span className={'text-lg text-neutral-400'}>/ email</span>
                 </div>
-                <p className={'mt-2 text-sm'}>&nbsp;</p>
+                <p className={'mt-2 text-ui'}>&nbsp;</p>
 
                 <ul className={'mt-8 flex-1 space-y-3'}>
                   {['Everything in Free', 'No Plunk branding', 'Monthly spend cap', 'Unlimited emails'].map(item => (
-                    <li key={item} className={'flex items-center gap-3 text-sm text-neutral-300'}>
+                    <li key={item} className={'flex items-center gap-3 text-ui text-neutral-300'}>
                       <Check className={'h-4 w-4 flex-shrink-0 text-white'} />
                       {item}
                     </li>
@@ -223,7 +223,7 @@ export default function Pricing() {
                   whileHover={{scale: 1.02}}
                   whileTap={{scale: 0.98}}
                   className={
-                    'mt-10 block w-full rounded-full bg-white px-6 py-3 text-center text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'
+                    'mt-10 block w-full rounded-full bg-white px-6 py-3 text-center text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'
                   }
                 >
                   Get started
@@ -237,8 +237,6 @@ export default function Pricing() {
         <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
           <div className={'mx-auto max-w-[88rem] px-6 py-20 sm:px-10'}>
             <SectionHeader
-              number={'01'}
-              label={'Included'}
               title={'Every feature, every plan.'}
               subtitle={'No feature tiers, no add-ons, no surprises.'}
             />
@@ -259,7 +257,7 @@ export default function Pricing() {
                   >
                     {feature.title}
                   </h3>
-                  <p className={'text-sm leading-relaxed text-neutral-600'}>{feature.description}</p>
+                  <p className={'text-ui leading-relaxed text-neutral-600'}>{feature.description}</p>
                 </motion.li>
               ))}
             </ul>
@@ -274,13 +272,13 @@ export default function Pricing() {
               whileInView={{opacity: 1, y: 0}}
               viewport={{once: true}}
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'overflow-hidden rounded-[24px] border border-neutral-200 bg-white'}
+              className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}
             >
               <div className={'flex flex-col items-center gap-6 p-10 sm:flex-row sm:gap-0'}>
                 <div className={'flex-1 text-center sm:text-left'}>
                   <div
                     style={{fontFamily: 'var(--font-mono)'}}
-                    className={'mb-3 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                    className={'mb-3 inline-flex items-center gap-2 text-label text-neutral-500'}
                   >
                     <PackageOpen className={'h-3.5 w-3.5'} />
                     Self-hostable
@@ -324,7 +322,7 @@ export default function Pricing() {
                 viewport={{once: true}}
                 transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
               >
                 Start sending in 5 minutes.
               </motion.h2>
@@ -336,7 +334,7 @@ export default function Pricing() {
                 transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                 className={'flex max-w-md flex-col gap-6'}
               >
-                <p className={'text-base text-neutral-300 sm:text-lg'}>
+                <p className={'text-lead text-neutral-300'}>
                   Start free. No credit card required.
                 </p>
                 <div className={'flex flex-wrap gap-3'}>
@@ -345,7 +343,7 @@ export default function Pricing() {
                     whileTap={{scale: 0.985}}
                     href={`${DASHBOARD_URI}/auth/signup`}
                     className={
-                      'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'
+                      'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'
                     }
                   >
                     Create free account
@@ -355,7 +353,7 @@ export default function Pricing() {
                     href={'https://github.com/useplunk/plunk'}
                     target={'_blank'}
                     className={
-                      'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'
+                      'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'
                     }
                   >
                     Self-host for free

@@ -5,16 +5,16 @@ import React from 'react';
 import Link from 'next/link';
 import {NextSeo} from 'next-seo';
 import {ArrowRight, ArrowUpRight, Code2, FileText, Key, Mail, Search, Shield, ShieldAlert, ShieldCheck} from 'lucide-react';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -117,17 +117,6 @@ export default function ToolsIndex() {
             />
 
             <div className={'mx-auto max-w-[88rem] px-6 pb-24 pt-20 sm:px-10 sm:pt-28 lg:pb-36'}>
-              <motion.div
-                initial={{opacity: 0, y: 8}}
-                animate={{opacity: 1, y: 0}}
-                transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
-                style={{fontFamily: 'var(--font-mono)'}}
-                className={
-                  'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700 sm:mb-24'
-                }
-              >
-                <span className={'font-medium text-neutral-900'}>§ Tools &nbsp;— &nbsp;Plunk</span>
-              </motion.div>
 
               <motion.div
                 initial={{opacity: 0, y: 16}}
@@ -138,7 +127,7 @@ export default function ToolsIndex() {
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
                   className={
-                    'text-[clamp(3rem,9vw,8rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
+                    'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
                   }
                 >
                   Free email
@@ -177,8 +166,6 @@ export default function ToolsIndex() {
           {/* ========== TOOLS LIST ========== */}
           <section className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
             <SectionHeader
-              number={'01'}
-              label={'Tools'}
               title={'Available tools.'}
               subtitle={'Everything you need to work with email. No sign-up, no limits.'}
             />
@@ -201,7 +188,7 @@ export default function ToolsIndex() {
                     <div className={'flex items-center gap-6 sm:gap-10'}>
                       <span
                         style={{fontFamily: 'var(--font-mono)'}}
-                        className={'w-12 text-xs tabular-nums tracking-[0.18em] text-neutral-400 sm:w-16'}
+                        className={'w-12 text-xs tabular-nums tracking-[0.18em] text-neutral-500 sm:w-16'}
                       >
                         {tool.number}
                       </span>
@@ -214,14 +201,14 @@ export default function ToolsIndex() {
                         >
                           {tool.name}
                         </span>
-                        <p className={'mt-2 text-sm text-neutral-500'}>{tool.description}</p>
+                        <p className={'mt-2 text-ui text-neutral-500'}>{tool.description}</p>
                       </div>
                     </div>
                     <div className={'flex items-center gap-4'}>
                       <span
                         style={{fontFamily: 'var(--font-mono)'}}
                         className={
-                          'hidden text-xs uppercase tracking-[0.18em] text-neutral-500 transition group-hover:text-neutral-900 sm:inline'
+                          'hidden text-xs text-neutral-500 transition group-hover:text-neutral-900 sm:inline'
                         }
                       >
                         Open tool
@@ -244,8 +231,6 @@ export default function ToolsIndex() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'02'}
-                label={'Why'}
                 title={'Built for developers,'}
                 titleAccent={'free forever.'}
                 subtitle={'No sign-up, no paywalls. Tools built by email experts for real-world workflows.'}
@@ -282,7 +267,7 @@ export default function ToolsIndex() {
                   >
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.2em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       / {item.tag}
                     </span>
@@ -317,7 +302,7 @@ export default function ToolsIndex() {
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
                   className={
-                    'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'
+                    'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'
                   }
                 >
                   Need production-grade email?
@@ -330,7 +315,7 @@ export default function ToolsIndex() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Templates, scheduling, automation, analytics, and deliverability. Start free, scale as you grow.
                   </p>
                   <div className={'flex flex-wrap gap-3'}>
@@ -339,7 +324,7 @@ export default function ToolsIndex() {
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
                       className={
-                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'
+                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'
                       }
                     >
                       Start with Plunk
@@ -348,7 +333,7 @@ export default function ToolsIndex() {
                     <Link
                       href="/pricing"
                       className={
-                        'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'
+                        'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'
                       }
                     >
                       View pricing

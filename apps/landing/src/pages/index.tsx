@@ -1,6 +1,7 @@
-import {Footer, Navbar, SectionHeader} from '../components';
+import {AgentExchange, Artifact, Footer, Label, Navbar, SectionHeader} from '../components';
+import type {Exchange} from '../components';
 import {motion} from 'framer-motion';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import {DASHBOARD_URI, LANDING_URI, WIKI_URI} from '../lib/constants';
 import React from 'react';
 import {NextSeo} from 'next-seo';
@@ -29,14 +30,14 @@ import {
   Workflow,
 } from 'lucide-react';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -151,6 +152,17 @@ const tickerItems = [
   '5,000+ GitHub Stars',
   'EU Hosted',
 ];
+
+/**
+ * The homepage MCP demo. Tool names are the ones @plunk/mcp actually registers,
+ * and the confirmation gate is real behaviour: a campaign send asks first and
+ * reports how many people it would reach.
+ */
+const mcpExchange: Exchange = {
+  prompt: 'Draft a win-back email for pro users who have gone quiet.',
+  tools: ['plunk_list_segments', 'plunk_list_contacts', 'plunk_create_campaign'],
+  result: {title: 'Win-back, August', recipients: 2431},
+};
 
 export default function Index() {
   return (
@@ -295,7 +307,7 @@ export default function Index() {
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
                   className={
-                    'text-[clamp(3rem,9vw,8rem)] font-extrabold leading-none tracking-[-0.04em] text-neutral-900'
+                    'text-display font-extrabold leading-none tracking-[-0.04em] text-neutral-900'
                   }
                 >
                   The open-source
@@ -357,7 +369,7 @@ export default function Index() {
                     </div>
                     <div
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       {stat.label}
                     </div>
@@ -379,7 +391,7 @@ export default function Index() {
               >
                 <span
                   style={{fontFamily: 'var(--font-mono)'}}
-                  className={'text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                  className={'text-label text-neutral-500'}
                 >
                   Built into products at
                 </span>
@@ -401,7 +413,7 @@ export default function Index() {
                       {c.label && (
                         <span
                           style={{fontFamily: 'var(--font-mono)'}}
-                          className={'text-[10px] uppercase tracking-[0.18em] text-neutral-400 transition-colors duration-300 group-hover:text-neutral-600'}
+                          className={'text-label text-neutral-500 transition-colors duration-300 group-hover:text-neutral-600'}
                         >
                           {c.label}
                         </span>
@@ -450,8 +462,6 @@ export default function Index() {
           {/* ========== COMPETITORS — EDITORIAL LIST ========== */}
           <section className={'mx-auto max-w-[88rem] px-6 py-20 sm:px-10 sm:py-28'}>
             <SectionHeader
-              number={'02'}
-              label={'The Alternatives'}
               title={'Replace your email stack'}
               subtitle={'One tool in place of Resend, SendGrid, Mailchimp, Customer.io, and Mailgun.'}
             />
@@ -473,31 +483,18 @@ export default function Index() {
                   >
                     <div className={'flex items-center gap-6 sm:gap-10'}>
                       <span
-                        style={{fontFamily: 'var(--font-mono)'}}
-                        className={'w-12 text-xs tabular-nums tracking-[0.18em] text-neutral-400 sm:w-16'}
-                      >
-                        {String(i + 1).padStart(3, '0')}
-                      </span>
-                      <span
                         style={{fontFamily: 'var(--font-display)'}}
                         className={
-                          'text-3xl font-semibold tracking-[-0.025em] text-neutral-900 transition-transform duration-300 group-hover:-translate-x-1 sm:text-4xl lg:text-5xl'
+                          'text-3xl font-semibold tracking-[-0.025em] text-neutral-900 transition-transform duration-300 group-hover:translate-x-1 sm:text-4xl lg:text-5xl'
                         }
                       >
                         {c.name}
                       </span>
                     </div>
                     <div className={'flex items-center gap-5'}>
-                      <span
-                        style={{fontFamily: 'var(--font-mono)'}}
-                        className={
-                          'hidden text-[11px] uppercase tracking-[0.18em] text-neutral-400 transition group-hover:text-neutral-900 sm:inline'
-                        }
-                      >
-                        vs Plunk
-                      </span>
+                      <Label className={'hidden transition group-hover:text-neutral-900 sm:inline'}>vs Plunk</Label>
                       <ArrowUpRight
-                        className={'h-5 w-5 text-neutral-400 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-900 sm:h-6 sm:w-6'}
+                        className={'h-5 w-5 text-neutral-500 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-900 sm:h-6 sm:w-6'}
                         strokeWidth={1.75}
                       />
                     </div>
@@ -511,8 +508,6 @@ export default function Index() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'03'}
-                label={'The Problem'}
                 title={'Simple to start. Serious at scale.'}
                 subtitle={'Easy enough for a side project. Ready for the business it becomes.'}
               />
@@ -548,7 +543,7 @@ export default function Index() {
                   >
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.2em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       / {item.tag}
                     </span>
@@ -570,8 +565,6 @@ export default function Index() {
           {/* ========== FEATURES — BENTO ========== */}
           <section className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
             <SectionHeader
-              number={'04'}
-              label={'Capabilities'}
               title={'Everything you need.'}
               titleAccent={'Nothing you don\u2019t.'}
               subtitle={'Every Plunk install ships with the full platform — no upsell pages, no locked modules.'}
@@ -589,30 +582,20 @@ export default function Index() {
                     transition={{duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1]}}
                     className={
                       highlighted
-                        ? 'flex min-h-80 flex-col justify-between overflow-hidden rounded-[28px] border border-neutral-900 bg-neutral-900 p-10 text-white sm:col-span-2 lg:row-span-2 lg:p-12'
-                        : 'flex min-h-72 flex-col justify-between overflow-hidden rounded-[28px] border border-neutral-200 bg-white p-8 transition hover:border-neutral-900'
+                        ? 'flex min-h-80 flex-col justify-between overflow-hidden rounded-card border border-neutral-900 bg-neutral-900 p-10 text-white sm:col-span-2 lg:row-span-2 lg:p-12'
+                        : 'flex min-h-72 flex-col justify-between overflow-hidden rounded-card border border-neutral-200 bg-white p-8 transition hover:border-neutral-900'
                     }
                   >
-                    <div className={'flex items-start justify-between'}>
-                      <div className={highlighted ? 'text-white' : 'text-neutral-900'}>
-                        {highlighted ? <Workflow className="h-10 w-10" strokeWidth={1.25} /> : feature.icon}
-                      </div>
-                      <span
-                        style={{fontFamily: 'var(--font-mono)'}}
-                        className={`text-[11px] uppercase tracking-[0.18em] ${
-                          highlighted ? 'text-neutral-500' : 'text-neutral-400'
-                        }`}
-                      >
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
+                    <div className={highlighted ? 'text-white' : 'text-neutral-900'}>
+                      {highlighted ? <Workflow className="h-10 w-10" strokeWidth={1.25} /> : feature.icon}
                     </div>
                     <div>
                       <h3
                         style={{fontFamily: 'var(--font-display)'}}
                         className={
                           highlighted
-                            ? 'text-4xl font-extrabold leading-[0.95] tracking-[-0.035em] text-white sm:text-5xl lg:text-6xl'
-                            : 'mt-10 text-2xl font-bold tracking-[-0.025em] text-neutral-900'
+                            ? 'text-h2 font-extrabold tracking-[-0.035em] text-white'
+                            : 'mt-10 text-h3 font-bold tracking-[-0.025em] text-neutral-900'
                         }
                       >
                         {feature.title}
@@ -620,8 +603,8 @@ export default function Index() {
                       <p
                         className={
                           highlighted
-                            ? 'mt-5 max-w-md text-base leading-relaxed text-neutral-300 sm:text-lg'
-                            : 'mt-3 text-sm leading-relaxed text-neutral-600'
+                            ? 'mt-5 max-w-[45ch] text-lead text-neutral-300'
+                            : 'mt-3 text-neutral-600'
                         }
                       >
                         {feature.description}
@@ -637,8 +620,6 @@ export default function Index() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'05'}
-                label={'Data Model'}
                 title={'One contact,'}
                 titleAccent={'complete history.'}
                 subtitle={
@@ -727,7 +708,7 @@ export default function Index() {
                   className={'mx-auto max-w-xl'}
                   data-nosnippet
                 >
-                  <div className={'overflow-hidden rounded-[20px] border border-neutral-200 bg-white'}>
+                  <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
                     <div className={'flex items-center gap-5 p-6'}>
                       <div
                         className={
@@ -739,13 +720,13 @@ export default function Index() {
                       <div className={'flex-1 space-y-1'}>
                         <div
                           style={{fontFamily: 'var(--font-mono)'}}
-                          className={'text-sm font-medium text-neutral-900'}
+                          className={'text-ui font-medium text-neutral-900'}
                         >
                           hello@useplunk.com
                         </div>
                         <div
                           style={{fontFamily: 'var(--font-mono)'}}
-                          className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                          className={'text-label text-neutral-500'}
                         >
                           CONTACT · ACTIVE
                         </div>
@@ -766,7 +747,7 @@ export default function Index() {
                           </div>
                           <div
                             style={{fontFamily: 'var(--font-mono)'}}
-                            className={'mt-1 text-[10px] uppercase tracking-[0.18em] text-neutral-500'}
+                            className={'mt-1 text-label text-neutral-500'}
                           >
                             {s.small}
                           </div>
@@ -779,11 +760,51 @@ export default function Index() {
             </div>
           </section>
 
+          {/* ========== MCP SERVER ========== */}
+          <section className={'border-y border-neutral-200'}>
+            <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
+              <SectionHeader
+                title={'Your agent can'}
+                titleAccent={'run your email.'}
+                subtitle={
+                  'The official Plunk MCP server connects Claude, Cursor and any Model Context Protocol client to your project — 15 tools for email, contacts, segments and campaigns.'
+                }
+              />
+
+              <div className={'mt-16 grid items-start gap-12 lg:grid-cols-12'}>
+                <div className={'min-w-0 lg:col-span-7'}>
+                  <Artifact label={'Claude Code'}>
+                    <AgentExchange exchange={mcpExchange} />
+                  </Artifact>
+                </div>
+
+                <div className={'lg:col-span-5 lg:pt-6'}>
+                  <p className={'text-lead text-neutral-600'}>
+                    Fifteen tools, covering the same ground as the dashboard: contacts, segments, templates, campaigns
+                    and transactional sends.
+                  </p>
+                  <p className={'mt-5 text-neutral-600'}>
+                    Anything that reaches a real inbox stops and asks you first, and read-only mode registers the six
+                    read tools and nothing else, so an agent can look without being able to touch.
+                  </p>
+
+                  <Link
+                    href={'/features/mcp'}
+                    className={
+                      'group mt-8 inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-6 py-3 text-ui font-semibold text-neutral-900 transition hover:border-neutral-900'
+                    }
+                  >
+                    Explore the MCP server
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* ========== OPEN SOURCE ========== */}
           <section className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
             <SectionHeader
-              number={'06'}
-              label={'Open Source'}
               title={'Privacy first.'}
               titleAccent={'Code visible.'}
               subtitle={'AGPL-3.0 licensed, EU-hosted, GDPR compliant. Inspect the code, self-host, or use our cloud.'}
@@ -816,13 +837,13 @@ export default function Index() {
                   whileInView={{opacity: 1, y: 0}}
                   viewport={{once: true}}
                   transition={{duration: 0.5, delay: i * 0.1, ease: [0.22, 1, 0.36, 1]}}
-                  className={'flex flex-col gap-8 rounded-[24px] border border-neutral-200 bg-white p-10'}
+                  className={'flex flex-col gap-8 rounded-card border border-neutral-200 bg-white p-10'}
                 >
                   <div className={'flex items-start justify-between'}>
                     <div className={'text-neutral-900'}>{item.icon}</div>
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                      className={'text-label text-neutral-500'}
                     >
                       {item.meta}
                     </span>
@@ -834,7 +855,7 @@ export default function Index() {
                     >
                       {item.title}
                     </h3>
-                    <p className={'mt-2 text-sm text-neutral-600'}>{item.note}</p>
+                    <p className={'mt-2 text-neutral-600'}>{item.note}</p>
                   </div>
                 </motion.div>
               ))}
@@ -848,7 +869,7 @@ export default function Index() {
                 target={'_blank'}
                 rel={'noopener noreferrer'}
                 className={
-                  'group inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:border-neutral-900'
+                  'group inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:border-neutral-900'
                 }
               >
                 View on GitHub
@@ -861,8 +882,6 @@ export default function Index() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-40 sm:px-10 sm:py-56'}>
               <SectionHeader
-                number={'07'}
-                label={'Pricing'}
                 title={'Simple.'}
                 titleAccent={'Transparent.'}
                 subtitle={'Pay for what you send, nothing more. No tiers. No surprises at scale.'}
@@ -887,7 +906,7 @@ export default function Index() {
                 <div className={'mx-auto mt-16 max-w-4xl'}>
                   <p
                     style={{fontFamily: 'var(--font-mono)'}}
-                    className={'mb-8 text-[11px] uppercase tracking-[0.2em] text-neutral-500'}
+                    className={'mb-8 text-label text-neutral-500'}
                   >
                     For the same plan, others charge
                   </p>
@@ -897,27 +916,27 @@ export default function Index() {
                         <title>Mailchimp</title>
                         <path d="M11.267 0C6.791-.015-1.82 10.246 1.397 12.964l.79.669a3.88 3.88 0 0 0-.22 1.792c.084.84.518 1.644 1.22 2.266.666.59 1.542.964 2.392.964 1.406 3.24 4.62 5.228 8.386 5.34 4.04.12 7.433-1.776 8.854-5.182.093-.24.488-1.316.488-2.267 0-.956-.54-1.352-.885-1.352-.01-.037-.078-.286-.172-.586-.093-.3-.19-.51-.19-.51.375-.563.382-1.065.332-1.35-.053-.353-.2-.653-.496-.964-.296-.311-.902-.63-1.753-.868l-.446-.124c-.002-.019-.024-1.053-.043-1.497-.014-.32-.042-.822-.197-1.315-.186-.668-.508-1.253-.911-1.627 1.112-1.152 1.806-2.422 1.804-3.511-.003-2.095-2.576-2.729-5.746-1.416l-.672.285A678.22 678.22 0 0 0 12.7.504C12.304.159 11.817.002 11.267 0zm.073.873c.166 0 .322.019.465.058.297.084 1.28 1.224 1.28 1.224s-1.826 1.013-3.52 2.426c-2.28 1.757-4.005 4.311-5.037 7.082-.811.158-1.526.618-1.963 1.253-.261-.218-.748-.64-.834-.804-.698-1.326.761-3.902 1.781-5.357C5.834 3.44 9.37.867 11.34.873zm3.286 3.273c.04-.002.06.05.028.074-.143.11-.299.26-.413.414a.04.04 0 0 0 .031.064c.659.004 1.587.235 2.192.574.041.023.012.103-.034.092-.915-.21-2.414-.369-3.97.01-1.39.34-2.45.863-3.224 1.426-.04.028-.086-.023-.055-.06.896-1.035 1.999-1.935 2.987-2.44.034-.018.07.019.052.052-.079.143-.23.447-.278.678-.007.035.032.063.062.042.615-.42 1.684-.868 2.622-.926zm3.023 3.205l.056.001a.896.896 0 0 1 .456.146c.534.355.61 1.216.638 1.845.015.36.059 1.229.074 1.478.034.571.184.651.487.751.17.057.33.098.563.164.706.198 1.125.4 1.39.658.157.162.23.333.253.497.083.608-.472 1.36-1.942 2.041-1.607.746-3.557.935-4.904.785l-.471-.053c-1.078-.145-1.693 1.247-1.046 2.201.417.615 1.552 1.015 2.688 1.015 2.604 0 4.605-1.111 5.35-2.072a.987.987 0 0 0 .06-.085c.036-.055.006-.085-.04-.054-.608.416-3.31 2.069-6.2 1.571 0 0-.351-.057-.672-.182-.255-.1-.788-.344-.853-.891 2.333.72 3.801.039 3.801.039a.072.072 0 0 0 .042-.072.067.067 0 0 0-.074-.06s-1.911.283-3.718-.378c.197-.64.72-.408 1.51-.345a11.045 11.045 0 0 0 3.647-.394c.818-.234 1.892-.697 2.727-1.356.281.618.38 1.299.38 1.299s.219-.04.4.073c.173.106.299.326.213.895-.176 1.063-.628 1.926-1.387 2.72a5.714 5.714 0 0 1-1.666 1.244c-.34.18-.704.334-1.087.46-2.863.935-5.794-.093-6.739-2.3a3.545 3.545 0 0 1-.189-.522c-.403-1.455-.06-3.2 1.008-4.299.065-.07.132-.153.132-.256 0-.087-.055-.179-.102-.243-.374-.543-1.669-1.466-1.409-3.254.187-1.284 1.31-2.189 2.357-2.135.089.004.177.01.266.015.453.027.85.085 1.223.1.625.028 1.187-.063 1.853-.618.225-.187.405-.35.71-.401.028-.005.092-.028.215-.028zm.022 2.18a.42.42 0 0 0-.06.005c-.335.054-.347.468-.228 1.04.068.32.187.595.32.765.175-.02.343-.022.498 0 .089-.205.104-.557.024-.942-.112-.535-.261-.872-.554-.868zm-3.66 1.546a1.724 1.724 0 0 0-1.016.326c-.16.117-.311.28-.29.378.008.032.031.056.088.063.131.015.592-.217 1.122-.25.374-.023.684.094.923.2.239.104.386.173.443.113.037-.038.026-.11-.031-.204-.118-.192-.36-.387-.618-.497a1.601 1.601 0 0 0-.621-.129zm4.082.81c-.171-.003-.313.186-.317.42-.004.236.131.43.303.432.172.003.314-.185.318-.42.004-.236-.132-.429-.304-.432zm-3.58.172c-.05 0-.102.002-.155.008-.311.05-.483.152-.593.247-.094.082-.152.173-.152.237a.075.075 0 0 0 .075.076c.07 0 .228-.063.228-.063a1.98 1.98 0 0 1 1.001-.104c.157.018.23.027.265-.026.01-.016.022-.049-.01-.1-.063-.103-.311-.269-.66-.275zm2.26.4c-.127 0-.235.051-.283.148-.075.154.035.363.246.466.21.104.443.063.52-.09.075-.155-.035-.364-.246-.467a.542.542 0 0 0-.237-.058zm-11.635.024c.048 0 .098 0 .149.003.73.04 1.806.6 2.052 2.19.217 1.41-.128 2.843-1.449 3.069-.123.02-.248.029-.374.026-1.22-.033-2.539-1.132-2.67-2.435-.145-1.44.591-2.548 1.894-2.811.117-.024.252-.04.398-.042zm-.07.927a1.144 1.144 0 0 0-.847.364c-.38.418-.439.988-.366 1.19.027.073.07.094.1.098.064.008.16-.039.22-.2a1.2 1.2 0 0 0 .017-.052 1.58 1.58 0 0 1 .157-.37.689.689 0 0 1 .955-.199c.266.174.369.5.255.81-.058.161-.154.469-.133.721.043.511.357.717.64.738.274.01.466-.143.515-.256.029-.067.005-.107-.011-.125-.043-.053-.113-.037-.18-.021a.638.638 0 0 1-.16.022.347.347 0 0 1-.294-.148c-.078-.12-.073-.3.013-.504.011-.028.025-.058.04-.092.138-.308.368-.825.11-1.317-.195-.37-.513-.602-.894-.65a1.135 1.135 0 0 0-.138-.01z"></path>
                       </svg>
-                      <span className={'text-sm font-semibold text-neutral-900'}>Mailchimp</span>
-                      <span className={'text-sm text-neutral-500'}>$0.004 / email</span>
+                      <span className={'font-semibold text-neutral-900'}>Mailchimp</span>
+                      <span className={'text-neutral-500'}>$0.004 / email</span>
                     </div>
                     <div className={'flex flex-col items-center gap-y-2'}>
                       <svg role="img" viewBox="0 0 24 24" className="h-8 w-8" xmlns="http://www.w3.org/2000/svg">
                         <title>Twilio SendGrid</title>
                         <path d="M12 0C5.381-.008.008 5.352 0 11.971V12c0 6.64 5.359 12 12 12 6.64 0 12-5.36 12-12 0-6.641-5.36-12-12-12zm0 20.801c-4.846.015-8.786-3.904-8.801-8.75V12c-.014-4.846 3.904-8.786 8.75-8.801H12c4.847-.014 8.786 3.904 8.801 8.75V12c.015 4.847-3.904 8.786-8.75 8.801H12zm5.44-11.76c0 1.359-1.12 2.479-2.481 2.479-1.366-.007-2.472-1.113-2.479-2.479 0-1.361 1.12-2.481 2.479-2.481 1.361 0 2.481 1.12 2.481 2.481zm0 5.919c0 1.36-1.12 2.48-2.481 2.48-1.367-.008-2.473-1.114-2.479-2.48 0-1.359 1.12-2.479 2.479-2.479 1.361-.001 2.481 1.12 2.481 2.479zm-5.919 0c0 1.36-1.12 2.48-2.479 2.48-1.368-.007-2.475-1.113-2.481-2.48 0-1.359 1.12-2.479 2.481-2.479 1.358-.001 2.479 1.12 2.479 2.479zm0-5.919c0 1.359-1.12 2.479-2.479 2.479-1.367-.007-2.475-1.112-2.481-2.479 0-1.361 1.12-2.481 2.481-2.481 1.358 0 2.479 1.12 2.479 2.481z"></path>
                       </svg>
-                      <span className={'text-sm font-semibold text-neutral-900'}>SendGrid</span>
-                      <span className={'text-sm text-neutral-500'}>$0.002 / email</span>
+                      <span className={'font-semibold text-neutral-900'}>SendGrid</span>
+                      <span className={'text-neutral-500'}>$0.002 / email</span>
                     </div>
                     <div className={'flex flex-col items-center gap-y-2'}>
                       <svg role="img" viewBox="0 0 24 24" className="h-8 w-8" xmlns="http://www.w3.org/2000/svg">
                         <title>Mailgun</title>
                         <path d="M11.837 0c6.602 0 11.984 5.381 11.984 11.994-.017 2.99-3.264 4.84-5.844 3.331a3.805 3.805 0 0 1-.06-.035l-.055-.033-.022.055c-2.554 4.63-9.162 4.758-11.894.232-2.732-4.527.46-10.313 5.746-10.416a6.868 6.868 0 0 1 7.002 6.866 1.265 1.265 0 0 0 2.52 0c0-5.18-4.197-9.38-9.377-9.387C4.611 2.594.081 10.41 3.683 16.673c3.238 5.632 11.08 6.351 15.289 1.402l1.997 1.686A11.95 11.95 0 0 1 11.837 24C2.6 23.72-2.87 13.543 1.992 5.684A12.006 12.006 0 0 1 11.837 0Zm0 7.745c-3.276-.163-5.5 3.281-4.003 6.2a4.26 4.26 0 0 0 4.014 2.31c3.276-.171 5.137-3.824 3.35-6.575a4.26 4.26 0 0 0-3.36-1.935Zm0 2.53c1.324 0 2.152 1.433 1.49 2.58a1.72 1.72 0 0 1-1.49.86 1.72 1.72 0 1 1 0-3.44Z"></path>
                       </svg>
-                      <span className={'text-sm font-semibold text-neutral-900'}>Mailgun</span>
-                      <span className={'text-sm text-neutral-500'}>$0.003 / email</span>
+                      <span className={'font-semibold text-neutral-900'}>Mailgun</span>
+                      <span className={'text-neutral-500'}>$0.003 / email</span>
                     </div>
                   </div>
-                  <p className={'mt-8 text-xs text-neutral-400'}>
+                  <p className={'mt-8 text-xs text-neutral-500'}>
                     Based on plans matching Plunk at 10,000 emails per month.
                   </p>
                 </div>
@@ -926,7 +945,7 @@ export default function Index() {
                   <Link
                     href={'/pricing'}
                     className={
-                      'rounded-full border border-neutral-300 bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:border-neutral-900'
+                      'rounded-full border border-neutral-300 bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:border-neutral-900'
                     }
                   >
                     Pricing details
@@ -936,7 +955,7 @@ export default function Index() {
                     whileTap={{scale: 0.985}}
                     href={`${DASHBOARD_URI}/auth/signup`}
                     className={
-                      'inline-flex items-center gap-2 rounded-full bg-neutral-900 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-neutral-800'
+                      'inline-flex items-center gap-2 rounded-full bg-neutral-900 px-7 py-3.5 text-ui font-semibold text-white transition hover:bg-neutral-800'
                     }
                   >
                     Start for free
@@ -950,8 +969,6 @@ export default function Index() {
           {/* ========== TESTIMONIALS — BENTO ========== */}
           <section className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
             <SectionHeader
-              number={'08'}
-              label={'Trust'}
               title={'Quiet praise,'}
               titleAccent={'from operators.'}
               subtitle={'No hyperbole. Just the people building products on Plunk.'}
@@ -969,8 +986,8 @@ export default function Index() {
                     transition={{duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1]}}
                     className={
                       highlighted
-                        ? 'flex min-h-80 flex-col justify-between rounded-[28px] border border-neutral-900 bg-neutral-900 p-10 text-white sm:col-span-2 lg:row-span-2 lg:p-12'
-                        : 'flex min-h-72 flex-col justify-between rounded-[28px] border border-neutral-200 bg-white p-8'
+                        ? 'flex min-h-80 flex-col justify-between rounded-card border border-neutral-900 bg-neutral-900 p-10 text-white sm:col-span-2 lg:row-span-2 lg:p-12'
+                        : 'flex min-h-72 flex-col justify-between rounded-card border border-neutral-200 bg-white p-8'
                     }
                   >
                     <blockquote
@@ -978,7 +995,7 @@ export default function Index() {
                       className={
                         highlighted
                           ? 'text-3xl font-medium leading-[1.1] tracking-[-0.02em] text-white sm:text-4xl lg:text-5xl'
-                          : 'text-sm leading-relaxed text-neutral-700'
+                          : 'text-neutral-700'
                       }
                     >
                       &ldquo;{t.testimonial}&rdquo;
@@ -995,7 +1012,7 @@ export default function Index() {
                         <div
                           className={
                             highlighted
-                              ? 'text-sm font-semibold text-white'
+                              ? 'text-ui font-semibold text-white'
                               : 'text-xs font-semibold text-neutral-900'
                           }
                         >
@@ -1003,7 +1020,7 @@ export default function Index() {
                         </div>
                         <div
                           style={{fontFamily: 'var(--font-mono)'}}
-                          className={`mt-0.5 uppercase tracking-[0.18em] ${
+                          className={`mt-0.5 ${
                             highlighted ? 'text-[11px] text-neutral-400' : 'text-[10px] text-neutral-500'
                           }`}
                         >
@@ -1027,7 +1044,7 @@ export default function Index() {
                   viewport={{once: true}}
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
                 >
                   Start sending in 5 minutes.
                 </motion.h2>
@@ -1039,7 +1056,7 @@ export default function Index() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Free plan available. $0.001 per email on paid. No contact limits, no surprises.
                   </p>
                   <div className={'flex flex-wrap gap-3'}>
@@ -1048,7 +1065,7 @@ export default function Index() {
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
                       className={
-                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'
+                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'
                       }
                     >
                       Create free account
@@ -1059,7 +1076,7 @@ export default function Index() {
                       target={'_blank'}
                       rel={'noopener noreferrer'}
                       className={
-                        'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'
+                        'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'
                       }
                     >
                       Read the docs

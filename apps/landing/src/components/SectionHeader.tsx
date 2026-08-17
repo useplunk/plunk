@@ -1,15 +1,23 @@
 import {motion} from 'framer-motion';
 import React from 'react';
 
+/**
+ * Section opener: a display heading and an optional lead paragraph.
+ *
+ * This used to print a tracked-caps eyebrow (`§ 04  CAPABILITIES`) in a column
+ * of its own beside every heading. Both parts are gone. The number was
+ * scaffolding — nobody needs to know a section's index — and the eyebrow was
+ * restating the heading in smaller, harder-to-read type while consuming a
+ * quarter of the row's width. A heading that needs a label above it explaining
+ * what it is isn't finished.
+ *
+ * The heading now starts at the left edge and gets the full measure.
+ */
 export function SectionHeader({
-  number,
-  label,
   title,
   titleAccent,
   subtitle,
 }: {
-  number: string;
-  label: string;
   title: string;
   titleAccent?: string;
   subtitle?: string;
@@ -20,29 +28,15 @@ export function SectionHeader({
       whileInView={{opacity: 1, y: 0}}
       viewport={{once: true, margin: '-10%'}}
       transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-      className={'grid gap-8 lg:grid-cols-12 lg:gap-16'}
     >
-      <div
-        style={{fontFamily: 'var(--font-mono)'}}
-        className={
-          'flex items-center gap-4 border-t border-neutral-900 pt-4 text-[11px] uppercase tracking-[0.2em] text-neutral-700 lg:col-span-3 lg:self-start'
-        }
+      <h2
+        style={{fontFamily: 'var(--font-display)'}}
+        className={'max-w-[20ch] text-h2 font-extrabold tracking-[-0.03em] text-neutral-900'}
       >
-        <span className={'font-medium text-neutral-900'}>§ {number}</span>
-        <span className={'text-neutral-500'}>{label}</span>
-      </div>
-      <div className={'lg:col-span-9'}>
-        <h2
-          style={{fontFamily: 'var(--font-display)'}}
-          className={
-            'text-[clamp(2.25rem,5.5vw,4.5rem)] font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'
-          }
-        >
-          {title}
-          {titleAccent && <> {titleAccent}</>}
-        </h2>
-        {subtitle && <p className={'mt-6 max-w-2xl text-lg leading-relaxed text-neutral-600'}>{subtitle}</p>}
-      </div>
+        {title}
+        {titleAccent && <> {titleAccent}</>}
+      </h2>
+      {subtitle && <p className={'mt-6 max-w-[65ch] text-lead text-neutral-600'}>{subtitle}</p>}
     </motion.div>
   );
 }

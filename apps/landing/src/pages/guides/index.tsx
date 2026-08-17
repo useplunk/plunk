@@ -134,23 +134,17 @@ export default function GuidesIndex() {
               animate={{opacity: 1, y: 0}}
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
             >
-              <div
-                style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-6 text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
-              >
-                Free Guides
-              </div>
               <h1
                 style={{fontFamily: 'var(--font-display)'}}
                 className={
-                  'text-[clamp(2.75rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
+                  'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
                 }
               >
                 Master email,
                 <br />
                 start to finish.
               </h1>
-              <p className={'mt-6 max-w-2xl text-xl text-neutral-600'}>
+              <p className={'mt-6 max-w-2xl text-lead text-neutral-600'}>
                 Free guides on email authentication, deliverability, best practices, and technical implementation.
               </p>
 
@@ -186,7 +180,7 @@ export default function GuidesIndex() {
                   <div className={'mb-6 flex items-center gap-4'}>
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'shrink-0 text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                      className={'shrink-0 text-label text-neutral-500'}
                     >
                       {category.name}
                     </span>
@@ -205,7 +199,7 @@ export default function GuidesIndex() {
                           }
                         >
                           <Icon
-                            className={'h-5 w-5 shrink-0 text-neutral-400 transition group-hover:text-neutral-600'}
+                            className={'h-5 w-5 shrink-0 text-neutral-500 transition group-hover:text-neutral-600'}
                             strokeWidth={1.5}
                           />
                           <div className={'min-w-0 flex-1'}>
@@ -215,7 +209,7 @@ export default function GuidesIndex() {
                             >
                               {guide.title}
                             </h3>
-                            <p className={'mt-0.5 truncate text-sm text-neutral-500'}>{guide.description}</p>
+                            <p className={'mt-0.5 truncate text-ui text-neutral-500'}>{guide.description}</p>
                           </div>
                           <ArrowRight
                             className={
@@ -242,7 +236,7 @@ export default function GuidesIndex() {
                 viewport={{once: true}}
                 transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
               >
                 Put it into practice.
               </motion.h2>
@@ -253,7 +247,7 @@ export default function GuidesIndex() {
                 transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                 className={'flex max-w-md flex-col gap-6'}
               >
-                <p className={'text-base text-neutral-300 sm:text-lg'}>
+                <p className={'text-lead text-neutral-300'}>
                   Start free. No credit card required.
                 </p>
                 <div className={'flex flex-wrap gap-3'}>
@@ -261,14 +255,14 @@ export default function GuidesIndex() {
                     whileHover={{scale: 1.015}}
                     whileTap={{scale: 0.985}}
                     href={`${DASHBOARD_URI}/auth/signup`}
-                    className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}
+                    className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
                   >
                     Get started free
                     <ArrowRight className="h-4 w-4" />
                   </motion.a>
                   <Link
                     href={'/pricing'}
-                    className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}
+                    className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
                   >
                     View pricing
                   </Link>

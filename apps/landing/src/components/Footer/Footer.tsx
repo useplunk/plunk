@@ -22,7 +22,7 @@ export default function Footer() {
               <div className={'relative h-8 w-8'}>
                 <Image src={logo} alt={'Plunk logo'} fill className={'object-contain'} />
               </div>
-              <p className="text-sm leading-relaxed text-neutral-600">
+              <p className="text-ui leading-relaxed text-neutral-600">
                 Open-source email platform for transactional, marketing, and automation. EU-hosted, GDPR compliant.
               </p>
               <div className="flex items-center gap-4">
@@ -64,49 +64,49 @@ export default function Footer() {
             {/* Links */}
             <div className="grid grid-cols-2 gap-8 lg:col-span-9 lg:grid-cols-5">
               <div>
-                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Product</h3>
+                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-label font-semibold text-neutral-500">Product</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   <li>
-                    <Link href={'/pricing'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/pricing'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Pricing
                     </Link>
                   </li>
                   <li>
-                    <Link href={WIKI_URI} target={'_blank'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={WIKI_URI} target={'_blank'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Documentation
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/guides'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/guides'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Guides
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/tools'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/tools'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Tools
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/made-by-humans'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/made-by-humans'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Made by humans
                     </Link>
                   </li>
                 </ul>
 
-                <h3 style={{fontFamily: 'var(--font-mono)'}} className="mt-8 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Checkers</h3>
+                <h3 style={{fontFamily: 'var(--font-mono)'}} className="mt-8 text-label font-semibold text-neutral-500">Checkers</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   <li>
-                    <Link href={'/tools/spf-checker'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/tools/spf-checker'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       SPF checker
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/tools/dmarc-checker'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/tools/dmarc-checker'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       DMARC checker
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/tools/dkim-checker'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/tools/dkim-checker'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       DKIM checker
                     </Link>
                   </li>
@@ -114,71 +114,76 @@ export default function Footer() {
               </div>
 
               <div>
-                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Features</h3>
+                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-label font-semibold text-neutral-500">Features</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   <li>
-                    <Link href={'/features/email-editor'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/features/email-editor'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Email editor
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/features/workflows'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/features/workflows'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Workflows
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/features/segments'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/features/segments'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Segments
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/features/smtp'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/features/smtp'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       SMTP
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/features/inbound-email'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/features/inbound-email'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Inbound email
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href={'/features/mcp'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
+                      MCP server
                     </Link>
                   </li>
                 </ul>
               </div>
 
               <div>
-                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Compare</h3>
+                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-label font-semibold text-neutral-500">Compare</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   <li>
-                    <Link href={'/vs'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/vs'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       All comparisons
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/vs/mailchimp'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/vs/mailchimp'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       vs Mailchimp
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/vs/sendgrid'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/vs/sendgrid'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       vs SendGrid
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/vs/resend'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/vs/resend'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       vs Resend
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/vs/brevo'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/vs/brevo'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       vs Brevo
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/vs/mailgun'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/vs/mailgun'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       vs Mailgun
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/vs/convertkit'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/vs/convertkit'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       vs ConvertKit
                     </Link>
                   </li>
@@ -186,39 +191,39 @@ export default function Footer() {
               </div>
 
               <div>
-                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Community</h3>
+                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-label font-semibold text-neutral-500">Community</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   <li>
-                    <Link href={'/discord'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/discord'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Discord
                     </Link>
                   </li>
                   <li>
-                    <Link href={'https://github.com/useplunk'} target={'_blank'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'https://github.com/useplunk'} target={'_blank'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       GitHub
                     </Link>
                   </li>
                   <li>
-                    <Link href={'https://status.useplunk.com'} target={'_blank'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'https://status.useplunk.com'} target={'_blank'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Status
                     </Link>
                   </li>
                 </ul>
 
-                <h3 style={{fontFamily: 'var(--font-mono)'}} className="mt-8 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Legal</h3>
+                <h3 style={{fontFamily: 'var(--font-mono)'}} className="mt-8 text-label font-semibold text-neutral-500">Legal</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   <li>
-                    <Link href={'/privacy'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/privacy'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Privacy
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/terms'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/terms'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Terms
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/dpa'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/dpa'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       DPA
                     </Link>
                   </li>
@@ -226,40 +231,40 @@ export default function Footer() {
               </div>
 
               <div>
-                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Guides</h3>
+                <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-label font-semibold text-neutral-500">Guides</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   <li>
-                    <Link href={'/guides/email-deliverability'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/guides/email-deliverability'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Email deliverability
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/guides/transactional-vs-marketing-email'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/guides/transactional-vs-marketing-email'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Transactional vs marketing
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/guides/what-is-dkim'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/guides/what-is-dkim'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       What is DKIM?
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/guides/what-is-spf'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/guides/what-is-spf'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       What is SPF?
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/guides/what-is-dmarc'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/guides/what-is-dmarc'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       What is DMARC?
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/guides/email-open-rate'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/guides/email-open-rate'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Email open rates
                     </Link>
                   </li>
                   <li>
-                    <Link href={'/guides/email-bounce-rate'} className="text-sm text-neutral-600 transition hover:text-neutral-900">
+                    <Link href={'/guides/email-bounce-rate'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Email bounce rates
                     </Link>
                   </li>
@@ -269,8 +274,8 @@ export default function Footer() {
           </div>
 
           <div className="mt-16 flex flex-col gap-2 border-t border-neutral-200 pt-8 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-neutral-500">&copy; {new Date().getFullYear()} Plunk. All rights reserved.</p>
-            <p style={{fontFamily: 'var(--font-mono)'}} className="text-[11px] text-neutral-400">
+            <p className="text-ui text-neutral-500">&copy; {new Date().getFullYear()} Plunk. All rights reserved.</p>
+            <p style={{fontFamily: 'var(--font-mono)'}} className="text-[11px] text-neutral-500">
               Reading this with electronic eyes? Append{' '}
               <a href={mdHref} className="text-neutral-500 underline decoration-dotted underline-offset-2 transition hover:text-neutral-900">
                 <code>.md</code>

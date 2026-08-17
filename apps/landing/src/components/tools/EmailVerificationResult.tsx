@@ -23,20 +23,20 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
       {/* Overall Status */}
       <div
         className={`rounded-lg border-2 p-6 ${
-          result.valid ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+          result.valid ? 'border-ok/25 bg-ok-surface' : 'border-err/25 bg-err-surface'
         }`}
       >
         <div className="flex items-center gap-3">
           {result.valid ? (
-            <CheckCircle className="h-8 w-8 text-green-600" />
+            <CheckCircle className="h-8 w-8 text-ok" />
           ) : (
-            <XCircle className="h-8 w-8 text-red-600" />
+            <XCircle className="h-8 w-8 text-err" />
           )}
           <div>
-            <h3 className={`text-xl font-semibold ${result.valid ? 'text-green-900' : 'text-red-900'}`}>
+            <h3 className={`text-xl font-semibold ${result.valid ? 'text-ok' : 'text-err'}`}>
               {result.valid ? 'Valid Email' : 'Invalid Email'}
             </h3>
-            <p className={`text-sm ${result.valid ? 'text-green-700' : 'text-red-700'}`}>{result.email}</p>
+            <p className={`text-ui ${result.valid ? 'text-ok' : 'text-err'}`}>{result.email}</p>
           </div>
         </div>
       </div>
@@ -53,13 +53,13 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
               <Server className="h-5 w-5 text-neutral-600" />
               <div>
                 <p className="font-medium text-neutral-900">Domain Exists</p>
-                <p className="text-sm text-neutral-600">Domain has nameservers (NS records)</p>
+                <p className="text-ui text-neutral-600">Domain has nameservers (NS records)</p>
               </div>
             </div>
             {result.domainExists ? (
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-ok" />
             ) : (
-              <XCircle className="h-5 w-5 text-red-600" />
+              <XCircle className="h-5 w-5 text-err" />
             )}
           </div>
 
@@ -69,13 +69,13 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
               <Mail className="h-5 w-5 text-neutral-600" />
               <div>
                 <p className="font-medium text-neutral-900">MX Records</p>
-                <p className="text-sm text-neutral-600">Mail server configured</p>
+                <p className="text-ui text-neutral-600">Mail server configured</p>
               </div>
             </div>
             {result.hasMxRecords ? (
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-ok" />
             ) : (
-              <XCircle className="h-5 w-5 text-red-600" />
+              <XCircle className="h-5 w-5 text-err" />
             )}
           </div>
 
@@ -85,13 +85,13 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
               <Server className="h-5 w-5 text-neutral-600" />
               <div>
                 <p className="font-medium text-neutral-900">Has Website</p>
-                <p className="text-sm text-neutral-600">DNS A/AAAA records found</p>
+                <p className="text-ui text-neutral-600">DNS A/AAAA records found</p>
               </div>
             </div>
             {result.hasWebsite ? (
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-ok" />
             ) : (
-              <Info className="h-5 w-5 text-neutral-400" />
+              <Info className="h-5 w-5 text-neutral-500" />
             )}
           </div>
 
@@ -101,13 +101,13 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
               <Trash2 className="h-5 w-5 text-neutral-600" />
               <div>
                 <p className="font-medium text-neutral-900">Disposable Email</p>
-                <p className="text-sm text-neutral-600">Temporary email service</p>
+                <p className="text-ui text-neutral-600">Temporary email service</p>
               </div>
             </div>
             {result.isDisposable ? (
-              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <AlertTriangle className="h-5 w-5 text-warn" />
             ) : (
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-ok" />
             )}
           </div>
 
@@ -117,13 +117,13 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
               <User className="h-5 w-5 text-neutral-600" />
               <div>
                 <p className="font-medium text-neutral-900">Personal Email</p>
-                <p className="text-sm text-neutral-600">Free email provider (Gmail, Hotmail, etc.)</p>
+                <p className="text-ui text-neutral-600">Free email provider (Gmail, Hotmail, etc.)</p>
               </div>
             </div>
             {result.isPersonalEmail ? (
-              <Info className="h-5 w-5 text-blue-600" />
+              <Info className="h-5 w-5 text-neutral-900" />
             ) : (
-              <span className="text-sm text-neutral-500">No</span>
+              <span className="text-ui text-neutral-500">No</span>
             )}
           </div>
 
@@ -133,13 +133,13 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
               <Forward className="h-5 w-5 text-neutral-600" />
               <div>
                 <p className="font-medium text-neutral-900">Forwarding Service</p>
-                <p className="text-sm text-neutral-600">Email alias/forwarding detected</p>
+                <p className="text-ui text-neutral-600">Email alias/forwarding detected</p>
               </div>
             </div>
             {result.isAlias ? (
-              <Info className="h-5 w-5 text-blue-600" />
+              <Info className="h-5 w-5 text-neutral-900" />
             ) : (
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-ok" />
             )}
           </div>
 
@@ -149,13 +149,13 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
               <AlertCircle className="h-5 w-5 text-neutral-600" />
               <div>
                 <p className="font-medium text-neutral-900">Typo Check</p>
-                <p className="text-sm text-neutral-600">Common spelling errors</p>
+                <p className="text-ui text-neutral-600">Common spelling errors</p>
               </div>
             </div>
             {result.isTypo ? (
-              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <AlertTriangle className="h-5 w-5 text-warn" />
             ) : (
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-ok" />
             )}
           </div>
 
@@ -165,13 +165,13 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
               <Shield className="h-5 w-5 text-neutral-600" />
               <div>
                 <p className="font-medium text-neutral-900">Plus Addressing</p>
-                <p className="text-sm text-neutral-600">Uses + tag (user+tag@domain.com)</p>
+                <p className="text-ui text-neutral-600">Uses + tag (user+tag@domain.com)</p>
               </div>
             </div>
             {result.isPlusAddressed ? (
-              <Info className="h-5 w-5 text-blue-600" />
+              <Info className="h-5 w-5 text-neutral-900" />
             ) : (
-              <span className="text-sm text-neutral-500">No</span>
+              <span className="text-ui text-neutral-500">No</span>
             )}
           </div>
         </div>
@@ -179,13 +179,13 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
 
       {/* Suggested Email (if typo detected) */}
       {result.suggestedEmail && (
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+        <div className="rounded-lg border border-warn/25 bg-warn-surface p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-warn mt-0.5" />
             <div>
-              <p className="font-medium text-yellow-900">Did you mean?</p>
-              <p className="text-sm text-yellow-700 mt-1">
-                <span className="font-mono bg-yellow-100 px-2 py-0.5 rounded">{result.suggestedEmail}</span>
+              <p className="font-medium text-warn">Did you mean?</p>
+              <p className="text-ui text-warn mt-1">
+                <span className="font-mono bg-warn-surface px-2 py-0.5 rounded">{result.suggestedEmail}</span>
               </p>
             </div>
           </div>
@@ -198,7 +198,7 @@ export function EmailVerificationResult({result}: EmailVerificationResultProps) 
           <h4 className="font-semibold text-neutral-900 mb-3">Analysis</h4>
           <ul className="space-y-2">
             {result.reasons.map((reason, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-neutral-700 list-disc list-inside">
+              <li key={index} className="flex items-start gap-2 text-ui text-neutral-700 list-disc list-inside">
                 <span>{reason}</span>
               </li>
             ))}

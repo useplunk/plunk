@@ -5,18 +5,18 @@ import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
 import {AlertTriangle, ArrowRight, CheckCircle, Shield, XCircle} from 'lucide-react';
 import {Button, Input} from '@plunk/ui';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import Link from 'next/link';
 import type {FAQ} from '../../components/FAQSection';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -117,17 +117,17 @@ function parseSpfRecord(record: string): ParsedSpf {
 }
 
 function qualifierLabel(q: string) {
-  if (q === '+') return {label: 'PASS', cls: 'bg-green-50 text-green-700 border-green-200'};
-  if (q === '-') return {label: 'FAIL', cls: 'bg-red-50 text-red-700 border-red-200'};
-  if (q === '~') return {label: 'SOFTFAIL', cls: 'bg-amber-50 text-amber-700 border-amber-200'};
+  if (q === '+') return {label: 'PASS', cls: 'bg-ok-surface text-ok border-ok/25'};
+  if (q === '-') return {label: 'FAIL', cls: 'bg-err-surface text-err border-err/25'};
+  if (q === '~') return {label: 'SOFTFAIL', cls: 'bg-warn-surface text-warn border-warn/25'};
   return {label: 'NEUTRAL', cls: 'bg-neutral-100 text-neutral-600 border-neutral-300'};
 }
 
 function GradeBadge({grade}: {grade: 'pass' | 'warning' | 'fail'}) {
   const map = {
-    pass: {cls: 'bg-green-50 border-green-200 text-green-700', label: 'Valid', sub: 'SPF is properly configured'},
-    warning: {cls: 'bg-amber-50 border-amber-200 text-amber-700', label: 'Needs attention', sub: 'SPF has configuration issues'},
-    fail: {cls: 'bg-red-50 border-red-200 text-red-700', label: 'Action required', sub: 'SPF has critical errors'},
+    pass: {cls: 'bg-ok-surface border-ok/25 text-ok', label: 'Valid', sub: 'SPF is properly configured'},
+    warning: {cls: 'bg-warn-surface border-warn/25 text-warn', label: 'Needs attention', sub: 'SPF has configuration issues'},
+    fail: {cls: 'bg-err-surface border-err/25 text-err', label: 'Action required', sub: 'SPF has critical errors'},
   };
   const {cls, label, sub} = map[grade];
   return (
@@ -246,7 +246,7 @@ export default function SpfCheckerPage() {
                 animate={{opacity: 1, y: 0}}
                 transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700 sm:mb-24'}
+                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'}
               >
                 <span className={'font-medium text-neutral-900'}>§ T-04 &nbsp;— &nbsp;Tool</span>
                 <Link href="/tools" className={'text-neutral-500 transition hover:text-neutral-900'}>
@@ -262,7 +262,7 @@ export default function SpfCheckerPage() {
               >
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
+                  className={'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
                 >
                   SPF record
                   <br />
@@ -285,13 +285,13 @@ export default function SpfCheckerPage() {
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
               className={'mx-auto max-w-2xl'}
             >
-              <div className={'overflow-hidden rounded-[20px] border border-neutral-200 bg-white'}>
+              <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
                 <div className={'border-b border-neutral-200 px-8 py-5'}>
                   <div className={'flex items-center gap-3'}>
                     <Shield className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       SPF record lookup
                     </span>
@@ -301,8 +301,8 @@ export default function SpfCheckerPage() {
                 <form onSubmit={handleCheck} className={'p-8'}>
                   <div className={'space-y-4'}>
                     <div>
-                      <label htmlFor="domain" className={'mb-2 block text-sm font-medium text-neutral-900'}>
-                        Domain name <span className={'text-red-500'}>*</span>
+                      <label htmlFor="domain" className={'mb-2 block text-ui font-medium text-neutral-900'}>
+                        Domain name <span className={'text-err'}>*</span>
                       </label>
                       <Input
                         id="domain"
@@ -313,7 +313,7 @@ export default function SpfCheckerPage() {
                         required
                         className={'w-full'}
                       />
-                      <p className={'mt-1.5 text-xs text-neutral-400'}>Enter the domain without http:// or www.</p>
+                      <p className={'mt-1.5 text-xs text-neutral-500'}>Enter the domain without http:// or www.</p>
                     </div>
                     <Button type="submit" className={'w-full gap-2'} disabled={loading}>
                       <Shield className={'h-4 w-4'} />
@@ -331,22 +331,22 @@ export default function SpfCheckerPage() {
                   className={'mt-6 space-y-4'}
                 >
                   {!result.found ? (
-                    <div className={'rounded-[20px] border border-red-100 bg-red-50 p-8'}>
+                    <div className={'rounded-card border border-err/25 bg-err-surface p-8'}>
                       <div className={'flex items-start gap-3'}>
-                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                         <div>
-                          <p className={'font-semibold text-red-900'}>No SPF record found</p>
-                          <p className={'mt-1 text-sm text-red-700'}>
+                          <p className={'font-semibold text-err'}>No SPF record found</p>
+                          <p className={'mt-1 text-ui text-err'}>
                             {result.error
                               ? 'DNS lookup failed. Please check the domain and try again.'
                               : `No SPF record was found for ${result.domain}. Without SPF, anyone can send email impersonating your domain, and legitimate emails are more likely to land in spam.`}
                           </p>
-                          <p className={'mt-3 text-sm font-medium text-red-800'}>
+                          <p className={'mt-3 text-ui font-medium text-err'}>
                             Add a TXT record to <span style={{fontFamily: 'var(--font-mono)'}}>{result.domain}</span>:
                           </p>
                           <code
                             style={{fontFamily: 'var(--font-mono)'}}
-                            className={'mt-2 block rounded-lg bg-red-100 px-4 py-3 text-xs text-red-900'}
+                            className={'mt-2 block rounded-lg bg-err-surface px-4 py-3 text-xs text-err'}
                           >
                             v=spf1 include:your-email-provider.com -all
                           </code>
@@ -356,12 +356,12 @@ export default function SpfCheckerPage() {
                   ) : (
                     <>
                       {result.multiple && (
-                        <div className={'rounded-[20px] border border-red-100 bg-red-50 p-6'}>
+                        <div className={'rounded-card border border-err/25 bg-err-surface p-6'}>
                           <div className={'flex items-start gap-3'}>
-                            <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                            <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                             <div>
-                              <p className={'font-semibold text-red-900'}>Multiple SPF records detected</p>
-                              <p className={'mt-1 text-sm text-red-700'}>
+                              <p className={'font-semibold text-err'}>Multiple SPF records detected</p>
+                              <p className={'mt-1 text-ui text-err'}>
                                 Having more than one SPF record causes a PermError, breaking SPF for your domain. Merge all mechanisms into a single v=spf1 record.
                               </p>
                             </div>
@@ -370,10 +370,10 @@ export default function SpfCheckerPage() {
                       )}
 
                       {/* Raw record */}
-                      <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                      <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                         <p
                           style={{fontFamily: 'var(--font-mono)'}}
-                          className={'mb-2 text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                          className={'mb-2 text-label text-neutral-500'}
                         >
                           Raw record — {result.domain}
                         </p>
@@ -388,14 +388,14 @@ export default function SpfCheckerPage() {
                       {parsed && (
                         <>
                           {/* Grade */}
-                          <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                             <div className={'flex flex-col items-center gap-4 text-center'}>
                               <GradeBadge grade={parsed.grade} />
                             </div>
                           </div>
 
                           {/* Mechanisms */}
-                          <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                             <h3
                               style={{fontFamily: 'var(--font-display)'}}
                               className={'mb-6 text-lg font-bold text-neutral-900'}
@@ -407,7 +407,7 @@ export default function SpfCheckerPage() {
                                 const {label, cls} = qualifierLabel(m.qualifier);
                                 return (
                                   <div key={i} className={'flex items-center gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3'}>
-                                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${cls}`}>
+                                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold ${cls}`}>
                                       {label}
                                     </span>
                                     <span style={{fontFamily: 'var(--font-mono)'}} className={'text-xs font-medium text-neutral-700'}>
@@ -424,7 +424,7 @@ export default function SpfCheckerPage() {
                               {parsed.allMechanism && (
                                 <div className={'flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-100 px-4 py-3'}>
                                   <span
-                                    className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${qualifierLabel(parsed.allMechanism[0] ?? '+').cls}`}
+                                    className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold ${qualifierLabel(parsed.allMechanism[0] ?? '+').cls}`}
                                   >
                                     {qualifierLabel(parsed.allMechanism[0] ?? '+').label}
                                   </span>
@@ -438,7 +438,7 @@ export default function SpfCheckerPage() {
                           </div>
 
                           {/* Issues */}
-                          <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                             <h3
                               style={{fontFamily: 'var(--font-display)'}}
                               className={'mb-6 text-lg font-bold text-neutral-900'}
@@ -449,14 +449,14 @@ export default function SpfCheckerPage() {
                               {parsed.issues.map((issue, i) => (
                                 <li key={i} className={'flex items-start gap-3'}>
                                   {issue.type === 'pass' ? (
-                                    <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-green-600'} />
+                                    <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-ok'} />
                                   ) : issue.type === 'warning' ? (
-                                    <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-amber-500'} />
+                                    <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-warn'} />
                                   ) : (
-                                    <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                                    <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                                   )}
                                   <div>
-                                    <p className={'text-sm font-medium text-neutral-900'}>{issue.label}</p>
+                                    <p className={'text-ui font-medium text-neutral-900'}>{issue.label}</p>
                                     <p className={'mt-0.5 text-xs text-neutral-500'}>{issue.detail}</p>
                                   </div>
                                 </li>
@@ -476,8 +476,6 @@ export default function SpfCheckerPage() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'01'}
-                label={'SPF explained'}
                 title={'How SPF protects your domain.'}
                 subtitle={'SPF is the first line of defence against email spoofing and phishing.'}
               />
@@ -515,15 +513,15 @@ export default function SpfCheckerPage() {
                     whileInView={{opacity: 1, y: 0}}
                     viewport={{once: true}}
                     transition={{duration: 0.5, delay: i * 0.05, ease: [0.22, 1, 0.36, 1]}}
-                    className={'flex flex-col gap-4 rounded-[20px] border border-neutral-200 bg-white p-8'}
+                    className={'flex flex-col gap-4 rounded-card border border-neutral-200 bg-white p-8'}
                   >
                     <h3
                       style={{fontFamily: 'var(--font-display)'}}
-                      className={'text-xl font-bold tracking-[-0.02em] text-neutral-900'}
+                      className={'text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
                     >
                       {item.title}
                     </h3>
-                    <p className={'text-sm leading-relaxed text-neutral-600'}>{item.body}</p>
+                    <p className={'text-ui leading-relaxed text-neutral-600'}>{item.body}</p>
                   </motion.div>
                 ))}
               </div>
@@ -540,7 +538,7 @@ export default function SpfCheckerPage() {
                   viewport={{once: true}}
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
                 >
                   SPF, DKIM, and DMARC — handled.
                 </motion.h2>
@@ -552,7 +550,7 @@ export default function SpfCheckerPage() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Plunk guides you through domain authentication setup and monitors your sending reputation.
                     Start free, no credit card required.
                   </p>
@@ -561,14 +559,14 @@ export default function SpfCheckerPage() {
                       whileHover={{scale: 1.015}}
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
-                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}
+                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
                     >
                       Start with Plunk
                       <ArrowRight className={'h-4 w-4'} />
                     </motion.a>
                     <Link
                       href="/guides/what-is-spf"
-                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}
+                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
                     >
                       What is SPF?
                     </Link>

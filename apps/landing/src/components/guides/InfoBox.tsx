@@ -10,43 +10,51 @@ interface InfoBoxProps {
   className?: string;
 }
 
+/**
+ * Callout for guides: notes, tips, warnings, and confirmations.
+ *
+ * Colour here follows the product rule — neutral by default, semantic by
+ * exception. `warning` and `success` describe a state, so they carry the warn
+ * and ok tokens. `info` and `tip` do not describe a state; they were tinted
+ * blue and purple purely for variety, which is the decoration the brand
+ * palette rules out. They are neutral now, and the icon plus the heading do the
+ * distinguishing.
+ *
+ * Colours come from the semantic tokens in globals.css rather than raw Tailwind
+ * hues, so a change to the palette reaches every callout on the site at once.
+ */
 const infoBoxConfig: Record<
   InfoBoxType,
   {
     icon: React.ComponentType<{className?: string}>;
-    borderColor: string;
-    bgColor: string;
+    container: string;
     iconColor: string;
     titleColor: string;
   }
 > = {
   info: {
     icon: Info,
-    borderColor: 'border-blue-200',
-    bgColor: 'bg-blue-50',
-    iconColor: 'text-blue-600',
-    titleColor: 'text-blue-900',
-  },
-  warning: {
-    icon: AlertTriangle,
-    borderColor: 'border-amber-200',
-    bgColor: 'bg-amber-50',
-    iconColor: 'text-amber-600',
-    titleColor: 'text-amber-900',
+    container: 'border-neutral-200 bg-neutral-50',
+    iconColor: 'text-neutral-500',
+    titleColor: 'text-neutral-900',
   },
   tip: {
     icon: Lightbulb,
-    borderColor: 'border-purple-200',
-    bgColor: 'bg-purple-50',
-    iconColor: 'text-purple-600',
-    titleColor: 'text-purple-900',
+    container: 'border-neutral-200 bg-neutral-50',
+    iconColor: 'text-neutral-500',
+    titleColor: 'text-neutral-900',
+  },
+  warning: {
+    icon: AlertTriangle,
+    container: 'border-warn/25 bg-warn-surface',
+    iconColor: 'text-warn',
+    titleColor: 'text-neutral-900',
   },
   success: {
     icon: CheckCircle2,
-    borderColor: 'border-green-200',
-    bgColor: 'bg-green-50',
-    iconColor: 'text-green-600',
-    titleColor: 'text-green-900',
+    container: 'border-ok/25 bg-ok-surface',
+    iconColor: 'text-ok',
+    titleColor: 'text-neutral-900',
   },
 };
 
@@ -65,7 +73,7 @@ export function InfoBox({type = 'info', title, children, className}: InfoBoxProp
   };
 
   return (
-    <div className={`rounded-xl border ${config.borderColor} ${config.bgColor} p-6 my-6 ${className || ''}`}>
+    <div className={`rounded-card border ${config.container} p-6 my-6 ${className || ''}`}>
       <div className={'flex gap-4'}>
         <div className={'shrink-0'}>
           <Icon className={`h-5 w-5 ${config.iconColor}`} />
@@ -74,7 +82,7 @@ export function InfoBox({type = 'info', title, children, className}: InfoBoxProp
           {(title || defaultTitles[type]) && (
             <h4 className={`not-prose font-semibold ${config.titleColor}`}>{title || defaultTitles[type]}</h4>
           )}
-          <div className={'text-sm text-neutral-700 leading-relaxed mt-0 prose prose-sm max-w-none'}>{children}</div>
+          <div className={'text-neutral-700 leading-relaxed mt-1 prose max-w-none'}>{children}</div>
         </div>
       </div>
     </div>

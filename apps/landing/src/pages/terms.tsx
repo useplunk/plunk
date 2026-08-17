@@ -30,7 +30,7 @@ export default function TermsOfService() {
             {/* Hero */}
             <div className="mb-12">
               <h1 className="text-4xl font-bold text-neutral-900">Terms of Service</h1>
-              <p className="mt-2 text-sm text-neutral-600">Last Updated: February 18, 2026</p>
+              <p className="mt-2 text-ui text-neutral-600">Last Updated: February 18, 2026</p>
               <p className="mt-4 text-base leading-relaxed text-neutral-700">
                 Welcome to Plunk, the open-source email automation platform. These Terms of Service govern your use of
                 Plunk's hosted service and self-hosted software.
@@ -40,79 +40,79 @@ export default function TermsOfService() {
             {/* Table of Contents */}
             <nav className="mb-12 rounded-lg border border-neutral-200 bg-neutral-50 p-6">
               <h2 className="mb-4 text-lg font-semibold text-neutral-900">Contents</h2>
-              <ol className="space-y-2 text-sm text-neutral-700">
+              <ol className="space-y-2 text-ui text-neutral-700">
                 <li>
-                  <a href="#acceptance" className="text-blue-600 hover:underline">
+                  <a href="#acceptance" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     1. Acceptance of Terms
                   </a>
                 </li>
                 <li>
-                  <a href="#service" className="text-blue-600 hover:underline">
+                  <a href="#service" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     2. Service Description
                   </a>
                 </li>
                 <li>
-                  <a href="#account" className="text-blue-600 hover:underline">
+                  <a href="#account" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     3. Account Registration & Eligibility
                   </a>
                 </li>
                 <li>
-                  <a href="#acceptable-use" className="text-blue-600 hover:underline">
+                  <a href="#acceptable-use" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     4. Acceptable Use Policy
                   </a>
                 </li>
                 <li>
-                  <a href="#email-compliance" className="text-blue-600 hover:underline">
+                  <a href="#email-compliance" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     5. Email Compliance & Anti-Spam
                   </a>
                 </li>
                 <li>
-                  <a href="#billing" className="text-blue-600 hover:underline">
+                  <a href="#billing" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     6. Billing & Payments
                   </a>
                 </li>
                 <li>
-                  <a href="#data-ownership" className="text-blue-600 hover:underline">
+                  <a href="#data-ownership" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     7. Data Ownership & Privacy
                   </a>
                 </li>
                 <li>
-                  <a href="#intellectual-property" className="text-blue-600 hover:underline">
+                  <a href="#intellectual-property" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     8. Intellectual Property
                   </a>
                 </li>
                 <li>
-                  <a href="#availability" className="text-blue-600 hover:underline">
+                  <a href="#availability" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     9. Service Availability & Limitations
                   </a>
                 </li>
                 <li>
-                  <a href="#termination" className="text-blue-600 hover:underline">
+                  <a href="#termination" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     10. Termination
                   </a>
                 </li>
                 <li>
-                  <a href="#liability" className="text-blue-600 hover:underline">
+                  <a href="#liability" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     11. Liability & Warranties
                   </a>
                 </li>
                 <li>
-                  <a href="#disputes" className="text-blue-600 hover:underline">
+                  <a href="#disputes" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     12. Dispute Resolution
                   </a>
                 </li>
                 <li>
-                  <a href="#changes" className="text-blue-600 hover:underline">
+                  <a href="#changes" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     13. Changes to Terms
                   </a>
                 </li>
                 <li>
-                  <a href="#self-hosted" className="text-blue-600 hover:underline">
+                  <a href="#self-hosted" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     14. Self-Hosted Deployments
                   </a>
                 </li>
                 <li>
-                  <a href="#contact" className="text-blue-600 hover:underline">
+                  <a href="#contact" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     15. Contact Information
                   </a>
                 </li>
@@ -241,7 +241,7 @@ export default function TermsOfService() {
               <section id="email-compliance" className="mb-12">
                 <h2 className="mb-4 text-2xl font-bold text-neutral-900">5. Email Compliance & Anti-Spam</h2>
                 <div className="mb-6 rounded-lg border-2 border-red-200 bg-red-50 p-6">
-                  <h3 className="mb-3 text-xl font-bold text-red-900">NO COLD EMAILING POLICY</h3>
+                  <h3 className="mb-3 text-h3 font-bold text-red-900">NO COLD EMAILING POLICY</h3>
                   <p className="mb-4 leading-relaxed text-red-900">
                     Plunk strictly prohibits cold emailing. All emails must be sent to recipients who have:
                   </p>
@@ -322,7 +322,7 @@ export default function TermsOfService() {
               {/* Section 6 */}
               <section id="billing" className="mb-12">
                 <h2 className="mb-4 text-2xl font-bold text-neutral-900">6. Billing & Payments</h2>
-                <p className="mb-4 text-sm italic text-neutral-600">(SaaS Only - Not applicable to self-hosted)</p>
+                <p className="mb-4 text-ui italic text-neutral-600">(SaaS Only - Not applicable to self-hosted)</p>
 
                 <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Pay-As-You-Go Model</h3>
                 <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
@@ -400,7 +400,7 @@ export default function TermsOfService() {
                 <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
                   <li>
                     Full details in our{' '}
-                    <Link href="/privacy" className="text-blue-600 hover:underline">
+                    <Link href="/privacy" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                       Privacy Policy
                     </Link>
                   </li>
@@ -661,11 +661,11 @@ export default function TermsOfService() {
                   <p className="mb-2 font-semibold text-neutral-900">Legal Inquiries:</p>
                   <p className="mb-1 text-neutral-700">
                     Email:{' '}
-                    <a href="mailto:legal@useplunk.com" className="text-blue-600 hover:underline">
+                    <a href="mailto:legal@useplunk.com" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                       legal@useplunk.com
                     </a>
                   </p>
-                  <p className="text-sm text-neutral-600">Response time: Within 7 business days</p>
+                  <p className="text-ui text-neutral-600">Response time: Within 7 business days</p>
                 </div>
 
                 <p className="mb-2 font-semibold text-neutral-900">Technical Support:</p>
@@ -676,14 +676,14 @@ export default function TermsOfService() {
                       href="https://github.com/useplunk/plunk/discussions"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900"
                     >
                       GitHub Discussions
                     </a>
                   </li>
                   <li>
                     Discord:{' '}
-                    <Link href="/discord" className="text-blue-600 hover:underline">
+                    <Link href="/discord" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                       useplunk.com/discord
                     </Link>
                   </li>
@@ -692,7 +692,7 @@ export default function TermsOfService() {
                 <p className="mb-2 font-semibold text-neutral-900">Privacy Requests:</p>
                 <p className="text-neutral-700">
                   See our{' '}
-                  <Link href="/privacy" className="text-blue-600 hover:underline">
+                  <Link href="/privacy" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                     Privacy Policy
                   </Link>{' '}
                   or email legal@useplunk.com
@@ -705,13 +705,13 @@ export default function TermsOfService() {
               <p className="mb-2 text-lg font-semibold text-neutral-900">Questions about these Terms?</p>
               <p className="mb-4 text-neutral-700">
                 We're here to help. Contact us at{' '}
-                <a href="mailto:legal@useplunk.com" className="text-blue-600 hover:underline">
+                <a href="mailto:legal@useplunk.com" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                   legal@useplunk.com
                 </a>
               </p>
-              <p className="text-sm text-neutral-600">
+              <p className="text-ui text-neutral-600">
                 For privacy-related inquiries, please review our{' '}
-                <Link href="/privacy" className="text-blue-600 hover:underline">
+                <Link href="/privacy" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
                   Privacy Policy
                 </Link>
                 .

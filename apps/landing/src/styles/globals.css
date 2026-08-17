@@ -56,6 +56,50 @@
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
+
+    /* ==================================================================
+       Landing design system
+       ------------------------------------------------------------------
+       One type scale, one card radius, semantic-only color. Pages compose
+       from these instead of hand-rolling arbitrary values.
+       ================================================================== */
+
+    /* Type scale — ~1.28 ratio, every step at least 1.25 from its neighbour.
+       Deliberately has no 14px tier: that step is what collapsed the middle
+       of the old scale and made body copy, card text and captions read as
+       one undifferentiated block. */
+    --text-label: 0.75rem;          /* 12px — mono metadata */
+    --text-label--line-height: 1.4;
+    --text-body: 1rem;              /* 16px — default prose */
+    --text-body--line-height: 1.65;
+    /* 14px, for interface chrome only: button labels, nav links, table cells.
+       Deliberately NOT part of the reading hierarchy — it exists so chrome can
+       sit a step below prose without reintroducing a 14px tier into body copy,
+       which is what flattened the old scale. If it is a sentence someone reads,
+       it belongs at --text-body. */
+    --text-ui: 0.875rem;
+    --text-ui--line-height: 1.5;
+    --text-lead: 1.25rem;           /* 20px — section intros, hero subtitle */
+    --text-lead--line-height: 1.55;
+    --text-h3: 1.625rem;            /* 26px */
+    --text-h3--line-height: 1.2;
+    --text-h2: clamp(2rem, 4vw, 3.25rem);
+    --text-h2--line-height: 1.05;
+    --text-display: clamp(2.5rem, 6vw, 6rem);
+    --text-display--line-height: 0.94;
+
+    /* One card radius everywhere. Buttons and tags stay full-pill. */
+    --radius-card: 1rem;
+
+    /* Semantic color. Reserved for state (tool results, validation).
+       Never decoration — the brand palette is black, neutral, white.
+       Text tones are AA-safe on white; -surface tones are backgrounds only. */
+    --color-ok: oklch(0.52 0.13 155);
+    --color-ok-surface: oklch(0.96 0.025 155);
+    --color-warn: oklch(0.55 0.12 75);
+    --color-warn-surface: oklch(0.96 0.035 75);
+    --color-err: oklch(0.53 0.19 25);
+    --color-err-surface: oklch(0.96 0.025 25);
 }
 
 @layer base {
@@ -102,57 +146,13 @@
         --radius: 0.5rem;
     }
 
-    .dark {
-        --background: 224 71% 4%;
-        --foreground: 213 31% 91%;
-
-        --muted: 223 47% 11%;
-        --muted-foreground: 215.4 16.3% 56.9%;
-
-        --accent: 216 34% 17%;
-        --accent-foreground: 210 40% 98%;
-
-        --popover: 224 71% 4%;
-        --popover-foreground: 215 20.2% 65.1%;
-
-        --border: 216 34% 17%;
-        --input: 216 34% 17%;
-
-        --card: 224 71% 4%;
-        --card-foreground: 213 31% 91%;
-
-        --primary: 210 40% 98%;
-        --primary-foreground: 222.2 47.4% 1.2%;
-
-        --secondary: 222.2 47.4% 11.2%;
-        --secondary-foreground: 210 40% 98%;
-
-        --destructive: 0 63% 31%;
-        --destructive-foreground: 210 40% 98%;
-
-        --ring: 215.4 16.3% 56.9%;
-
-        --radius: 0.5rem;
-    }
 }
 
-@layer base {
-    :root {
-        --chart-1: 12 76% 61%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 197 37% 24%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 27 87% 67%;
-    }
-
-    .dark {
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
-    }
-}
+/* The landing site is light-only (see PRODUCT.md). The inherited `.dark`
+   token block and `--chart-*` scale were dead: no `dark:` variant is used
+   anywhere in this app or in @plunk/ui, and nothing reads the chart vars.
+   The `:root` block above stays — @plunk/ui's Button and Input resolve
+   --background, --foreground, --muted and --ring through it. */
 
 @layer base {
     * {
@@ -167,6 +167,14 @@
 
     h1, h2, h3, h4, h5, h6 {
         font-family: var(--font-display, ui-sans-serif, system-ui, sans-serif);
+        /* Even line lengths on display type, so headlines break where the
+           phrase breaks rather than wherever the container happens to end. */
+        text-wrap: balance;
+    }
+
+    p {
+        /* Pulls single-word orphans back up off the last line. */
+        text-wrap: pretty;
     }
 }
 

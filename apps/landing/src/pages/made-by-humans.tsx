@@ -45,23 +45,17 @@ export default function Index() {
               animate={{opacity: 1, y: 0}}
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
             >
-              <div
-                style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-6 text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
-              >
-                Made by Humans
-              </div>
               <h1
                 style={{fontFamily: 'var(--font-display)'}}
                 className={
-                  'text-[clamp(2.75rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
+                  'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
                 }
               >
                 Software built
                 <br />
                 by a person.
               </h1>
-              <p className={'mt-6 max-w-2xl text-xl text-neutral-600'}>
+              <p className={'mt-6 max-w-2xl text-lead text-neutral-600'}>
                 Plunk is an indie SaaS run by a human. No VC funding, no aggressive growth tactics. Just a platform built
                 with care.
               </p>
@@ -80,7 +74,7 @@ export default function Index() {
                 whileInView={{opacity: 1, y: 0}}
                 viewport={{once: true}}
                 transition={{duration: 0.6, ease: [0.22, 1, 0.36, 1]}}
-                className={'rounded-[24px] border border-neutral-200 bg-white p-10'}
+                className={'rounded-card border border-neutral-200 bg-white p-10'}
               >
                 <h2
                   style={{fontFamily: 'var(--font-display)'}}
@@ -109,17 +103,17 @@ export default function Index() {
                   whileInView={{opacity: 1, y: 0}}
                   viewport={{once: true}}
                   transition={{duration: 0.5, delay: 0.05, ease: [0.22, 1, 0.36, 1]}}
-                  className={'rounded-[24px] border border-neutral-200 bg-white p-8'}
+                  className={'rounded-card border border-neutral-200 bg-white p-8'}
                 >
                   <div
                     style={{fontFamily: 'var(--font-mono)'}}
-                    className={'mb-4 text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                    className={'mb-4 text-label text-neutral-500'}
                   >
                     01
                   </div>
                   <h3
                     style={{fontFamily: 'var(--font-display)'}}
-                    className={'text-xl font-bold tracking-[-0.02em] text-neutral-900'}
+                    className={'text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
                   >
                     Transparent
                   </h3>
@@ -134,17 +128,17 @@ export default function Index() {
                   whileInView={{opacity: 1, y: 0}}
                   viewport={{once: true}}
                   transition={{duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1]}}
-                  className={'rounded-[24px] border border-neutral-200 bg-white p-8'}
+                  className={'rounded-card border border-neutral-200 bg-white p-8'}
                 >
                   <div
                     style={{fontFamily: 'var(--font-mono)'}}
-                    className={'mb-4 text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                    className={'mb-4 text-label text-neutral-500'}
                   >
                     02
                   </div>
                   <h3
                     style={{fontFamily: 'var(--font-display)'}}
-                    className={'text-xl font-bold tracking-[-0.02em] text-neutral-900'}
+                    className={'text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
                   >
                     Grateful
                   </h3>
@@ -161,7 +155,7 @@ export default function Index() {
                 whileInView={{opacity: 1, y: 0}}
                 viewport={{once: true}}
                 transition={{duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1]}}
-                className={'rounded-[24px] border border-neutral-200 bg-white p-10'}
+                className={'rounded-card border border-neutral-200 bg-white p-10'}
               >
                 <div className={'flex items-center gap-6'}>
                   <Image
@@ -194,13 +188,13 @@ export default function Index() {
                         </g>
                       </g>
                     </svg>
-                    <div className="mt-1 text-sm text-neutral-500">Founder of Plunk</div>
+                    <div className="mt-1 text-ui text-neutral-500">Founder of Plunk</div>
                   </div>
                 </div>
               </motion.div>
 
               {/* Attribution */}
-              <p className={'text-center text-sm text-neutral-400'}>
+              <p className={'text-center text-ui text-neutral-500'}>
                 This page is inspired by{' '}
                 <Link href={'https://logsnag.com/run-by-a-human'} target={'_blank'} className="underline hover:text-neutral-600 transition">
                   Shayan from LogSnag

@@ -2,6 +2,7 @@ import {FAQSection, Footer, Navbar} from '../';
 import type {FAQ} from '../FAQSection';
 import {motion} from 'framer-motion';
 import React, {ReactNode, useLayoutEffect, useState} from 'react';
+import {Label} from '../Mono';
 import Link from 'next/link';
 import {ArticleJsonLd, BreadcrumbJsonLd, NextSeo} from 'next-seo';
 import {Calendar, Clock} from 'lucide-react';
@@ -128,7 +129,7 @@ export function GuideLayout({
             <nav className={'mb-6 sm:mb-8 w-full overflow-x-auto'}>
               <ol
                 className={
-                  'flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-neutral-600 whitespace-normal'
+                  'flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-ui text-neutral-600 whitespace-normal'
                 }
               >
                 <li className={'truncate max-w-[90vw]'}>
@@ -156,19 +157,19 @@ export function GuideLayout({
             >
               <h1
                 style={{fontFamily: 'var(--font-display)'}}
-                className={'text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-neutral-900 break-words max-w-full'}
+                className={'text-h2 font-extrabold tracking-[-0.03em] text-neutral-900 break-words max-w-full'}
               >
                 {title}
               </h1>
               <p
-                className={'mt-4 sm:mt-6 text-base sm:text-lg text-neutral-600 leading-relaxed break-words max-w-full'}
+                className={'mt-6 max-w-[65ch] text-lead text-neutral-600 break-words'}
               >
                 {description}
               </p>
 
               <div
                 className={
-                  'mt-6 sm:mt-8 flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-neutral-600'
+                  'mt-6 sm:mt-8 flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-ui text-neutral-600'
                 }
               >
                 <div className={'flex items-center gap-2'}>
@@ -206,7 +207,9 @@ export function GuideLayout({
           {headings.length > 0 && (
             <aside className={'hidden lg:block w-64 shrink-0 sticky top-24 self-start'}>
               <div className={'rounded-xl border border-neutral-200 bg-white p-6 shadow-sm'}>
-                <h2 className={'text-sm font-semibold text-neutral-900 mb-4 uppercase tracking-wide'}>On this page</h2>
+                <h2 className={'mb-4'}>
+                  <Label>On this page</Label>
+                </h2>
                 <nav>
                   <ul className={'space-y-0.5'}>
                     {headings.map(heading => (
@@ -228,8 +231,8 @@ export function GuideLayout({
                           className={`block rounded px-2 py-1.5 transition-all duration-200 ${
                             heading.level === 2
                               ? activeId === heading.id
-                                ? 'bg-neutral-100 text-sm font-semibold text-neutral-900'
-                                : 'text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                                ? 'bg-neutral-100 text-ui font-semibold text-neutral-900'
+                                : 'text-ui font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
                               : activeId === heading.id
                                 ? 'bg-neutral-50 text-xs font-medium text-neutral-800'
                                 : 'text-xs text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700'

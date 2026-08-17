@@ -5,18 +5,18 @@ import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
 import {AlertTriangle, ArrowRight, CheckCircle, FileText, XCircle} from 'lucide-react';
 import {Button} from '@plunk/ui';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import Link from 'next/link';
 import type {FAQ} from '../../components/FAQSection';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -196,12 +196,12 @@ function AuthBadge({result}: {result: string}) {
   const pass = result === 'pass';
   const fail = result === 'fail' || result === 'hardfail';
   const cls = pass
-    ? 'bg-green-100 text-green-700'
+    ? 'bg-ok-surface text-ok'
     : fail
-    ? 'bg-red-100 text-red-700'
+    ? 'bg-err-surface text-err'
     : 'bg-neutral-100 text-neutral-600';
   return (
-    <span style={{fontFamily: 'var(--font-mono)'}} className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${cls}`}>
+    <span style={{fontFamily: 'var(--font-mono)'}} className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${cls}`}>
       {result}
     </span>
   );
@@ -292,7 +292,7 @@ export default function EmailHeadersPage() {
                 animate={{opacity: 1, y: 0}}
                 transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700 sm:mb-24'}
+                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'}
               >
                 <span className={'font-medium text-neutral-900'}>§ T-09 &nbsp;— &nbsp;Tool</span>
                 <Link href="/tools" className={'text-neutral-500 transition hover:text-neutral-900'}>
@@ -308,7 +308,7 @@ export default function EmailHeadersPage() {
               >
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
+                  className={'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
                 >
                   Email headers
                   <br />
@@ -330,11 +330,11 @@ export default function EmailHeadersPage() {
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
               className={'mx-auto max-w-3xl'}
             >
-              <div className={'overflow-hidden rounded-[20px] border border-neutral-200 bg-white'}>
+              <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
                 <div className={'border-b border-neutral-200 px-8 py-5'}>
                   <div className={'flex items-center gap-3'}>
                     <FileText className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
-                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}>
+                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>
                       Raw header input
                     </span>
                   </div>
@@ -343,8 +343,8 @@ export default function EmailHeadersPage() {
                 <form onSubmit={handleAnalyze} className={'p-8'}>
                   <div className={'space-y-4'}>
                     <div>
-                      <label htmlFor="rawHeaders" className={'mb-2 block text-sm font-medium text-neutral-900'}>
-                        Raw email headers <span className={'text-red-500'}>*</span>
+                      <label htmlFor="rawHeaders" className={'mb-2 block text-ui font-medium text-neutral-900'}>
+                        Raw email headers <span className={'text-err'}>*</span>
                       </label>
                       <textarea
                         id="rawHeaders"
@@ -354,9 +354,9 @@ export default function EmailHeadersPage() {
                         required
                         rows={10}
                         style={{fontFamily: 'var(--font-mono)'}}
-                        className={'w-full resize-y rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-700 placeholder:text-neutral-400 focus:border-neutral-400 focus:bg-white focus:outline-none'}
+                        className={'w-full resize-y rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-700 placeholder:text-neutral-500 focus:border-neutral-400 focus:bg-white focus:outline-none'}
                       />
-                      <p className={'mt-1.5 text-xs text-neutral-400'}>Paste the full raw headers — no email body required. Everything is processed locally in your browser.</p>
+                      <p className={'mt-1.5 text-xs text-neutral-500'}>Paste the full raw headers — no email body required. Everything is processed locally in your browser.</p>
                     </div>
                     <div className={'flex gap-3'}>
                       <Button type="submit" className={'flex-1 gap-2'}>
@@ -367,7 +367,7 @@ export default function EmailHeadersPage() {
                         <button
                           type="button"
                           onClick={handleClear}
-                          className={'rounded-full border border-neutral-200 px-5 py-2.5 text-sm font-medium text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900'}
+                          className={'rounded-full border border-neutral-200 px-5 py-2.5 text-ui font-medium text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900'}
                         >
                           Clear
                         </button>
@@ -386,7 +386,7 @@ export default function EmailHeadersPage() {
                 >
                   {/* Authentication results */}
                   {result.authResults.length > 0 && (
-                    <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                    <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                       <h3 style={{fontFamily: 'var(--font-display)'}} className={'mb-6 text-lg font-bold text-neutral-900'}>
                         Authentication results
                       </h3>
@@ -394,20 +394,20 @@ export default function EmailHeadersPage() {
                         {result.authResults.map((auth, i) => (
                           <li key={i} className={'flex items-start gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3'}>
                             {auth.pass === true ? (
-                              <CheckCircle className={'mt-0.5 h-4 w-4 shrink-0 text-green-600'} />
+                              <CheckCircle className={'mt-0.5 h-4 w-4 shrink-0 text-ok'} />
                             ) : auth.pass === false ? (
-                              <XCircle className={'mt-0.5 h-4 w-4 shrink-0 text-red-500'} />
+                              <XCircle className={'mt-0.5 h-4 w-4 shrink-0 text-err'} />
                             ) : (
-                              <AlertTriangle className={'mt-0.5 h-4 w-4 shrink-0 text-amber-500'} />
+                              <AlertTriangle className={'mt-0.5 h-4 w-4 shrink-0 text-warn'} />
                             )}
                             <div className={'min-w-0 flex-1'}>
                               <div className={'flex flex-wrap items-center gap-2'}>
-                                <span style={{fontFamily: 'var(--font-mono)'}} className={'text-xs font-bold uppercase tracking-wide text-neutral-700'}>
+                                <span style={{fontFamily: 'var(--font-mono)'}} className={'text-xs font-bold text-neutral-700'}>
                                   {auth.mechanism}
                                 </span>
                                 <AuthBadge result={auth.result} />
                                 {auth.detail && (
-                                  <span style={{fontFamily: 'var(--font-mono)'}} className={'text-xs text-neutral-400'}>
+                                  <span style={{fontFamily: 'var(--font-mono)'}} className={'text-xs text-neutral-500'}>
                                     {auth.detail}
                                   </span>
                                 )}
@@ -420,11 +420,11 @@ export default function EmailHeadersPage() {
                   )}
 
                   {result.authResults.length === 0 && (
-                    <div className={'rounded-[20px] border border-neutral-100 bg-neutral-50 p-6'}>
+                    <div className={'rounded-card border border-neutral-100 bg-neutral-50 p-6'}>
                       <div className={'flex items-start gap-3'}>
-                        <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-amber-500'} />
+                        <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-warn'} />
                         <div>
-                          <p className={'text-sm font-medium text-neutral-800'}>No Authentication-Results header found</p>
+                          <p className={'text-ui font-medium text-neutral-800'}>No Authentication-Results header found</p>
                           <p className={'mt-0.5 text-xs text-neutral-500'}>This header is added by the receiving mail server. If it&apos;s missing, paste the full original headers, not just the visible ones.</p>
                         </div>
                       </div>
@@ -433,27 +433,27 @@ export default function EmailHeadersPage() {
 
                   {/* DKIM signature info */}
                   {(result.dkimDomain ?? result.dkimSelector) && (
-                    <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                    <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                       <h3 style={{fontFamily: 'var(--font-display)'}} className={'mb-4 text-lg font-bold text-neutral-900'}>
                         DKIM signature
                       </h3>
                       <div className={'flex flex-wrap gap-4'}>
                         {result.dkimDomain && (
                           <div className={'rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3'}>
-                            <p className={'text-[10px] uppercase tracking-[0.15em] text-neutral-400'}>Signing domain</p>
-                            <p style={{fontFamily: 'var(--font-mono)'}} className={'mt-1 text-sm font-medium text-neutral-900'}>{result.dkimDomain}</p>
+                            <p className={'text-label text-neutral-500'}>Signing domain</p>
+                            <p style={{fontFamily: 'var(--font-mono)'}} className={'mt-1 text-ui font-medium text-neutral-900'}>{result.dkimDomain}</p>
                           </div>
                         )}
                         {result.dkimSelector && (
                           <div className={'rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3'}>
-                            <p className={'text-[10px] uppercase tracking-[0.15em] text-neutral-400'}>Selector</p>
-                            <p style={{fontFamily: 'var(--font-mono)'}} className={'mt-1 text-sm font-medium text-neutral-900'}>{result.dkimSelector}</p>
+                            <p className={'text-label text-neutral-500'}>Selector</p>
+                            <p style={{fontFamily: 'var(--font-mono)'}} className={'mt-1 text-ui font-medium text-neutral-900'}>{result.dkimSelector}</p>
                           </div>
                         )}
                         {result.dkimDomain && result.dkimSelector && (
                           <div className={'rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3'}>
-                            <p className={'text-[10px] uppercase tracking-[0.15em] text-neutral-400'}>Public key DNS name</p>
-                            <p style={{fontFamily: 'var(--font-mono)'}} className={'mt-1 text-sm font-medium text-neutral-900'}>
+                            <p className={'text-label text-neutral-500'}>Public key DNS name</p>
+                            <p style={{fontFamily: 'var(--font-mono)'}} className={'mt-1 text-ui font-medium text-neutral-900'}>
                               {result.dkimSelector}._domainkey.{result.dkimDomain}
                             </p>
                           </div>
@@ -464,9 +464,9 @@ export default function EmailHeadersPage() {
 
                   {/* Routing hops */}
                   {result.hops.length > 0 && (
-                    <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                    <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                       <h3 style={{fontFamily: 'var(--font-display)'}} className={'mb-6 text-lg font-bold text-neutral-900'}>
-                        Routing hops <span className={'text-base font-normal text-neutral-400'}>({result.hops.length} server{result.hops.length !== 1 ? 's' : ''})</span>
+                        Routing hops <span className={'text-base font-normal text-neutral-500'}>({result.hops.length} server{result.hops.length !== 1 ? 's' : ''})</span>
                       </h3>
                       <ol className={'space-y-3'}>
                         {result.hops.map((hop, i) => (
@@ -483,16 +483,16 @@ export default function EmailHeadersPage() {
                               <div className={'rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3'}>
                                 <div className={'flex flex-wrap items-start justify-between gap-2'}>
                                   <div className={'min-w-0'}>
-                                    <p className={'text-[10px] uppercase tracking-[0.15em] text-neutral-400'}>From</p>
+                                    <p className={'text-label text-neutral-500'}>From</p>
                                     <p style={{fontFamily: 'var(--font-mono)'}} className={'mt-0.5 truncate text-xs font-medium text-neutral-800'}>{hop.from}</p>
                                   </div>
                                   <div className={'min-w-0'}>
-                                    <p className={'text-[10px] uppercase tracking-[0.15em] text-neutral-400'}>By</p>
+                                    <p className={'text-label text-neutral-500'}>By</p>
                                     <p style={{fontFamily: 'var(--font-mono)'}} className={'mt-0.5 truncate text-xs font-medium text-neutral-800'}>{hop.by}</p>
                                   </div>
                                   {hop.timestamp && (
                                     <div className={'shrink-0'}>
-                                      <p className={'text-[10px] uppercase tracking-[0.15em] text-neutral-400'}>Time</p>
+                                      <p className={'text-label text-neutral-500'}>Time</p>
                                       <p style={{fontFamily: 'var(--font-mono)'}} className={'mt-0.5 text-xs text-neutral-600'}>{hop.timestamp}</p>
                                     </div>
                                   )}
@@ -507,7 +507,7 @@ export default function EmailHeadersPage() {
 
                   {/* Message metadata */}
                   {metaFields.length > 0 && (
-                    <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                    <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                       <h3 style={{fontFamily: 'var(--font-display)'}} className={'mb-6 text-lg font-bold text-neutral-900'}>
                         Message metadata
                       </h3>
@@ -533,13 +533,13 @@ export default function EmailHeadersPage() {
                   initial={{opacity: 0, y: 16}}
                   animate={{opacity: 1, y: 0}}
                   transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
-                  className={'mt-6 rounded-[20px] border border-red-100 bg-red-50 p-8'}
+                  className={'mt-6 rounded-card border border-err/25 bg-err-surface p-8'}
                 >
                   <div className={'flex items-start gap-3'}>
-                    <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                    <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                     <div>
-                      <p className={'font-semibold text-red-900'}>Could not parse headers</p>
-                      <p className={'mt-1 text-sm text-red-700'}>Make sure you pasted raw email headers in standard format. Each header should be on its own line followed by a colon and value.</p>
+                      <p className={'font-semibold text-err'}>Could not parse headers</p>
+                      <p className={'mt-1 text-ui text-err'}>Make sure you pasted raw email headers in standard format. Each header should be on its own line followed by a colon and value.</p>
                     </div>
                   </div>
                 </motion.div>
@@ -551,8 +551,6 @@ export default function EmailHeadersPage() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'01'}
-                label={'Email headers explained'}
                 title={'What headers tell you.'}
                 subtitle={'Every email carries a forensic trail. Here\'s what to look for when debugging deliverability.'}
               />
@@ -584,15 +582,15 @@ export default function EmailHeadersPage() {
                     whileInView={{opacity: 1, y: 0}}
                     viewport={{once: true}}
                     transition={{duration: 0.5, delay: i * 0.08, ease: [0.22, 1, 0.36, 1]}}
-                    className={`flex flex-col gap-5 rounded-[20px] border-2 bg-white p-8 ${item.cls}`}
+                    className={`flex flex-col gap-5 rounded-card border-2 bg-white p-8 ${item.cls}`}
                   >
-                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-[11px] uppercase tracking-[0.18em] text-neutral-400'}>
+                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>
                       / {item.tag}
                     </span>
                     <h3 style={{fontFamily: 'var(--font-display)'}} className={'text-2xl font-bold tracking-[-0.02em] text-neutral-900'}>
                       {item.title}
                     </h3>
-                    <p className={'text-sm leading-relaxed text-neutral-600'}>{item.body}</p>
+                    <p className={'text-ui leading-relaxed text-neutral-600'}>{item.body}</p>
                   </motion.div>
                 ))}
               </div>
@@ -609,7 +607,7 @@ export default function EmailHeadersPage() {
                   viewport={{once: true}}
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
                 >
                   Never debug deliverability again.
                 </motion.h2>
@@ -621,7 +619,7 @@ export default function EmailHeadersPage() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Plunk sets up authentication correctly from day one and gives you the analytics to catch deliverability issues before your users do.
                   </p>
                   <div className={'flex flex-wrap gap-3'}>
@@ -629,14 +627,14 @@ export default function EmailHeadersPage() {
                       whileHover={{scale: 1.015}}
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
-                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}
+                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
                     >
                       Start with Plunk
                       <ArrowRight className={'h-4 w-4'} />
                     </motion.a>
                     <Link
                       href="/tools/dkim-checker"
-                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}
+                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
                     >
                       Check DKIM record
                     </Link>

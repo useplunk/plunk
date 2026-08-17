@@ -31,41 +31,41 @@ export default function TransactionalVsMarketingEmail() {
           <table className="w-full">
             <thead>
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Aspect</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Transactional Email</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Marketing Email</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Aspect</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Transactional Email</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Marketing Email</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 bg-white">
               <tr>
-                <td className="px-6 py-4 text-sm font-semibold text-neutral-900">Purpose</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Facilitate transaction or provide service info</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Promote products, services, or content</td>
+                <td className="px-6 py-4 text-ui font-semibold text-neutral-900">Purpose</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Facilitate transaction or provide service info</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Promote products, services, or content</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm font-semibold text-neutral-900">Trigger</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">User action or system event</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Scheduled or campaign-based</td>
+                <td className="px-6 py-4 text-ui font-semibold text-neutral-900">Trigger</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">User action or system event</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Scheduled or campaign-based</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm font-semibold text-neutral-900">Consent Required</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">No (expected as part of service)</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Yes (explicit opt-in required)</td>
+                <td className="px-6 py-4 text-ui font-semibold text-neutral-900">Consent Required</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">No (expected as part of service)</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Yes (explicit opt-in required)</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm font-semibold text-neutral-900">Unsubscribe Link</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Not required</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Required by law</td>
+                <td className="px-6 py-4 text-ui font-semibold text-neutral-900">Unsubscribe Link</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Not required</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Required by law</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm font-semibold text-neutral-900">Open Rate</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">60-80% (very high)</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">15-25% (average)</td>
+                <td className="px-6 py-4 text-ui font-semibold text-neutral-900">Open Rate</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">60-80% (very high)</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">15-25% (average)</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm font-semibold text-neutral-900">Volume</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Lower, event-based</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Higher, scheduled campaigns</td>
+                <td className="px-6 py-4 text-ui font-semibold text-neutral-900">Volume</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Lower, event-based</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Higher, scheduled campaigns</td>
               </tr>
             </tbody>
           </table>
@@ -86,7 +86,7 @@ export default function TransactionalVsMarketingEmail() {
             <div className="rounded-xl border border-neutral-200 bg-white p-6">
               <div className="w-full max-w-full break-words">
                 <h4 className="font-semibold text-neutral-900 mb-3">Account & Authentication</h4>
-                <ul className="space-y-2 text-sm text-neutral-700">
+                <ul className="space-y-2 text-ui text-neutral-700">
                   <li>• Welcome emails after signup</li>
                   <li>• Email verification/confirmation</li>
                   <li>• Password reset requests</li>
@@ -100,7 +100,7 @@ export default function TransactionalVsMarketingEmail() {
             <div className="rounded-xl border border-neutral-200 bg-white p-6">
               <div className="w-full max-w-full break-words">
                 <h4 className="font-semibold text-neutral-900 mb-3">Commerce & Transactions</h4>
-                <ul className="space-y-2 text-sm text-neutral-700">
+                <ul className="space-y-2 text-ui text-neutral-700">
                   <li>• Order confirmations</li>
                   <li>• Shipping notifications</li>
                   <li>• Delivery updates</li>
@@ -114,7 +114,7 @@ export default function TransactionalVsMarketingEmail() {
             <div className="rounded-xl border border-neutral-200 bg-white p-6">
               <div className="w-full max-w-full break-words">
                 <h4 className="font-semibold text-neutral-900 mb-3">Notifications & Alerts</h4>
-                <ul className="space-y-2 text-sm text-neutral-700">
+                <ul className="space-y-2 text-ui text-neutral-700">
                   <li>• Activity notifications</li>
                   <li>• Comment or mention alerts</li>
                   <li>• Security alerts</li>
@@ -128,7 +128,7 @@ export default function TransactionalVsMarketingEmail() {
             <div className="rounded-xl border border-neutral-200 bg-white p-6">
               <div className="w-full max-w-full break-words">
                 <h4 className="font-semibold text-neutral-900 mb-3">Account Management</h4>
-                <ul className="space-y-2 text-sm text-neutral-700">
+                <ul className="space-y-2 text-ui text-neutral-700">
                   <li>• Billing statements</li>
                   <li>• Usage reports</li>
                   <li>• Account updates</li>
@@ -145,7 +145,7 @@ export default function TransactionalVsMarketingEmail() {
           <h3 className="text-xl font-semibold text-neutral-900 mb-4">Transactional Email Best Practices</h3>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div>
@@ -158,7 +158,7 @@ export default function TransactionalVsMarketingEmail() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div>
@@ -171,7 +171,7 @@ export default function TransactionalVsMarketingEmail() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div>
@@ -184,7 +184,7 @@ export default function TransactionalVsMarketingEmail() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div>
@@ -197,7 +197,7 @@ export default function TransactionalVsMarketingEmail() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               5
             </div>
             <div>
@@ -225,7 +225,7 @@ export default function TransactionalVsMarketingEmail() {
             <div className="rounded-xl border border-neutral-200 bg-white p-6">
               <div className="w-full max-w-full break-words">
                 <h4 className="font-semibold text-neutral-900 mb-3">Promotional Campaigns</h4>
-                <ul className="space-y-2 text-sm text-neutral-700">
+                <ul className="space-y-2 text-ui text-neutral-700">
                   <li>• Product announcements</li>
                   <li>• Sale and discount promotions</li>
                   <li>• New feature launches</li>
@@ -239,7 +239,7 @@ export default function TransactionalVsMarketingEmail() {
             <div className="rounded-xl border border-neutral-200 bg-white p-6">
               <div className="w-full max-w-full break-words">
                 <h4 className="font-semibold text-neutral-900 mb-3">Content Marketing</h4>
-                <ul className="space-y-2 text-sm text-neutral-700">
+                <ul className="space-y-2 text-ui text-neutral-700">
                   <li>• Newsletters</li>
                   <li>• Blog post roundups</li>
                   <li>• Educational content</li>
@@ -253,7 +253,7 @@ export default function TransactionalVsMarketingEmail() {
             <div className="rounded-xl border border-neutral-200 bg-white p-6">
               <div className="w-full max-w-full break-words">
                 <h4 className="font-semibold text-neutral-900 mb-3">Nurture & Engagement</h4>
-                <ul className="space-y-2 text-sm text-neutral-700">
+                <ul className="space-y-2 text-ui text-neutral-700">
                   <li>• Welcome series (beyond initial welcome)</li>
                   <li>• Onboarding sequences</li>
                   <li>• Re-engagement campaigns</li>
@@ -267,7 +267,7 @@ export default function TransactionalVsMarketingEmail() {
             <div className="rounded-xl border border-neutral-200 bg-white p-6">
               <div className="w-full max-w-full break-words">
                 <h4 className="font-semibold text-neutral-900 mb-3">Lifecycle Marketing</h4>
-                <ul className="space-y-2 text-sm text-neutral-700">
+                <ul className="space-y-2 text-ui text-neutral-700">
                   <li>• Abandoned cart reminders</li>
                   <li>• Product recommendations</li>
                   <li>• Upsell/cross-sell campaigns</li>
@@ -284,7 +284,7 @@ export default function TransactionalVsMarketingEmail() {
           <h3 className="text-xl font-semibold text-neutral-900 mb-4">Marketing Email Best Practices</h3>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div>
@@ -297,7 +297,7 @@ export default function TransactionalVsMarketingEmail() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div>
@@ -310,7 +310,7 @@ export default function TransactionalVsMarketingEmail() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div>
@@ -323,7 +323,7 @@ export default function TransactionalVsMarketingEmail() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div>
@@ -336,7 +336,7 @@ export default function TransactionalVsMarketingEmail() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               5
             </div>
             <div>
@@ -364,18 +364,18 @@ export default function TransactionalVsMarketingEmail() {
             <div className="space-y-3 text-neutral-700">
               <div>
                 <h4 className="font-semibold text-neutral-900 mb-1">CAN-SPAM (US)</h4>
-                <p className="text-sm">Exempt from most requirements but must not include false/misleading headers</p>
+                <p className="text-ui">Exempt from most requirements but must not include false/misleading headers</p>
               </div>
               <div>
                 <h4 className="font-semibold text-neutral-900 mb-1">GDPR (EU)</h4>
-                <p className="text-sm">
+                <p className="text-ui">
                   Allowed as "legitimate interest" for service provision. Must still protect user data and allow opt-out
                   of optional transactional emails
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold text-neutral-900 mb-1">Key Point</h4>
-                <p className="text-sm">
+                <p className="text-ui">
                   Transactional emails don't require explicit consent or unsubscribe links, but abuse this category (by
                   making promotional emails appear transactional) violates laws
                 </p>
@@ -383,12 +383,12 @@ export default function TransactionalVsMarketingEmail() {
             </div>
           </div>
 
-          <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-6">
-            <h3 className="text-xl font-semibold text-purple-900 mb-4">Marketing Email Laws</h3>
+          <div className="rounded-xl border-2 border-neutral-200 bg-neutral-50 p-6">
+            <h3 className="text-xl font-semibold text-neutral-900 mb-4">Marketing Email Laws</h3>
             <div className="space-y-3 text-neutral-700">
               <div>
                 <h4 className="font-semibold text-neutral-900 mb-1">CAN-SPAM (US)</h4>
-                <ul className="text-sm space-y-1">
+                <ul className="text-ui space-y-1">
                   <li>• Clear opt-out mechanism (unsubscribe link)</li>
                   <li>• Honor opt-outs within 10 business days</li>
                   <li>• Include physical mailing address</li>
@@ -398,7 +398,7 @@ export default function TransactionalVsMarketingEmail() {
               </div>
               <div>
                 <h4 className="font-semibold text-neutral-900 mb-1">GDPR (EU)</h4>
-                <ul className="text-sm space-y-1">
+                <ul className="text-ui space-y-1">
                   <li>• Explicit opt-in consent required</li>
                   <li>• Clear information about data usage</li>
                   <li>• Easy opt-out anytime</li>
@@ -426,7 +426,7 @@ export default function TransactionalVsMarketingEmail() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Separate Sending Domains</h3>
             <p className="text-neutral-700 mb-3">Use different subdomains for transactional and marketing emails:</p>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>
                 • <strong>Transactional:</strong> transact.yourdomain.com or mail.yourdomain.com
               </li>
@@ -443,7 +443,7 @@ export default function TransactionalVsMarketingEmail() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Dedicated IP Addresses (High Volume)</h3>
             <p className="text-neutral-700 mb-3">For organizations sending 100,000+ emails/month:</p>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>• Use separate dedicated IPs for transactional and marketing</li>
               <li>• Properly warm up new IPs to build sender reputation</li>
               <li>• Monitor reputation for each IP independently</li>
@@ -453,7 +453,7 @@ export default function TransactionalVsMarketingEmail() {
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Monitoring & Analytics</h3>
             <p className="text-neutral-700 mb-3">Track metrics separately for each type:</p>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>
                 • <strong>Transactional:</strong> Delivery rate (target: 99%+), delivery speed, bounce rate
               </li>
@@ -532,21 +532,21 @@ export default function TransactionalVsMarketingEmail() {
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email API Guide</h3>
-            <p className="text-sm text-neutral-600">Implement transactional emails with APIs.</p>
+            <p className="text-ui text-neutral-600">Implement transactional emails with APIs.</p>
           </Link>
           <Link
             href="/guides/email-marketing-best-practices"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Marketing Best Practices</h3>
-            <p className="text-sm text-neutral-600">Complete marketing email guide.</p>
+            <p className="text-ui text-neutral-600">Complete marketing email guide.</p>
           </Link>
           <Link
             href="/guides/email-deliverability"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-            <p className="text-sm text-neutral-600">Ensure both email types reach the inbox.</p>
+            <p className="text-ui text-neutral-600">Ensure both email types reach the inbox.</p>
           </Link>
         </div>
       </section>

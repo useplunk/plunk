@@ -31,8 +31,8 @@ export function CodeBlock({code, language = 'javascript', title, showCopy = true
     >
       {(title || showCopy) && (
         <div className={'flex items-center justify-between border-b border-neutral-800 bg-neutral-900 px-6 py-3'}>
-          {title && <span className={'text-sm font-medium text-neutral-400'}>{title}</span>}
-          {!title && <span className={'text-xs font-medium text-neutral-500 uppercase'}>{language}</span>}
+          {title && <span className={'text-ui font-medium text-neutral-400'}>{title}</span>}
+          {!title && <span className={'text-xs font-medium text-neutral-500'}>{language}</span>}
           {showCopy && (
             <button
               onClick={handleCopy}
@@ -57,7 +57,7 @@ export function CodeBlock({code, language = 'javascript', title, showCopy = true
         </div>
       )}
       <pre className={'overflow-x-auto p-6 text-neutral-100 w-full max-w-full'} style={{boxSizing: 'border-box'}}>
-        <code className={'font-mono text-sm leading-relaxed'} style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
+        <code className={'font-mono text-ui leading-relaxed'} style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
           {code}
         </code>
       </pre>

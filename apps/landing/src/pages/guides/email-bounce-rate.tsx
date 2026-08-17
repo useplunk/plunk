@@ -84,19 +84,19 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="text-3xl font-bold text-green-600 mb-2">&lt;2%</div>
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Excellent</h3>
-            <p className="text-sm text-neutral-700">Healthy list with good hygiene practices</p>
+            <p className="text-ui text-neutral-700">Healthy list with good hygiene practices</p>
           </div>
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="text-3xl font-bold text-amber-600 mb-2">2-5%</div>
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Concerning</h3>
-            <p className="text-sm text-neutral-700">List quality issues need attention</p>
+            <p className="text-ui text-neutral-700">List quality issues need attention</p>
           </div>
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="text-3xl font-bold text-red-600 mb-2">&gt;5%</div>
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Critical</h3>
-            <p className="text-sm text-neutral-700">Serious problems damaging sender reputation</p>
+            <p className="text-ui text-neutral-700">Serious problems damaging sender reputation</p>
           </div>
         </div>
       </section>
@@ -119,7 +119,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
             <div className="space-y-3 mb-4">
               <div>
                 <h4 className="font-semibold text-neutral-900 mb-2">Common Causes:</h4>
-                <ul className="space-y-1 text-sm text-neutral-700">
+                <ul className="space-y-1 text-ui text-neutral-700">
                   <li>• Email address doesn't exist</li>
                   <li>• Domain name doesn't exist</li>
                   <li>• Email server has completely blocked delivery</li>
@@ -128,8 +128,8 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
               </div>
             </div>
             <div className="rounded-lg bg-red-100 border border-red-200 p-4">
-              <p className="text-sm font-semibold text-red-900 mb-2">Action Required:</p>
-              <p className="text-sm text-neutral-700">
+              <p className="text-ui font-semibold text-red-900 mb-2">Action Required:</p>
+              <p className="text-ui text-neutral-700">
                 <strong>Remove immediately.</strong> Never send to hard bounce addresses again. Continuing to send to
                 them damages your sender reputation.
               </p>
@@ -145,7 +145,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
             <div className="space-y-3 mb-4">
               <div>
                 <h4 className="font-semibold text-neutral-900 mb-2">Common Causes:</h4>
-                <ul className="space-y-1 text-sm text-neutral-700">
+                <ul className="space-y-1 text-ui text-neutral-700">
                   <li>• Recipient's mailbox is full</li>
                   <li>• Email server is temporarily down or busy</li>
                   <li>• Email message is too large</li>
@@ -154,8 +154,8 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
               </div>
             </div>
             <div className="rounded-lg bg-amber-100 border border-amber-200 p-4">
-              <p className="text-sm font-semibold text-amber-900 mb-2">Action Required:</p>
-              <p className="text-sm text-neutral-700">
+              <p className="text-ui font-semibold text-amber-900 mb-2">Action Required:</p>
+              <p className="text-ui text-neutral-700">
                 <strong>Retry automatically.</strong> Most platforms retry for 24-72 hours. After 3-5 consecutive soft
                 bounces, treat as a hard bounce and remove.
               </p>
@@ -180,54 +180,54 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
           <table className="w-full">
             <thead>
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Error Type</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Reason</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Type</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Action</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Error Type</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Reason</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Type</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 bg-white">
               <tr>
-                <td className="px-6 py-4 font-mono text-sm text-neutral-900">550</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Mailbox unavailable</td>
-                <td className="px-6 py-4 text-sm text-red-600">Hard</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Remove</td>
+                <td className="px-6 py-4 font-mono text-ui text-neutral-900">550</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Mailbox unavailable</td>
+                <td className="px-6 py-4 text-ui text-red-600">Hard</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Remove</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 font-mono text-sm text-neutral-900">551</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">User not local/Invalid address</td>
-                <td className="px-6 py-4 text-sm text-red-600">Hard</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Remove</td>
+                <td className="px-6 py-4 font-mono text-ui text-neutral-900">551</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">User not local/Invalid address</td>
+                <td className="px-6 py-4 text-ui text-red-600">Hard</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Remove</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 font-mono text-sm text-neutral-900">552</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Mailbox full</td>
-                <td className="px-6 py-4 text-sm text-amber-600">Soft</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Retry</td>
+                <td className="px-6 py-4 font-mono text-ui text-neutral-900">552</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Mailbox full</td>
+                <td className="px-6 py-4 text-ui text-amber-600">Soft</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Retry</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 font-mono text-sm text-neutral-900">553</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Mailbox name invalid</td>
-                <td className="px-6 py-4 text-sm text-red-600">Hard</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Remove</td>
+                <td className="px-6 py-4 font-mono text-ui text-neutral-900">553</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Mailbox name invalid</td>
+                <td className="px-6 py-4 text-ui text-red-600">Hard</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Remove</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 font-mono text-sm text-neutral-900">554</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Transaction failed</td>
-                <td className="px-6 py-4 text-sm text-neutral-600">Varies</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Investigate</td>
+                <td className="px-6 py-4 font-mono text-ui text-neutral-900">554</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Transaction failed</td>
+                <td className="px-6 py-4 text-ui text-neutral-600">Varies</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Investigate</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 font-mono text-sm text-neutral-900">421</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Service not available</td>
-                <td className="px-6 py-4 text-sm text-amber-600">Soft</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Retry</td>
+                <td className="px-6 py-4 font-mono text-ui text-neutral-900">421</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Service not available</td>
+                <td className="px-6 py-4 text-ui text-amber-600">Soft</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Retry</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 font-mono text-sm text-neutral-900">450</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Mailbox busy</td>
-                <td className="px-6 py-4 text-sm text-amber-600">Soft</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">Retry</td>
+                <td className="px-6 py-4 font-mono text-ui text-neutral-900">450</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Mailbox busy</td>
+                <td className="px-6 py-4 text-ui text-amber-600">Soft</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">Retry</td>
               </tr>
             </tbody>
           </table>
@@ -240,7 +240,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
 
         <div className="space-y-4">
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div className="w-full max-w-full break-words">
@@ -254,7 +254,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div className="w-full max-w-full break-words">
@@ -262,7 +262,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
               <p className="text-neutral-700 mb-3">
                 Use real-time email validation on signup forms to catch typos and invalid formats. Validate:
               </p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-neutral-700">
+              <ul className="list-disc list-inside space-y-1 text-ui text-neutral-700">
                 <li>Email format (contains @ and valid domain)</li>
                 <li>Domain has valid MX records</li>
                 <li>Catch common typos (gmial.com → gmail.com)</li>
@@ -272,7 +272,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div className="w-full max-w-full break-words">
@@ -285,7 +285,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div className="w-full max-w-full break-words">
@@ -298,7 +298,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               5
             </div>
             <div className="w-full max-w-full break-words">
@@ -311,7 +311,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               6
             </div>
             <div className="w-full max-w-full break-words">
@@ -324,7 +324,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               7
             </div>
             <div className="w-full max-w-full break-words">
@@ -337,7 +337,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               8
             </div>
             <div className="w-full max-w-full break-words">
@@ -383,8 +383,8 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
             </p>
           </div>
 
-          <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-6">
-            <h3 className="text-xl font-semibold text-purple-900 mb-3">Reduced Engagement</h3>
+          <div className="rounded-xl border-2 border-neutral-200 bg-neutral-50 p-6">
+            <h3 className="text-xl font-semibold text-neutral-900 mb-3">Reduced Engagement</h3>
             <p className="text-neutral-700">
               High bounce rates correlate with low engagement. Email providers notice when large portions of your list
               aren't valid, reducing trust in your remaining emails.
@@ -407,7 +407,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
         <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">What to Track</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>• Overall bounce rate (target: &lt;2%)</li>
               <li>• Hard bounce rate specifically</li>
               <li>• Soft bounce rate and retry success</li>
@@ -419,7 +419,7 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Automated Actions</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>• Auto-remove hard bounces immediately</li>
               <li>• Retry soft bounces 3-5 times over 72 hours</li>
               <li>• Remove persistent soft bouncers</li>
@@ -440,21 +440,21 @@ Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-            <p className="text-sm text-neutral-600">Complete guide to reaching the inbox.</p>
+            <p className="text-ui text-neutral-600">Complete guide to reaching the inbox.</p>
           </Link>
           <Link
             href="/guides/email-sender-reputation"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Sender Reputation</h3>
-            <p className="text-sm text-neutral-600">Build and maintain sender reputation.</p>
+            <p className="text-ui text-neutral-600">Build and maintain sender reputation.</p>
           </Link>
           <Link
             href="/guides/email-marketing-best-practices"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Marketing Best Practices</h3>
-            <p className="text-sm text-neutral-600">Complete email marketing guide.</p>
+            <p className="text-ui text-neutral-600">Complete email marketing guide.</p>
           </Link>
         </div>
       </section>

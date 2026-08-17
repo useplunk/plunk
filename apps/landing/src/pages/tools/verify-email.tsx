@@ -9,17 +9,17 @@ import {verifyEmail} from '../../lib/emailVerification';
 import {EmailVerificationResult} from '../../components/tools/EmailVerificationResult';
 import {Button, Input} from '@plunk/ui';
 import {EMAIL_VERIFICATION_FEATURES} from '../../lib/toolsContent';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import Link from 'next/link';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -89,7 +89,7 @@ export default function VerifyEmailPage() {
                 transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-mono)'}}
                 className={
-                  'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700 sm:mb-24'
+                  'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'
                 }
               >
                 <span className={'font-medium text-neutral-900'}>§ T-02 &nbsp;— &nbsp;Tool</span>
@@ -107,7 +107,7 @@ export default function VerifyEmailPage() {
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
                   className={
-                    'text-[clamp(2.5rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
+                    'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
                   }
                 >
                   Email address
@@ -130,13 +130,13 @@ export default function VerifyEmailPage() {
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
               className={'mx-auto max-w-2xl'}
             >
-              <div className={'overflow-hidden rounded-[20px] border border-neutral-200 bg-white'}>
+              <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
                 <div className={'border-b border-neutral-200 px-8 py-5'}>
                   <div className={'flex items-center gap-3'}>
                     <Search className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       Verify an address
                     </span>
@@ -145,7 +145,7 @@ export default function VerifyEmailPage() {
 
                 <form onSubmit={handleVerify} className={'space-y-4 p-8'}>
                   <div>
-                    <label htmlFor="email" className={'mb-2 block text-sm font-medium text-neutral-900'}>
+                    <label htmlFor="email" className={'mb-2 block text-ui font-medium text-neutral-900'}>
                       Email address
                     </label>
                     <Input
@@ -176,8 +176,8 @@ export default function VerifyEmailPage() {
                 </form>
 
                 {error && (
-                  <div className={'mx-8 mb-8 rounded-lg border border-red-200 bg-red-50 p-4'}>
-                    <p className={'text-sm text-red-700'}>{error}</p>
+                  <div className={'mx-8 mb-8 rounded-lg border border-err/25 bg-err-surface p-4'}>
+                    <p className={'text-ui text-err'}>{error}</p>
                   </div>
                 )}
               </div>
@@ -199,8 +199,6 @@ export default function VerifyEmailPage() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'01'}
-                label={'Why verify'}
                 title={'Protect your'}
                 titleAccent={'sender reputation.'}
                 subtitle={'Invalid addresses hurt deliverability. Verification keeps your list clean before you send.'}
@@ -217,7 +215,7 @@ export default function VerifyEmailPage() {
                       viewport={{once: true}}
                       transition={{duration: 0.5, delay: index * 0.05, ease: [0.22, 1, 0.36, 1]}}
                       className={
-                        'flex flex-col gap-8 rounded-[20px] border border-neutral-200 bg-white p-8 transition hover:border-neutral-900'
+                        'flex flex-col gap-8 rounded-card border border-neutral-200 bg-white p-8 transition hover:border-neutral-900'
                       }
                     >
                       <div className={'text-neutral-900'}>
@@ -226,11 +224,11 @@ export default function VerifyEmailPage() {
                       <div>
                         <h3
                           style={{fontFamily: 'var(--font-display)'}}
-                          className={'text-xl font-bold tracking-[-0.02em] text-neutral-900'}
+                          className={'text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
                         >
                           {feature.title}
                         </h3>
-                        <p className={'mt-2 text-sm leading-relaxed text-neutral-600'}>{feature.description}</p>
+                        <p className={'mt-2 text-ui leading-relaxed text-neutral-600'}>{feature.description}</p>
                       </div>
                     </motion.div>
                   );
@@ -249,7 +247,7 @@ export default function VerifyEmailPage() {
                   viewport={{once: true}}
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
                 >
                   Ready for production-grade verification?
                 </motion.h2>
@@ -261,7 +259,7 @@ export default function VerifyEmailPage() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Bulk verification, real-time validation, and seamless integration with your email workflows. Start free, no credit card required.
                   </p>
                   <div className={'flex flex-wrap gap-3'}>
@@ -270,7 +268,7 @@ export default function VerifyEmailPage() {
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
                       className={
-                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'
+                        'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'
                       }
                     >
                       Start with Plunk

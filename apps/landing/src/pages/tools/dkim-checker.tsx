@@ -5,18 +5,18 @@ import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
 import {AlertTriangle, ArrowRight, CheckCircle, Key, XCircle} from 'lucide-react';
 import {Button, Input} from '@plunk/ui';
-import {Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono} from 'next/font/google';
+import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import Link from 'next/link';
 import type {FAQ} from '../../components/FAQSection';
 
-const display = Bricolage_Grotesque({
+const display = Funnel_Display({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const body = Hanken_Grotesk({
+const body = Funnel_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -95,9 +95,9 @@ function analyzeDkim(tags: Record<string, string>): DkimAnalysis {
 
 function GradeBadge({grade}: {grade: 'pass' | 'warning' | 'fail'}) {
   const map = {
-    pass: {cls: 'bg-green-50 border-green-200 text-green-700', label: 'Valid', sub: 'DKIM key is active'},
-    warning: {cls: 'bg-amber-50 border-amber-200 text-amber-700', label: 'Needs attention', sub: 'DKIM has configuration issues'},
-    fail: {cls: 'bg-red-50 border-red-200 text-red-700', label: 'Invalid', sub: 'DKIM key is revoked or invalid'},
+    pass: {cls: 'bg-ok-surface border-ok/25 text-ok', label: 'Valid', sub: 'DKIM key is active'},
+    warning: {cls: 'bg-warn-surface border-warn/25 text-warn', label: 'Needs attention', sub: 'DKIM has configuration issues'},
+    fail: {cls: 'bg-err-surface border-err/25 text-err', label: 'Invalid', sub: 'DKIM key is revoked or invalid'},
   };
   const {cls, label, sub} = map[grade];
   return (
@@ -242,7 +242,7 @@ export default function DkimCheckerPage() {
                 animate={{opacity: 1, y: 0}}
                 transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
                 style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-[11px] uppercase tracking-[0.18em] text-neutral-700 sm:mb-24'}
+                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'}
               >
                 <span className={'font-medium text-neutral-900'}>§ T-06 &nbsp;— &nbsp;Tool</span>
                 <Link href="/tools" className={'text-neutral-500 transition hover:text-neutral-900'}>
@@ -258,7 +258,7 @@ export default function DkimCheckerPage() {
               >
                 <h1
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6.5rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
+                  className={'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
                 >
                   DKIM record
                   <br />
@@ -281,13 +281,13 @@ export default function DkimCheckerPage() {
               transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
               className={'mx-auto max-w-2xl'}
             >
-              <div className={'overflow-hidden rounded-[20px] border border-neutral-200 bg-white'}>
+              <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
                 <div className={'border-b border-neutral-200 px-8 py-5'}>
                   <div className={'flex items-center gap-3'}>
                     <Key className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
                     <span
                       style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-[11px] uppercase tracking-[0.18em] text-neutral-500'}
+                      className={'text-label text-neutral-500'}
                     >
                       DKIM record lookup
                     </span>
@@ -297,8 +297,8 @@ export default function DkimCheckerPage() {
                 <form onSubmit={handleCheck} className={'p-8'}>
                   <div className={'space-y-4'}>
                     <div>
-                      <label htmlFor="domain" className={'mb-2 block text-sm font-medium text-neutral-900'}>
-                        Domain name <span className={'text-red-500'}>*</span>
+                      <label htmlFor="domain" className={'mb-2 block text-ui font-medium text-neutral-900'}>
+                        Domain name <span className={'text-err'}>*</span>
                       </label>
                       <Input
                         id="domain"
@@ -312,8 +312,8 @@ export default function DkimCheckerPage() {
                     </div>
 
                     <div>
-                      <label htmlFor="selector" className={'mb-2 block text-sm font-medium text-neutral-900'}>
-                        DKIM selector <span className={'text-red-500'}>*</span>
+                      <label htmlFor="selector" className={'mb-2 block text-ui font-medium text-neutral-900'}>
+                        DKIM selector <span className={'text-err'}>*</span>
                       </label>
                       <Input
                         id="selector"
@@ -324,7 +324,7 @@ export default function DkimCheckerPage() {
                         required
                         className={'w-full'}
                       />
-                      <p className={'mt-1.5 text-xs text-neutral-400'}>
+                      <p className={'mt-1.5 text-xs text-neutral-500'}>
                         Not sure? Try a common selector below.
                       </p>
                     </div>
@@ -366,12 +366,12 @@ export default function DkimCheckerPage() {
                   className={'mt-6 space-y-4'}
                 >
                   {!result.found ? (
-                    <div className={'rounded-[20px] border border-amber-100 bg-amber-50 p-8'}>
+                    <div className={'rounded-card border border-warn/25 bg-warn-surface p-8'}>
                       <div className={'flex items-start gap-3'}>
-                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-amber-600'} />
+                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-warn'} />
                         <div>
-                          <p className={'font-semibold text-amber-900'}>No DKIM record found</p>
-                          <p className={'mt-1 text-sm text-amber-800'}>
+                          <p className={'font-semibold text-warn'}>No DKIM record found</p>
+                          <p className={'mt-1 text-ui text-warn'}>
                             {result.error
                               ? 'DNS lookup failed. Please check the domain and try again.'
                               : `No DKIM record was found at `}
@@ -382,7 +382,7 @@ export default function DkimCheckerPage() {
                             )}
                           </p>
                           {!result.error && (
-                            <p className={'mt-2 text-sm text-amber-700'}>
+                            <p className={'mt-2 text-ui text-warn'}>
                               Check that you are using the correct selector. If your email provider has given you a specific selector, use that. If the record still doesn&apos;t appear, DNS propagation may still be in progress.
                             </p>
                           )}
@@ -392,16 +392,16 @@ export default function DkimCheckerPage() {
                   ) : (
                     <>
                       {/* Lookup host */}
-                      <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                      <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                         <p
                           style={{fontFamily: 'var(--font-mono)'}}
-                          className={'mb-2 text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                          className={'mb-2 text-label text-neutral-500'}
                         >
                           Record found at
                         </p>
                         <code
                           style={{fontFamily: 'var(--font-mono)'}}
-                          className={'text-sm font-medium text-neutral-700'}
+                          className={'text-ui font-medium text-neutral-700'}
                         >
                           {result.selector}._domainkey.{result.domain}
                         </code>
@@ -410,7 +410,7 @@ export default function DkimCheckerPage() {
                           <>
                             <p
                               style={{fontFamily: 'var(--font-mono)'}}
-                              className={'mb-2 mt-6 text-[11px] uppercase tracking-[0.18em] text-neutral-400'}
+                              className={'mb-2 mt-6 text-label text-neutral-500'}
                             >
                               Raw record
                             </p>
@@ -429,7 +429,7 @@ export default function DkimCheckerPage() {
                       {analysis && (
                         <>
                           {/* Grade */}
-                          <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                             <div className={'flex flex-col items-center gap-4 text-center'}>
                               <GradeBadge grade={analysis.grade} />
                             </div>
@@ -437,7 +437,7 @@ export default function DkimCheckerPage() {
 
                           {/* Tags */}
                           {Object.keys(result.tags).length > 0 && (
-                            <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                            <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                               <h3
                                 style={{fontFamily: 'var(--font-display)'}}
                                 className={'mb-6 text-lg font-bold text-neutral-900'}
@@ -461,7 +461,7 @@ export default function DkimCheckerPage() {
                                           </span>
                                         </div>
                                         {TAG_DESCRIPTIONS[key] && (
-                                          <span className={'text-xs text-neutral-400'}>{TAG_DESCRIPTIONS[key]}</span>
+                                          <span className={'text-xs text-neutral-500'}>{TAG_DESCRIPTIONS[key]}</span>
                                         )}
                                       </div>
                                     </div>
@@ -472,7 +472,7 @@ export default function DkimCheckerPage() {
                           )}
 
                           {/* Analysis */}
-                          <div className={'rounded-[20px] border border-neutral-200 bg-white p-8'}>
+                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
                             <h3
                               style={{fontFamily: 'var(--font-display)'}}
                               className={'mb-6 text-lg font-bold text-neutral-900'}
@@ -483,14 +483,14 @@ export default function DkimCheckerPage() {
                               {analysis.issues.map((issue, i) => (
                                 <li key={i} className={'flex items-start gap-3'}>
                                   {issue.type === 'pass' ? (
-                                    <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-green-600'} />
+                                    <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-ok'} />
                                   ) : issue.type === 'warning' ? (
-                                    <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-amber-500'} />
+                                    <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-warn'} />
                                   ) : (
-                                    <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-red-500'} />
+                                    <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
                                   )}
                                   <div>
-                                    <p className={'text-sm font-medium text-neutral-900'}>{issue.label}</p>
+                                    <p className={'text-ui font-medium text-neutral-900'}>{issue.label}</p>
                                     <p className={'mt-0.5 text-xs text-neutral-500'}>{issue.detail}</p>
                                   </div>
                                 </li>
@@ -510,8 +510,6 @@ export default function DkimCheckerPage() {
           <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
             <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
               <SectionHeader
-                number={'01'}
-                label={'DKIM explained'}
                 title={'How DKIM signing works.'}
                 subtitle={'DKIM proves your email was sent by your domain and wasn\'t altered in transit.'}
               />
@@ -549,15 +547,15 @@ export default function DkimCheckerPage() {
                     whileInView={{opacity: 1, y: 0}}
                     viewport={{once: true}}
                     transition={{duration: 0.5, delay: i * 0.05, ease: [0.22, 1, 0.36, 1]}}
-                    className={'flex flex-col gap-4 rounded-[20px] border border-neutral-200 bg-white p-8'}
+                    className={'flex flex-col gap-4 rounded-card border border-neutral-200 bg-white p-8'}
                   >
                     <h3
                       style={{fontFamily: 'var(--font-display)'}}
-                      className={'text-xl font-bold tracking-[-0.02em] text-neutral-900'}
+                      className={'text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
                     >
                       {item.title}
                     </h3>
-                    <p className={'text-sm leading-relaxed text-neutral-600'}>{item.body}</p>
+                    <p className={'text-ui leading-relaxed text-neutral-600'}>{item.body}</p>
                   </motion.div>
                 ))}
               </div>
@@ -574,7 +572,7 @@ export default function DkimCheckerPage() {
                   viewport={{once: true}}
                   transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
                   style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-[clamp(2.5rem,7vw,6rem)] font-extrabold leading-[0.95] tracking-[-0.035em]'}
+                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
                 >
                   Sign every email. Reach the inbox.
                 </motion.h2>
@@ -586,7 +584,7 @@ export default function DkimCheckerPage() {
                   transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
                   className={'flex max-w-md flex-col gap-6'}
                 >
-                  <p className={'text-base text-neutral-300 sm:text-lg'}>
+                  <p className={'text-lead text-neutral-300'}>
                     Plunk configures DKIM signing automatically and guides you through setting up SPF and DMARC for your
                     domain.
                   </p>
@@ -595,14 +593,14 @@ export default function DkimCheckerPage() {
                       whileHover={{scale: 1.015}}
                       whileTap={{scale: 0.985}}
                       href={`${DASHBOARD_URI}/auth/signup`}
-                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100'}
+                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
                     >
                       Start with Plunk
                       <ArrowRight className={'h-4 w-4'} />
                     </motion.a>
                     <Link
                       href="/guides/what-is-dkim"
-                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white'}
+                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
                     >
                       What is DKIM?
                     </Link>

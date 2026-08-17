@@ -102,46 +102,46 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
           <table className="w-full">
             <thead>
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Industry</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Average Open Rate</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Good Open Rate</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Industry</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Average Open Rate</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Good Open Rate</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 bg-white">
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">SaaS / Technology</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">20-25%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">30%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">SaaS / Technology</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">20-25%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">30%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">E-commerce / Retail</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">15-20%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">25%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">E-commerce / Retail</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">15-20%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">25%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Financial Services</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">18-23%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">28%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Financial Services</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">18-23%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">28%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Healthcare</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">20-25%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">30%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Healthcare</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">20-25%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">30%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Education</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">22-28%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">33%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Education</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">22-28%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">33%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Media / Publishing</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">18-23%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">28%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Media / Publishing</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">18-23%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">28%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Non-Profit</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">24-30%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">35%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Non-Profit</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">24-30%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">35%+</td>
               </tr>
             </tbody>
           </table>
@@ -168,36 +168,36 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
           <table className="w-full">
             <thead>
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold">B2B Industry</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Average Open Rate</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Top Performers</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">B2B Industry</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Average Open Rate</th>
+                <th className="px-6 py-4 text-left text-ui font-semibold">Top Performers</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 bg-white">
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">SaaS / Technology</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">22–28%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">35%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">SaaS / Technology</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">22–28%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">35%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Professional Services</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">25–32%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">40%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Professional Services</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">25–32%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">40%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Financial Services</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">20–26%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">33%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Financial Services</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">20–26%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">33%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Agency / Marketing</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">18–24%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">30%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Agency / Marketing</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">18–24%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">30%+</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 text-sm text-neutral-900">Transactional / Receipts</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">45–65%</td>
-                <td className="px-6 py-4 text-sm text-neutral-700">70%+</td>
+                <td className="px-6 py-4 text-ui text-neutral-900">Transactional / Receipts</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">45–65%</td>
+                <td className="px-6 py-4 text-ui text-neutral-700">70%+</td>
               </tr>
             </tbody>
           </table>
@@ -206,7 +206,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
         <div className="grid gap-6 md:grid-cols-2 mb-6">
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">B2B-Specific Tactics</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>• Send Tuesday–Thursday, 10am–2pm in recipient's timezone</li>
               <li>• Use company/product name in subject line for recognition</li>
               <li>• Personalize with job title, industry, or company size</li>
@@ -217,7 +217,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">B2B vs B2C Differences</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>• B2B decisions are more considered—longer subject lines acceptable</li>
               <li>• B2B audiences check email less frequently on weekends</li>
               <li>• B2B recipients share inboxes with colleagues, affecting metrics</li>
@@ -250,23 +250,23 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
             <div className="rounded-lg bg-neutral-50 p-4 space-y-2">
               <div className="flex items-start gap-2">
                 <span className="text-green-600 font-bold">✓</span>
-                <span className="text-sm text-neutral-700">
+                <span className="text-ui text-neutral-700">
                   "John, your invoice is ready" (personal, specific, clear)
                 </span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-green-600 font-bold">✓</span>
-                <span className="text-sm text-neutral-700">
+                <span className="text-ui text-neutral-700">
                   "3 proven ways to increase conversion rates" (specific value)
                 </span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 font-bold">✗</span>
-                <span className="text-sm text-neutral-700">"You won't believe this!" (clickbait, vague)</span>
+                <span className="text-ui text-neutral-700">"You won't believe this!" (clickbait, vague)</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 font-bold">✗</span>
-                <span className="text-sm text-neutral-700">"Newsletter #47" (generic, uninteresting)</span>
+                <span className="text-ui text-neutral-700">"Newsletter #47" (generic, uninteresting)</span>
               </div>
             </div>
           </div>
@@ -327,7 +327,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
 
         <div className="space-y-4">
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div className="w-full max-w-full break-words">
@@ -340,7 +340,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div className="w-full max-w-full break-words">
@@ -353,7 +353,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div className="w-full max-w-full break-words">
@@ -366,7 +366,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div className="w-full max-w-full break-words">
@@ -379,7 +379,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               5
             </div>
             <div className="w-full max-w-full break-words">
@@ -392,7 +392,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               6
             </div>
             <div className="w-full max-w-full break-words">
@@ -405,7 +405,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               7
             </div>
             <div className="w-full max-w-full break-words">
@@ -418,7 +418,7 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               8
             </div>
             <div className="w-full max-w-full break-words">
@@ -481,21 +481,21 @@ Open Rate = (285 ÷ 950) × 100 = 30%`}
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Click-Through Rate</h3>
-            <p className="text-sm text-neutral-600">Optimize CTAs and improve email clicks.</p>
+            <p className="text-ui text-neutral-600">Optimize CTAs and improve email clicks.</p>
           </Link>
           <Link
             href="/guides/email-deliverability"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-            <p className="text-sm text-neutral-600">Reach the inbox to maximize opens.</p>
+            <p className="text-ui text-neutral-600">Reach the inbox to maximize opens.</p>
           </Link>
           <Link
             href="/guides/email-marketing-best-practices"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Marketing Best Practices</h3>
-            <p className="text-sm text-neutral-600">Complete email marketing strategy guide.</p>
+            <p className="text-ui text-neutral-600">Complete email marketing strategy guide.</p>
           </Link>
         </div>
       </section>

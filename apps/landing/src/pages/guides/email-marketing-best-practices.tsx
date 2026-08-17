@@ -114,8 +114,8 @@ export default function EmailMarketingBestPractices() {
               and be specific about value.
             </p>
             <div className="rounded-lg bg-neutral-50 p-4">
-              <p className="text-sm font-semibold text-neutral-900 mb-2">Examples:</p>
-              <ul className="space-y-1 text-sm text-neutral-700">
+              <p className="text-ui font-semibold text-neutral-900 mb-2">Examples:</p>
+              <ul className="space-y-1 text-ui text-neutral-700">
                 <li>✓ "5 proven strategies to reduce churn by 30%"</li>
                 <li>✓ "Your personalized year-end report is ready"</li>
                 <li>✓ "Last chance: Sale ends tonight at midnight"</li>
@@ -188,7 +188,7 @@ export default function EmailMarketingBestPractices() {
 
         <div className="space-y-4">
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               1
             </div>
             <div>
@@ -201,7 +201,7 @@ export default function EmailMarketingBestPractices() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               2
             </div>
             <div>
@@ -214,7 +214,7 @@ export default function EmailMarketingBestPractices() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               3
             </div>
             <div>
@@ -227,7 +227,7 @@ export default function EmailMarketingBestPractices() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               4
             </div>
             <div>
@@ -240,7 +240,7 @@ export default function EmailMarketingBestPractices() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
               5
             </div>
             <div>
@@ -273,7 +273,7 @@ export default function EmailMarketingBestPractices() {
               </li>
             </ul>
             <InfoBox type="info" title="Test Your Audience" className="mt-4">
-              <p className="text-sm">
+              <p className="text-ui">
                 These are starting points. Your specific audience may behave differently. A/B test send times and let
                 data guide your strategy.
               </p>
@@ -297,7 +297,7 @@ export default function EmailMarketingBestPractices() {
               </li>
             </ul>
             <InfoBox type="warning" title="Monitor Unsubscribes">
-              <p className="text-sm">
+              <p className="text-ui">
                 If unsubscribe rates spike when you increase frequency, you're sending too often. Find the balance.
               </p>
             </InfoBox>
@@ -316,7 +316,7 @@ export default function EmailMarketingBestPractices() {
         <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Common Segmentation Criteria</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>
                 • <strong>Demographics:</strong> Age, location, job title, company size
               </li>
@@ -340,7 +340,7 @@ export default function EmailMarketingBestPractices() {
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Segment-Specific Campaigns</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>• Welcome series for new subscribers</li>
               <li>• Re-engagement campaigns for inactive users</li>
               <li>• Win-back campaigns for churned customers</li>
@@ -418,8 +418,8 @@ export default function EmailMarketingBestPractices() {
             </ul>
           </div>
 
-          <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-6">
-            <h3 className="text-xl font-semibold text-purple-900 mb-3">GDPR (EU)</h3>
+          <div className="rounded-xl border-2 border-neutral-200 bg-neutral-50 p-6">
+            <h3 className="text-xl font-semibold text-neutral-900 mb-3">GDPR (EU)</h3>
             <ul className="space-y-2 text-neutral-700">
               <li>• Obtain explicit consent before sending marketing emails</li>
               <li>• Provide clear information about data usage</li>
@@ -445,7 +445,7 @@ export default function EmailMarketingBestPractices() {
         <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Engagement Metrics</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>
                 • <strong>Open rate:</strong> Industry average: 15-25%
               </li>
@@ -463,7 +463,7 @@ export default function EmailMarketingBestPractices() {
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Health Metrics</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>
                 • <strong>Bounce rate:</strong> Target: &lt;2%
               </li>
@@ -481,7 +481,7 @@ export default function EmailMarketingBestPractices() {
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Business Metrics</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>
                 • <strong>ROI:</strong> Revenue generated ÷ cost
               </li>
@@ -499,7 +499,7 @@ export default function EmailMarketingBestPractices() {
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3">Deliverability Metrics</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+            <ul className="space-y-2 text-ui text-neutral-700">
               <li>
                 • <strong>Delivery rate:</strong> Target: 98%+
               </li>
@@ -526,21 +526,21 @@ export default function EmailMarketingBestPractices() {
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-            <p className="text-sm text-neutral-600">Ensure your emails reach the inbox.</p>
+            <p className="text-ui text-neutral-600">Ensure your emails reach the inbox.</p>
           </Link>
           <Link
             href="/guides/email-open-rate"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Open Rates</h3>
-            <p className="text-sm text-neutral-600">Improve your open rates with proven tactics.</p>
+            <p className="text-ui text-neutral-600">Improve your open rates with proven tactics.</p>
           </Link>
           <Link
             href="/guides/email-click-through-rate"
             className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
           >
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Click-Through Rate</h3>
-            <p className="text-sm text-neutral-600">Optimize CTAs for more clicks.</p>
+            <p className="text-ui text-neutral-600">Optimize CTAs for more clicks.</p>
           </Link>
         </div>
       </section>
