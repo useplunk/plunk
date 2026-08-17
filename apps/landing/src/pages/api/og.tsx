@@ -75,21 +75,24 @@ export default function handler(req: NextRequest) {
         {/* Main content */}
         <div style={{display: 'flex', flexDirection: 'column', gap: '36px', maxWidth: '1840px'}}>
           {tag ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '12px 28px',
-                backgroundColor: '#f4f4f5',
-                borderRadius: '12px',
-                fontSize: '30px',
-                color: '#52525b',
-                fontWeight: 600,
-                width: 'fit-content',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {tag}
+            /* Row wrapper keeps the chip at its intrinsic width — Satori ignores `fit-content`
+               and the column parent would otherwise stretch it to the full frame. */
+            <div style={{display: 'flex'}}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '12px 28px',
+                  backgroundColor: '#f4f4f5',
+                  borderRadius: '12px',
+                  fontSize: '30px',
+                  color: '#52525b',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {tag}
+              </div>
             </div>
           ) : null}
           <div

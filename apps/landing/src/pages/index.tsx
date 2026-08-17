@@ -158,7 +158,7 @@ const capabilities: Capability[] = [
   {
     name: 'Campaigns and analytics',
     description: 'Broadcast to any segment, then track delivery, opens, clicks and bounces per send.',
-    href: `${WIKI_URI}/docs/concepts/campaigns`,
+    href: `${WIKI_URI}/concepts/campaigns`,
   },
 ];
 

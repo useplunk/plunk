@@ -11,7 +11,7 @@ import {
 import type {FAQ, Spec, Step} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React from 'react';
-import Head from 'next/head';
+import {NextSeo} from 'next-seo';
 
 /**
  * Was a six-item icon-card grid, byte-identical to the ones on the inbound,
@@ -103,24 +103,25 @@ const faqs: FAQ[] = [
 export default function EmailEditorFeature() {
   return (
     <>
-      <Head>
-        <title>Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk</title>
-        <meta
-          name="description"
-          content="The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere."
-        />
-        <meta
-          property="og:title"
-          content="Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk"
-        />
-        <meta
-          property="og:description"
-          content="The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere."
-        />
-        <meta property="og:image" content="https://www.useplunk.com/api/og?title=Email+Editor&tag=Feature" />
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:image" content="https://www.useplunk.com/api/og?title=Email+Editor&tag=Feature" />
-      </Head>
+      <NextSeo
+        title="Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk"
+        description="The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere."
+        canonical="https://www.useplunk.com/features/email-editor"
+        openGraph={{
+          title: 'Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk',
+          description:
+            'The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere.',
+          url: 'https://www.useplunk.com/features/email-editor',
+          images: [
+            {
+              url: 'https://www.useplunk.com/api/og?title=Email+Editor&tag=Feature',
+              alt: 'Plunk Email Editor',
+              width: 1200,
+              height: 630,
+            },
+          ],
+        }}
+      />
 
       <Navbar />
 
@@ -134,7 +135,7 @@ export default function EmailEditorFeature() {
             </>
           }
           subtitle={'Switch between visual and code editing, and preview against a real contact before you send.'}
-          docsHref={`${WIKI_URI}/docs/guides/template-language`}
+          docsHref={`${WIKI_URI}/guides/template-language`}
           docsLabel={'Template docs'}
         />
 

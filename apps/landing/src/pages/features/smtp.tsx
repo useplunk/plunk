@@ -3,7 +3,7 @@ import type {FAQ, Spec} from '../../components';
 import {motion} from 'framer-motion';
 import {WIKI_URI} from '../../lib/constants';
 import React from 'react';
-import Head from 'next/head';
+import {NextSeo} from 'next-seo';
 
 const capabilities: Spec[] = [
   {
@@ -93,21 +93,25 @@ const faqs: FAQ[] = [
 export default function SMTPFeature() {
   return (
     <>
-      <Head>
-        <title>SMTP Server - Send Emails via SMTP or API | Plunk</title>
-        <meta
-          name="description"
-          content="Use Plunk's SMTP server with any email client or application. TLS encryption, the same delivery infrastructure as the API, and full tracking."
-        />
-        <meta property="og:title" content="SMTP Server - Send Emails via SMTP or API | Plunk" />
-        <meta
-          property="og:description"
-          content="Use Plunk's SMTP server with any email client or application. TLS encryption, the same delivery infrastructure as the API, and full tracking."
-        />
-        <meta property="og:image" content="https://www.useplunk.com/api/og?title=SMTP+Server&tag=Feature" />
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:image" content="https://www.useplunk.com/api/og?title=SMTP+Server&tag=Feature" />
-      </Head>
+      <NextSeo
+        title="SMTP Server - Send Emails via SMTP or API | Plunk"
+        description="Use Plunk's SMTP server with any email client or application. TLS encryption, the same delivery infrastructure as the API, and full tracking."
+        canonical="https://www.useplunk.com/features/smtp"
+        openGraph={{
+          title: 'SMTP Server - Send Emails via SMTP or API | Plunk',
+          description:
+            "Use Plunk's SMTP server with any email client or application. TLS encryption, the same delivery infrastructure as the API, and full tracking.",
+          url: 'https://www.useplunk.com/features/smtp',
+          images: [
+            {
+              url: 'https://www.useplunk.com/api/og?title=SMTP+Server&tag=Feature',
+              alt: 'Plunk SMTP Server',
+              width: 1200,
+              height: 630,
+            },
+          ],
+        }}
+      />
 
       <Navbar />
 
@@ -121,7 +125,7 @@ export default function SMTPFeature() {
             </>
           }
           subtitle={'Point any existing client or framework at Plunk. Same domains, same tracking, same price.'}
-          docsHref={`${WIKI_URI}/docs/guides/verifying-domains`}
+          docsHref={`${WIKI_URI}/guides/verifying-domains`}
           docsLabel={'SMTP docs'}
           artifact={
             <Surface label={'smtp'} meta={<span>TLS</span>} bodyClassName={'divide-y divide-neutral-100'}>

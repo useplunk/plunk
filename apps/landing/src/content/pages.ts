@@ -345,7 +345,7 @@ Plunk provides SMTP credentials so you can send emails from any application or f
 
 Connect Plunk to Claude, Cursor, and any Model Context Protocol client. Fifteen tools for transactional email, contacts, segments, and campaigns.
 
-[Get started free](https://next-app.useplunk.com/auth/signup) | [Documentation](https://docs.useplunk.com/docs/guides/mcp-server)
+[Get started free](https://next-app.useplunk.com/auth/signup) | [Documentation](https://docs.useplunk.com/guides/mcp-server)
 
 ---
 
@@ -387,7 +387,7 @@ Self-hosting? Set \`PLUNK_API_URL\` to your own API domain.
 - **Read-only mode is structural.** With \`PLUNK_READ_ONLY=true\` the mutating tools are never registered, so they cannot be invoked at all.
 - **Account actions are out of reach.** Billing, project deletion, and key rotation require a dashboard session, so no tool can touch them.
 
-[Back to features](/features) | [Pricing](/pricing) | [Documentation](https://docs.useplunk.com/docs/guides/mcp-server)
+[Back to features](/features) | [Pricing](/pricing) | [Documentation](https://docs.useplunk.com/guides/mcp-server)
 `,
 };
 

@@ -13,7 +13,7 @@ import type {FAQ} from '../../components';
 import type {CanvasFlow, Spec, Step} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React from 'react';
-import Head from 'next/head';
+import {NextSeo} from 'next-seo';
 
 /** The onboarding flow, as the builder would compose it. */
 const onboarding: CanvasFlow = {
@@ -119,27 +119,25 @@ const faqs: FAQ[] = [
 export default function WorkflowsFeature() {
   return (
     <>
-      <Head>
-        <title>Email Workflow Automation | Plunk</title>
-        <meta
-          name="description"
-          content="Build email automation from the events you already track. Triggers, delays, branching conditions and webhooks in a visual builder."
-        />
-        <meta property="og:title" content="Email Workflow Automation - Automate Your Email Marketing | Plunk" />
-        <meta
-          property="og:description"
-          content="Build email automation from the events you already track. Triggers, delays, branching conditions and webhooks in a visual builder."
-        />
-        <meta
-          property="og:image"
-          content="https://www.useplunk.com/api/og?title=Email+Workflow+Automation&tag=Feature"
-        />
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta
-          property="twitter:image"
-          content="https://www.useplunk.com/api/og?title=Email+Workflow+Automation&tag=Feature"
-        />
-      </Head>
+      <NextSeo
+        title="Email Workflow Automation | Plunk"
+        description="Build email automation from the events you already track. Triggers, delays, branching conditions and webhooks in a visual builder."
+        canonical="https://www.useplunk.com/features/workflows"
+        openGraph={{
+          title: 'Email Workflow Automation - Automate Your Email Marketing | Plunk',
+          description:
+            'Build email automation from the events you already track. Triggers, delays, branching conditions and webhooks in a visual builder.',
+          url: 'https://www.useplunk.com/features/workflows',
+          images: [
+            {
+              url: 'https://www.useplunk.com/api/og?title=Email+Workflow+Automation&tag=Feature',
+              alt: 'Plunk Email Workflow Automation',
+              width: 1200,
+              height: 630,
+            },
+          ],
+        }}
+      />
 
       <Navbar />
 
@@ -154,7 +152,7 @@ export default function WorkflowsFeature() {
           subtitle={
             'Send Plunk an event when something happens in your product. The emails, the waiting and the branching happen here.'
           }
-          docsHref={`${WIKI_URI}/docs/concepts/workflows`}
+          docsHref={`${WIKI_URI}/concepts/workflows`}
           docsLabel={'Workflow docs'}
           artifact={<WorkflowCanvas flow={onboarding} meta={'Onboarding'} />}
         />

@@ -13,7 +13,7 @@ import type {FAQ} from '../../components';
 import type {Condition, Spec} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React, {useState} from 'react';
-import Head from 'next/head';
+import {NextSeo} from 'next-seo';
 
 interface Example {
   id: string;
@@ -115,24 +115,25 @@ export default function SegmentsFeature() {
 
   return (
     <>
-      <Head>
-        <title>Audience Segmentation - Target the Right Contacts | Plunk</title>
-        <meta
-          name="description"
-          content="Build segments from contact data, custom fields and email activity. Membership updates itself, and entering or leaving a segment can trigger a workflow."
-        />
-        <meta property="og:title" content="Audience Segmentation - Smart Contact Organization | Plunk" />
-        <meta
-          property="og:description"
-          content="Build segments from contact data, custom fields and email activity. Membership updates itself as contacts change."
-        />
-        <meta property="og:image" content="https://www.useplunk.com/api/og?title=Audience+Segmentation&tag=Feature" />
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta
-          property="twitter:image"
-          content="https://www.useplunk.com/api/og?title=Audience+Segmentation&tag=Feature"
-        />
-      </Head>
+      <NextSeo
+        title="Audience Segmentation - Target the Right Contacts | Plunk"
+        description="Build segments from contact data, custom fields and email activity. Membership updates itself, and entering or leaving a segment can trigger a workflow."
+        canonical="https://www.useplunk.com/features/segments"
+        openGraph={{
+          title: 'Audience Segmentation - Smart Contact Organization | Plunk',
+          description:
+            'Build segments from contact data, custom fields and email activity. Membership updates itself as contacts change.',
+          url: 'https://www.useplunk.com/features/segments',
+          images: [
+            {
+              url: 'https://www.useplunk.com/api/og?title=Audience+Segmentation&tag=Feature',
+              alt: 'Plunk Audience Segmentation',
+              width: 1200,
+              height: 630,
+            },
+          ],
+        }}
+      />
 
       <Navbar />
 
@@ -142,7 +143,7 @@ export default function SegmentsFeature() {
           subtitle={
             'A segment is a query, re-run every time you use it. Ask once and the answer stays current as people sign up, change plan and go quiet.'
           }
-          docsHref={`${WIKI_URI}/docs/guides/segment-filters`}
+          docsHref={`${WIKI_URI}/guides/segment-filters`}
           docsLabel={'Segment docs'}
         />
 

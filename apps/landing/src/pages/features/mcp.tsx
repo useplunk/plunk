@@ -14,7 +14,7 @@ import {
 import type {Exchange, FAQ, Spec} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React, {useState} from 'react';
-import Head from 'next/head';
+import {NextSeo} from 'next-seo';
 
 /**
  * Was a six-item icon-card grid, identical to the one on three other feature
@@ -186,21 +186,25 @@ export default function MCPFeature() {
 
   return (
     <>
-      <Head>
-        <title>MCP Server - Connect Plunk to Claude, Cursor & AI Agents | Plunk</title>
-        <meta
-          name="description"
-          content="The official Plunk MCP server lets Claude, Cursor, and any Model Context Protocol client send email, manage contacts, and run campaigns in your Plunk project. Read-only mode and send confirmations built in."
-        />
-        <meta property="og:title" content="MCP Server - Plunk for AI Agents | Plunk" />
-        <meta
-          property="og:description"
-          content="Connect Plunk to Claude, Cursor, and any MCP client. 15 tools for email, contacts, campaigns, and segments, with read-only mode and send confirmations built in."
-        />
-        <meta property="og:image" content="https://www.useplunk.com/api/og?title=MCP+Server&tag=Feature" />
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:image" content="https://www.useplunk.com/api/og?title=MCP+Server&tag=Feature" />
-      </Head>
+      <NextSeo
+        title="MCP Server - Connect Plunk to Claude, Cursor & AI Agents | Plunk"
+        description="The official Plunk MCP server lets Claude, Cursor, and any Model Context Protocol client send email, manage contacts, and run campaigns in your Plunk project. Read-only mode and send confirmations built in."
+        canonical="https://www.useplunk.com/features/mcp"
+        openGraph={{
+          title: 'MCP Server - Plunk for AI Agents | Plunk',
+          description:
+            'Connect Plunk to Claude, Cursor, and any MCP client. 15 tools for email, contacts, campaigns, and segments, with read-only mode and send confirmations built in.',
+          url: 'https://www.useplunk.com/features/mcp',
+          images: [
+            {
+              url: 'https://www.useplunk.com/api/og?title=MCP+Server&tag=Feature',
+              alt: 'Plunk MCP Server',
+              width: 1200,
+              height: 630,
+            },
+          ],
+        }}
+      />
 
       <Navbar />
 
@@ -214,7 +218,7 @@ export default function MCPFeature() {
             </>
           }
           subtitle={'Fifteen tools for email, contacts, segments and campaigns. Sends still ask you first.'}
-          docsHref={`${WIKI_URI}/docs/guides/mcp-server`}
+          docsHref={`${WIKI_URI}/guides/mcp-server`}
           docsLabel={'MCP docs'}
           artifact={<AgentExchange exchange={exchange} />}
         />
@@ -316,7 +320,7 @@ export default function MCPFeature() {
 
         <FeatureCTA
           title={'Let your agent run your email.'}
-          secondary={{href: `${WIKI_URI}/docs/guides/mcp-server`, label: 'Read the docs', external: true}}
+          secondary={{href: `${WIKI_URI}/guides/mcp-server`, label: 'Read the docs', external: true}}
         />
       </main>
 

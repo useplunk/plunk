@@ -12,7 +12,7 @@ import {
 import type {FAQ, Spec, Step} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React from 'react';
-import Head from 'next/head';
+import {NextSeo} from 'next-seo';
 
 const capabilities: Spec[] = [
   {
@@ -104,21 +104,25 @@ const faqs: FAQ[] = [
 export default function InboundEmailFeature() {
   return (
     <>
-      <Head>
-        <title>Inbound Email - Receive and Process Emails at Your Domain | Plunk</title>
-        <meta
-          name="description"
-          content="Receive emails at your custom domain and automatically trigger workflows, capture contacts, or create support tickets. One MX record and every address starts receiving."
-        />
-        <meta property="og:title" content="Inbound Email - Two-Way Email for Your Product | Plunk" />
-        <meta
-          property="og:description"
-          content="Receive emails at your custom domain and automatically trigger workflows, capture contacts, or create support tickets."
-        />
-        <meta property="og:image" content="https://www.useplunk.com/api/og?title=Inbound+Email&tag=Feature" />
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:image" content="https://www.useplunk.com/api/og?title=Inbound+Email&tag=Feature" />
-      </Head>
+      <NextSeo
+        title="Inbound Email - Receive and Process Emails at Your Domain | Plunk"
+        description="Receive emails at your custom domain and automatically trigger workflows, capture contacts, or create support tickets. One MX record and every address starts receiving."
+        canonical="https://www.useplunk.com/features/inbound-email"
+        openGraph={{
+          title: 'Inbound Email - Two-Way Email for Your Product | Plunk',
+          description:
+            'Receive emails at your custom domain and automatically trigger workflows, capture contacts, or create support tickets.',
+          url: 'https://www.useplunk.com/features/inbound-email',
+          images: [
+            {
+              url: 'https://www.useplunk.com/api/og?title=Inbound+Email&tag=Feature',
+              alt: 'Plunk Inbound Email',
+              width: 1200,
+              height: 630,
+            },
+          ],
+        }}
+      />
 
       <Navbar />
 
@@ -132,7 +136,7 @@ export default function InboundEmailFeature() {
             </>
           }
           subtitle={'Receive at your own domain, save the sender as a contact, and trigger a workflow from the reply.'}
-          docsHref={`${WIKI_URI}/docs/guides/receiving-emails`}
+          docsHref={`${WIKI_URI}/guides/receiving-emails`}
           docsLabel={'Inbound docs'}
           artifact={<InboundMessage />}
         />
