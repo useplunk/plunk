@@ -105,7 +105,9 @@ jobs:
 
       - name: Test
         if: steps.check-release.outputs.is_release == 'true'
-        run: yarn vitest run apps/mcp
+        # The `mcp` vitest project runs without the platform's global test setup,
+        # which requires a Postgres instance this job deliberately does not start.
+        run: yarn vitest run --project mcp
 
       - name: Publish to npm
         if: steps.check-release.outputs.is_release == 'true'
