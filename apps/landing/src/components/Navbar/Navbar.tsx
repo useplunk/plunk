@@ -353,7 +353,7 @@ export default function Navbar() {
                   'rounded-full bg-neutral-900 px-6 py-2.5 text-ui font-semibold text-white transition hover:bg-neutral-800'
                 }
               >
-                Get started
+                Start for free
               </motion.a>
             </div>
 
@@ -481,7 +481,7 @@ export default function Navbar() {
                     href={`${DASHBOARD_URI}/auth/signup`}
                     className="mt-2 block rounded-full bg-neutral-900 px-4 py-3 text-center text-ui font-semibold text-white transition hover:bg-neutral-800"
                   >
-                    Get started
+                    Start for free
                   </a>
                 </div>
               </motion.div>

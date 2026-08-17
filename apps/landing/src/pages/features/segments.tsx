@@ -1,10 +1,18 @@
-import {Artifact, FilterBuilder, Footer, Navbar, SpecList} from '../../components';
+import {
+  FAQSection,
+  FeatureCTA,
+  FeatureHero,
+  FeatureSection,
+  FilterBuilder,
+  Footer,
+  Navbar,
+  SpecList,
+  Surface,
+} from '../../components';
+import type {FAQ} from '../../components';
 import type {Condition, Spec} from '../../components';
-import {motion} from 'framer-motion';
-import {DASHBOARD_URI, WIKI_URI} from '../../lib/constants';
+import {WIKI_URI} from '../../lib/constants';
 import React, {useState} from 'react';
-import Link from 'next/link';
-import {ArrowRight} from 'lucide-react';
 import Head from 'next/head';
 
 interface Example {
@@ -51,7 +59,6 @@ const examples: Example[] = [
   },
 ];
 
-
 const capabilities: Spec[] = [
   {
     title: 'Filters on anything you store',
@@ -80,6 +87,29 @@ const capabilities: Spec[] = [
   },
 ];
 
+const faqs: FAQ[] = [
+  {
+    question: 'Do segments update on their own?',
+    answer:
+      'Yes. A segment is a query rather than a saved list, so it is evaluated whenever you use it. Contacts join and leave as their data and behaviour change, with nothing to refresh.',
+  },
+  {
+    question: 'What can I filter on?',
+    answer:
+      'Any contact field, including custom data you set yourself, plus behaviour such as events tracked, emails opened and links clicked, and subscription status.',
+  },
+  {
+    question: 'Can I combine conditions?',
+    answer:
+      'Yes. Conditions stack, and you can group them to express AND and OR together, so "pro plan and either inactive or never onboarded" is one segment.',
+  },
+  {
+    question: 'Can a workflow use a segment?',
+    answer:
+      'Yes. Segments can gate a workflow branch as well as target a campaign, so the same audience definition works in both places.',
+  },
+];
+
 export default function SegmentsFeature() {
   const [active, setActive] = useState<Example>(examples[0]!);
 
@@ -98,196 +128,75 @@ export default function SegmentsFeature() {
         />
         <meta property="og:image" content="https://www.useplunk.com/api/og?title=Audience+Segmentation&tag=Feature" />
         <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:image" content="https://www.useplunk.com/api/og?title=Audience+Segmentation&tag=Feature" />
+        <meta
+          property="twitter:image"
+          content="https://www.useplunk.com/api/og?title=Audience+Segmentation&tag=Feature"
+        />
       </Head>
 
       <Navbar />
 
       <main className={'text-neutral-800'}>
-        {/* Hero */}
-        <section className={'relative overflow-hidden'}>
-          <div
-            aria-hidden
-            className={
-              'absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#eeeeee_1px,transparent_1px),linear-gradient(to_bottom,#eeeeee_1px,transparent_1px)] bg-[size:6rem_6rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_95%)]'
-            }
-          />
-          <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-28'}>
-            <motion.div
-              initial={{opacity: 0, y: 16}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'max-w-[60ch]'}
-            >
-              <h1
-                style={{fontFamily: 'var(--font-display)'}}
-                className={'text-display font-extrabold tracking-[-0.035em] text-neutral-900'}
-              >
-                Not everyone needs this email.
-              </h1>
-              <p className={'mt-6 text-lead text-neutral-600'}>
-                A segment is a question about your contacts that keeps answering itself. Ask it once, and the answer
-                stays current as people sign up, change plan and go quiet.
-              </p>
-
-              <div className={'mt-10 flex flex-wrap gap-3'}>
-                <motion.a
-                  whileHover={{scale: 1.015}}
-                  whileTap={{scale: 0.985}}
-                  href={`${DASHBOARD_URI}/auth/signup`}
-                  className={
-                    'group inline-flex items-center gap-2 rounded-full bg-neutral-900 px-8 py-4 font-semibold text-white transition hover:bg-neutral-800'
-                  }
-                >
-                  Build a segment
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </motion.a>
-                <Link
-                  href={`${WIKI_URI}/docs/guides/segments`}
-                  target={'_blank'}
-                  className={
-                    'inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-8 py-4 font-semibold text-neutral-900 transition hover:border-neutral-900'
-                  }
-                >
-                  Segment docs
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+        <FeatureHero
+          title={'Not everyone needs this email.'}
+          subtitle={
+            'A segment is a query, re-run every time you use it. Ask once and the answer stays current as people sign up, change plan and go quiet.'
+          }
+          docsHref={`${WIKI_URI}/docs/guides/segment-filters`}
+          docsLabel={'Segment docs'}
+        />
 
         {/* The builder itself. The old page described AND/OR logic in prose and
             printed the conditions as tracked capitals, which left the reader to
             picture a query builder from a description of one. Showing the query
             answers the question that description kept dodging: is this a UI I
             click, or an API I have to write against? */}
-        <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mb-12 max-w-[55ch]'}
-            >
-              <h2
-                style={{fontFamily: 'var(--font-display)'}}
-                className={'text-h2 font-extrabold tracking-[-0.03em] text-neutral-900'}
-              >
-                Three you could build today
-              </h2>
-            </motion.div>
-
-            <div className={'grid gap-10 lg:grid-cols-12'}>
-              <div className={'lg:col-span-4'}>
-                <ul className={'flex flex-col gap-2'}>
-                  {examples.map(example => {
-                    const on = example.id === active.id;
-                    return (
-                      <li key={example.id}>
-                        <button
-                          onClick={() => setActive(example)}
-                          aria-pressed={on}
-                          className={
-                            on
-                              ? 'w-full rounded-card border border-neutral-900 bg-neutral-900 p-5 text-left text-white transition'
-                              : 'w-full rounded-card border border-neutral-200 bg-white p-5 text-left transition hover:border-neutral-900'
-                          }
+        <FeatureSection tone={'muted'} title={'Three you could build today'}>
+          <div className={'grid gap-10 lg:grid-cols-12'}>
+            <div className={'lg:col-span-4'}>
+              <ul className={'flex flex-col gap-2'}>
+                {examples.map(example => {
+                  const on = example.id === active.id;
+                  return (
+                    <li key={example.id}>
+                      <button
+                        onClick={() => setActive(example)}
+                        aria-pressed={on}
+                        className={
+                          on
+                            ? 'w-full rounded-card border border-neutral-900 bg-neutral-900 p-5 text-left text-white transition'
+                            : 'w-full rounded-card border border-neutral-200 bg-white p-5 text-left transition hover:border-neutral-900'
+                        }
+                      >
+                        <div
+                          className={`font-display font-bold tracking-[-0.01em] ${on ? 'text-white' : 'text-neutral-900'}`}
                         >
-                          <div
-                            style={{fontFamily: 'var(--font-display)'}}
-                            className={`font-bold tracking-[-0.01em] ${on ? 'text-white' : 'text-neutral-900'}`}
-                          >
-                            {example.name}
-                          </div>
-                          <p className={`mt-1 ${on ? 'text-neutral-300' : 'text-neutral-600'}`}>{example.summary}</p>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+                          {example.name}
+                        </div>
+                        <p className={`mt-1 ${on ? 'text-neutral-300' : 'text-neutral-600'}`}>{example.summary}</p>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
 
-              <div className={'min-w-0 lg:col-span-8'}>
-                <Artifact label={active.name}>
-                  <FilterBuilder total={active.total} conditions={active.conditions} />
-                </Artifact>
-              </div>
+            <div className={'min-w-0 lg:col-span-8'}>
+              <Surface label={'segment'} meta={<span>{active.name}</span>} bodyClassName={'p-6 sm:p-8'}>
+                <FilterBuilder total={active.total} conditions={active.conditions} />
+              </Surface>
             </div>
           </div>
-        </section>
+        </FeatureSection>
 
         {/* Capabilities */}
-        <section className={'border-t border-neutral-200'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mb-16 max-w-[55ch]'}
-            >
-              <h2
-                style={{fontFamily: 'var(--font-display)'}}
-                className={'text-h2 font-extrabold tracking-[-0.03em] text-neutral-900'}
-              >
-                How they behave
-              </h2>
-            </motion.div>
+        <FeatureSection title={'How they behave'}>
+          <SpecList specs={capabilities} />
+        </FeatureSection>
 
-            <SpecList specs={capabilities} />
-          </div>
-        </section>
+        <FAQSection faqs={faqs} schemaId={'faq-segments'} />
 
-        {/* CTA */}
-        <section className={'relative overflow-hidden border-t border-neutral-900 bg-neutral-900 text-white'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-32 sm:px-10 sm:py-40'}>
-            <div className={'flex flex-col items-start gap-12 lg:flex-row lg:items-end lg:justify-between'}>
-              <motion.h2
-                initial={{opacity: 0, y: 16}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
-                style={{fontFamily: 'var(--font-display)'}}
-                className={'text-display font-extrabold tracking-[-0.035em]'}
-              >
-                Send it to the right people.
-              </motion.h2>
-              <motion.div
-                initial={{opacity: 0, y: 16}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
-                className={'flex max-w-md flex-col gap-6'}
-              >
-                <p className={'text-lead text-neutral-300'}>
-                  Free plan available. $0.001 per email on paid. No credit card required.
-                </p>
-                <div className={'flex flex-wrap gap-3'}>
-                  <motion.a
-                    whileHover={{scale: 1.015}}
-                    whileTap={{scale: 0.985}}
-                    href={`${DASHBOARD_URI}/auth/signup`}
-                    className={
-                      'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-semibold text-neutral-900 transition hover:bg-neutral-100'
-                    }
-                  >
-                    Get started for free
-                    <ArrowRight className="h-4 w-4" />
-                  </motion.a>
-                  <Link
-                    href={'/pricing'}
-                    className={
-                      'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 font-semibold text-white transition hover:border-white'
-                    }
-                  >
-                    View pricing
-                  </Link>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </section>
+        <FeatureCTA title={'Build your first segment.'} />
       </main>
 
       <Footer />

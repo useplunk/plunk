@@ -64,8 +64,7 @@ export function FilterBuilder({total, conditions}: {total: number; conditions: C
           >
             <div className={'flex items-baseline justify-between gap-4'}>
               <span
-                style={{fontFamily: 'var(--font-mono)'}}
-                className={'text-label text-neutral-700'}
+                className={'font-code text-label text-neutral-700'}
               >
                 {condition.label}
               </span>

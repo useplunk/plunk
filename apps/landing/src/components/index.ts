@@ -2,6 +2,8 @@ export * from './Navbar';
 export * from './Footer';
 export * from './Mono';
 export * from './sections';
+export * from './home';
+export * from './features';
 export * from './ComparisonTable';
 export * from './FAQSection';
 export * from './CodeBlock';

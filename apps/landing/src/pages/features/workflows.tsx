@@ -1,14 +1,22 @@
-import {Artifact, Footer, Navbar, SpecList, StepSequence, WorkflowChain} from '../../components';
-import type {Flow, Spec, Step} from '../../components';
-import {motion} from 'framer-motion';
-import {DASHBOARD_URI, WIKI_URI} from '../../lib/constants';
+import {
+  FAQSection,
+  FeatureCTA,
+  FeatureHero,
+  FeatureSection,
+  Footer,
+  Navbar,
+  SpecList,
+  StepSequence,
+  WorkflowCanvas,
+} from '../../components';
+import type {FAQ} from '../../components';
+import type {CanvasFlow, Spec, Step} from '../../components';
+import {WIKI_URI} from '../../lib/constants';
 import React from 'react';
-import Link from 'next/link';
-import {ArrowRight} from 'lucide-react';
 import Head from 'next/head';
 
 /** The onboarding flow, as the builder would compose it. */
-const onboarding: Flow = {
+const onboarding: CanvasFlow = {
   steps: [
     {kind: 'trigger', label: 'Signs up', value: 'user.signed-up'},
     {kind: 'action', label: 'Welcome email'},
@@ -55,7 +63,7 @@ const useCases: Spec[] = [
       'Catch contacts as they go quiet and branch on whether they opened the last thing you sent, so the dormant and the merely busy get different messages.',
     machine: 'contact.inactive → If opened last email → Update / Offer',
   },
-]
+];
 
 const capabilities: Spec[] = [
   {
@@ -85,6 +93,29 @@ const capabilities: Spec[] = [
   },
 ];
 
+const faqs: FAQ[] = [
+  {
+    question: 'What can trigger a workflow?',
+    answer:
+      'Any event you send Plunk from your own code, plus inbound email and contact changes. If your product can make an HTTP request when something happens, it can start a workflow.',
+  },
+  {
+    question: 'Can a workflow branch on what someone did?',
+    answer:
+      'Yes. A branch checks a condition, such as whether an email was opened or a contact has a given field, and sends each answer down its own path.',
+  },
+  {
+    question: 'What happens if someone enters a workflow twice?',
+    answer:
+      'You choose. A workflow can allow re-entry for things like abandoned carts, or run once per contact for things like onboarding.',
+  },
+  {
+    question: 'Can I stop a sequence part way through?',
+    answer:
+      'Yes. A workflow can exit early when the contact does the thing it was nudging them toward, so nobody gets chased for something they already did.',
+  },
+];
+
 export default function WorkflowsFeature() {
   return (
     <>
@@ -99,194 +130,56 @@ export default function WorkflowsFeature() {
           property="og:description"
           content="Build email automation from the events you already track. Triggers, delays, branching conditions and webhooks in a visual builder."
         />
-        <meta property="og:image" content="https://www.useplunk.com/api/og?title=Email+Workflow+Automation&tag=Feature" />
+        <meta
+          property="og:image"
+          content="https://www.useplunk.com/api/og?title=Email+Workflow+Automation&tag=Feature"
+        />
         <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:image" content="https://www.useplunk.com/api/og?title=Email+Workflow+Automation&tag=Feature" />
+        <meta
+          property="twitter:image"
+          content="https://www.useplunk.com/api/og?title=Email+Workflow+Automation&tag=Feature"
+        />
       </Head>
 
       <Navbar />
 
       <main className={'text-neutral-800'}>
-        {/* Hero — the flow itself sits beside the headline, so the page shows
-            what it is describing before it starts describing it. */}
-        <section className={'relative overflow-hidden'}>
-          <div
-            aria-hidden
-            className={
-              'absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#eeeeee_1px,transparent_1px),linear-gradient(to_bottom,#eeeeee_1px,transparent_1px)] bg-[size:6rem_6rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_95%)]'
-            }
-          />
-          <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-28'}>
-            <div className={'grid items-center gap-16 lg:grid-cols-12'}>
-              <motion.div
-                initial={{opacity: 0, y: 16}}
-                animate={{opacity: 1, y: 0}}
-                transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-                className={'lg:col-span-7'}
-              >
-                <h1
-                  style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-display font-extrabold tracking-[-0.035em] text-neutral-900'}
-                >
-                  One event in.
-                  <br />A sequence out.
-                </h1>
-                <p className={'mt-6 max-w-[55ch] text-lead text-neutral-600'}>
-                  Send Plunk an event when something happens in your product. Everything after that, the emails, the
-                  waiting and the branching, happens here.
-                </p>
-
-                <div className={'mt-10 flex flex-wrap gap-3'}>
-                  <motion.a
-                    whileHover={{scale: 1.015}}
-                    whileTap={{scale: 0.985}}
-                    href={`${DASHBOARD_URI}/auth/signup`}
-                    className={
-                      'group inline-flex items-center gap-2 rounded-full bg-neutral-900 px-8 py-4 font-semibold text-white transition hover:bg-neutral-800'
-                    }
-                  >
-                    Build a workflow
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </motion.a>
-                  <Link
-                    href={`${WIKI_URI}/docs/guides/workflows`}
-                    target={'_blank'}
-                    className={
-                      'inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-8 py-4 font-semibold text-neutral-900 transition hover:border-neutral-900'
-                    }
-                  >
-                    Workflow docs
-                  </Link>
-                </div>
-              </motion.div>
-
-              <div className={'lg:col-span-5'}>
-                <Artifact label={'Onboarding'}>
-                  <WorkflowChain flow={onboarding} />
-                </Artifact>
-              </div>
-            </div>
-          </div>
-        </section>
+        <FeatureHero
+          title={
+            <>
+              One event in.
+              <br />A sequence out.
+            </>
+          }
+          subtitle={
+            'Send Plunk an event when something happens in your product. The emails, the waiting and the branching happen here.'
+          }
+          docsHref={`${WIKI_URI}/docs/concepts/workflows`}
+          docsLabel={'Workflow docs'}
+          artifact={<WorkflowCanvas flow={onboarding} meta={'Onboarding'} />}
+        />
 
         {/* Capabilities — a divided list rather than a card grid. Six bordered
             boxes made six items look equally important and equally skippable. */}
-        <section className={'border-t border-neutral-200'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mb-16 max-w-[55ch]'}
-            >
-              <h2
-                style={{fontFamily: 'var(--font-display)'}}
-                className={'text-h2 font-extrabold tracking-[-0.03em] text-neutral-900'}
-              >
-                What a step can do
-              </h2>
-            </motion.div>
-
-            <SpecList specs={capabilities} />
-          </div>
-        </section>
+        <FeatureSection tone={'muted'} title={'What a step can do'}>
+          <SpecList specs={capabilities} />
+        </FeatureSection>
 
         {/* Build sequence — the one place on this page where numbers mean
             something, because the order is the instruction. */}
-        <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mb-12 max-w-[55ch]'}
-            >
-              <h2
-                style={{fontFamily: 'var(--font-display)'}}
-                className={'text-h2 font-extrabold tracking-[-0.03em] text-neutral-900'}
-              >
-                Building one
-              </h2>
-            </motion.div>
-
-            <StepSequence steps={steps} />
-          </div>
-        </section>
+        <FeatureSection title={'Building one'}>
+          <StepSequence steps={steps} />
+        </FeatureSection>
 
         {/* Use cases — the flow strings are machine text, so they are set as
             Code: still monospace, no longer shouted in tracked capitals. */}
-        <section className={'border-t border-neutral-200'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mb-16 max-w-[55ch]'}
-            >
-              <h2
-                style={{fontFamily: 'var(--font-display)'}}
-                className={'text-h2 font-extrabold tracking-[-0.03em] text-neutral-900'}
-              >
-                Three that people build first
-              </h2>
-            </motion.div>
+        <FeatureSection tone={'muted'} title={'Three that people build first'}>
+          <SpecList specs={useCases} />
+        </FeatureSection>
 
-            <SpecList specs={useCases} />
-          </div>
-        </section>
+        <FAQSection faqs={faqs} schemaId={'faq-workflows'} />
 
-        {/* CTA */}
-        <section className={'relative overflow-hidden border-t border-neutral-900 bg-neutral-900 text-white'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-32 sm:px-10 sm:py-40'}>
-            <div className={'flex flex-col items-start gap-12 lg:flex-row lg:items-end lg:justify-between'}>
-              <motion.h2
-                initial={{opacity: 0, y: 16}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
-                style={{fontFamily: 'var(--font-display)'}}
-                className={'text-display font-extrabold tracking-[-0.035em]'}
-              >
-                Send the first event.
-              </motion.h2>
-              <motion.div
-                initial={{opacity: 0, y: 16}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
-                className={'flex max-w-md flex-col gap-6'}
-              >
-                <p className={'text-lead text-neutral-300'}>
-                  Free plan available. $0.001 per email on paid. No credit card required.
-                </p>
-                <div className={'flex flex-wrap gap-3'}>
-                  <motion.a
-                    whileHover={{scale: 1.015}}
-                    whileTap={{scale: 0.985}}
-                    href={`${DASHBOARD_URI}/auth/signup`}
-                    className={
-                      'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-semibold text-neutral-900 transition hover:bg-neutral-100'
-                    }
-                  >
-                    Get started for free
-                    <ArrowRight className="h-4 w-4" />
-                  </motion.a>
-                  <Link
-                    href={'/pricing'}
-                    className={
-                      'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 font-semibold text-white transition hover:border-white'
-                    }
-                  >
-                    View pricing
-                  </Link>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </section>
+        <FeatureCTA title={'Build your first workflow.'} />
       </main>
 
       <Footer />

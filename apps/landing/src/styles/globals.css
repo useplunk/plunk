@@ -7,6 +7,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The two brand faces, as utilities.
+   ------------------------------------------------------------------
+   `next/font` publishes the loaded families as `--font-display` and
+   `--font-mono` on a wrapper element. Reading them required an inline
+   `style={{fontFamily: 'var(--font-display)'}}` on every element that
+   wanted one — 23 of those on the homepage alone, 13 of them on h1-h3
+   elements the base layer already sets to the display face.
+
+   Inline styles also beat every class, so a heading carrying one could
+   not be restyled or overridden without editing the element itself.
+
+   These are `@utility` rather than `@theme` entries on purpose: a theme
+   key named `--font-display` would have to resolve to `var(--font-display)`,
+   which is circular, and renaming the `next/font` variables would mean
+   touching ~500 call sites across the site for no gain here. */
+@utility font-display {
+    font-family: var(--font-display, ui-sans-serif, system-ui, sans-serif);
+}
+
+@utility font-code {
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
 @utility container {
     margin-inline: auto;
     padding-inline: 2rem;
@@ -178,17 +201,8 @@
     }
 }
 
-@keyframes marquee-x {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-}
-
-.marquee-track {
-    animation: marquee-x 40s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .marquee-track {
-        animation: none;
-    }
-}
+/* The homepage marquee that used these was removed. It ran eight keywords at
+   `text-5xl` in a full-bleed black band directly under the hero stat strip,
+   which stated the same eight facts — so the loudest surface on the page after
+   the headline was a restatement of the paragraph above it. Nothing else on the
+   site uses a marquee; when something does, this comes back with it. */

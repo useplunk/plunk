@@ -1,114 +1,124 @@
-import {motion} from 'framer-motion';
+import {motion, useReducedMotion} from 'framer-motion';
 import React from 'react';
-import {Megaphone, Sparkles} from 'lucide-react';
 
-import {Connector, Node} from './Diagram';
+import {Surface} from '../home/Surface';
+
+export interface ToolCall {
+  /** Real tool name from @plunk/mcp. */
+  tool: string;
+  /** The interesting argument, if there is one. */
+  args?: string;
+  /** What came back, in as few words as the terminal would use. */
+  result: string;
+}
 
 export interface Exchange {
-  /** The ask, in one short line. */
+  /** The ask, as typed. */
   prompt: string;
-  /** Tools the agent reached for. Real names from @plunk/mcp. */
-  tools: string[];
-  /** What came back: the object that was made. */
-  result: {title: string; recipients: number};
+  calls: ToolCall[];
+  confirm: {question: string; accept: string; reject: string};
 }
 
 /**
- * What happens when an agent has Plunk connected, drawn.
+ * The MCP server, drawn as the session it actually is.
  *
- * This started as a chat transcript, which was a lot of reading for a section
- * whose whole job is to make one point: you ask, tools run, and nothing reaches
- * an inbox until you say so. So it is a diagram now — the ask, the tools it
- * touched, the draft it produced, and the confirmation gate — with the tool
- * names doing the technical talking and everything else reduced to a number and
- * a state.
+ * Three earlier versions of this failed the same way from two directions. The
+ * first was a chat transcript assembled out of card components, icon tiles and
+ * a confirmation bar — a pile of unrelated UI widgets, which read as clutter.
+ * The reaction to that was to strip elements out until only boxes and arrows
+ * were left, which read as a generic flowchart: nothing about it was specific
+ * to Plunk, and an abstract four-node diagram looks like it took no thought.
+ *
+ * The artifact on this page that works is the workflow canvas, and it works
+ * because it is a faithful replica of a real product surface. So this is one
+ * too. Developers who would use an MCP server know this exact interface: the
+ * bullet-and-elbow tool log, the numbered permission prompt, the caret on the
+ * selected option. Rendering it honestly is more persuasive than any diagram of
+ * it, and a terminal is dense without being cluttered because everything in it
+ * shares one type family, one grid and one alignment.
+ *
+ * The permission prompt is the climax, so it lands last and is the only thing
+ * with a border. That prompt is the product claim: nothing reaches an inbox
+ * until a person says so.
  */
+
+const EASE = [0.23, 1, 0.32, 1] as const;
+
 export function AgentExchange({exchange}: {exchange: Exchange}) {
+  const still = useReducedMotion();
+
+  /**
+   * One shared timeline so the session plays back in the order it happened.
+   * Each tool call occupies a slot; the prompt is slot 0 and the prompt box
+   * comes after the last result.
+   */
+  const slot = (i: number) => (still ? 0 : 0.15 + i * 0.5);
+  const line = {
+    initial: still ? {opacity: 0} : {opacity: 0, y: 4},
+    whileInView: still ? {opacity: 1} : {opacity: 1, y: 0},
+    viewport: {once: true, margin: '-15%'} as const,
+  };
+
   return (
-    <div className={'flex flex-col'}>
-      {/* The ask */}
-      <motion.div
-        initial={{opacity: 0, y: 8}}
-        whileInView={{opacity: 1, y: 0}}
-        viewport={{once: true}}
-        transition={{duration: 0.4, ease: [0.22, 1, 0.36, 1]}}
-        className={'flex items-center gap-4'}
-      >
-        <Node icon={<Sparkles className="h-5 w-5" strokeWidth={1.5} />} tone={'solid'} />
-        <p className={'min-w-0 flex-1 text-neutral-900'}>{exchange.prompt}</p>
-      </motion.div>
+    <Surface tone={'dark'} chrome label={'claude code'} meta={<span>plunk</span>}>
+      <div className={'overflow-x-auto p-5 font-code text-[0.8125rem] leading-relaxed sm:p-6'}>
+        {/* The ask */}
+        <motion.p
+          {...line}
+          transition={{duration: 0.35, delay: slot(0), ease: EASE}}
+          className={'flex gap-2.5 whitespace-pre text-neutral-100'}
+        >
+          <span className={'text-neutral-600'}>&rsaquo;</span>
+          {exchange.prompt}
+        </motion.p>
 
-      <Connector height={44} delay={0.25} />
-
-      {/* The tools it reached for */}
-      <motion.ul
-        initial={{opacity: 0}}
-        whileInView={{opacity: 1}}
-        viewport={{once: true}}
-        transition={{duration: 0.4, delay: 0.45, ease: [0.22, 1, 0.36, 1]}}
-        className={'flex flex-wrap justify-center gap-2'}
-      >
-        {exchange.tools.map((tool, i) => (
-          <motion.li
-            key={tool}
-            initial={{opacity: 0, scale: 0.96}}
-            whileInView={{opacity: 1, scale: 1}}
-            viewport={{once: true}}
-            transition={{duration: 0.3, delay: 0.5 + i * 0.1, ease: [0.22, 1, 0.36, 1]}}
-            style={{fontFamily: 'var(--font-mono)'}}
-            className={'rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-label text-neutral-700'}
-          >
-            {tool}
-          </motion.li>
-        ))}
-      </motion.ul>
-
-      <Connector height={44} delay={0.8} />
-
-      {/* What it made, and the gate in front of it */}
-      <motion.div
-        initial={{opacity: 0, y: 8}}
-        whileInView={{opacity: 1, y: 0}}
-        viewport={{once: true}}
-        transition={{duration: 0.5, delay: 1, ease: [0.22, 1, 0.36, 1]}}
-        className={'overflow-hidden rounded-2xl border border-neutral-200'}
-      >
-        <div className={'flex items-center gap-4 p-5'}>
-          <Node icon={<Megaphone className="h-5 w-5" strokeWidth={1.5} />} />
-          <div className={'min-w-0 flex-1'}>
-            <div
-              style={{fontFamily: 'var(--font-display)'}}
-              className={'font-semibold tracking-[-0.01em] text-neutral-900'}
+        {/* The tool log. Bullet, name, then an elbow with what came back —
+            the shape the real client uses. */}
+        <div className={'mt-5 flex flex-col gap-3.5'}>
+          {exchange.calls.map((call, i) => (
+            <motion.div
+              key={call.tool}
+              {...line}
+              transition={{duration: 0.35, delay: slot(i + 1), ease: EASE}}
             >
-              {exchange.result.title}
-            </div>
-            <div style={{fontFamily: 'var(--font-mono)'}} className={'mt-0.5 text-label text-neutral-500'}>
-              Draft
-            </div>
-          </div>
-          <div className={'text-right'}>
-            <div
-              style={{fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums'}}
-              className={'text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
-            >
-              {exchange.result.recipients.toLocaleString('en-US')}
-            </div>
-            <div style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>
-              recipients
-            </div>
-          </div>
+              <p className={'flex gap-2.5 whitespace-pre'}>
+                <span aria-hidden className={'text-neutral-500'}>
+                  &#9679;
+                </span>
+                <span className={'text-neutral-100'}>
+                  {call.tool}
+                  {call.args && <span className={'text-neutral-500'}>({call.args})</span>}
+                </span>
+              </p>
+              <p className={'flex gap-2.5 whitespace-pre pl-[1.35rem] text-neutral-500'}>
+                <span aria-hidden>&#9495;</span>
+                {call.result}
+              </p>
+            </motion.div>
+          ))}
         </div>
 
-        <div className={'flex items-center justify-between gap-4 bg-neutral-900 px-5 py-4'}>
-          <span className={'text-neutral-300'}>Send it?</span>
-          <div className={'flex flex-shrink-0 gap-2'}>
-            <span className={'rounded-full bg-white px-4 py-1.5 text-ui font-semibold text-neutral-900'}>Send</span>
-            <span className={'rounded-full border border-neutral-700 px-4 py-1.5 text-ui font-semibold text-neutral-300'}>
-              Not yet
-            </span>
+        {/* The gate. The only bordered thing in the window, because it is the
+            only thing that stops. */}
+        <motion.div
+          initial={still ? {opacity: 0} : {opacity: 0, y: 6, scale: 0.985}}
+          whileInView={still ? {opacity: 1} : {opacity: 1, y: 0, scale: 1}}
+          viewport={{once: true, margin: '-15%'}}
+          transition={{duration: 0.4, delay: slot(exchange.calls.length + 1), ease: EASE}}
+          className={'mt-6 rounded-lg border border-neutral-700 px-4 py-3.5'}
+        >
+          <p className={'text-neutral-100'}>{exchange.confirm.question}</p>
+          <div className={'mt-3 flex flex-col gap-1'}>
+            <p className={'flex gap-2 whitespace-pre text-white'}>
+              <span aria-hidden>&#10095;</span>
+              {exchange.confirm.accept}
+            </p>
+            <p className={'flex gap-2 whitespace-pre pl-[0.95rem] text-neutral-500'}>
+              {exchange.confirm.reject}
+            </p>
           </div>
-        </div>
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+    </Surface>
   );
 }

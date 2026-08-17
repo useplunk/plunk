@@ -36,8 +36,7 @@ export function StepSequence({steps}: {steps: Step[]}) {
         >
           <Label>Step {String(i + 1).padStart(2, '0')}</Label>
           <h3
-            style={{fontFamily: 'var(--font-display)'}}
-            className={'mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
+            className={'font-display mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
           >
             {step.title}
           </h3>

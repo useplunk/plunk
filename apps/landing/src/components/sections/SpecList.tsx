@@ -39,8 +39,7 @@ export function SpecList({specs}: {specs: Spec[]}) {
           className={'grid grid-cols-12 gap-x-8 gap-y-3 py-10 sm:py-12'}
         >
           <h3
-            style={{fontFamily: 'var(--font-display)'}}
-            className={'col-span-12 text-h3 font-bold tracking-[-0.02em] text-neutral-900 sm:col-span-4'}
+            className={'font-display col-span-12 text-h3 font-bold tracking-[-0.02em] text-neutral-900 sm:col-span-4'}
           >
             {spec.title}
           </h3>

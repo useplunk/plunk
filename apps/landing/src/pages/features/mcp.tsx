@@ -1,43 +1,96 @@
-import {CodeBlock, Footer, Navbar} from '../../components';
-import {motion} from 'framer-motion';
-import {DASHBOARD_URI, WIKI_URI} from '../../lib/constants';
+import {
+  AgentExchange,
+  Chip,
+  CodeBlock,
+  FAQSection,
+  FeatureCTA,
+  FeatureHero,
+  FeatureSection,
+  Footer,
+  Navbar,
+  SpecList,
+  Surface,
+} from '../../components';
+import type {Exchange, FAQ, Spec} from '../../components';
+import {WIKI_URI} from '../../lib/constants';
 import React, {useState} from 'react';
-import Link from 'next/link';
-import {ArrowRight, Bot, Eye, Megaphone, Send, ShieldCheck, Terminal, Users, Workflow} from 'lucide-react';
 import Head from 'next/head';
 
-const capabilities = [
+/**
+ * Was a six-item icon-card grid, identical to the one on three other feature
+ * pages. Six equally sized bordered boxes make six things look equally
+ * important and equally forgettable; a divided list lets the eye run the column
+ * and gives each title somewhere to sit.
+ */
+const capabilities: Spec[] = [
   {
-    icon: <Bot className="h-6 w-6" strokeWidth={1.5} />,
     title: 'One command to connect',
     description:
       'Install the official @plunk/mcp server, drop in a secret key, and your agent has your whole Plunk project. No SDK, no glue code, no bespoke tool definitions.',
-    featured: true,
+    machine: 'claude mcp add plunk -- npx -y @plunk/mcp',
   },
   {
-    icon: <Send className="h-6 w-6" strokeWidth={1.5} />,
     title: 'Send transactional email',
     description: 'One-off messages to specific people, from any verified sending domain on your project.',
+    machine: 'plunk_send_email',
   },
   {
-    icon: <Users className="h-6 w-6" strokeWidth={1.5} />,
     title: 'Manage contacts',
     description: 'Create, look up, update, and delete contacts, including custom data and subscription status.',
+    machine: 'plunk_create_contact, plunk_get_contact, plunk_update_contact',
   },
   {
-    icon: <Megaphone className="h-6 w-6" strokeWidth={1.5} />,
     title: 'Draft and send campaigns',
     description: 'Have your agent write a campaign, review it yourself, then send it to a list or segment.',
+    machine: 'plunk_create_campaign, plunk_send_campaign',
   },
   {
-    icon: <Workflow className="h-6 w-6" strokeWidth={1.5} />,
     title: 'Track events',
     description: 'Fire the events that trigger your workflows, creating the contact on the fly if it does not exist.',
+    machine: 'plunk_track_event',
   },
   {
-    icon: <Terminal className="h-6 w-6" strokeWidth={1.5} />,
     title: 'Works self-hosted',
     description: 'Point PLUNK_API_URL at your own instance and the same server talks to your infrastructure.',
+    machine: 'PLUNK_API_URL=https://api.your-domain.com',
+  },
+];
+
+/** The hero demo. Same exchange shape the homepage uses. */
+const exchange: Exchange = {
+  prompt: 'Draft a win-back email for pro users who have gone quiet.',
+  calls: [
+    {tool: 'plunk_list_segments', result: '4 segments'},
+    {tool: 'plunk_list_contacts', args: 'segment: "pro-inactive"', result: '2,431 contacts'},
+    {tool: 'plunk_create_campaign', args: '"Win-back, August"', result: 'draft created'},
+  ],
+  confirm: {
+    question: 'Send this campaign to 2,431 people?',
+    accept: '1. Yes, send it',
+    reject: '2. No, keep it as a draft',
+  },
+};
+
+const faqs: FAQ[] = [
+  {
+    question: 'Which clients does the Plunk MCP server work with?',
+    answer:
+      'Any client that speaks the Model Context Protocol. Claude Code, Claude Desktop and Cursor are the common ones, and the setup is the same npx command or mcp.json block for all of them.',
+  },
+  {
+    question: 'Can an agent send email without asking me?',
+    answer:
+      'No. Sending a campaign, or an email to more than one recipient, prompts you through your MCP client and reports how many people it would reach. The model cannot supply that confirmation itself.',
+  },
+  {
+    question: 'How do I stop an agent writing to my project at all?',
+    answer:
+      'Set PLUNK_READ_ONLY=true. The nine mutating tools are then never registered with the client, so they cannot be invoked even by name. The agent is left with six read tools.',
+  },
+  {
+    question: 'Does it work with a self-hosted Plunk instance?',
+    answer:
+      'Yes. Set PLUNK_API_URL to your own API and the same server talks to your infrastructure instead of Plunk Cloud.',
   },
 ];
 
@@ -109,21 +162,18 @@ const writeTools = [
 
 const safety = [
   {
-    icon: <ShieldCheck className="h-6 w-6" strokeWidth={1.5} />,
     title: 'Sends ask you first',
     description:
       'Sending a campaign, or an email to more than one recipient, prompts you and tells you how many people will receive it. The confirmation comes from you through your MCP client; the model cannot supply it itself.',
     benefit: 'No surprise sends',
   },
   {
-    icon: <Eye className="h-6 w-6" strokeWidth={1.5} />,
     title: 'Read-only mode is structural',
     description:
       'Set PLUNK_READ_ONLY=true and the mutating tools are never registered with the client. They cannot be invoked, even by name. The agent simply has no way to write.',
     benefit: 'Six read tools, nothing else',
   },
   {
-    icon: <Terminal className="h-6 w-6" strokeWidth={1.5} />,
     title: 'Account actions stay out of reach',
     description:
       'Billing, project deletion, and key rotation all require a dashboard session rather than an API key, so no tool can touch them. Use a separate project for anything an agent should never change.',
@@ -155,403 +205,119 @@ export default function MCPFeature() {
       <Navbar />
 
       <main className={'text-neutral-800'}>
-        {/* Hero */}
-        <section className={'relative overflow-hidden'}>
-          <div
-            aria-hidden
-            className={
-              'absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#eeeeee_1px,transparent_1px),linear-gradient(to_bottom,#eeeeee_1px,transparent_1px)] bg-[size:6rem_6rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_95%)]'
-            }
-          />
-          <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-28'}>
-            <motion.div
-              initial={{opacity: 0, y: 16}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-            >
-              <h1
-                style={{fontFamily: 'var(--font-display)'}}
-                className={
-                  'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
-                }
-              >
-                Give your agent
-                <br />
-                an email platform.
-              </h1>
-              <p className={'mt-6 max-w-2xl text-lead text-neutral-600'}>
-                The official Plunk MCP server plugs Claude, Cursor, and any Model Context Protocol client straight into
-                your project: 15 tools for transactional email, contacts, segments, and campaigns. Sends still ask you
-                first.
-              </p>
+        <FeatureHero
+          title={
+            <>
+              Give your agent
+              <br />
+              an email platform.
+            </>
+          }
+          subtitle={'Fifteen tools for email, contacts, segments and campaigns. Sends still ask you first.'}
+          docsHref={`${WIKI_URI}/docs/guides/mcp-server`}
+          docsLabel={'MCP docs'}
+          artifact={<AgentExchange exchange={exchange} />}
+        />
 
-              <div className={'mt-10 flex flex-wrap gap-3'}>
-                <motion.a
-                  whileHover={{scale: 1.015}}
-                  whileTap={{scale: 0.985}}
-                  href={`${DASHBOARD_URI}/auth/signup`}
+        {/* Capabilities. Was a six-item icon-card grid identical to three other
+            feature pages; now the same divided list the segments and workflows
+            pages already use. */}
+        <FeatureSection
+          tone={'muted'}
+          title={'What your agent can do'}
+          intro={'The same ground the dashboard covers, exposed as tools an MCP client can call.'}
+        >
+          <SpecList specs={capabilities} />
+        </FeatureSection>
+
+        <FeatureSection
+          title={'Connected in a minute'}
+          intro={'Grab a secret key from Settings, API Keys, then point your client at @plunk/mcp.'}
+        >
+          <div className={'flex flex-wrap gap-2'}>
+            {clients.map(client => {
+              const on = client.id === activeClient.id;
+              return (
+                <button
+                  key={client.id}
+                  type={'button'}
+                  onClick={() => setActiveClient(client)}
+                  aria-pressed={on}
+                  className={`rounded-full px-4 py-2 text-ui font-semibold transition ${
+                    on
+                      ? 'bg-neutral-900 text-white'
+                      : 'border border-neutral-300 bg-white text-neutral-600 hover:border-neutral-900 hover:text-neutral-900'
+                  }`}
+                >
+                  {client.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className={'mt-6'}>
+            <CodeBlock language={activeClient.language} title={activeClient.title} code={activeClient.code} />
+          </div>
+        </FeatureSection>
+
+        {/* The permission split. Two columns rather than the six-card grid,
+            because the whole point is that the tools fall into exactly two
+            groups and one of them can be switched off. */}
+        <FeatureSection
+          tone={'muted'}
+          title={'Fifteen tools, two halves'}
+          intro={'Read-only mode registers the first six and nothing else, so an agent can look without touching.'}
+        >
+          <div className={'grid gap-5 lg:grid-cols-2'}>
+            <Surface label={'read'} meta={<Chip>always on</Chip>} bodyClassName={'flex flex-wrap gap-2 p-5'}>
+              {readTools.map(tool => (
+                <span
+                  key={tool}
                   className={
-                    'group inline-flex items-center gap-2 rounded-full bg-neutral-900 px-8 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(23,23,23,0.35)] transition hover:bg-neutral-800'
+                    'rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 font-code text-[0.6875rem] text-neutral-700'
                   }
                 >
-                  Get your API key
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </motion.a>
-                <Link
-                  href={`${WIKI_URI}/docs/guides/mcp-server`}
-                  target={'_blank'}
-                  className={
-                    'inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-8 py-4 text-base font-semibold text-neutral-900 transition hover:border-neutral-900'
-                  }
-                >
-                  Read the docs
-                </Link>
-              </div>
-
-              <div className={'mt-14 max-w-3xl'}>
-                <CodeBlock
-                  title={'Add Plunk to Claude Code'}
-                  language={'bash'}
-                  code={'claude mcp add plunk --env PLUNK_API_KEY=sk_your_key -- npx -y @plunk/mcp'}
-                />
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Capabilities grid */}
-        <section className={'border-t border-neutral-200'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mb-16'}
-            >
-              <h2
-                style={{fontFamily: 'var(--font-display)'}}
-                className={
-                  'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'
-                }
-              >
-                What your agent can do
-              </h2>
-              <p className={'mt-4 text-lead text-neutral-600'}>
-                The same platform you use in the dashboard, exposed as tools an agent understands
-              </p>
-            </motion.div>
-
-            <div className={'grid gap-5 sm:grid-cols-2 lg:grid-cols-3'}>
-              {capabilities.map((capability, index) => {
-                const highlighted = capability.featured;
-                return (
-                  <motion.div
-                    key={capability.title}
-                    initial={{opacity: 0, y: 16}}
-                    whileInView={{opacity: 1, y: 0}}
-                    viewport={{once: true}}
-                    transition={{duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1]}}
-                    className={
-                      highlighted
-                        ? 'flex min-h-[16rem] flex-col justify-between rounded-card border border-neutral-900 bg-neutral-900 p-8 text-white'
-                        : 'flex min-h-[16rem] flex-col justify-between rounded-card border border-neutral-200 bg-white p-8 transition hover:border-neutral-900'
-                    }
-                  >
-                    <div className={'flex items-start justify-between'}>
-                      <div className={highlighted ? 'text-white' : 'text-neutral-900'}>{capability.icon}</div>
-                    </div>
-                    <div>
-                      <h3
-                        style={{fontFamily: 'var(--font-display)'}}
-                        className={`mt-8 text-h3 font-bold tracking-[-0.02em] ${highlighted ? 'text-white' : 'text-neutral-900'}`}
-                      >
-                        {capability.title}
-                      </h3>
-                      <p
-                        className={`mt-2 leading-relaxed ${highlighted ? 'text-neutral-300' : 'text-neutral-600'}`}
-                      >
-                        {capability.description}
-                      </p>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Setup */}
-        <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mb-12'}
-            >
-              <h2
-                style={{fontFamily: 'var(--font-display)'}}
-                className={
-                  'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'
-                }
-              >
-                Connected in a minute
-              </h2>
-              <p className={'mt-4 text-lead text-neutral-600'}>
-                Grab a secret key from Settings → API Keys, then point your client at{' '}
-                <span style={{fontFamily: 'var(--font-mono)'}} className={'text-neutral-900'}>
-                  @plunk/mcp
+                  {tool}
                 </span>
-              </p>
-            </motion.div>
-
-            <div className={'grid gap-10 lg:grid-cols-12'}>
-              <div className={'lg:col-span-4'}>
-                <div className={'flex flex-wrap gap-2 lg:flex-col'}>
-                  {clients.map(client => {
-                    const active = client.id === activeClient.id;
-                    return (
-                      <button
-                        key={client.id}
-                        onClick={() => setActiveClient(client)}
-                        className={
-                          active
-                            ? 'rounded-full border border-neutral-900 bg-neutral-900 px-6 py-3 text-left text-ui font-semibold text-white transition lg:rounded-[16px]'
-                            : 'rounded-full border border-neutral-200 bg-white px-6 py-3 text-left text-ui font-semibold text-neutral-600 transition hover:border-neutral-900 hover:text-neutral-900 lg:rounded-[16px]'
-                        }
-                      >
-                        {client.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className={'mt-6 leading-relaxed text-neutral-600'}>
-                  Any MCP-compatible client works. These are just the ones most people start with. Self-hosting? Set{' '}
-                  <span style={{fontFamily: 'var(--font-mono)'}} className={'text-neutral-900'}>
-                    PLUNK_API_URL
-                  </span>{' '}
-                  to your own API domain.
-                </p>
-              </div>
-
-              <div className={'min-w-0 lg:col-span-8'}>
-                <CodeBlock title={activeClient.title} language={activeClient.language} code={activeClient.code} />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Tools */}
-        <section className={'border-t border-neutral-200'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mb-16'}
-            >
-              <h2
-                style={{fontFamily: 'var(--font-display)'}}
-                className={
-                  'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'
-                }
-              >
-                Fifteen tools
-              </h2>
-              <p className={'mt-4 text-lead text-neutral-600'}>Six of them read. Nine of them write. You choose which.</p>
-            </motion.div>
-
-            <div className={'grid gap-5 lg:grid-cols-2'}>
-              <motion.div
-                initial={{opacity: 0, y: 16}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
-                className={'rounded-card border border-neutral-200 bg-white p-8'}
-              >
-                <div className={'flex items-start justify-between'}>
-                  <Eye className="h-6 w-6 text-neutral-900" strokeWidth={1.5} />
-                  <span
-                    style={{fontFamily: 'var(--font-mono)'}}
-                    className={'text-label text-neutral-500'}
-                  >
-                    Read-only
-                  </span>
-                </div>
-                <h3
-                  style={{fontFamily: 'var(--font-display)'}}
-                  className={'mt-8 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
-                >
-                  Look, don&apos;t touch
-                </h3>
-                <p className={'mt-2 leading-relaxed text-neutral-600'}>
-                  The only tools registered when{' '}
-                  <span style={{fontFamily: 'var(--font-mono)'}} className={'text-neutral-900'}>
-                    PLUNK_READ_ONLY=true
-                  </span>
-                  .
-                </p>
-                <ul className={'mt-6 flex flex-wrap gap-2'}>
-                  {readTools.map(tool => (
-                    <li
-                      key={tool}
-                      style={{fontFamily: 'var(--font-mono)'}}
-                      className={'rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs text-neutral-700'}
-                    >
-                      {tool}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-
-              <motion.div
-                initial={{opacity: 0, y: 16}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                transition={{duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1]}}
-                className={'rounded-card border border-neutral-900 bg-neutral-900 p-8 text-white'}
-              >
-                <div className={'flex items-start justify-between'}>
-                  <Send className="h-6 w-6 text-white" strokeWidth={1.5} />
-                  <span
-                    style={{fontFamily: 'var(--font-mono)'}}
-                    className={'text-label text-neutral-500'}
-                  >
-                    Writing
-                  </span>
-                </div>
-                <h3
-                  style={{fontFamily: 'var(--font-display)'}}
-                  className={'mt-8 text-h3 font-bold tracking-[-0.02em] text-white'}
-                >
-                  Do the work
-                </h3>
-                <p className={'mt-2 leading-relaxed text-neutral-300'}>
-                  Everything that changes your project. Sends are confirmed by you before they go out.
-                </p>
-                <ul className={'mt-6 flex flex-wrap gap-2'}>
-                  {writeTools.map(tool => (
-                    <li
-                      key={tool}
-                      style={{fontFamily: 'var(--font-mono)'}}
-                      className={'rounded-full border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200'}
-                    >
-                      {tool}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* Safety */}
-        <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mb-16'}
-            >
-              <h2
-                style={{fontFamily: 'var(--font-display)'}}
-                className={
-                  'text-h2 font-extrabold leading-[0.95] tracking-[-0.03em] text-neutral-900'
-                }
-              >
-                An agent with the keys, not the wheel
-              </h2>
-              <p className={'mt-4 max-w-2xl text-lead text-neutral-600'}>
-                Email goes to real people and cannot be unsent. The server is built around that.
-              </p>
-            </motion.div>
-
-            <ul className={'divide-y divide-neutral-200 border-y border-neutral-200'}>
-              {safety.map((item, index) => (
-                <motion.li
-                  key={item.title}
-                  initial={{opacity: 0, y: 12}}
-                  whileInView={{opacity: 1, y: 0}}
-                  viewport={{once: true}}
-                  transition={{duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1]}}
-                  className={'grid grid-cols-12 gap-6 py-10 sm:py-12'}
-                >
-                  <h3
-                    style={{fontFamily: 'var(--font-display)'}}
-                    className={'col-span-12 text-h3 font-bold tracking-[-0.02em] text-neutral-900 sm:col-span-4'}
-                  >
-                    {item.title}
-                  </h3>
-                  <div className={'col-span-12 sm:col-span-8'}>
-                    <p className={'leading-relaxed text-neutral-600'}>{item.description}</p>
-                    <span
-                      style={{fontFamily: 'var(--font-mono)'}}
-                      className={'mt-5 inline-block text-label text-neutral-500'}
-                    >
-                      → {item.benefit}
-                    </span>
-                  </div>
-                </motion.li>
               ))}
-            </ul>
-          </div>
-        </section>
+            </Surface>
 
-        {/* CTA */}
-        <section className={'relative overflow-hidden border-t border-neutral-900 bg-neutral-900 text-white'}>
-          <div className={'mx-auto max-w-[88rem] px-6 py-32 sm:px-10 sm:py-40'}>
-            <div className={'flex flex-col items-start gap-12 lg:flex-row lg:items-end lg:justify-between'}>
-              <motion.h2
-                initial={{opacity: 0, y: 16}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
-                style={{fontFamily: 'var(--font-display)'}}
-                className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
-              >
-                Plug Plunk into your agent.
-              </motion.h2>
-              <motion.div
-                initial={{opacity: 0, y: 16}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
-                className={'flex max-w-md flex-col gap-6'}
-              >
-                <p className={'text-lead text-neutral-300'}>
-                  Create a project, copy your secret key, and run one command. Free to start, no credit card required.
-                </p>
-                <div className={'flex flex-wrap gap-3'}>
-                  <motion.a
-                    whileHover={{scale: 1.015}}
-                    whileTap={{scale: 0.985}}
-                    href={`${DASHBOARD_URI}/auth/signup`}
-                    className={
-                      'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'
-                    }
-                  >
-                    Get started for free
-                    <ArrowRight className="h-4 w-4" />
-                  </motion.a>
-                  <Link
-                    href={`${WIKI_URI}/docs/guides/mcp-server`}
-                    target={'_blank'}
-                    className={
-                      'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'
-                    }
-                  >
-                    Read the docs
-                  </Link>
-                </div>
-              </motion.div>
-            </div>
+            <Surface
+              label={'write'}
+              meta={<Chip>off in read-only mode</Chip>}
+              bodyClassName={'flex flex-wrap gap-2 p-5'}
+            >
+              {writeTools.map(tool => (
+                <span
+                  key={tool}
+                  className={
+                    'rounded-full border border-neutral-200 bg-white px-3 py-1.5 font-code text-[0.6875rem] text-neutral-700'
+                  }
+                >
+                  {tool}
+                </span>
+              ))}
+            </Surface>
           </div>
-        </section>
+        </FeatureSection>
+
+        {/* Safety. Was a hand-rolled divided list duplicating SpecList. */}
+        <FeatureSection title={'What an agent cannot do'}>
+          <SpecList
+            specs={safety.map(item => ({
+              title: item.title,
+              description: item.description,
+              machine: item.benefit,
+            }))}
+          />
+        </FeatureSection>
+
+        <FAQSection faqs={faqs} schemaId={'faq-mcp'} />
+
+        <FeatureCTA
+          title={'Let your agent run your email.'}
+          secondary={{href: `${WIKI_URI}/docs/guides/mcp-server`, label: 'Read the docs', external: true}}
+        />
       </main>
 
       <Footer />
