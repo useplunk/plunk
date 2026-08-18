@@ -517,6 +517,7 @@ export const ActionSchemas = {
         )
         .optional(),
       reply: email.optional(),
+      tracking: z.boolean().optional(),
       headers: z
         .record(
           z.string().regex(/^[^\r\n]+$/, 'Header key contains invalid characters'),

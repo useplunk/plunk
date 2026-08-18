@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, vi, type Mock} from 'vitest';
-import {EmailSourceType, EmailStatus, TemplateType} from '@plunk/db';
+import {EmailSourceType, EmailStatus, TemplateType, TrackingMode} from '@plunk/db';
 import {ActionSchemas} from '@plunk/shared';
 import {EmailService} from '../EmailService';
 import {sendRawEmail} from '../SESService';
@@ -760,6 +760,106 @@ describe('EmailService', () => {
 
       expect(email.status).toBe(EmailStatus.PENDING);
       expect(email.attachments).toBeDefined();
+    });
+  });
+
+  // ========================================
+  // PER-EMAIL TRACKING OVERRIDE
+  // ========================================
+  describe('Per-Email Tracking Override', () => {
+    it('should disable tracking when trackingOverride is false, even with project tracking ENABLED', async () => {
+      const email = await factories.createEmail({
+        projectId,
+        contactId,
+        status: EmailStatus.PENDING,
+        trackingOverride: false,
+      });
+
+      await EmailService.sendEmail(email.id);
+
+      expect(vi.mocked(sendRawEmail)).toHaveBeenCalledWith(expect.objectContaining({tracking: false}));
+    });
+
+    it('should enable tracking when trackingOverride is true, even with project tracking DISABLED', async () => {
+      await prisma.project.update({
+        where: {id: projectId},
+        data: {tracking: TrackingMode.DISABLED},
+      });
+
+      const email = await factories.createEmail({
+        projectId,
+        contactId,
+        status: EmailStatus.PENDING,
+        trackingOverride: true,
+      });
+
+      await EmailService.sendEmail(email.id);
+
+      expect(vi.mocked(sendRawEmail)).toHaveBeenCalledWith(expect.objectContaining({tracking: true}));
+    });
+
+    it('should fall back to project tracking mode when trackingOverride is null', async () => {
+      await prisma.project.update({
+        where: {id: projectId},
+        data: {tracking: TrackingMode.DISABLED},
+      });
+
+      const email = await factories.createEmail({
+        projectId,
+        contactId,
+        status: EmailStatus.PENDING,
+      });
+
+      await EmailService.sendEmail(email.id);
+
+      expect(vi.mocked(sendRawEmail)).toHaveBeenCalledWith(expect.objectContaining({tracking: false}));
+    });
+
+    it('should persist the tracking param from sendTransactionalEmail', async () => {
+      const email = await EmailService.sendTransactionalEmail({
+        projectId,
+        contactId,
+        subject: 'No tracking please',
+        body: '<p>Private</p>',
+        from: 'test@example.com',
+        tracking: false,
+      });
+
+      expect(email.trackingOverride).toBe(false);
+    });
+
+    it('should persist null when tracking param is omitted', async () => {
+      const email = await EmailService.sendTransactionalEmail({
+        projectId,
+        contactId,
+        subject: 'Default tracking',
+        body: '<p>Hello</p>',
+        from: 'test@example.com',
+      });
+
+      expect(email.trackingOverride).toBeNull();
+    });
+
+    it('should accept a boolean tracking field in the send schema', () => {
+      const result = ActionSchemas.send.safeParse({
+        to: 'test@example.com',
+        subject: 'Test',
+        body: 'Test',
+        tracking: false,
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject a non-boolean tracking field in the send schema', () => {
+      const result = ActionSchemas.send.safeParse({
+        to: 'test@example.com',
+        subject: 'Test',
+        body: 'Test',
+        tracking: 'false',
+      });
+
+      expect(result.success).toBe(false);
     });
   });
 

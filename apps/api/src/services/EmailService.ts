@@ -40,6 +40,7 @@ interface SendEmailParams {
   workflowStepExecutionId?: string;
   recipientEmail?: string; // Optional custom recipient email (overrides contact.email)
   isTransactional?: boolean; // Override source type to TRANSACTIONAL (e.g. for transactional campaigns)
+  tracking?: boolean; // Per-email tracking override (undefined = use project tracking mode)
 }
 
 /**
@@ -101,6 +102,7 @@ export class EmailService {
         attachments: params.attachments ? toPrismaJson(params.attachments) : undefined,
         sourceType: EmailSourceType.TRANSACTIONAL,
         templateId: params.templateId,
+        trackingOverride: params.tracking ?? null,
         status: EmailStatus.PENDING,
       },
     });
@@ -414,8 +416,8 @@ export class EmailService {
             }>)
           : undefined;
 
-      // Determine tracking based on project settings and email type
-      const shouldTrack = this.shouldTrackEmail(email.project.tracking, email.sourceType);
+      // Determine tracking: per-email override wins, otherwise project settings and email type
+      const shouldTrack = email.trackingOverride ?? this.shouldTrackEmail(email.project.tracking, email.sourceType);
 
       // Send via AWS SES
       const result = await sendRawEmail({

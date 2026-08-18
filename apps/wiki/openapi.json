@@ -719,6 +719,10 @@
                     "format": "email",
                     "description": "Reply-to address."
                   },
+                  "tracking": {
+                    "type": "boolean",
+                    "description": "Override the project's open/click tracking mode for this email. `false` disables tracking, `true` enables it. Omit to use the project's tracking setting. Only effective when the instance has `SES_CONFIGURATION_SET_NO_TRACKING` configured."
+                  },
                   "attachments": {
                     "type": "array",
                     "description": "Email attachments. Default cap: 10 attachments and 10 MB total. The full message size cannot exceed 40 MB.",
