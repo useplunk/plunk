@@ -14,6 +14,8 @@ export enum ActivityType {
   EMAIL_CLICKED = 'email.clicked',
   EMAIL_BOUNCED = 'email.bounced',
   EMAIL_COMPLAINT = 'email.complaint',
+  CONTACT_SUBSCRIBED = 'contact.subscribed',
+  CONTACT_UNSUBSCRIBED = 'contact.unsubscribed',
   CAMPAIGN_SENT = 'campaign.sent',
   CAMPAIGN_SCHEDULED = 'campaign.scheduled',
   WORKFLOW_STARTED = 'workflow.started',

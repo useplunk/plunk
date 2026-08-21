@@ -25,6 +25,8 @@ import {
   Send,
   ShieldCheck,
   TrendingUp,
+  UserMinus,
+  UserPlus,
   Users,
   Workflow,
   XCircle,
@@ -155,6 +157,10 @@ function activityVisual(a: Activity): ActivityVisual {
       return {icon: AlertCircle, tone: 'red', label: 'Complaint'};
     case 'event.triggered':
       return {icon: Zap, tone: 'amber', label: 'Event'};
+    case 'contact.subscribed':
+      return {icon: UserPlus, tone: 'green', label: 'Subscribed'};
+    case 'contact.unsubscribed':
+      return {icon: UserMinus, tone: 'neutral', label: 'Unsubscribed'};
     case 'campaign.sent':
       return {icon: Mail, tone: 'neutral', label: 'Campaign'};
     case 'campaign.scheduled':
@@ -178,6 +184,9 @@ const TONE_CLASSES: Record<ActivityVisual['tone'], {bg: string; fg: string}> = {
 
 function activityTitle(a: Activity): string {
   const m = a.metadata;
+  // Subscription events store a reserved name (`contact.unsubscribed`) that
+  // would read as raw plumbing, so their label is the title.
+  if (a.type === 'contact.subscribed' || a.type === 'contact.unsubscribed') return activityVisual(a).label;
   if (typeof m.subject === 'string' && m.subject) return m.subject;
   if (typeof m.eventName === 'string' && m.eventName) return m.eventName;
   if (typeof m.campaignName === 'string' && m.campaignName) return m.campaignName;

@@ -129,6 +129,9 @@ export default function ActivityPage() {
                       <SelectItem value="email.clicked">Emails clicked</SelectItem>
                       <SelectItem value="email.bounced">Emails bounced</SelectItem>
                       <SelectItem value="email.complaint">Email complaints</SelectItem>
+                      <SelectItem value="contact.subscribed,contact.unsubscribed">Subscriptions</SelectItem>
+                      <SelectItem value="contact.subscribed">Subscribes</SelectItem>
+                      <SelectItem value="contact.unsubscribed">Unsubscribes</SelectItem>
                       <SelectItem value="workflow.started,workflow.completed">Workflows</SelectItem>
                     </SelectContent>
                   </Select>

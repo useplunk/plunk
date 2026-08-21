@@ -24,6 +24,17 @@ export class ActivityService {
   private static readonly STATS_CACHE_TTL = 300; // 5 minutes
 
   /**
+   * Reserved event names that represent a contact's subscription changing.
+   * These are written by ContactService, WorkflowExecutionService and
+   * EmailService, and are promoted out of the generic `event.triggered`
+   * bucket so the feed can label them properly and filter on them.
+   */
+  private static readonly SUBSCRIPTION_ACTIVITY_TYPES: Record<string, ActivityType> = {
+    'contact.subscribed': ActivityType.CONTACT_SUBSCRIBED,
+    'contact.unsubscribed': ActivityType.CONTACT_UNSUBSCRIBED,
+  };
+
+  /**
    * Get unified activity feed for a project
    *
    * Performance: O(n log n) where n = limit
@@ -337,13 +348,32 @@ export class ActivityService {
     contactId?: string,
     types?: ActivityType[],
   ): Promise<Activity[]> {
-    // Skip if filtering by types and event.triggered is not included
-    if (types && !types.includes(ActivityType.EVENT_TRIGGERED)) {
+    // Subscription changes are stored as events with reserved names, but are
+    // surfaced as their own activity types rather than generic triggered events.
+    const requestedSubscriptionNames = Object.entries(this.SUBSCRIPTION_ACTIVITY_TYPES)
+      .filter(([, activityType]) => !types || types.includes(activityType))
+      .map(([eventName]) => eventName);
+    const includeTriggered = !types || types.includes(ActivityType.EVENT_TRIGGERED);
+
+    // Skip if neither generic events nor any subscription type was requested
+    if (!includeTriggered && requestedSubscriptionNames.length === 0) {
       return [];
     }
 
+    // Translate the requested types into a name filter. Both branches hit the
+    // (projectId, name, createdAt) index when a name predicate is present.
+    const excludedSubscriptionNames = Object.keys(this.SUBSCRIPTION_ACTIVITY_TYPES).filter(
+      name => !requestedSubscriptionNames.includes(name),
+    );
+    const nameFilter: Prisma.StringFilter | undefined = includeTriggered
+      ? excludedSubscriptionNames.length > 0
+        ? {notIn: excludedSubscriptionNames}
+        : undefined
+      : {in: requestedSubscriptionNames};
+
     const where: Prisma.EventWhereInput = {
       projectId,
+      ...(nameFilter ? {name: nameFilter} : {}),
       createdAt: cursorTimestamp
         ? {
             ...dateFilter,
@@ -368,7 +398,7 @@ export class ActivityService {
 
     return events.map(event => ({
       id: event.id,
-      type: ActivityType.EVENT_TRIGGERED,
+      type: this.SUBSCRIPTION_ACTIVITY_TYPES[event.name] ?? ActivityType.EVENT_TRIGGERED,
       timestamp: event.createdAt,
       contactEmail: event.contact?.email,
       contactId: event.contactId || undefined,

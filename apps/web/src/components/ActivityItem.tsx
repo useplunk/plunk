@@ -13,6 +13,8 @@ import {
   MousePointerClick,
   Send,
   ShieldAlert,
+  UserMinus,
+  UserPlus,
   Workflow,
   XCircle,
   Zap,
@@ -126,6 +128,34 @@ interface ActivityConfig {
   jsonData?: Record<string, unknown>;
 }
 
+/**
+ * Read an event's payload, which Prisma types as JsonValue
+ */
+function getEventData(metadata: Record<string, unknown>): Record<string, unknown> | undefined {
+  const {eventData} = metadata;
+  return eventData && typeof eventData === 'object' && !Array.isArray(eventData)
+    ? (eventData as Record<string, unknown>)
+    : undefined;
+}
+
+/**
+ * Human-readable cause of a subscription change, when the event recorded one.
+ * Only the bounce and complaint paths write a reason today, so anything else
+ * stays undefined rather than guessing at a source.
+ */
+function getSubscriptionReason(metadata: Record<string, unknown>): string | undefined {
+  const reason = getEventData(metadata)?.reason;
+
+  switch (reason) {
+    case 'bounce':
+      return 'Removed after a hard bounce';
+    case 'complaint':
+      return 'Removed after a spam complaint';
+    default:
+      return undefined;
+  }
+}
+
 function getActivityConfig(activity: Activity): ActivityConfig {
   const {type, metadata} = activity;
 
@@ -141,10 +171,7 @@ function getActivityConfig(activity: Activity): ActivityConfig {
           label: 'Event',
           variant: 'default',
         },
-        jsonData:
-          metadata.eventData && typeof metadata.eventData === 'object' && !Array.isArray(metadata.eventData)
-            ? (metadata.eventData as Record<string, unknown>)
-            : undefined,
+        jsonData: getEventData(metadata),
       };
 
     case 'email.sent':
@@ -292,6 +319,34 @@ function getActivityConfig(activity: Activity): ActivityConfig {
           label: 'Completed',
           variant: 'default',
         },
+      };
+
+    case 'contact.subscribed':
+      return {
+        icon: UserPlus,
+        color: 'text-emerald-700',
+        bgColor: 'bg-emerald-50',
+        title: 'Contact subscribed',
+        description: getSubscriptionReason(metadata),
+        badge: {
+          label: 'Subscribed',
+          variant: 'default',
+        },
+        jsonData: getEventData(metadata),
+      };
+
+    case 'contact.unsubscribed':
+      return {
+        icon: UserMinus,
+        color: 'text-neutral-700',
+        bgColor: 'bg-neutral-100',
+        title: 'Contact unsubscribed',
+        description: getSubscriptionReason(metadata),
+        badge: {
+          label: 'Unsubscribed',
+          variant: 'outline',
+        },
+        jsonData: getEventData(metadata),
       };
 
     case 'campaign.scheduled':
