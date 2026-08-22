@@ -5,6 +5,7 @@ import signale from 'signale';
 
 import {DASHBOARD_URI, LANDING_URI, STRIPE_ENABLED} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
+import {redis} from '../database/redis.js';
 import {HttpException} from '../exceptions/index.js';
 import {createTranslatorSync, renderTemplate} from '@plunk/shared';
 
@@ -14,6 +15,7 @@ import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail, withSourceE
 import {EventService} from './EventService.js';
 import {QueueService} from './QueueService.js';
 import {sendRawEmail} from './SESService.js';
+import {Keys} from './keys.js';
 
 interface Attachment {
   filename: string;
@@ -46,6 +48,13 @@ interface SendEmailParams {
  * Email Service
  * Handles sending emails and tracking delivery
  */
+/**
+ * Mirrors CampaignService.SENT_PROGRESS_TTL_SECONDS. Duplicated rather than imported
+ * because CampaignService imports this module and importing it back would close a
+ * cycle; both write the same key, so the two must stay in step.
+ */
+const CAMPAIGN_SENT_PROGRESS_TTL_SECONDS = 7 * 24 * 60 * 60;
+
 export class EmailService {
   /**
    * Send a transactional email via API
@@ -436,15 +445,40 @@ export class EmailService {
         tracking: shouldTrack,
       });
 
-      // Mark as sent with SES message ID
-      await prisma.email.update({
-        where: {id: emailId},
+      // Mark as sent with SES message ID.
+      //
+      // Guarded on `sentAt` still being null so a campaign's `sentCount` is only
+      // incremented by the run that actually stamped it, never by a retry that
+      // finds the message already away. See CampaignService.countCampaignSent.
+      const marked = await prisma.email.updateMany({
+        where: {id: emailId, sentAt: null},
         data: {
           status: EmailStatus.SENT,
           sentAt: new Date(),
           messageId: result.messageId,
         },
       });
+
+      // Zero rows means another run already stamped this email. Re-tracking
+      // `email.sent` would re-trigger workflows for a single delivery, so stop here.
+      if (marked.count === 0) {
+        signale.warn(`[EMAIL] Email ${emailId} was already marked sent, skipping duplicate side effects`);
+        return;
+      }
+
+      if (email.campaignId) {
+        // Inlined rather than calling CampaignService.countCampaignSent: CampaignService
+        // already imports this module, and importing it back would close a cycle. Kept
+        // in step with that helper -- Redis, not a column increment, so per-recipient
+        // sends do not serialize on the campaign row. Non-fatal for the same reason:
+        // the message is already away, so throwing would retry the job and send twice.
+        try {
+          const key = Keys.Campaign.sentProgress(email.campaignId);
+          await redis.multi().incr(key).expire(key, CAMPAIGN_SENT_PROGRESS_TTL_SECONDS).exec();
+        } catch (error) {
+          signale.warn(`[EMAIL] Failed to record sent progress for campaign ${email.campaignId}:`, error);
+        }
+      }
 
       // Track event (this will trigger workflows)
       await EventService.trackEvent(email.projectId, 'email.sent', email.contactId, email.id, {
@@ -557,31 +591,42 @@ export class EmailService {
     if (email.campaignId) {
       const campaignUpdate: Prisma.CampaignUpdateInput = {};
 
+      // Every counter below is guarded on the timestamp this webhook sets, so a
+      // notification replayed by SES -- which delivers at least once -- cannot count
+      // the same recipient twice. Nothing recomputes these between sends, so an
+      // increment that fires twice stays wrong until the campaign finalizes, and a
+      // deliveredCount above sentCount would put deliveryRate over 100%.
       switch (eventType) {
         case 'delivered':
-          campaignUpdate.deliveredCount = {increment: 1};
+          if (!email.deliveredAt) {
+            campaignUpdate.deliveredCount = {increment: 1};
+          }
           break;
 
         case 'opened':
-          // Only increment unique opens to match getStats logic
+          // Unique opens: the counter follows first-open, not every open.
           if (!email.openedAt) {
             campaignUpdate.openedCount = {increment: 1};
           }
           break;
 
         case 'clicked':
-          // Only increment unique clicks to match getStats logic
+          // Unique clicks: the counter follows first-click, not every click.
           if (!email.clickedAt) {
             campaignUpdate.clickedCount = {increment: 1};
           }
           break;
 
         case 'bounced':
-          campaignUpdate.bouncedCount = {increment: 1};
+          if (!email.bouncedAt) {
+            campaignUpdate.bouncedCount = {increment: 1};
+          }
           break;
 
         case 'complained':
-          campaignUpdate.complainedCount = {increment: 1};
+          if (!email.complainedAt) {
+            campaignUpdate.complainedCount = {increment: 1};
+          }
           break;
       }
 

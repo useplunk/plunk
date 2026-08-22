@@ -251,15 +251,38 @@ export async function createEmailWorker() {
           attachments: email.attachments as {filename: string; content: string; contentType: string}[] | null,
         });
 
-        // Mark as sent with SES message ID
-        await prisma.email.update({
-          where: {id: emailId},
+        // Mark as sent with SES message ID.
+        //
+        // Guarded on `sentAt` still being null so the campaign counter below is only
+        // incremented by the run that actually stamped it. A job retried after SES
+        // accepted the message would otherwise count the same email twice.
+        const marked = await prisma.email.updateMany({
+          where: {id: emailId, sentAt: null},
           data: {
             status: EmailStatus.SENT,
             sentAt: new Date(),
             messageId: result.messageId,
           },
         });
+
+        // Zero rows means another run already stamped this email -- SES accepted the
+        // message, then the job was retried. Everything below sends a second signal
+        // for one delivery (a duplicate `email.sent` re-triggers workflows), so stop
+        // here rather than replaying it. Finalization still runs: this email is
+        // terminal either way, and the campaign must not be left stuck in SENDING.
+        if (marked.count === 0) {
+          signale.warn(`[EMAIL-PROCESSOR] Email ${emailId} was already marked sent, skipping duplicate side effects`);
+
+          if (email.campaignId) {
+            await CampaignService.finalizeIfDone(email.campaignId);
+          }
+
+          return;
+        }
+
+        if (email.campaignId) {
+          await CampaignService.countCampaignSent(email.campaignId);
+        }
 
         // Record usage for billing (pay-per-email)
         // Uses email ID as idempotency key to prevent double-charging on retries

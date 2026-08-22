@@ -1,16 +1,22 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {CampaignService} from '../CampaignService';
 import {ContactService} from '../ContactService';
+import {EmailService} from '../EmailService';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
 
 /**
  * What a campaign cost in recipients: opt-outs and spam complaints.
  *
- * Both are materialized on the campaign row and recomputed by getStats, and the
- * three ways a recipient can leave must never describe the same person twice —
+ * Both are materialized on the campaign row as the events that move them arrive —
+ * complaints in EmailService.handleWebhookEvent, opt-outs in
+ * ContactService.unsubscribe — and getStats reports those columns without
+ * recounting. So these tests drive the real write paths rather than seeding
+ * timestamps: a fixture that stamped `complainedAt` directly would prove nothing
+ * about a number nobody increments.
+ *
+ * The three ways a recipient can leave must never describe the same person twice —
  * a bounce, a complaint, and a deliberate unsubscribe each belong to exactly one
- * count. The unsubscribe count has two writers (the increment in ContactService
- * and the recompute here), so it is asserted through both.
+ * count.
  */
 describe('CampaignService - opt-outs and complaints', () => {
   const prisma = getPrismaClient();
@@ -25,26 +31,36 @@ describe('CampaignService - opt-outs and complaints', () => {
     campaignId = campaign.id;
   });
 
-  /** A delivered campaign email for a fresh contact. */
-  async function sendTo(email: string, overrides: Record<string, unknown> = {}) {
+  /**
+   * A sent campaign email for a fresh contact, counted the way the send path counts
+   * it: the row is stamped and the campaign's `sentCount` moves with it.
+   */
+  async function sendTo(email: string, targetCampaignId: string = campaignId) {
     const contact = await factories.createContact({projectId, email, subscribed: true});
     const sent = await prisma.email.create({
       data: {
         projectId,
         contactId: contact.id,
-        campaignId,
+        campaignId: targetCampaignId,
         subject: 'Product update',
         body: '<p>news</p>',
         from: 'hello@plunk.test',
         sourceType: 'CAMPAIGN',
         sentAt: new Date(),
-        deliveredAt: new Date(),
-        ...overrides,
       },
+    });
+
+    await prisma.campaign.update({
+      where: {id: targetCampaignId},
+      data: {sentCount: {increment: 1}},
     });
 
     return {contact, email: sent};
   }
+
+  const deliver = (emailId: string) => EmailService.handleWebhookEvent(emailId, 'delivered');
+  const complain = (emailId: string) => EmailService.handleWebhookEvent(emailId, 'complained');
+  const bounce = (emailId: string) => EmailService.handleWebhookEvent(emailId, 'bounced');
 
   async function storedCount() {
     const campaign = await prisma.campaign.findUnique({
@@ -81,7 +97,8 @@ describe('CampaignService - opt-outs and complaints', () => {
    * same suppression twice, once as a bounce and once as an opt-out.
    */
   it('does not count suppression from a bounced email', async () => {
-    const {contact, email} = await sendTo('four@example.com', {bouncedAt: new Date(), deliveredAt: null});
+    const {contact, email} = await sendTo('four@example.com');
+    await bounce(email.id);
 
     await ContactService.unsubscribe(contact.id, {emailId: email.id});
 
@@ -90,7 +107,8 @@ describe('CampaignService - opt-outs and complaints', () => {
   });
 
   it('does not count suppression from a complaint', async () => {
-    const {contact, email} = await sendTo('five@example.com', {complainedAt: new Date()});
+    const {contact, email} = await sendTo('five@example.com');
+    await complain(email.id);
 
     await ContactService.unsubscribe(contact.id, {emailId: email.id});
 
@@ -100,22 +118,9 @@ describe('CampaignService - opt-outs and complaints', () => {
 
   it('does not count an unsubscribe from another campaign', async () => {
     const other = await factories.createCampaign({projectId, name: 'Other campaign'});
-    const contact = await factories.createContact({projectId, subscribed: true});
-    const otherEmail = await prisma.email.create({
-      data: {
-        projectId,
-        contactId: contact.id,
-        campaignId: other.id,
-        subject: 'Other',
-        body: '<p>x</p>',
-        from: 'hello@plunk.test',
-        sourceType: 'CAMPAIGN',
-        sentAt: new Date(),
-        deliveredAt: new Date(),
-      },
-    });
+    const {contact, email} = await sendTo('other@example.com', other.id);
 
-    await ContactService.unsubscribe(contact.id, {emailId: otherEmail.id});
+    await ContactService.unsubscribe(contact.id, {emailId: email.id});
 
     expect(await storedCount()).toBe(0);
     expect((await CampaignService.getStats(projectId, campaignId)).unsubscribedCount).toBe(0);
@@ -123,18 +128,21 @@ describe('CampaignService - opt-outs and complaints', () => {
   });
 
   /**
-   * The increment can be lost (it is deliberately non-fatal, so an opt-out never
-   * fails on a stats write), which is only acceptable because the recompute
-   * repairs it.
+   * getStats reads the stored counters and does not recount. Deriving them per
+   * request meant scanning the campaign's emails — and, for unsubscribes, the whole
+   * events table, since no index serves a predicate on Event.name alone — on an
+   * endpoint the dashboard polls every 15s while a campaign sends.
+   *
+   * The counters are repaired where repair is cheap instead: finalizeIfDone
+   * recomputes sentCount from the emails table once the send completes.
    */
-  it('repairs a stored count that drifted from the events', async () => {
+  it('reports the stored counters without recounting', async () => {
     const {contact, email} = await sendTo('six@example.com');
     await ContactService.unsubscribe(contact.id, {emailId: email.id});
 
     await prisma.campaign.update({where: {id: campaignId}, data: {unsubscribedCount: 99}});
 
-    expect((await CampaignService.getStats(projectId, campaignId)).unsubscribedCount).toBe(1);
-    expect(await storedCount()).toBe(1);
+    expect((await CampaignService.getStats(projectId, campaignId)).unsubscribedCount).toBe(99);
   });
 
   /**
@@ -144,15 +152,21 @@ describe('CampaignService - opt-outs and complaints', () => {
    */
   it('reports the rate against sent mail', async () => {
     const first = await sendTo('seven@example.com');
-    await sendTo('eight@example.com');
-    await sendTo('nine@example.com');
-    await sendTo('ten@example.com', {bouncedAt: new Date(), deliveredAt: null});
+    const second = await sendTo('eight@example.com');
+    const third = await sendTo('nine@example.com');
+    const fourth = await sendTo('ten@example.com');
+
+    await deliver(first.email.id);
+    await deliver(second.email.id);
+    await deliver(third.email.id);
+    await bounce(fourth.email.id);
 
     await ContactService.unsubscribe(first.contact.id, {emailId: first.email.id});
 
     const stats = await CampaignService.getStats(projectId, campaignId);
     expect(stats.sentCount).toBe(4);
     expect(stats.deliveredCount).toBe(3);
+    expect(stats.bouncedCount).toBe(1);
     expect(stats.unsubscribeRate).toBeCloseTo(25);
   });
 
@@ -165,13 +179,16 @@ describe('CampaignService - opt-outs and complaints', () => {
 
   describe('spam complaints', () => {
     /**
-     * Complaints need no attribution plumbing: the SES webhook stamps
-     * complainedAt on the email row, which already knows its campaign.
+     * Complaints need no attribution plumbing: the SES webhook names the email,
+     * which already knows its campaign.
      */
     it('counts complaints against the campaign that drew them', async () => {
-      await sendTo('c1@example.com', {complainedAt: new Date()});
-      await sendTo('c2@example.com', {complainedAt: new Date()});
+      const first = await sendTo('c1@example.com');
+      const second = await sendTo('c2@example.com');
       await sendTo('c3@example.com');
+
+      await complain(first.email.id);
+      await complain(second.email.id);
 
       const stats = await CampaignService.getStats(projectId, campaignId);
 
@@ -187,20 +204,9 @@ describe('CampaignService - opt-outs and complaints', () => {
 
     it('does not count a complaint from another campaign', async () => {
       const other = await factories.createCampaign({projectId, name: 'Other campaign'});
-      const contact = await factories.createContact({projectId});
-      await prisma.email.create({
-        data: {
-          projectId,
-          contactId: contact.id,
-          campaignId: other.id,
-          subject: 'Other',
-          body: '<p>x</p>',
-          from: 'hello@plunk.test',
-          sourceType: 'CAMPAIGN',
-          sentAt: new Date(),
-          complainedAt: new Date(),
-        },
-      });
+      const {email} = await sendTo('c-other@example.com', other.id);
+
+      await complain(email.id);
 
       expect((await CampaignService.getStats(projectId, campaignId)).complainedCount).toBe(0);
       expect((await CampaignService.getStats(projectId, other.id)).complainedCount).toBe(1);
@@ -211,7 +217,8 @@ describe('CampaignService - opt-outs and complaints', () => {
      * not as an opt-out, so the two counts never describe the same recipient.
      */
     it('keeps complaints out of the unsubscribe count', async () => {
-      const {contact, email} = await sendTo('c4@example.com', {complainedAt: new Date()});
+      const {contact, email} = await sendTo('c4@example.com');
+      await complain(email.id);
 
       await ContactService.unsubscribe(contact.id, {emailId: email.id});
 
