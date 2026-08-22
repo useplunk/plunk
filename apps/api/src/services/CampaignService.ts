@@ -667,12 +667,7 @@ export class CampaignService {
       `[CAMPAIGN] Campaign ${campaign.name} finalized: ${sentCount}/${campaign.totalRecipients} emails sent`,
     );
 
-    await NtfyService.notifyCampaignSendCompleted(
-      campaign.name,
-      campaign.project.name,
-      campaign.projectId,
-      sentCount,
-    );
+    await NtfyService.notifyCampaignSendCompleted(campaign.name, campaign.project.name, campaign.projectId, sentCount);
   }
 
   /**
@@ -717,23 +712,40 @@ export class CampaignService {
     const campaign = await this.get(projectId, campaignId);
 
     // Get email stats from Email table
-    const [sentEmails, deliveredEmails, openedEmails, clickedEmails, bouncedEmails] = await Promise.all([
-      prisma.email.count({
-        where: {campaignId, sentAt: {not: null}},
-      }),
-      prisma.email.count({
-        where: {campaignId, deliveredAt: {not: null}},
-      }),
-      prisma.email.count({
-        where: {campaignId, openedAt: {not: null}},
-      }),
-      prisma.email.count({
-        where: {campaignId, clickedAt: {not: null}},
-      }),
-      prisma.email.count({
-        where: {campaignId, bouncedAt: {not: null}},
-      }),
-    ]);
+    const [sentEmails, deliveredEmails, openedEmails, clickedEmails, bouncedEmails, complainedEmails, unsubscribes] =
+      await Promise.all([
+        prisma.email.count({
+          where: {campaignId, sentAt: {not: null}},
+        }),
+        prisma.email.count({
+          where: {campaignId, deliveredAt: {not: null}},
+        }),
+        prisma.email.count({
+          where: {campaignId, openedAt: {not: null}},
+        }),
+        prisma.email.count({
+          where: {campaignId, clickedAt: {not: null}},
+        }),
+        prisma.email.count({
+          where: {campaignId, bouncedAt: {not: null}},
+        }),
+        prisma.email.count({
+          where: {campaignId, complainedAt: {not: null}},
+        }),
+        // Unsubscribes are not a column on Email, so they are counted from the
+        // events that name one of this campaign's emails as their source.
+        //
+        // Emails that bounced or drew a complaint are excluded: those flip the
+        // contact to unsubscribed as well, and counting them here would report the
+        // same suppression twice, once as a bounce and once as an opt-out. Keep
+        // this predicate in step with the increment in ContactService.unsubscribe.
+        prisma.event.count({
+          where: {
+            name: 'contact.unsubscribed',
+            email: {campaignId, bouncedAt: null, complainedAt: null},
+          },
+        }),
+      ]);
 
     // Update campaign stats
     await prisma.campaign.update({
@@ -744,6 +756,8 @@ export class CampaignService {
         openedCount: openedEmails,
         clickedCount: clickedEmails,
         bouncedCount: bouncedEmails,
+        complainedCount: complainedEmails,
+        unsubscribedCount: unsubscribes,
       },
     });
 
@@ -754,10 +768,19 @@ export class CampaignService {
       openedCount: openedEmails,
       clickedCount: clickedEmails,
       bouncedCount: bouncedEmails,
+      complainedCount: complainedEmails,
+      unsubscribedCount: unsubscribes,
       openRate: sentEmails > 0 ? (openedEmails / sentEmails) * 100 : 0,
       clickRate: sentEmails > 0 ? (clickedEmails / sentEmails) * 100 : 0,
       bounceRate: sentEmails > 0 ? (bouncedEmails / sentEmails) * 100 : 0,
       deliveryRate: sentEmails > 0 ? (deliveredEmails / sentEmails) * 100 : 0,
+      // Every rate on this object divides by sentCount, which is what the API
+      // documents. Complaints in particular must match that convention: the
+      // project-level complaint rate SES enforcement watches is also measured
+      // against emails sent, and two rates for the same thing that disagree are
+      // worse than either.
+      complaintRate: sentEmails > 0 ? (complainedEmails / sentEmails) * 100 : 0,
+      unsubscribeRate: sentEmails > 0 ? (unsubscribes / sentEmails) * 100 : 0,
     };
   }
 

@@ -123,7 +123,7 @@ interface ActivityConfig {
   description?: string;
   badge?: {
     label: string;
-    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    variant: 'default' | 'secondary' | 'neutral' | 'destructive' | 'outline';
   };
   jsonData?: Record<string, unknown>;
 }
@@ -154,6 +154,41 @@ function getSubscriptionReason(metadata: Record<string, unknown>): string | unde
     default:
       return undefined;
   }
+}
+
+/**
+ * Subject of the email a subscription change came from, which becomes the row's
+ * title — the same slot an email row uses for its subject.
+ *
+ * Absent for changes with no email behind them (a dashboard toggle, a CSV
+ * import, an API call) and for mail sent before unsubscribe links carried their
+ * source; those rows title themselves by the action instead.
+ */
+function getSubscriptionSubject(metadata: Record<string, unknown>): string | undefined {
+  return typeof metadata.sourceSubject === 'string' && metadata.sourceSubject ? metadata.sourceSubject : undefined;
+}
+
+/**
+ * Which send the originating email belonged to, in the same `Campaign: x` /
+ * `Workflow: x` form email rows use. Transactional sources have neither, and
+ * name themselves through the subject in the title.
+ */
+function getSubscriptionOrigin(metadata: Record<string, unknown>): string | undefined {
+  if (typeof metadata.campaignName === 'string' && metadata.campaignName) {
+    return `Campaign: ${metadata.campaignName}`;
+  }
+  if (typeof metadata.workflowName === 'string' && metadata.workflowName) {
+    return `Workflow: ${metadata.workflowName}`;
+  }
+  return undefined;
+}
+
+/**
+ * Describe a subscription change as cause and origin — either, both, or neither.
+ */
+function getSubscriptionDescription(metadata: Record<string, unknown>): string | undefined {
+  const parts = [getSubscriptionReason(metadata), getSubscriptionOrigin(metadata)].filter(Boolean);
+  return parts.length > 0 ? parts.join(' • ') : undefined;
 }
 
 function getActivityConfig(activity: Activity): ActivityConfig {
@@ -326,8 +361,8 @@ function getActivityConfig(activity: Activity): ActivityConfig {
         icon: UserPlus,
         color: 'text-emerald-700',
         bgColor: 'bg-emerald-50',
-        title: 'Contact subscribed',
-        description: getSubscriptionReason(metadata),
+        title: getSubscriptionSubject(metadata) || 'Contact subscribed',
+        description: getSubscriptionDescription(metadata),
         badge: {
           label: 'Subscribed',
           variant: 'default',
@@ -340,11 +375,13 @@ function getActivityConfig(activity: Activity): ActivityConfig {
         icon: UserMinus,
         color: 'text-neutral-700',
         bgColor: 'bg-neutral-100',
-        title: 'Contact unsubscribed',
-        description: getSubscriptionReason(metadata),
+        title: getSubscriptionSubject(metadata) || 'Contact unsubscribed',
+        description: getSubscriptionDescription(metadata),
         badge: {
           label: 'Unsubscribed',
-          variant: 'outline',
+          // `outline` is this feed's marker for scheduled, not-yet-happened
+          // items; a past opt-out takes the muted fill instead.
+          variant: 'neutral',
         },
         jsonData: getEventData(metadata),
       };

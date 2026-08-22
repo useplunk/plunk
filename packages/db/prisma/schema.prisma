@@ -324,6 +324,13 @@ model Campaign {
   openedCount     Int @default(0)
   clickedCount    Int @default(0)
   bouncedCount    Int @default(0)
+  // Recipients who reported this campaign as spam. Traced to the exact email by
+  // the SES complaint webhook, which stamps Email.complainedAt.
+  complainedCount Int @default(0)
+  // Recipients who opted out from this campaign's mail. Counts deliberate
+  // unsubscribes only; bounce- and complaint-driven suppression is reported by
+  // bouncedCount and complainedCount, and would otherwise be counted twice.
+  unsubscribedCount Int @default(0)
 
   // Relations
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)

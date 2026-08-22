@@ -2,6 +2,7 @@ import {Button, Card, CardContent, IconSpinner} from '@plunk/ui';
 import {createTranslator, type Translator} from '@plunk/shared';
 import {AnimatePresence, motion} from 'framer-motion';
 import {useRouter} from 'next/router';
+import {sourceEmailQuery} from '../../lib/sourceEmail';
 import React, {useEffect, useState} from 'react';
 
 import {network} from '../../lib/network';
@@ -53,7 +54,10 @@ export default function Subscribe() {
 
     try {
       setSubscribing(true);
-      const data = await network.fetch<ContactInfo>('POST', `/contacts/public/${id}/subscribe`);
+      const data = await network.fetch<ContactInfo>(
+        'POST',
+        `/contacts/public/${id}/subscribe${sourceEmailQuery(router.query)}`,
+      );
       setContact(data);
       setSuccess(true);
       setError(null);

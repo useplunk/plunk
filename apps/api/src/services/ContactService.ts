@@ -1,6 +1,7 @@
 import {type Contact, Prisma} from '@plunk/db';
 import type {CursorPaginatedResponse, FilterCondition, FilterGroup} from '@plunk/types';
 import {toPrismaJson} from '@plunk/types';
+import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
@@ -443,31 +444,102 @@ export class ContactService {
   }
 
   /**
-   * PUBLIC: Subscribe a contact
+   * Resolve the email a recipient acted from, as claimed by the `e` parameter on
+   * an unsubscribe or manage link.
+   *
+   * The claim is attacker-controlled — the links are public and unauthenticated —
+   * so it is only trusted after confirming the email belongs to this contact.
+   * A claim that does not check out is dropped rather than rejected: the
+   * subscription change itself is governed by the contact id in the path and
+   * must still go through, so a bad `e` costs attribution, not the opt-out.
    */
-  public static async subscribe(contactId: string): Promise<Contact> {
+  private static async resolveSourceEmail(
+    contactId: string,
+    emailId?: string,
+  ): Promise<{id: string; campaignId: string | null; suppressed: boolean} | undefined> {
+    if (!emailId) {
+      return undefined;
+    }
+
+    const email = await prisma.email.findUnique({
+      where: {id: emailId},
+      select: {id: true, contactId: true, campaignId: true, bouncedAt: true, complainedAt: true},
+    });
+
+    if (email?.contactId !== contactId) {
+      return undefined;
+    }
+
+    return {
+      id: email.id,
+      campaignId: email.campaignId,
+      suppressed: email.bouncedAt !== null || email.complainedAt !== null,
+    };
+  }
+
+  /**
+   * Add one to a campaign's unsubscribe count.
+   *
+   * Never allowed to fail the opt-out that triggered it: a stats counter is not
+   * worth a 5xx on a public unsubscribe endpoint, which would leave a mailbox
+   * provider retrying a request that already took effect. Campaign stats
+   * recompute from the events on read, so a dropped increment self-heals.
+   */
+  private static async countCampaignUnsubscribe(campaignId: string): Promise<void> {
+    try {
+      await prisma.campaign.update({
+        where: {id: campaignId},
+        data: {unsubscribedCount: {increment: 1}},
+      });
+    } catch (error) {
+      signale.warn(`[CONTACT] Failed to increment unsubscribe count for campaign ${campaignId}:`, error);
+    }
+  }
+
+  /**
+   * PUBLIC: Subscribe a contact
+   *
+   * @param source - Optional originating email, for attributing the change in
+   *                 the activity feed. See {@link resolveSourceEmail}.
+   */
+  public static async subscribe(contactId: string, source?: {emailId?: string}): Promise<Contact> {
+    const sourceEmail = await this.resolveSourceEmail(contactId, source?.emailId);
+
     const contact = await prisma.contact.update({
       where: {id: contactId},
       data: {subscribed: true},
     });
 
     // Track subscription event
-    await EventService.trackEvent(contact.projectId, 'contact.subscribed', contactId);
+    await EventService.trackEvent(contact.projectId, 'contact.subscribed', contactId, sourceEmail?.id);
 
     return contact;
   }
 
   /**
    * PUBLIC: Unsubscribe a contact
+   *
+   * @param source - Optional originating email, for attributing the change in
+   *                 the activity feed and counting it against the campaign that
+   *                 prompted it. See {@link resolveSourceEmail}.
    */
-  public static async unsubscribe(contactId: string): Promise<Contact> {
+  public static async unsubscribe(contactId: string, source?: {emailId?: string}): Promise<Contact> {
+    const sourceEmail = await this.resolveSourceEmail(contactId, source?.emailId);
+
     const contact = await prisma.contact.update({
       where: {id: contactId},
       data: {subscribed: false},
     });
 
     // Track unsubscription event
-    await EventService.trackEvent(contact.projectId, 'contact.unsubscribed', contactId);
+    await EventService.trackEvent(contact.projectId, 'contact.unsubscribed', contactId, sourceEmail?.id);
+
+    // Count it against the campaign the recipient opted out from. Suppressed
+    // emails are skipped: a bounce or complaint unsubscribes the contact too,
+    // and `bouncedCount` already reports those.
+    if (sourceEmail?.campaignId && !sourceEmail.suppressed) {
+      await this.countCampaignUnsubscribe(sourceEmail.campaignId);
+    }
 
     return contact;
   }

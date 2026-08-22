@@ -52,6 +52,22 @@ When the recipient clicks one of the links and confirms:
 
 You can drive workflows off `contact.unsubscribed` / `contact.subscribed` (e.g. send a "we're sorry to see you go" survey, or trigger a winback when they re-opt-in).
 
+## Knowing which email caused it
+
+The links Plunk generates at send time carry an `?e=<emailId>` parameter identifying the message they were sent in — on the `List-Unsubscribe` header, the auto-injected marketing footer, and the `{{unsubscribeUrl}}` / `{{subscribeUrl}}` / `{{manageUrl}}` variables. When the recipient acts, that email is recorded on the resulting event, and the activity feed names the campaign or workflow the opt-out came from.
+
+The parameter is carried across the hosted pages, so a recipient who lands on the preferences page and then unsubscribes is still attributed to the email they started from.
+
+A few cases are unattributed by design:
+
+- Links rendered before the email row exists — a campaign body's `{{unsubscribeUrl}}`, which is rendered once per recipient at queue time rather than at send time.
+- Changes with no email behind them: the dashboard toggle, a CSV import, and `PATCH /contacts/:id`.
+- Mail sent before this parameter existed.
+
+Attribution is what lets a campaign report how many subscribers it cost: see [campaign stats](/concepts/campaigns#stats).
+
+If you build your own opt-out surface, you can append `?e=` yourself. The value is advisory — Plunk verifies the email belongs to the contact before recording it, and the contact id in the path is what governs the change, so a missing or wrong value costs attribution and nothing else.
+
 ## Localization
 
 The hosted pages and the auto-injected footer are localized into the contact's `locale` if set, or the project's default language otherwise. See [Localization](/guides/localization) for the full list of supported languages.

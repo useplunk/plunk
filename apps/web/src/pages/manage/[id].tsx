@@ -2,6 +2,7 @@ import {Button, Card, CardContent, IconSpinner} from '@plunk/ui';
 import {createTranslator, type Translator} from '@plunk/shared';
 import {AnimatePresence, motion} from 'framer-motion';
 import {useRouter} from 'next/router';
+import {sourceEmailQuery, withSourceEmail} from '../../lib/sourceEmail';
 import React, {useEffect, useState} from 'react';
 
 import {network} from '../../lib/network';
@@ -54,7 +55,8 @@ export default function Manage() {
       setUpdating(true);
       setSaveMessage(null);
 
-      const endpoint = contact.subscribed ? `/contacts/public/${id}/unsubscribe` : `/contacts/public/${id}/subscribe`;
+      const action = contact.subscribed ? 'unsubscribe' : 'subscribe';
+      const endpoint = `/contacts/public/${id}/${action}${sourceEmailQuery(router.query)}`;
 
       const data = await network.fetch<ContactInfo>('POST', endpoint);
       setContact(data);
@@ -209,7 +211,7 @@ export default function Manage() {
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => router.push(`/unsubscribe/${id as string}`)}
+                    onClick={() => router.push(withSourceEmail(`/unsubscribe/${id as string}`, router.query))}
                   >
                     {translator.t('pages.manage.unsubscribeCompletely')}
                   </Button>
@@ -217,7 +219,7 @@ export default function Manage() {
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => router.push(`/subscribe/${id as string}`)}
+                    onClick={() => router.push(withSourceEmail(`/subscribe/${id as string}`, router.query))}
                   >
                     {translator.t('pages.manage.subscribeToEmails')}
                   </Button>

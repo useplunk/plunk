@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
   IconSpinner,
+  Skeleton,
   StickySaveBar,
 } from '@plunk/ui';
 import type {Campaign, Segment} from '@plunk/db';
@@ -39,17 +40,15 @@ import {network} from '../../lib/network';
 import {formatFullDateTime, formatUTCDateTime, getUserTimezone, schedulePresets} from '../../lib/dateUtils';
 import {useChangeTracking} from '../../lib/hooks/useChangeTracking';
 import {
+  AlertCircle,
   ArrowLeft,
   Calendar,
   ChevronDown,
   Info,
-  Mail,
-  MousePointer,
   Save,
   Send,
   TestTube,
   Trash2,
-  TrendingUp,
   TriangleAlert,
   Users,
   XCircle,
@@ -70,11 +69,38 @@ interface CampaignStats {
   openedCount: number;
   clickedCount: number;
   bouncedCount: number;
+  complainedCount: number;
+  unsubscribedCount: number;
   openRate: number;
   clickRate: number;
   bounceRate: number;
   deliveryRate: number;
+  complaintRate: number;
+  unsubscribeRate: number;
 }
+
+/**
+ * Reach figures supporting the headline, in funnel order. Opens are excluded because they
+ * are the headline; "sent" is excluded because it is always 100% of itself and already
+ * stated in the card description, so a row for it can never tell the reader anything.
+ *
+ * Every rate is measured against sentCount, the denominator the stats endpoint documents.
+ */
+const REACH_FIGURES: {label: string; count: (s: CampaignStats) => number; rate: (s: CampaignStats) => number}[] = [
+  {label: 'delivered', count: s => s.deliveredCount, rate: s => s.deliveryRate},
+  {label: 'clicked', count: s => s.clickedCount, rate: s => s.clickRate},
+];
+
+/**
+ * The three ways this campaign cost a contact. Each suppresses the contact from future
+ * marketing, and no recipient appears in more than one -- a bounce or complaint is never
+ * also counted as an unsubscribe -- so the three add up.
+ */
+const LOST_REASONS: {label: string; count: (s: CampaignStats) => number}[] = [
+  {label: 'bounced', count: s => s.bouncedCount},
+  {label: 'marked it as spam', count: s => s.complainedCount},
+  {label: 'unsubscribed', count: s => s.unsubscribedCount},
+];
 
 export default function CampaignDetailsPage() {
   const router = useRouter();
@@ -87,7 +113,11 @@ export default function CampaignDetailsPage() {
     isLoading,
   } = useSWR<{data: Campaign}>(id ? `/campaigns/${id}` : null, {revalidateOnFocus: false});
 
-  const {data: stats} = useSWR<{data: CampaignStats}>(
+  const {
+    data: stats,
+    error: statsError,
+    mutate: mutateStats,
+  } = useSWR<{data: CampaignStats}>(
     id && campaign?.data.status !== CampaignStatus.DRAFT ? `/campaigns/${id}/stats` : null,
     {
       revalidateOnFocus: false,
@@ -337,6 +367,10 @@ export default function CampaignDetailsPage() {
 
   const c = campaign.data;
   const s = stats?.data;
+  // Safe to add: the three counts are mutually exclusive per recipient.
+  const lostContacts = s ? s.bouncedCount + s.complainedCount + s.unsubscribedCount : 0;
+  // A scheduled campaign has stats, but they are all zero until it starts sending.
+  const hasResults = c.status === CampaignStatus.SENDING || c.status === CampaignStatus.SENT;
 
   // Get recipient count for draft campaigns from the campaign's totalRecipients field
   // The backend calculates this for all audience types when the campaign is created/updated
@@ -1027,58 +1061,130 @@ export default function CampaignDetailsPage() {
           </Card>
         )}
 
-        {/* Stats Cards */}
-        {s && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-neutral-500">Total recipients</CardTitle>
-                <Users className="h-4 w-4 text-neutral-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-neutral-900">{s.totalRecipients.toLocaleString()}</div>
-                <p className="text-xs text-neutral-500 mt-2">
-                  {s.sentCount.toLocaleString()} sent ({((s.sentCount / s.totalRecipients) * 100).toFixed(1)}%)
+        {/* Results. Only from the moment sending starts: a scheduled campaign has nothing to
+            report yet, and its audience and send time are already in Campaign info below. */}
+        {hasResults && statsError && !s && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 text-red-700">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <span>Couldn{"'"}t load results. Try again in a moment.</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => void mutateStats()}>
+                  Try again
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {hasResults && !s && !statsError && (
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-4 w-72" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-40" />
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-2 w-full" />
+              </div>
+              <Skeleton className="h-4 w-full max-w-md" />
+              <Skeleton className="h-4 w-full max-w-lg" />
+            </CardContent>
+          </Card>
+        )}
+
+        {/*
+          One panel, one focal point. The previous version gave every metric the same weight,
+          which meant the reader had to scan the whole thing to find the answer. Opens are the
+          headline because "did anyone read it" is the question this screen exists to answer;
+          delivery is a hygiene check and lives in the supporting line, and the three ways a
+          contact was lost sit quietest of all, since on a healthy campaign they are all zero.
+
+          Every figure reads number-first ("11 delivered", not "Delivered ... 11") so the
+          numbers form a single scannable column instead of pairs separated by whitespace.
+        */}
+        {hasResults && s && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Results</CardTitle>
+              <CardDescription>
+                {`Sent to ${s.sentCount.toLocaleString()} ${s.sentCount === 1 ? 'contact' : 'contacts'}`}
+                {c.sentAt ? ` on ${formatFullDateTime(new Date(c.sentAt))}` : ''}.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Headline */}
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold tabular-nums text-neutral-900">
+                    {s.openedCount.toLocaleString()}
+                  </span>
+                  <span className="text-xl font-medium text-neutral-500">
+                    {s.openedCount === 1 ? 'open' : 'opens'}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {s.sentCount > 0
+                    ? `${s.openRate.toFixed(1)}% of the ${s.sentCount.toLocaleString()} emails sent`
+                    : 'Nothing has been sent yet'}
                 </p>
-              </CardContent>
-            </Card>
+                {/* Decorative: the percentage above states the same value. */}
+                <div aria-hidden className="mt-3 h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+                  <div
+                    className="h-full rounded-full bg-neutral-900"
+                    style={{width: `${Math.min(s.openRate, 100)}%`}}
+                  />
+                </div>
+              </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-neutral-500">Delivery rate</CardTitle>
-                <Mail className="h-4 w-4 text-neutral-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-neutral-900">{s.deliveryRate.toFixed(1)}%</div>
-                <p className="text-xs text-neutral-500 mt-2">
-                  {s.deliveredCount.toLocaleString()} delivered
-                  {s.bouncedCount > 0 && `, ${s.bouncedCount} bounced`}
+              {/* Supporting reach figures, in funnel order */}
+              <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-neutral-100 pt-4 text-sm">
+                {REACH_FIGURES.map(figure => (
+                  <span key={figure.label} className="text-neutral-500">
+                    <span className="font-medium tabular-nums text-neutral-900">
+                      {figure.count(s).toLocaleString()}
+                    </span>{' '}
+                    {figure.label}
+                    {s.sentCount > 0 && (
+                      <span className="tabular-nums"> ({figure.rate(s).toFixed(1)}%)</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+
+              {/* What it cost. Quietest row: on a healthy campaign every figure here is zero. */}
+              <div className="border-t border-neutral-100 pt-4">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
+                  <span className="font-medium tabular-nums text-neutral-900">
+                    {lostContacts.toLocaleString()}
+                  </span>
+                  <span className="text-neutral-500">
+                    {lostContacts === 1 ? 'contact lost' : 'contacts lost'}
+                    {s.sentCount > 0 && lostContacts > 0
+                      ? ` (${((lostContacts / s.sentCount) * 100).toFixed(1)}%)`
+                      : ''}
+                  </span>
+                  {lostContacts > 0 && (
+                    <span className="text-neutral-500">
+                      —{' '}
+                      {LOST_REASONS.filter(reason => reason.count(s) > 0)
+                        .map(reason => `${reason.count(s).toLocaleString()} ${reason.label}`)
+                        .join(', ')}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-neutral-400">
+                  {lostContacts > 0
+                    ? 'These contacts no longer receive marketing from this project.'
+                    : 'Nobody bounced, complained, or unsubscribed.'}
                 </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-neutral-500">Open rate</CardTitle>
-                <TrendingUp className="h-4 w-4 text-neutral-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-neutral-900">{s.openRate.toFixed(1)}%</div>
-                <p className="text-xs text-neutral-500 mt-2">{s.openedCount.toLocaleString()} opened</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-neutral-500">Click rate</CardTitle>
-                <MousePointer className="h-4 w-4 text-neutral-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-neutral-900">{s.clickRate.toFixed(1)}%</div>
-                <p className="text-xs text-neutral-500 mt-2">{s.clickedCount.toLocaleString()} clicked</p>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Campaign Details in Grid */}

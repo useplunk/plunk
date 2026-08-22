@@ -29,6 +29,48 @@ describe('ActivityService - subscription activities', () => {
     });
   });
 
+  it('surfaces the email a subscription change came from', async () => {
+    const campaign = await prisma.campaign.create({
+      data: {
+        projectId,
+        name: 'August update',
+        subject: 'What we shipped',
+        body: '<p>news</p>',
+        from: 'hello@plunk.test',
+        status: 'SENT',
+      },
+    });
+    const email = await prisma.email.create({
+      data: {
+        projectId,
+        contactId,
+        campaignId: campaign.id,
+        subject: 'What we shipped',
+        body: '<p>news</p>',
+        from: 'hello@plunk.test',
+        sourceType: 'CAMPAIGN',
+      },
+    });
+    await prisma.event.create({
+      data: {projectId, contactId, emailId: email.id, name: 'contact.unsubscribed'},
+    });
+
+    const {data} = await ActivityService.getActivities(projectId, 50, undefined, [
+      ActivityType.CONTACT_UNSUBSCRIBED,
+    ]);
+
+    const attributed = data.find(activity => activity.metadata.sourceEmailId === email.id);
+    expect(attributed?.metadata.sourceSubject).toBe('What we shipped');
+    expect(attributed?.metadata.campaignName).toBe('August update');
+
+    // Events with no source email must not gain empty attribution keys.
+    const unattributed = data.filter(activity => activity.metadata.sourceEmailId === undefined);
+    expect(unattributed.length).toBeGreaterThan(0);
+    for (const activity of unattributed) {
+      expect(activity.metadata).not.toHaveProperty('sourceSubject');
+    }
+  });
+
   it('types subscription events separately from triggered events', async () => {
     const {data} = await ActivityService.getActivities(projectId);
 

@@ -16,7 +16,12 @@ import {
 } from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {CampaignService} from '../services/CampaignService.js';
-import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail} from '../services/EmailHeaderService.js';
+import {
+  bodyHasListManagementLink,
+  buildEmailHeaders,
+  classifyEmail,
+  withSourceEmail,
+} from '../services/EmailHeaderService.js';
 import {EmailService} from '../services/EmailService.js';
 import {EventService} from '../services/EventService.js';
 import {MeterService} from '../services/MeterService.js';
@@ -136,9 +141,9 @@ export async function createEmailWorker() {
             email: email.contact.email,
             ...contactData,
             data: contactData,
-            unsubscribeUrl: `${DASHBOARD_URI}/unsubscribe/${email.contact.id}`,
-            subscribeUrl: `${DASHBOARD_URI}/subscribe/${email.contact.id}`,
-            manageUrl: `${DASHBOARD_URI}/manage/${email.contact.id}`,
+            unsubscribeUrl: withSourceEmail(`${DASHBOARD_URI}/unsubscribe/${email.contact.id}`, emailId),
+            subscribeUrl: withSourceEmail(`${DASHBOARD_URI}/subscribe/${email.contact.id}`, emailId),
+            manageUrl: withSourceEmail(`${DASHBOARD_URI}/manage/${email.contact.id}`, emailId),
           },
         });
 
@@ -157,6 +162,7 @@ export async function createEmailWorker() {
           contact: email.contact,
           project: email.project,
           includeUnsubscribe: emailClass === 'marketing',
+          sourceEmailId: emailId,
         });
 
         // Use fromName from database if available, otherwise fall back to project name
@@ -186,6 +192,7 @@ export async function createEmailWorker() {
           isCampaign: email.campaignId != null,
           hasListManagementLink: bodyHasListManagementLink(compiledHtml, email.contact.id),
           unsubscribeId: email.contact.id,
+          sourceEmailId: emailId,
           customHeaders: publicHeaders,
         });
 

@@ -17,6 +17,18 @@ import {Keys} from './keys.js';
  * - Uses indexed fields (createdAt) for sorting
  * - Batch processes and merges results from multiple tables
  */
+/**
+ * The parts of an email needed to describe where a subscription change came
+ * from. The campaign / workflow names come along because they are what a user
+ * actually wants to know: which send lost them a subscriber.
+ */
+interface SubscriptionSourceEmail {
+  id: string;
+  subject: string;
+  campaign: {name: string} | null;
+  workflowExecution: {workflow: {name: string}} | null;
+}
+
 export class ActivityService {
   private static readonly DEFAULT_LIMIT = 50;
   private static readonly MAX_LIMIT = 100;
@@ -396,17 +408,66 @@ export class ActivityService {
       },
     });
 
-    return events.map(event => ({
-      id: event.id,
-      type: this.SUBSCRIPTION_ACTIVITY_TYPES[event.name] ?? ActivityType.EVENT_TRIGGERED,
-      timestamp: event.createdAt,
-      contactEmail: event.contact?.email,
-      contactId: event.contactId || undefined,
-      metadata: {
-        eventName: event.name,
-        eventData: event.data,
+    const sourceEmails = await this.fetchSubscriptionSourceEmails(events);
+
+    return events.map(event => {
+      const type = this.SUBSCRIPTION_ACTIVITY_TYPES[event.name] ?? ActivityType.EVENT_TRIGGERED;
+      const sourceEmail = event.emailId ? sourceEmails.get(event.emailId) : undefined;
+
+      return {
+        id: event.id,
+        type,
+        timestamp: event.createdAt,
+        contactEmail: event.contact?.email,
+        contactId: event.contactId || undefined,
+        metadata: {
+          eventName: event.name,
+          eventData: event.data,
+          ...(sourceEmail
+            ? {
+                sourceEmailId: event.emailId,
+                sourceSubject: sourceEmail.subject,
+                campaignName: sourceEmail.campaign?.name,
+                workflowName: sourceEmail.workflowExecution?.workflow?.name,
+              }
+            : {}),
+        },
+      };
+    });
+  }
+
+  /**
+   * Look up the emails that subscription events point at, so the feed can say
+   * which message a contact opted out from.
+   *
+   * Deliberately a second query rather than an `include` on the event fetch: only
+   * subscription events carry an `emailId` worth resolving, and joining the
+   * emails table on every page of a feed that is mostly custom events would pay
+   * for a relation nothing reads. Runs at most once per page, over at most
+   * `limit` ids, and is skipped entirely when no event on the page has a source.
+   */
+  private static async fetchSubscriptionSourceEmails(
+    events: {name: string; emailId: string | null}[],
+  ): Promise<Map<string, SubscriptionSourceEmail>> {
+    const emailIds = events
+      .filter(event => event.emailId && this.SUBSCRIPTION_ACTIVITY_TYPES[event.name])
+      .map(event => event.emailId as string);
+
+    if (emailIds.length === 0) {
+      return new Map();
+    }
+
+    const emails = await prisma.email.findMany({
+      where: {id: {in: [...new Set(emailIds)]}},
+      select: {
+        id: true,
+        subject: true,
+        campaign: {select: {name: true}},
+        workflowExecution: {select: {workflow: {select: {name: true}}}},
       },
-    }));
+    });
+
+    return new Map(emails.map(email => [email.id, email]));
   }
 
   /**

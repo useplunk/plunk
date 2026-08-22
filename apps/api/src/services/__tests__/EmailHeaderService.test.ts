@@ -2,7 +2,7 @@ import {EmailSourceType} from '@plunk/db';
 import {describe, expect, it} from 'vitest';
 
 import {API_URI} from '../../app/constants';
-import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail} from '../EmailHeaderService';
+import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail, withSourceEmail} from '../EmailHeaderService';
 
 describe('bodyHasListManagementLink', () => {
   it('detects an unsubscribe link for the contact', () => {
@@ -295,6 +295,48 @@ describe('buildEmailHeaders', () => {
       expect(headers['List-Unsubscribe']).toBe('<https://acme.test/unsub?c=123>');
       expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
       expect(headers.Precedence).toBe('bulk');
+    });
+  });
+
+  describe('source email attribution', () => {
+    it('tags the List-Unsubscribe URL with the email being sent', () => {
+      const headers = buildEmailHeaders({
+        emailClass: 'marketing',
+        unsubscribeId: 'contact-123',
+        sourceEmailId: 'email-456',
+      });
+
+      expect(headers['List-Unsubscribe']).toBe(`<${API_URI}/unsubscribe/contact-123?e=email-456>`);
+      expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+    });
+
+    it('leaves the URL untagged when the caller has no email id', () => {
+      const headers = buildEmailHeaders({emailClass: 'marketing', unsubscribeId: 'contact-123'});
+
+      expect(headers['List-Unsubscribe']).toBe(`<${API_URI}/unsubscribe/contact-123>`);
+    });
+
+    /**
+     * The tagged URL still has to satisfy the body-link detector, which matches
+     * on the contact-scoped prefix — otherwise a footer link would stop
+     * advertising List-Unsubscribe the moment it gained a source parameter.
+     */
+    it('stays detectable as a list-management link', () => {
+      const url = withSourceEmail('https://app.test/unsubscribe/contact-123', 'email-456');
+
+      expect(bodyHasListManagementLink(`<a href="${url}">out</a>`, 'contact-123')).toBe(true);
+    });
+
+    it('appends to a URL that already carries a query', () => {
+      expect(withSourceEmail('https://app.test/unsubscribe/c1?lang=nl', 'email-456')).toBe(
+        'https://app.test/unsubscribe/c1?lang=nl&e=email-456',
+      );
+    });
+
+    it('percent-encodes the email id', () => {
+      expect(withSourceEmail('https://app.test/unsubscribe/c1', 'a b&c')).toBe(
+        'https://app.test/unsubscribe/c1?e=a%20b%26c',
+      );
     });
   });
 });

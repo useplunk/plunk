@@ -48,8 +48,13 @@ function mockResponse() {
   return {res, captured, sent};
 }
 
-function mockRequest(id: string | undefined) {
-  return {params: {id}} as unknown as Request;
+/**
+ * Express always populates `req.query` (an empty object when there is no query
+ * string), so the double does too — a handler reading a parameter off it must
+ * not have to guard against the property being absent.
+ */
+function mockRequest(id: string | undefined, query: Record<string, string> = {}) {
+  return {params: {id}, query} as unknown as Request;
 }
 
 describe('Unsubscribe controller', () => {
@@ -65,9 +70,9 @@ describe('Unsubscribe controller', () => {
   });
 
   /** Invoke the one-click handler and wait for the response to be sent. */
-  async function postOneClick(id: string | undefined) {
+  async function postOneClick(id: string | undefined, query: Record<string, string> = {}) {
     const {res, captured, sent} = mockResponse();
-    void controller.oneClick(mockRequest(id), res, next);
+    void controller.oneClick(mockRequest(id, query), res, next);
     await sent;
     // A handler that threw would reach `next` and leave the default status
     // untouched, which would otherwise read as a success.
@@ -162,6 +167,80 @@ describe('Unsubscribe controller', () => {
       controller.redirect(mockRequest('../../evil'), res, next);
 
       expect(captured.redirectedTo).toBe(`${DASHBOARD_URI}/unsubscribe/..%2F..%2Fevil`);
+    });
+
+    it('carries the source email through to the dashboard page', async () => {
+      const contact = await factories.createContact({projectId, subscribed: true});
+      const {res, captured} = mockResponse();
+
+      controller.redirect(mockRequest(contact.id, {e: 'email-123'}), res, next);
+
+      expect(captured.redirectedTo).toBe(`${DASHBOARD_URI}/unsubscribe/${contact.id}?e=email-123`);
+    });
+  });
+
+  describe('source email attribution', () => {
+    /** An email of this contact's, so the `e` parameter has something valid to name. */
+    async function createEmailFor(contactId: string) {
+      return prisma.email.create({
+        data: {
+          projectId,
+          contactId,
+          subject: 'Product update',
+          body: '<p>hi</p>',
+          from: 'hello@plunk.test',
+          sourceType: 'CAMPAIGN',
+        },
+      });
+    }
+
+    it('records the originating email on the unsubscribe event', async () => {
+      const contact = await factories.createContact({projectId, subscribed: true});
+      const email = await createEmailFor(contact.id);
+
+      await postOneClick(contact.id, {e: email.id});
+
+      const event = await prisma.event.findFirst({where: {projectId, name: 'contact.unsubscribed'}});
+      expect(event?.emailId).toBe(email.id);
+    });
+
+    it('records no source when the link carries none', async () => {
+      const contact = await factories.createContact({projectId, subscribed: true});
+
+      await postOneClick(contact.id);
+
+      const event = await prisma.event.findFirst({where: {projectId, name: 'contact.unsubscribed'}});
+      expect(event?.emailId).toBeNull();
+    });
+
+    /**
+     * The parameter is attacker-controlled, so a claim naming someone else's
+     * email must not be believed — but must also not block the opt-out.
+     */
+    it('ignores a source email belonging to another contact but still unsubscribes', async () => {
+      const contact = await factories.createContact({projectId, subscribed: true});
+      const other = await factories.createContact({projectId, subscribed: true});
+      const otherEmail = await createEmailFor(other.id);
+
+      await postOneClick(contact.id, {e: otherEmail.id});
+
+      const event = await prisma.event.findFirst({where: {projectId, name: 'contact.unsubscribed'}});
+      expect(event?.emailId).toBeNull();
+
+      const updated = await prisma.contact.findUnique({where: {id: contact.id}});
+      expect(updated?.subscribed).toBe(false);
+    });
+
+    it('ignores a source email that does not exist but still unsubscribes', async () => {
+      const contact = await factories.createContact({projectId, subscribed: true});
+
+      await postOneClick(contact.id, {e: '11111111-1111-4111-8111-111111111111'});
+
+      const event = await prisma.event.findFirst({where: {projectId, name: 'contact.unsubscribed'}});
+      expect(event?.emailId).toBeNull();
+
+      const updated = await prisma.contact.findUnique({where: {id: contact.id}});
+      expect(updated?.subscribed).toBe(false);
     });
   });
 });

@@ -59,6 +59,31 @@ export function bodyHasListManagementLink(html: string, contactId: string): bool
   return html.includes(`/unsubscribe/${contactId}`) || html.includes(`/manage/${contactId}`);
 }
 
+/**
+ * Tag a list-management URL with the email it was sent in, as `?e=<id>`.
+ *
+ * Recipient-initiated opt-outs are otherwise unattributable: the links are
+ * scoped to the contact, so nothing in the request says which message prompted
+ * it. The parameter is advisory — the endpoint checks the email belongs to the
+ * contact before recording it, and the contact id in the path still governs the
+ * change — so a stripped or rewritten value costs attribution and nothing else.
+ *
+ * Only callers that hold a persisted email row can supply an id. Links rendered
+ * before the email exists (campaign and workflow bodies, `POST /send`) pass
+ * nothing and stay unattributed.
+ */
+export function withSourceEmail(url: string, sourceEmailId?: string): string {
+  if (!sourceEmailId) {
+    return url;
+  }
+
+  // Every caller today passes a query-less URL, but appending a bare `?` to one that already
+  // carries a query would silently produce `...?utm=x?e=y` -- a parameter no endpoint reads.
+  const separator = url.includes('?') ? '&' : '?';
+
+  return `${url}${separator}e=${encodeURIComponent(sourceEmailId)}`;
+}
+
 export interface BuildEmailHeadersParams {
   emailClass: EmailClass;
   /**
@@ -80,6 +105,12 @@ export interface BuildEmailHeadersParams {
    * List-Unsubscribe pair to be emitted; omit it and no pair is added.
    */
   unsubscribeId?: string;
+  /**
+   * Id of the email being sent, tagged onto the List-Unsubscribe URL so a
+   * one-click opt-out can be attributed to the message that prompted it.
+   * See {@link withSourceEmail}.
+   */
+  sourceEmailId?: string;
   /**
    * Caller-supplied headers (internal `X-Plunk-*` routing keys already stripped).
    * These override any default header with the same name — see {@link mergeHeaders}.
@@ -110,6 +141,7 @@ export function buildEmailHeaders({
   isCampaign = false,
   hasListManagementLink = false,
   unsubscribeId,
+  sourceEmailId,
   customHeaders,
 }: BuildEmailHeadersParams): Record<string, string> {
   const defaults: Record<string, string> = {};
@@ -128,7 +160,8 @@ export function buildEmailHeaders({
   // response but change nothing. `GET /unsubscribe/:id` on the API redirects to
   // that dashboard page, so this one URL still serves humans who click through.
   if ((isMarketing || hasListManagementLink) && unsubscribeId) {
-    defaults['List-Unsubscribe'] = `<${API_URI}/unsubscribe/${unsubscribeId}>`;
+    defaults['List-Unsubscribe'] =
+      `<${withSourceEmail(`${API_URI}/unsubscribe/${unsubscribeId}`, sourceEmailId)}>`;
     defaults['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
   }
 

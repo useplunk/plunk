@@ -185,8 +185,14 @@ const TONE_CLASSES: Record<ActivityVisual['tone'], {bg: string; fg: string}> = {
 function activityTitle(a: Activity): string {
   const m = a.metadata;
   // Subscription events store a reserved name (`contact.unsubscribed`) that
-  // would read as raw plumbing, so their label is the title.
-  if (a.type === 'contact.subscribed' || a.type === 'contact.unsubscribed') return activityVisual(a).label;
+  // would read as raw plumbing. Title them by the email they came from, which
+  // is the fact this row adds; the state is already on the label beside it.
+  if (a.type === 'contact.subscribed' || a.type === 'contact.unsubscribed') {
+    if (typeof m.sourceSubject === 'string' && m.sourceSubject) return m.sourceSubject;
+    if (typeof m.campaignName === 'string' && m.campaignName) return m.campaignName;
+    if (typeof m.workflowName === 'string' && m.workflowName) return m.workflowName;
+    return activityVisual(a).label;
+  }
   if (typeof m.subject === 'string' && m.subject) return m.subject;
   if (typeof m.eventName === 'string' && m.eventName) return m.eventName;
   if (typeof m.campaignName === 'string' && m.campaignName) return m.campaignName;

@@ -10,7 +10,7 @@ import {createTranslatorSync, renderTemplate} from '@plunk/shared';
 
 import {BillingLimitService} from './BillingLimitService.js';
 import {DomainService} from './DomainService.js';
-import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail} from './EmailHeaderService.js';
+import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail, withSourceEmail} from './EmailHeaderService.js';
 import {EventService} from './EventService.js';
 import {QueueService} from './QueueService.js';
 import {sendRawEmail} from './SESService.js';
@@ -350,9 +350,9 @@ export class EmailService {
           email: email.contact.email,
           ...contactData,
           data: contactData,
-          unsubscribeUrl: `${DASHBOARD_URI}/unsubscribe/${email.contact.id}`,
-          subscribeUrl: `${DASHBOARD_URI}/subscribe/${email.contact.id}`,
-          manageUrl: `${DASHBOARD_URI}/manage/${email.contact.id}`,
+          unsubscribeUrl: withSourceEmail(`${DASHBOARD_URI}/unsubscribe/${email.contact.id}`, emailId),
+          subscribeUrl: withSourceEmail(`${DASHBOARD_URI}/subscribe/${email.contact.id}`, emailId),
+          manageUrl: withSourceEmail(`${DASHBOARD_URI}/manage/${email.contact.id}`, emailId),
         },
       });
 
@@ -371,6 +371,7 @@ export class EmailService {
         contact: email.contact,
         project: email.project,
         includeUnsubscribe: emailClass === 'marketing',
+        sourceEmailId: emailId,
       });
 
       // Use explicit fromName if provided, otherwise fall back to project name
@@ -399,6 +400,7 @@ export class EmailService {
         isCampaign: email.campaignId != null,
         hasListManagementLink: bodyHasListManagementLink(compiledHtml, email.contact.id),
         unsubscribeId: email.contact.id,
+        sourceEmailId: emailId,
         customHeaders: publicHeaders,
       });
 
@@ -576,6 +578,10 @@ export class EmailService {
 
         case 'bounced':
           campaignUpdate.bouncedCount = {increment: 1};
+          break;
+
+        case 'complained':
+          campaignUpdate.complainedCount = {increment: 1};
           break;
       }
 
@@ -1061,11 +1067,17 @@ export class EmailService {
     contact,
     project,
     includeUnsubscribe = true,
+    sourceEmailId,
   }: {
     content: string;
     contact: Contact;
     project: Project;
     includeUnsubscribe?: boolean;
+    /**
+     * Id of the email this footer is being rendered into, so an opt-out from the
+     * footer link can be attributed to it. See {@link withSourceEmail}.
+     */
+    sourceEmailId?: string;
   }): string {
     // Wrap visual editor content with prose styles so the sent email matches the preview modal.
     // Custom HTML (from the HTML editor) already carries its own styles and is used as-is.
@@ -1097,7 +1109,7 @@ export class EmailService {
                 <hr style="border: none; border-top: 1px solid #eaeaea; width: 100%; margin-top: 12px; margin-bottom: 12px;">
                 <p style="font-size: 12px; line-height: 24px; margin: 16px 0; text-align: center; color: rgb(64, 64, 64);">
                   ${unsubscribeText}
-                  <a href="${DASHBOARD_URI}/unsubscribe/${contact.id}">${updatePreferencesText}</a>.
+                  <a href="${withSourceEmail(`${DASHBOARD_URI}/unsubscribe/${contact.id}`, sourceEmailId)}">${updatePreferencesText}</a>.
                 </p>
               </td>
             </tr>

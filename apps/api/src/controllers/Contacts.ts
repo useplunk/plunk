@@ -25,6 +25,19 @@ const upload = multer({
   },
 });
 
+/**
+ * Read the `e` parameter the public list-management pages forward: the id of the
+ * email the recipient acted from. Optional — mail sent before the parameter
+ * existed, and hand-built links, carry no source.
+ *
+ * Unverified here; {@link ContactService.subscribe} / {@link ContactService.unsubscribe}
+ * confirm the email belongs to the contact before recording it.
+ */
+function readSourceEmailId(req: Request): string | undefined {
+  const value = req.query.e;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
 @Controller('contacts')
 export class Contacts {
   /**
@@ -255,7 +268,7 @@ export class Contacts {
       return res.status(400).json({error: 'Contact ID is required'});
     }
 
-    const contact = await ContactService.subscribe(contactId);
+    const contact = await ContactService.subscribe(contactId, {emailId: readSourceEmailId(req)});
 
     return res.status(200).json({
       id: contact.id,
@@ -277,7 +290,7 @@ export class Contacts {
       return res.status(400).json({error: 'Contact ID is required'});
     }
 
-    const contact = await ContactService.unsubscribe(contactId);
+    const contact = await ContactService.unsubscribe(contactId, {emailId: readSourceEmailId(req)});
 
     return res.status(200).json({
       id: contact.id,

@@ -2,6 +2,7 @@ import {Button, Card, CardContent, IconSpinner} from '@plunk/ui';
 import {createTranslator, type Translator} from '@plunk/shared';
 import {AnimatePresence, motion} from 'framer-motion';
 import {useRouter} from 'next/router';
+import {sourceEmailQuery, withSourceEmail} from '../../lib/sourceEmail';
 import React, {useEffect, useState} from 'react';
 
 import {network} from '../../lib/network';
@@ -53,7 +54,10 @@ export default function Unsubscribe() {
 
     try {
       setUnsubscribing(true);
-      const data = await network.fetch<ContactInfo>('POST', `/contacts/public/${id}/unsubscribe`);
+      const data = await network.fetch<ContactInfo>(
+        'POST',
+        `/contacts/public/${id}/unsubscribe${sourceEmailQuery(router.query)}`,
+      );
       setContact(data);
       setSuccess(true);
       setError(null);
@@ -163,7 +167,7 @@ export default function Unsubscribe() {
                 <p className="text-sm text-neutral-400 mt-2">
                   {translator.t('pages.unsubscribe.changedMind')}{' '}
                   <button
-                    onClick={() => router.push(`/subscribe/${id as string}`)}
+                    onClick={() => router.push(withSourceEmail(`/subscribe/${id as string}`, router.query))}
                     className="underline hover:text-neutral-600"
                   >
                     {translator.t('pages.unsubscribe.subscribeAgain')}
@@ -219,7 +223,7 @@ export default function Unsubscribe() {
                     translator.t('pages.unsubscribe.button')
                   )}
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => router.push(`/manage/${id as string}`)}>
+                <Button variant="outline" className="w-full" onClick={() => router.push(withSourceEmail(`/manage/${id as string}`, router.query))}>
                   {translator.t('pages.unsubscribe.managePreferences')}
                 </Button>
               </div>

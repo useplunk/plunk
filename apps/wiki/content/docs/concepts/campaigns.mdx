@@ -63,6 +63,26 @@ Trigger a send with `POST /campaigns/:id/send`. The campaign is queued and sent 
 
 To cancel a `SCHEDULED` or `SENDING` campaign, call `POST /campaigns/:id/cancel`. Cancellation stops further sending but cannot recall emails that have already been handed off to the recipient's mail server.
 
+## Stats
+
+`GET /campaigns/:id/stats` reports the counts and rates the dashboard shows: recipients, sent, delivered, opened, clicked, bounced, complained, and unsubscribed, plus the matching rates. Counts are recomputed from the underlying emails and events on every call, so they are authoritative rather than eventually consistent. Every rate is a percentage of `sentCount`.
+
+### What a campaign cost you
+
+Three columns describe recipients you lost, and each one counts a given recipient exactly once:
+
+| Field | Means | Traced by |
+| ----- | ----- | --------- |
+| `bouncedCount` | Mail that could not be delivered. Hard bounces suppress the contact. | `Email.bouncedAt`, set by the SES bounce webhook |
+| `complainedCount` | Recipients who reported the campaign as spam. Suppresses the contact. | `Email.complainedAt`, set by the SES complaint webhook |
+| `unsubscribedCount` | Recipients who deliberately opted out. | The `?e=` parameter on the unsubscribe link |
+
+Bounces and complaints flip the contact to unsubscribed as well, but they are reported in their own column and never in `unsubscribedCount` — the same lost recipient counted twice would overstate both.
+
+`unsubscribedCount` also excludes opt-outs it cannot attribute: a dashboard toggle, a CSV import, `PATCH /contacts/:id`, or a link from mail sent before the parameter existed belongs to no campaign, so it is counted against none. See [Unsubscribe pages](/guides/unsubscribe-pages#knowing-which-email-caused-it).
+
+Complaint rate deserves attention out of proportion to its size: mailbox providers measure it in fractions of a percent, and a sustained rate above roughly 0.1% puts sending at risk. A handful of complaints on one campaign is a signal worth acting on, which is why the dashboard leads that card with the count rather than the percentage.
+
 ## Test sends
 
 Send a single test email with `POST /campaigns/:id/test`. Body: `{ email: "you@example.com" }` — a single address, not an array. Test sends use the same template variable resolution as the real send but always send to the address you specify, so they're useful for previewing personalisation against your own contact data.

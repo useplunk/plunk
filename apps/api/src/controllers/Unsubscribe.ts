@@ -25,6 +25,19 @@ import {CatchAsync} from '../utils/asyncHandler.js';
  * slow one — the recipient is told they are unsubscribed either way, and reaches
  * for the spam button when mail keeps arriving.
  */
+/**
+ * Read the `e` parameter that unsubscribe links carry: the id of the email the
+ * recipient acted from. Absent on mail sent before the parameter existed, and
+ * on links a sender built by hand, so every caller treats it as optional.
+ *
+ * The value is unverified here — {@link ContactService.unsubscribe} confirms the
+ * email belongs to the contact before recording it.
+ */
+function readSourceEmailId(req: Request): string | undefined {
+  const value = req.query.e;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
 @Controller('unsubscribe')
 export class Unsubscribe {
   /**
@@ -51,7 +64,7 @@ export class Unsubscribe {
     // can click unsubscribe more than once, so a repeat call must not fire a
     // second `contact.unsubscribed` event.
     if (contact?.subscribed) {
-      await ContactService.unsubscribe(contactId);
+      await ContactService.unsubscribe(contactId, {emailId: readSourceEmailId(req)});
     }
 
     // An unknown id reports success too. There is nothing the caller can do with
@@ -72,6 +85,11 @@ export class Unsubscribe {
       return res.status(400).type('text/plain').send('Contact ID is required');
     }
 
-    return res.redirect(302, `${DASHBOARD_URI}/unsubscribe/${encodeURIComponent(contactId)}`);
+    // Carry the source email through the redirect so the dashboard page can
+    // attribute the unsubscribe when the recipient confirms it there.
+    const sourceEmailId = readSourceEmailId(req);
+    const query = sourceEmailId ? `?e=${encodeURIComponent(sourceEmailId)}` : '';
+
+    return res.redirect(302, `${DASHBOARD_URI}/unsubscribe/${encodeURIComponent(contactId)}${query}`);
   }
 }
