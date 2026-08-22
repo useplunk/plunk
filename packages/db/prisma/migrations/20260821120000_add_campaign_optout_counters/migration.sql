@@ -13,14 +13,11 @@
 -- Adding an INTEGER column with a constant default is metadata-only on PostgreSQL 11+, so this
 -- takes milliseconds however large the table is.
 
--- Fail rather than queue. ACCESS EXCLUSIVE waiters block every later lock request on the table,
--- so a DDL statement that sits behind one long-running query stalls all campaign traffic behind
--- it. Three seconds is far more than an uncontended catalog update needs.
---
--- On timeout the migration fails and is recorded as failed; clear it with
---   prisma migrate resolve --rolled-back 20260821120000_add_campaign_optout_counters
--- and deploy again when the table is quiet.
-SET LOCAL lock_timeout = '3s';
+-- No lock_timeout here on purpose. Fail-fast is the wrong trade for this deployment model: the
+-- container entrypoint runs `migrate deploy` at start and refuses to boot on failure, so a
+-- migration that gives up on a lock does not degrade gracefully, it crash-loops the service
+-- until a human clears the failed row by hand. Waiting for the lock is the lesser harm, and
+-- this statement is a metadata-only catalog update that normally acquires it instantly.
 
 -- AlterTable
 ALTER TABLE "campaigns"
