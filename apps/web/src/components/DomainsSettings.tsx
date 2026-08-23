@@ -54,6 +54,153 @@ function AnimatedCopyIcon({isCopied}: {isCopied: boolean}) {
   );
 }
 
+interface DnsField {
+  label: string;
+  /** The exact string the user pastes into their DNS provider. */
+  value: string;
+  /** Muted trailing context that is deliberately NOT copied, e.g. the zone a name is relative to. */
+  suffix?: string;
+  copyable?: boolean;
+}
+
+interface DnsRecord {
+  key: string;
+  type: 'CNAME' | 'MX' | 'TXT';
+  /**
+   * The fields a DNS provider's form asks for, in the order it asks for them. Priority simply
+   * exists on MX records and is absent everywhere else, exactly as the provider's own form works.
+   */
+  fields: DnsField[];
+}
+
+interface DnsRecordGroup {
+  key: string;
+  label: string;
+  hint: string;
+  description?: string;
+  collapsible: boolean;
+  records: DnsRecord[];
+}
+
+function DnsFieldRow({
+  field,
+  recordKey,
+  copiedToken,
+  onCopy,
+}: {
+  field: DnsField;
+  recordKey: string;
+  copiedToken: string | null;
+  onCopy: (value: string, key: string) => void;
+}) {
+  const copyKey = `${recordKey}-${field.label}`;
+  const isCopied = copiedToken === `${field.value}-${copyKey}`;
+
+  return (
+    <div className="flex items-start gap-2">
+      <dt className="w-16 shrink-0 text-[11px] leading-5 text-neutral-500">{field.label}</dt>
+      <dd className="flex min-w-0 flex-1 items-start gap-1.5">
+        <span className="min-w-0 flex-1 break-all font-mono text-xs leading-5">
+          <span className="text-neutral-900">{field.value}</span>
+          {field.suffix && <span className="text-neutral-400">{field.suffix}</span>}
+        </span>
+        {field.copyable !== false && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Copy ${field.label.toLowerCase()}`}
+            onClick={() => onCopy(field.value, copyKey)}
+            className={`h-5 w-5 shrink-0 overflow-hidden p-0 transition-colors ${
+              isCopied ? 'text-green-600' : 'text-neutral-400 hover:text-neutral-900'
+            }`}
+          >
+            <AnimatedCopyIcon isCopied={isCopied} />
+          </Button>
+        )}
+      </dd>
+    </div>
+  );
+}
+
+function DnsRecordRow({
+  record,
+  copiedToken,
+  onCopy,
+}: {
+  record: DnsRecord;
+  copiedToken: string | null;
+  onCopy: (value: string, key: string) => void;
+}) {
+  return (
+    <div className="flex gap-3 py-2.5">
+      <code className="w-12 shrink-0 text-[11px] font-semibold leading-5 text-neutral-900">{record.type}</code>
+      <dl className="min-w-0 flex-1 space-y-0.5">
+        {record.fields.map(field => (
+          <DnsFieldRow
+            key={field.label}
+            field={field}
+            recordKey={record.key}
+            copiedToken={copiedToken}
+            onCopy={onCopy}
+          />
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function DnsRecordGroupSection({
+  group,
+  copiedToken,
+  onCopy,
+}: {
+  group: DnsRecordGroup;
+  copiedToken: string | null;
+  onCopy: (value: string, key: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(!group.collapsible);
+
+  const heading = (
+    <>
+      {group.collapsible && (
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 text-neutral-400 transition-transform ${isOpen ? '' : '-rotate-90'}`}
+        />
+      )}
+      <span className="text-xs font-semibold text-neutral-900">{group.label}</span>
+      <span className="ml-auto text-[11px] text-neutral-500">{group.hint}</span>
+    </>
+  );
+
+  return (
+    <div className="border-t border-neutral-200 first:border-t-0">
+      {group.collapsible ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen(open => !open)}
+          aria-expanded={isOpen}
+          className="flex w-full items-center gap-1.5 py-2.5 text-left transition-opacity hover:opacity-70"
+        >
+          {heading}
+        </button>
+      ) : (
+        <div className="flex items-center gap-1.5 py-2.5">{heading}</div>
+      )}
+
+      {isOpen && (
+        <div className="pb-1.5">
+          {group.description && <p className="mb-1 text-xs text-neutral-600">{group.description}</p>}
+          <div className="divide-y divide-neutral-100">
+            {group.records.map(record => (
+              <DnsRecordRow key={record.key} record={record} copiedToken={copiedToken} onCopy={onCopy} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface DomainsSettingsProps {
   projectId: string;
 }
@@ -237,9 +384,9 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
     }
   };
 
-  const handleCopyToken = async (token: string, index: number) => {
+  const handleCopyToken = async (token: string, key: string) => {
     await navigator.clipboard.writeText(token);
-    setCopiedToken(`${token}-${index}`);
+    setCopiedToken(`${token}-${key}`);
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
@@ -336,6 +483,72 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
                 const status = getDomainStatus(domain);
                 const mailFromSubdomain = config?.aws?.mailFromSubdomain ?? 'plunk';
                 const mailFromHost = `${mailFromSubdomain}.${domain.domain}`;
+                const sesRegion = config?.aws?.sesRegion;
+                const dnsGroups: DnsRecordGroup[] = [
+                  {
+                    key: 'sending',
+                    label: 'Sending',
+                    hint: 'Required',
+                    collapsible: false,
+                    records: ((status.tokens as string[] | null) ?? []).map((token, index) => ({
+                      key: `dkim-${index}`,
+                      type: 'CNAME',
+                      fields: [
+                        {label: 'Name', value: `${token}._domainkey`, suffix: `.${domain.domain}`},
+                        {label: 'Value', value: `${token}.dkim.amazonses.com`},
+                      ],
+                    })),
+                  },
+                ];
+
+                if (sesRegion) {
+                  dnsGroups.push(
+                    {
+                      key: 'mail-from',
+                      label: 'Custom MAIL FROM domain',
+                      hint: 'Optional',
+                      collapsible: true,
+                      description: `Routes bounces and complaints through ${mailFromHost} and improves deliverability.`,
+                      records: [
+                        {
+                          key: 'mail-from-mx',
+                          type: 'MX',
+                          fields: [
+                            {label: 'Name', value: mailFromSubdomain, suffix: `.${domain.domain}`},
+                            {label: 'Priority', value: '10'},
+                            {label: 'Value', value: `feedback-smtp.${sesRegion}.amazonses.com`},
+                          ],
+                        },
+                        {
+                          key: 'mail-from-spf',
+                          type: 'TXT',
+                          fields: [
+                            {label: 'Name', value: mailFromSubdomain, suffix: `.${domain.domain}`},
+                            {label: 'Value', value: '"v=spf1 include:amazonses.com ~all"'},
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      key: 'inbound',
+                      label: 'Inbound email',
+                      hint: 'Optional',
+                      collapsible: true,
+                      description: `Receive email sent to addresses at ${domain.domain}.`,
+                      records: [
+                        {
+                          key: 'inbound-mx',
+                          type: 'MX',
+                          fields: [
+                            {label: 'Name', value: '@', suffix: ` (${domain.domain})`},
+                            {label: 'Priority', value: '10'},
+                            {label: 'Value', value: `inbound-smtp.${sesRegion}.amazonaws.com`},
+                          ],
+                        },
+                      ],
+                    },
+                  );
+                }
                 return (
                   <div key={domain.id} className="border border-neutral-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
@@ -402,297 +615,27 @@ export function DomainsSettings({projectId}: DomainsSettingsProps) {
                         </button>
 
                         {expandedDomains[domain.id] && (
-                          <div className="mt-3 space-y-4">
-                            {/* Required DKIM Records for Sending */}
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="text-xs font-semibold text-neutral-900">Required for sending</h4>
-                                <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                                  REQUIRED
-                                </Badge>
-                              </div>
-                              {!status.verified && (
-                                <p className="text-xs text-neutral-600 mb-2">
-                                  Copy each record into your DNS provider, then hit refresh above. DNS changes can take
-                                  up to 48 hours to propagate.
-                                </p>
-                              )}
+                          <div className="mt-3">
+                            {!status.verified && (
+                              <p className="text-xs text-neutral-600">
+                                Copy each record into your DNS provider, then hit refresh above. DNS changes can take up
+                                to 48 hours to propagate.
+                              </p>
+                            )}
+                            <p className="mt-0.5 text-xs text-neutral-500">
+                              Names are relative to {domain.domain}. Add it back if your provider asks for the full name.
+                            </p>
 
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-xs border-collapse">
-                                  <thead>
-                                    <tr className="border-b border-neutral-200">
-                                      <th className="text-left py-2 px-3 font-medium text-neutral-700 bg-neutral-50">
-                                        Type
-                                      </th>
-                                      <th className="text-left py-2 px-3 font-medium text-neutral-700 bg-neutral-50">
-                                        Name
-                                      </th>
-                                      <th className="text-left py-2 px-3 font-medium text-neutral-700 bg-neutral-50">
-                                        Value
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-neutral-200">
-                                    {/* DKIM Records */}
-                                    {status.tokens.map((token: string, index: number) => (
-                                      <tr key={index} className="hover:bg-neutral-50/50">
-                                        <td className="py-3 px-3">
-                                          <code className="text-xs font-medium text-neutral-900">CNAME</code>
-                                        </td>
-                                        <td className="py-3 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <code className="text-xs font-mono text-neutral-700 break-all flex-1">
-                                              {token}._domainkey.{domain.domain}
-                                            </code>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() =>
-                                                handleCopyToken(`${token}._domainkey.${domain.domain}`, index + 2000)
-                                              }
-                                              className="shrink-0 h-6 w-6 p-0 overflow-hidden"
-                                            >
-                                              <AnimatedCopyIcon
-                                                isCopied={
-                                                  copiedToken === `${token}._domainkey.${domain.domain}-${index + 2000}`
-                                                }
-                                              />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                        <td className="py-3 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <code className="text-xs font-mono text-neutral-700 break-all flex-1">
-                                              {token}.dkim.amazonses.com
-                                            </code>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => handleCopyToken(`${token}.dkim.amazonses.com`, index)}
-                                              className="shrink-0 h-6 w-6 p-0 overflow-hidden"
-                                            >
-                                              <AnimatedCopyIcon
-                                                isCopied={copiedToken === `${token}.dkim.amazonses.com-${index}`}
-                                              />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
+                            <div className="mt-2">
+                              {dnsGroups.map(group => (
+                                <DnsRecordGroupSection
+                                  key={group.key}
+                                  group={group}
+                                  copiedToken={copiedToken}
+                                  onCopy={handleCopyToken}
+                                />
+                              ))}
                             </div>
-
-                            {/* Optional: Custom MAIL FROM Domain */}
-                            {config?.aws?.sesRegion && (
-                              <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h4 className="text-xs font-semibold text-neutral-900">Custom MAIL FROM Domain</h4>
-                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                    OPTIONAL
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-neutral-600 mb-2">
-                                  Set up a custom MAIL FROM domain ({mailFromHost}) to improve deliverability and handle
-                                  bounces/complaints.
-                                </p>
-
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-xs border-collapse">
-                                    <thead>
-                                      <tr className="border-b border-neutral-200">
-                                        <th className="text-left py-2 px-3 font-medium text-neutral-700 bg-neutral-50">
-                                          Type
-                                        </th>
-                                        <th className="text-left py-2 px-3 font-medium text-neutral-700 bg-neutral-50">
-                                          Name
-                                        </th>
-                                        <th className="text-left py-2 px-3 font-medium text-neutral-700 bg-neutral-50">
-                                          Value
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-neutral-200">
-                                      {/* MX Record (Bounce/Complaint Handling) */}
-                                      <tr className="hover:bg-neutral-50/50">
-                                        <td className="py-3 px-3">
-                                          <code className="text-xs font-medium text-neutral-900">MX</code>
-                                        </td>
-                                        <td className="py-3 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <code className="text-xs font-mono text-neutral-700 break-all flex-1">
-                                              {mailFromHost}
-                                            </code>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => handleCopyToken(mailFromHost, 3000)}
-                                              className="shrink-0 h-6 w-6 p-0 overflow-hidden"
-                                            >
-                                              <AnimatedCopyIcon
-                                                isCopied={copiedToken === `${mailFromHost}-3000`}
-                                              />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                        <td className="py-3 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <code className="text-xs font-mono text-neutral-700 break-all flex-1">
-                                              10 feedback-smtp.{config.aws.sesRegion}.amazonses.com
-                                            </code>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() =>
-                                                handleCopyToken(
-                                                  `10 feedback-smtp.${config.aws.sesRegion}.amazonses.com`,
-                                                  1000,
-                                                )
-                                              }
-                                              className="shrink-0 h-6 w-6 p-0 overflow-hidden"
-                                            >
-                                              <AnimatedCopyIcon
-                                                isCopied={
-                                                  copiedToken ===
-                                                  `10 feedback-smtp.${config.aws.sesRegion}.amazonses.com-1000`
-                                                }
-                                              />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                      </tr>
-
-                                      {/* TXT Record (SPF) */}
-                                      <tr className="hover:bg-neutral-50/50">
-                                        <td className="py-3 px-3">
-                                          <code className="text-xs font-medium text-neutral-900">TXT</code>
-                                        </td>
-                                        <td className="py-3 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <code className="text-xs font-mono text-neutral-700 break-all flex-1">
-                                              {mailFromHost}
-                                            </code>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => handleCopyToken(mailFromHost, 3001)}
-                                              className="shrink-0 h-6 w-6 p-0 overflow-hidden"
-                                            >
-                                              <AnimatedCopyIcon
-                                                isCopied={copiedToken === `${mailFromHost}-3001`}
-                                              />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                        <td className="py-3 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <code className="text-xs font-mono text-neutral-700 break-all flex-1">
-                                              &quot;v=spf1 include:amazonses.com ~all&quot;
-                                            </code>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() =>
-                                                handleCopyToken('"v=spf1 include:amazonses.com ~all"', 1001)
-                                              }
-                                              className="shrink-0 h-6 w-6 p-0 overflow-hidden"
-                                            >
-                                              <AnimatedCopyIcon
-                                                isCopied={copiedToken === '"v=spf1 include:amazonses.com ~all"-1001'}
-                                              />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Optional: Inbound Email */}
-                            {config?.aws?.sesRegion && (
-                              <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h4 className="text-xs font-semibold text-neutral-900">Inbound email</h4>
-                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                    OPTIONAL
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-neutral-600 mb-2">
-                                  Configure this MX record to receive emails at your domain.
-                                </p>
-
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-xs border-collapse">
-                                    <thead>
-                                      <tr className="border-b border-neutral-200">
-                                        <th className="text-left py-2 px-3 font-medium text-neutral-700 bg-neutral-50">
-                                          Type
-                                        </th>
-                                        <th className="text-left py-2 px-3 font-medium text-neutral-700 bg-neutral-50">
-                                          Name
-                                        </th>
-                                        <th className="text-left py-2 px-3 font-medium text-neutral-700 bg-neutral-50">
-                                          Value
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-neutral-200">
-                                      {/* Inbound MX Record */}
-                                      <tr className="hover:bg-neutral-50/50">
-                                        <td className="py-3 px-3">
-                                          <code className="text-xs font-medium text-neutral-900">MX</code>
-                                        </td>
-                                        <td className="py-3 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <code className="text-xs font-mono text-neutral-700 break-all flex-1">
-                                              {domain.domain}
-                                            </code>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => handleCopyToken(domain.domain, 3002)}
-                                              className="shrink-0 h-6 w-6 p-0 overflow-hidden"
-                                            >
-                                              <AnimatedCopyIcon isCopied={copiedToken === `${domain.domain}-3002`} />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                        <td className="py-3 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <code className="text-xs font-mono text-neutral-700 break-all flex-1">
-                                              10 inbound-smtp.{config.aws.sesRegion}.amazonaws.com
-                                            </code>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() =>
-                                                handleCopyToken(
-                                                  `10 inbound-smtp.${config.aws.sesRegion}.amazonaws.com`,
-                                                  1002,
-                                                )
-                                              }
-                                              className="shrink-0 h-6 w-6 p-0 overflow-hidden"
-                                            >
-                                              <AnimatedCopyIcon
-                                                isCopied={
-                                                  copiedToken ===
-                                                  `10 inbound-smtp.${config.aws.sesRegion}.amazonaws.com-1002`
-                                                }
-                                              />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            )}
-
                           </div>
                         )}
                       </div>
