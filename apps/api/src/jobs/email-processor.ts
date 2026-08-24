@@ -244,6 +244,7 @@ export async function createEmailWorker() {
           content: {
             subject: formattedEmail.subject,
             html: compiledHtml,
+            text: EmailService.htmlToText(compiledHtml),
           },
           reply: email.replyTo || undefined,
           headers: outboundHeaders,

@@ -438,6 +438,7 @@ export class EmailService {
         content: {
           subject: formattedEmail.subject,
           html: compiledHtml,
+          text: this.htmlToText(compiledHtml),
         },
         reply: email.replyTo || undefined,
         headers: outboundHeaders,
@@ -728,7 +729,60 @@ export class EmailService {
   }
 
   /**
-   * Detects if HTML contains custom patterns that indicate it was written in the HTML editor
+   * Convert compiled email HTML into a plaintext alternative part.
+   *
+   * Plunk compiles emails into full HTML documents (prose wrapper, unsubscribe
+   * footer, badge), so the plaintext is derived from the *compiled* HTML rather
+   * than the raw body — the text/plain part then carries the same unsubscribe
+   * link the HTML part does, keeping marketing sends compliant in text-only
+   * clients. Dependency-free by design: the markup Plunk emits is small and
+   * known, so a hand-rolled pass is more predictable than a full html-to-text
+   * dependency.
+   */
+  public static htmlToText(html: string): string {
+    if (!html) return '';
+
+    let text = html;
+
+    // Drop style/script blocks entirely (CSS and JS are noise in plaintext).
+    text = text.replace(/<style[\s\S]*?<\/style>/gi, '');
+    text = text.replace(/<script[\s\S]*?<\/script>/gi, '');
+
+    // Keep link destinations next to their anchor text so URLs (unsubscribe
+    // links, article links) survive the conversion. Skip mailto: and fragment
+    // links, which read as noise in a text client.
+    text = text.replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (match, href: string, inner: string) => {
+      return /^https?:/i.test(href) ? `${inner} (${href})` : inner;
+    });
+
+    // Block-level elements become line breaks.
+    text = text.replace(/<\/(?:p|div|h[1-6]|li|tr|table|ul|ol|blockquote|pre|section|article|header|footer)>/gi, '\n');
+    text = text.replace(/<(?:br|hr)\s*\/?>/gi, '\n');
+    text = text.replace(/<\/(?:td|th)>/gi, '\t');
+
+    // Strip any remaining tags.
+    text = text.replace(/<[^>]+>/g, '');
+
+    // Decode common HTML entities.
+    text = text
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'");
+
+    // Normalize whitespace: collapse runs of spaces/tabs and keep single blank lines.
+    text = text.replace(/[ \t]+/g, ' ');
+    text = text.replace(/[ \t]*\n[ \t]*/g, '\n');
+    text = text.replace(/\n{3,}/g, '\n\n');
+    text = text.trim();
+
+    return text;
+  }
+
+  /**
+   * Detect if HTML contains custom patterns that indicate it was written in the HTML editor
    * rather than the visual editor. Mirrors the same logic in apps/web/src/lib/emailStyles.ts.
    *
    * The TipTap editor loads StarterKit + TextAlign + Color + TextStyle + Link +
