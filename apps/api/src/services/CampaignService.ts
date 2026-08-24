@@ -664,19 +664,88 @@ export class CampaignService {
   }
 
   /**
+   * Note that a campaign's counters are behind its email rows.
+   *
+   * Called from the SES event webhook, which runs once per recipient per event --
+   * the same shape of load as the send path, and the reason `sentCount` is not a
+   * column increment either. A campaign row updated on every delivery would
+   * serialize thousands of writes on one row and leave a dead tuple behind each,
+   * on the table the dashboard reads constantly. SADD costs nothing and moves the
+   * arithmetic to a sweep that pays for it once per interval instead.
+   *
+   * Never allowed to fail the webhook: the event has already been applied to the
+   * email row by the time this runs, and throwing here would return a 5xx that has
+   * SES redeliver an event that was in fact recorded. A lost mark means the
+   * counters stay behind until the next event on that campaign, which is a stale
+   * number rather than a wrong one.
+   */
+  public static async markStatsDirty(campaignId: string): Promise<void> {
+    try {
+      await redis.sadd(Keys.Campaign.statsDirty(), campaignId);
+    } catch (error) {
+      signale.warn(`[CAMPAIGN] Failed to mark stats dirty for campaign ${campaignId}:`, error);
+    }
+  }
+
+  /**
+   * Take up to `limit` campaigns off the dirty set and reconcile each one.
+   *
+   * SPOP removes the ids before the recount runs, so a campaign that draws another
+   * event mid-sweep is re-added and picked up next time rather than being missed.
+   * The reverse -- a crash between the pop and the update -- leaves that campaign
+   * stale until its next event, which is the same failure the finalization
+   * reconcile already tolerates.
+   *
+   * Returns the number of campaigns reconciled so the caller can log a sweep that
+   * found nothing differently from one that drained a backlog.
+   */
+  public static async sweepDirtyStats(limit: number): Promise<number> {
+    let campaignIds: string[];
+
+    try {
+      campaignIds = await redis.spop(Keys.Campaign.statsDirty(), limit);
+    } catch (error) {
+      signale.warn('[CAMPAIGN] Failed to read the dirty stats set:', error);
+      return 0;
+    }
+
+    let reconciled = 0;
+
+    for (const campaignId of campaignIds) {
+      try {
+        await this.reconcileStats(campaignId);
+        reconciled += 1;
+      } catch (error) {
+        // One campaign that cannot be counted -- deleted mid-sweep, or a statement
+        // timeout on a very large one -- must not strand the rest of the batch.
+        signale.error(`[CAMPAIGN] Failed to reconcile stats for campaign ${campaignId}:`, error);
+      }
+    }
+
+    return reconciled;
+  }
+
+  /**
    * Recompute a campaign's counters from the emails that carry them.
    *
-   * This is the repair path for counters that are otherwise maintained by
-   * increments as webhooks arrive. It runs once per campaign, at finalization --
-   * never on read, which is what made the stats endpoint slow enough to notice.
+   * This is the only path that writes them. It runs at finalization and then from
+   * the dirty-set sweep as events arrive -- never on read, which is what made the
+   * stats endpoint slow enough to notice.
    *
    * One grouped pass over the campaign's emails, so the cost is O(campaign size)
    * and paid once. `unsubscribedCount` is deliberately absent: it is not derivable
    * from the emails table, and the events that do carry it are not reachable by any
    * index that does not scan the whole table. Its increment in
    * ContactService.unsubscribe stands on its own.
+   *
+   * `foldSentProgress` folds `sentCount` in as well and drops the Redis delta that
+   * tracked it. Only the finalization caller may ask for that: while the send is
+   * still running, the count of rows read here and the delta are moving
+   * independently, so writing the total and deleting the key would drop every send
+   * that landed in between and walk the progress number backwards. Between sends
+   * the two agree, and the send path is the authority on `sentCount` regardless.
    */
-  public static async reconcileStats(campaignId: string): Promise<void> {
+  public static async reconcileStats(campaignId: string, {foldSentProgress = false} = {}): Promise<void> {
     const [totals] = await prisma.$queryRaw<
       {
         sent: bigint;
@@ -702,10 +771,13 @@ export class CampaignService {
       return;
     }
 
-    await prisma.campaign.update({
+    // updateMany, not update: a campaign deleted while its events were still arriving stays in
+    // the dirty set, and `update` would throw P2025 for a row that is legitimately gone. This
+    // no-ops on a missing campaign instead of turning a normal race into a logged error.
+    await prisma.campaign.updateMany({
       where: {id: campaignId},
       data: {
-        sentCount: Number(totals.sent),
+        ...(foldSentProgress ? {sentCount: Number(totals.sent)} : {}),
         deliveredCount: Number(totals.delivered),
         openedCount: Number(totals.opened),
         clickedCount: Number(totals.clicked),
@@ -713,6 +785,10 @@ export class CampaignService {
         complainedCount: Number(totals.complained),
       },
     });
+
+    if (!foldSentProgress) {
+      return;
+    }
 
     // The column now carries the full total, so the live delta must go or it would
     // be counted a second time on top of it.
@@ -781,10 +857,10 @@ export class CampaignService {
     });
 
     // Fold every counter back to what the emails actually say, now that the send is
-    // over. This is the one place the materialized stats are repaired: the webhook
-    // increments that maintain them between sends can be lost or replayed, and
-    // nothing else recomputes them.
-    await this.reconcileStats(campaignId);
+    // over, and settle `sentCount` against the live Redis delta. Events that arrive
+    // after this point -- which is most opens and clicks -- are picked up by the
+    // dirty-set sweep instead.
+    await this.reconcileStats(campaignId, {foldSentProgress: true});
 
     signale.success(
       `[CAMPAIGN] Campaign ${campaign.name} finalized: ${sentCount}/${campaign.totalRecipients} emails sent`,
@@ -831,15 +907,22 @@ export class CampaignService {
   /**
    * Get campaign statistics.
    *
-   * Reads the counters off the campaign row rather than recomputing them. Every
-   * one of them is maintained as the events that move it arrive: `sentCount` in
-   * the send paths, delivered/opened/clicked/bounced/complained in
-   * EmailService.handleWebhookEvent, and `unsubscribedCount` in
-   * ContactService.unsubscribe. Recomputing here would re-derive numbers that are
-   * already correct, at a cost that grows with the campaign -- and, in the case of
-   * unsubscribes, with the size of the whole events table, since no index serves a
-   * predicate on Event.name alone. This endpoint is polled every 15s while a
-   * campaign is sending, so it has to stay a single indexed row lookup.
+   * Reads the counters off the campaign row rather than recomputing them.
+   * `sentCount` is maintained by the send paths and `unsubscribedCount` by
+   * ContactService.unsubscribe; delivered/opened/clicked/bounced/complained are
+   * written by `reconcileStats`, which runs when the send finalizes and then
+   * whenever the sweep finds the campaign in the dirty set -- so they trail an
+   * event by up to the sweep interval. Recomputing here instead would re-derive
+   * numbers that are already correct, at a cost that grows with the campaign --
+   * and, in the case of unsubscribes, with the size of the whole events table,
+   * since no index serves a predicate on Event.name alone. This endpoint is polled
+   * every 15s while a campaign is sending, so it has to stay a single indexed row
+   * lookup.
+   *
+   * Note what this means for a campaign that finalized before the counters were
+   * written by anything: the row is authoritative, so a zero here is reported as a
+   * zero no matter what the emails say. That is what the
+   * 20260824120000_backfill_campaign_engagement_counters migration repairs.
    *
    * `this.get` has already fetched the row, so the stats cost no further queries.
    */
@@ -960,25 +1043,6 @@ export class CampaignService {
   private static async getRecipientCount(projectId: string, campaign: Campaign): Promise<number> {
     const where = await this.buildRecipientWhereAsync(projectId, campaign);
     return prisma.contact.count({where});
-  }
-
-  /**
-   * Get recipients for a campaign (legacy offset-based, kept for compatibility)
-   */
-  private static async getRecipients(
-    projectId: string,
-    campaign: Campaign,
-    offset: number,
-    limit: number,
-  ): Promise<Contact[]> {
-    const where = await this.buildRecipientWhereAsync(projectId, campaign);
-
-    return prisma.contact.findMany({
-      where,
-      skip: offset,
-      take: limit,
-      orderBy: {createdAt: 'asc'}, // Consistent ordering for batching
-    });
   }
 
   /**

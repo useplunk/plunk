@@ -3,7 +3,7 @@ import {EmailSourceType, EmailStatus, TemplateType} from '@plunk/db';
 import {ActionSchemas} from '@plunk/shared';
 import {EmailService} from '../EmailService';
 import {sendRawEmail} from '../SESService';
-import {factories, getPrismaClient} from '../../../../../test/helpers';
+import {factories} from '../../../../../test/helpers';
 
 // Mock AWS SDK globally (used by real SESService calls in MIME tests)
 vi.mock('@aws-sdk/client-ses', () => {
@@ -34,7 +34,6 @@ vi.mock('../SESService', () => ({
 describe('EmailService', () => {
   let projectId: string;
   let contactId: string;
-  const prisma = getPrismaClient();
 
   beforeEach(async () => {
     const {project} = await factories.createUserWithProject();
@@ -292,35 +291,6 @@ describe('EmailService', () => {
         expect(email.sourceType).toBe(EmailSourceType.TRANSACTIONAL);
       });
     });
-
-    describe('Unsubscribe via Complaint Webhook', () => {
-      it('should track when contact unsubscribes via complaint webhook', async () => {
-        const contact = await factories.createContact({
-          projectId,
-          subscribed: true,
-        });
-
-        const email = await factories.createEmail({
-          projectId,
-          contactId: contact.id,
-          status: EmailStatus.SENT,
-        });
-
-        await EmailService.handleWebhookEvent(email.id, 'complained');
-
-        const unsubscribedContact = await prisma.contact.findUnique({
-          where: {id: contact.id},
-        });
-
-        expect(unsubscribedContact?.subscribed).toBe(false);
-
-        const complainedEmail = await prisma.email.findUnique({
-          where: {id: email.id},
-        });
-
-        expect(complainedEmail?.status).toBe(EmailStatus.COMPLAINED);
-      });
-    });
   });
 
   // ========================================
@@ -343,259 +313,12 @@ describe('EmailService', () => {
       });
     });
 
-    describe('PENDING → SENDING → SENT', () => {
-      it('should transition correctly on successful send', async () => {
-        const email = await factories.createEmail({
-          projectId,
-          contactId,
-          status: EmailStatus.PENDING,
-        });
-
-        await EmailService.sendEmail(email.id);
-
-        const sent = await prisma.email.findUnique({
-          where: {id: email.id},
-        });
-
-        expect(sent?.status).toBe(EmailStatus.SENT);
-        expect(sent?.sentAt).not.toBeNull();
-        expect(sent?.messageId).toBe('ses-message-123');
-      });
-
-      it('should create email.sent event after successful send', async () => {
-        const email = await factories.createEmail({
-          projectId,
-          contactId,
-          status: EmailStatus.PENDING,
-        });
-
-        await EmailService.sendEmail(email.id);
-
-        const event = await prisma.event.findFirst({
-          where: {
-            projectId,
-            contactId,
-            emailId: email.id,
-            name: 'email.sent',
-          },
-        });
-
-        expect(event).toBeDefined();
-        expect(event?.data).toHaveProperty('messageId', 'ses-message-123');
-      });
-    });
-
-    describe('PENDING → SENDING → FAILED', () => {
-      it('should mark as FAILED on SES error', async () => {
-        vi.mocked(sendRawEmail).mockRejectedValue(new Error('SES rate limit exceeded'));
-
-        const email = await factories.createEmail({
-          projectId,
-          contactId,
-          status: EmailStatus.PENDING,
-        });
-
-        await expect(EmailService.sendEmail(email.id)).rejects.toThrow();
-
-        const failed = await prisma.email.findUnique({
-          where: {id: email.id},
-        });
-
-        expect(failed?.status).toBe(EmailStatus.FAILED);
-        expect(failed?.error).toContain('rate limit');
-      });
-    });
-
-    describe('Idempotency - Prevent Re-sending', () => {
-      it('should NOT re-send email if already SENT', async () => {
-        const email = await factories.createEmail({
-          projectId,
-          contactId,
-          status: EmailStatus.SENT,
-          sentAt: new Date(),
-          messageId: 'already-sent-123',
-        });
-
-        const sesSpy = vi.mocked(sendRawEmail);
-        sesSpy.mockClear();
-
-        await EmailService.sendEmail(email.id);
-
-        expect(sesSpy).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('Webhook Status Updates', () => {
-      it('should transition SENT → DELIVERED on delivery webhook', async () => {
-        const email = await factories.createEmail({
-          projectId,
-          contactId,
-          status: EmailStatus.SENT,
-        });
-
-        await EmailService.handleWebhookEvent(email.id, 'delivered');
-
-        const delivered = await prisma.email.findUnique({
-          where: {id: email.id},
-        });
-
-        expect(delivered?.status).toBe(EmailStatus.DELIVERED);
-        expect(delivered?.deliveredAt).not.toBeNull();
-      });
-
-      it('should transition to OPENED on first open webhook', async () => {
-        const email = await factories.createEmail({
-          projectId,
-          contactId,
-          status: EmailStatus.SENT,
-        });
-
-        await EmailService.handleWebhookEvent(email.id, 'opened');
-
-        const opened = await prisma.email.findUnique({
-          where: {id: email.id},
-        });
-
-        expect(opened?.status).toBe(EmailStatus.OPENED);
-        expect(opened?.openedAt).not.toBeNull();
-        expect(opened?.opens).toBe(1);
-      });
-
-      it('should increment opens counter on subsequent opens', async () => {
-        const email = await factories.createEmail({
-          projectId,
-          contactId,
-          status: EmailStatus.OPENED,
-          openedAt: new Date(),
-          opens: 1,
-        });
-
-        const firstOpenedAt = email.openedAt;
-
-        await EmailService.handleWebhookEvent(email.id, 'opened');
-
-        const reopened = await prisma.email.findUnique({
-          where: {id: email.id},
-        });
-
-        expect(reopened?.opens).toBe(2);
-        expect(reopened?.openedAt).toEqual(firstOpenedAt);
-      });
-
-      it('should transition to CLICKED and track clicks', async () => {
-        const email = await factories.createEmail({
-          projectId,
-          contactId,
-          status: EmailStatus.SENT,
-        });
-
-        await EmailService.handleWebhookEvent(email.id, 'clicked');
-
-        const clicked = await prisma.email.findUnique({
-          where: {id: email.id},
-        });
-
-        expect(clicked?.status).toBe(EmailStatus.CLICKED);
-        expect(clicked?.clickedAt).not.toBeNull();
-        expect(clicked?.clicks).toBe(1);
-      });
-
-      it('should transition to BOUNCED on bounce webhook and unsubscribe contact', async () => {
-        const contact = await factories.createContact({
-          projectId,
-          subscribed: true,
-        });
-        const email = await factories.createEmail({
-          projectId,
-          contactId: contact.id,
-          status: EmailStatus.SENT,
-        });
-
-        await EmailService.handleWebhookEvent(email.id, 'bounced');
-
-        const bounced = await prisma.email.findUnique({
-          where: {id: email.id},
-        });
-
-        expect(bounced?.status).toBe(EmailStatus.BOUNCED);
-        expect(bounced?.bouncedAt).not.toBeNull();
-
-        // Verify contact was unsubscribed
-        const unsubscribedContact = await prisma.contact.findUnique({
-          where: {id: contact.id},
-        });
-        expect(unsubscribedContact?.subscribed).toBe(false);
-
-        // Verify unsubscription event was tracked
-        const event = await prisma.event.findFirst({
-          where: {
-            projectId,
-            contactId: contact.id,
-            name: 'contact.unsubscribed',
-          },
-        });
-        expect(event).not.toBeNull();
-        expect(event?.data).toMatchObject({reason: 'bounce'});
-      });
-    });
-  });
-
-  // ========================================
-  // EMAIL STATISTICS
-  // ========================================
-  describe('Email Statistics', () => {
-    it('should calculate accurate email stats', async () => {
-      await factories.createEmail({projectId, contactId, status: EmailStatus.SENT});
-      await factories.createEmail({projectId, contactId, status: EmailStatus.SENT});
-      await factories.createEmail({projectId, contactId, status: EmailStatus.DELIVERED});
-      await factories.createEmail({projectId, contactId, status: EmailStatus.OPENED});
-      await factories.createEmail({projectId, contactId, status: EmailStatus.CLICKED});
-      await factories.createEmail({projectId, contactId, status: EmailStatus.BOUNCED});
-      await factories.createEmail({projectId, contactId, status: EmailStatus.FAILED});
-
-      const stats = await EmailService.getStats(projectId);
-
-      expect(stats.total).toBe(7);
-      expect(stats.sent).toBe(2);
-      expect(stats.delivered).toBe(1);
-      expect(stats.opened).toBe(1);
-      expect(stats.clicked).toBe(1);
-      expect(stats.bounced).toBe(1);
-      expect(stats.failed).toBe(1);
-    });
-
-    it('should calculate open rate correctly', async () => {
-      // Create 10 SENT emails, 5 of which are OPENED
-      // OPENED status counts as both sent and opened
-      for (let i = 0; i < 5; i++) {
-        await factories.createEmail({projectId, contactId, status: EmailStatus.SENT});
-      }
-      for (let i = 0; i < 5; i++) {
-        await factories.createEmail({projectId, contactId, status: EmailStatus.OPENED});
-      }
-
-      const stats = await EmailService.getStats(projectId);
-
-      // Total sent = 5 (SENT) + 5 (OPENED) = 10
-      // Total opened = 5 (OPENED)
-      // Open rate = 5/10 * 100 = 50%
-      // BUT: EmailService counts SENT separately from OPENED
-      // So opened/sent = 5/5 = 100%
-      // This is a quirk of how EmailStatus works - OPENED doesn't include SENT count
-      expect(stats.sent).toBe(5); // Only EmailStatus.SENT
-      expect(stats.opened).toBe(5); // Only EmailStatus.OPENED
-      expect(stats.total).toBe(10);
-    });
-
-    it('should handle zero sent emails without division by zero', async () => {
-      await factories.createEmail({projectId, contactId, status: EmailStatus.PENDING});
-
-      const stats = await EmailService.getStats(projectId);
-
-      expect(stats.openRate).toBe(0);
-      expect(stats.clickRate).toBe(0);
-      expect(stats.bounceRate).toBe(0);
-    });
+    // The send-path transitions that used to be asserted here (PENDING → SENDING → SENT, the
+    // failure path, and send idempotency) drove EmailService.sendEmail, and the webhook
+    // transitions drove EmailService.handleWebhookEvent -- duplicates of the worker and the SNS
+    // handler that production never called. The webhook assertions now live in
+    // controllers/__tests__/Webhooks.sns.test.ts. The send behaviour lives in
+    // jobs/email-processor.ts and has no coverage yet.
   });
 
   // ========================================
@@ -683,32 +406,6 @@ describe('EmailService', () => {
       expect(email.attachments).toBeNull();
     });
 
-    it('should pass attachments to SES when sending', async () => {
-      const attachment = {
-        filename: 'test.txt',
-        content: Buffer.from('Test content').toString('base64'),
-        contentType: 'text/plain',
-      };
-
-      const email = await EmailService.sendTransactionalEmail({
-        projectId,
-        contactId,
-        subject: 'Test',
-        body: 'Test',
-        from: 'test@example.com',
-        attachments: [attachment],
-      });
-
-      // Send the email
-      await EmailService.sendEmail(email.id);
-
-      // Verify SES was called with attachments
-      expect(vi.mocked(sendRawEmail)).toHaveBeenCalledWith(
-        expect.objectContaining({
-          attachments: [attachment],
-        }),
-      );
-    });
 
     it('should handle attachments in campaign emails', async () => {
       const contact = await factories.createContact({projectId, subscribed: true});

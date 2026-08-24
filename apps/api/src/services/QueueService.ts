@@ -4,15 +4,16 @@ import type {RedisOptions} from 'ioredis';
 import signale from 'signale';
 import type {
   ApiRequestCleanupJobData,
-  IdempotencyKeyCleanupJobData,
   BulkContactActionJobData,
   BulkContactActionSelector,
   CampaignBatchJobData,
+  CampaignStatsSweepJobData,
   CardVerificationJobData,
   CardVerificationSweepJobData,
   ContactImportJobData,
   DomainVerificationJobData,
   EmailBodyCleanupJobData,
+  IdempotencyKeyCleanupJobData,
   MeterEventJobData,
   ScheduledCampaignJobData,
   SegmentCountJobData,
@@ -216,6 +217,22 @@ export const cardVerificationQueue = new Queue<CardVerificationJobData>('card-ve
     },
     removeOnComplete: 500,
     removeOnFail: 1000,
+  },
+});
+
+// Reconciles campaign counters against the email rows the events landed on. Retries are
+// pointless here beyond a transient blip: whatever is still dirty is swept again on the next
+// run, so a failed sweep costs a couple of minutes of staleness rather than data.
+export const campaignStatsSweepQueue = new Queue<CampaignStatsSweepJobData>('campaign-stats-sweep', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: {
+      type: 'exponential',
+      delay: 10000,
+    },
+    removeOnComplete: 20,
+    removeOnFail: 50,
   },
 });
 

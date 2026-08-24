@@ -48,6 +48,7 @@ import {prisma} from './database/prisma.js';
 import {ErrorCode, type FieldError, HttpException, ValidationError} from './exceptions/index.js';
 import {
   apiRequestCleanupQueue,
+  campaignStatsSweepQueue,
   domainVerificationQueue,
   cardVerificationSweepQueue,
   emailBodyCleanupQueue,
@@ -567,4 +568,21 @@ void prisma.$connect().then(async () => {
   );
 
   signale.info('[BACKGROUND-JOB] Card verification sweep scheduled (BullMQ repeatable job, runs every 15 minutes)');
+
+  // Set up repeatable job for campaign stats reconciliation (BullMQ)
+  // Every 2 minutes: opens and clicks arrive long after a campaign finalizes, and the counters
+  // the stats endpoint reads are only written by a reconcile. This is the lag between an event
+  // landing on the email row and the campaign reporting it.
+  await campaignStatsSweepQueue.add(
+    'sweep-dirty-campaign-stats',
+    {},
+    {
+      repeat: {
+        pattern: '*/2 * * * *', // Every 2 minutes
+      },
+      jobId: 'campaign-stats-sweep-repeatable', // Fixed ID to prevent duplicates
+    },
+  );
+
+  signale.info('[BACKGROUND-JOB] Campaign stats sweep scheduled (BullMQ repeatable job, runs every 2 minutes)');
 });

@@ -21,3 +21,14 @@ export interface CampaignBatchJobData {
 export interface ScheduledCampaignJobData {
   campaignId: string;
 }
+
+/**
+ * Job data for the campaign stats reconcile sweep
+ * Used by: campaignStatsSweepQueue worker
+ *
+ * Empty: the work to do is whatever is in the dirty set when the sweep runs.
+ */
+export interface CampaignStatsSweepJobData {
+  /** Optional override for how many campaigns one run may reconcile. */
+  batchSize?: number;
+}

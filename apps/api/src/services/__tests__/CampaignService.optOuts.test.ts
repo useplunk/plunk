@@ -1,18 +1,19 @@
+import type {Prisma} from '@plunk/db';
 import {beforeEach, describe, expect, it} from 'vitest';
 import {CampaignService} from '../CampaignService';
 import {ContactService} from '../ContactService';
-import {EmailService} from '../EmailService';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
 
 /**
  * What a campaign cost in recipients: opt-outs and spam complaints.
  *
- * Both are materialized on the campaign row as the events that move them arrive —
- * complaints in EmailService.handleWebhookEvent, opt-outs in
- * ContactService.unsubscribe — and getStats reports those columns without
- * recounting. So these tests drive the real write paths rather than seeding
- * timestamps: a fixture that stamped `complainedAt` directly would prove nothing
- * about a number nobody increments.
+ * Both are materialized on the campaign row and getStats reports those columns
+ * without recounting: `unsubscribedCount` is incremented by
+ * ContactService.unsubscribe, which is the path these tests drive, while
+ * `complainedCount` is recounted from the email rows by CampaignService
+ * .reconcileStats. The bounce and complaint below are therefore stamped onto the
+ * row the way the SES webhook stamps them — what matters here is which
+ * suppressions the opt-out count excludes, not how the timestamp got there.
  *
  * The three ways a recipient can leave must never describe the same person twice —
  * a bounce, a complaint, and a deliberate unsubscribe each belong to exactly one
@@ -58,9 +59,27 @@ describe('CampaignService - opt-outs and complaints', () => {
     return {contact, email: sent};
   }
 
-  const deliver = (emailId: string) => EmailService.handleWebhookEvent(emailId, 'delivered');
-  const complain = (emailId: string) => EmailService.handleWebhookEvent(emailId, 'complained');
-  const bounce = (emailId: string) => EmailService.handleWebhookEvent(emailId, 'bounced');
+  /**
+   * One SES event, applied the way the webhook applies it: stamp the email row, mark the
+   * campaign, then let the sweep recount it. Driving all three keeps these tests honest about
+   * where the numbers come from -- stamping the row alone would prove nothing, since the stats
+   * endpoint reads the campaign columns and never the emails. The handler itself is covered end
+   * to end in Webhooks.sns.test.ts; the sweep runs inline here instead of on its timer.
+   */
+  async function applyEvent(emailId: string, data: Prisma.EmailUpdateInput) {
+    const email = await prisma.email.update({where: {id: emailId}, data});
+
+    if (email.campaignId) {
+      await CampaignService.markStatsDirty(email.campaignId);
+      await CampaignService.sweepDirtyStats(10);
+    }
+
+    return email;
+  }
+
+  const deliver = (emailId: string) => applyEvent(emailId, {status: 'DELIVERED', deliveredAt: new Date()});
+  const complain = (emailId: string) => applyEvent(emailId, {status: 'COMPLAINED', complainedAt: new Date()});
+  const bounce = (emailId: string) => applyEvent(emailId, {status: 'BOUNCED', bouncedAt: new Date()});
 
   async function storedCount() {
     const campaign = await prisma.campaign.findUnique({

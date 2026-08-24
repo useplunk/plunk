@@ -1,6 +1,13 @@
 /**
  * Background Job: Email Processor
  * Processes individual emails from the queue (for all sources: transactional, campaign, workflow)
+ *
+ * This is the only send path. `EmailService.sendEmail` used to hold a second copy of it, tested
+ * while this one was not, and the two had drifted; it has been removed. The behaviour those tests
+ * claimed to cover -- PENDING → SENDING → SENT, the failure transition, send idempotency, and
+ * attachments reaching SES -- is implemented here and is currently untested, because the job body
+ * is inline in `createEmailWorker` and cannot be called without a queue. Extracting it is worth
+ * doing before this logic is next changed.
  */
 
 import {EmailStatus} from '@plunk/db';

@@ -105,6 +105,19 @@ export const Keys = {
     sentProgress(campaignId: string): string {
       return `campaign:sent_progress:${campaignId}`;
     },
+
+    /**
+     * Set of campaigns whose materialized counters are behind their email rows.
+     *
+     * One set for the whole install rather than a key per campaign: the sweep needs to
+     * find the campaigns that changed without scanning the keyspace, and SADD of an id
+     * that is already a member is free. Membership is the only state -- what changed and
+     * how much is re-derived by counting the emails, so a duplicate add costs nothing and
+     * a lost one is corrected by the next event on that campaign.
+     */
+    statsDirty(): string {
+      return 'campaign:stats_dirty';
+    },
   },
   Project: {
     id(id: string): string {

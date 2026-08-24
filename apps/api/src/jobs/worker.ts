@@ -14,6 +14,7 @@ import {createIdempotencyKeyCleanupWorker} from './idempotency-key-cleanup-proce
 import {createBulkContactWorker} from './bulk-contact-processor.js';
 import {createCampaignWorker} from './campaign-processor.js';
 import {createCardVerificationWorker} from './card-verification-processor.js';
+import {createCampaignStatsSweepWorker} from './campaign-stats-sweep-processor.js';
 import {createCardVerificationSweepWorker} from './card-verification-sweep-processor.js';
 import {createDomainVerificationWorker} from './domain-verification-processor.js';
 import {createEmailBodyCleanupWorker} from './email-body-cleanup-processor.js';
@@ -39,6 +40,11 @@ async function startWorkers() {
     const campaignWorker = createCampaignWorker();
     workers.push({name: 'campaign', worker: campaignWorker});
     signale.success('[WORKER] Campaign worker started');
+
+    // Start campaign stats reconcile sweep worker
+    const campaignStatsSweepWorker = createCampaignStatsSweepWorker();
+    workers.push({name: 'campaign-stats-sweep', worker: campaignStatsSweepWorker});
+    signale.success('[WORKER] Campaign stats sweep worker started');
 
     // Start scheduled campaign worker
     const scheduledWorker = createScheduledCampaignWorker();

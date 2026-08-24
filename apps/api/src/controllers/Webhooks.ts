@@ -14,6 +14,7 @@ import {DASHBOARD_URI, LANDING_URI, STRIPE_ENABLED, STRIPE_WEBHOOK_SECRET} from 
 import {stripe} from '../app/stripe.js';
 import {prisma} from '../database/prisma.js';
 import {BillingLimitService} from '../services/BillingLimitService.js';
+import {CampaignService} from '../services/CampaignService.js';
 import {ContactService} from '../services/ContactService.js';
 import {EventService} from '../services/EventService.js';
 import {MembershipService} from '../services/MembershipService.js';
@@ -41,7 +42,10 @@ export class Webhooks {
       // Verify SNS message signature before processing anything
       const signatureValid = await SecurityService.verifySnsSignature(req.body as Record<string, string>);
       if (!signatureValid) {
-        signale.warn('[WEBHOOK] SNS signature verification failed — request rejected');
+        // Error level, not warn: this is indistinguishable from a working install right up
+        // until someone notices that no engagement has been recorded for days. Every event
+        // for every project drops here, and nothing else in the system counts the misses.
+        signale.error('[WEBHOOK] SNS signature verification failed — request rejected. All SES events are being dropped.');
         return res.status(403).json({success: false, message: 'Invalid SNS signature'});
       }
 
@@ -304,7 +308,10 @@ export class Webhooks {
       });
 
       if (!email) {
-        signale.warn(`[WEBHOOK] Email not found for messageId: ${messageId}`);
+        // Error level for the same reason as a signature failure: an event that matches no
+        // email row is silently lost, and SES gives up after its retries. A run of these
+        // means the send path is not stamping `messageId`, which is invisible from outside.
+        signale.error(`[WEBHOOK] ${eventType} event dropped — no email found for messageId: ${messageId}`);
         return res.status(404).json({success: false, error: 'Email not found'});
       }
 
@@ -457,6 +464,15 @@ export class Webhooks {
         where: {id: email.id},
         data: updateData,
       });
+
+      // The campaign counters the stats endpoint reads live on the campaign row, and this
+      // event has just moved one of them. They are not incremented from here: this handler
+      // runs once per recipient per event, so a write per event would serialize thousands of
+      // updates on a single row -- the same reason `sentCount` is not incremented in the send
+      // path either. Marking the campaign costs one Redis SADD, and the sweep recounts it.
+      if (email.campaignId) {
+        await CampaignService.markStatsDirty(email.campaignId);
+      }
 
       // Track event (this will trigger workflows)
       await EventService.trackEvent(email.projectId, eventName, email.contactId, email.id, eventData);
