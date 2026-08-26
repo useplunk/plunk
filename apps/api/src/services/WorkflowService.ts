@@ -14,6 +14,21 @@ import {NtfyService} from './NtfyService.js';
 import {WorkflowExecutionService} from './WorkflowExecutionService.js';
 
 export class WorkflowService {
+  private static async validateStepTemplate(projectId: string, templateId?: string | null): Promise<void> {
+    if (templateId === undefined || templateId === null) {
+      return;
+    }
+
+    const template = await prisma.template.findFirst({
+      where: {id: templateId, projectId},
+      select: {id: true},
+    });
+
+    if (!template) {
+      throw new HttpException(404, 'Template not found');
+    }
+  }
+
   /**
    * Get all workflows for a project with pagination
    */
@@ -504,6 +519,8 @@ export class WorkflowService {
       }
     }
 
+    await this.validateStepTemplate(projectId, data.templateId);
+
     // Create the new step
     const newStep = await prisma.workflowStep.create({
       data: {
@@ -588,6 +605,8 @@ export class WorkflowService {
         }
       }
     }
+
+    await this.validateStepTemplate(projectId, data.templateId);
 
     const updateData: Prisma.WorkflowStepUpdateInput = {};
 
@@ -859,6 +878,8 @@ export class WorkflowService {
           'Disconnect the steps first, then add the exit step.',
       );
     }
+
+    await this.validateStepTemplate(projectId, data.templateId);
 
     return prisma.$transaction(async tx => {
       const newStep = await tx.workflowStep.create({

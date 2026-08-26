@@ -498,6 +498,44 @@ describe('WorkflowService', () => {
       expect(step.templateId).toBe(template.id);
     });
 
+    it('should reject foreign and missing templates without revealing which exists', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const {project: otherProject} = await factories.createUserWithProject();
+      const foreignTemplate = await factories.createTemplate({projectId: otherProject.id});
+      const missingTemplateId = '00000000-0000-0000-0000-000000000000';
+
+      const addEmailStep = (templateId: string) =>
+        WorkflowService.addStep(projectId, workflow.id, {
+          type: WorkflowStepType.SEND_EMAIL,
+          name: 'Send welcome email',
+          position: {x: 200, y: 100},
+          config: {},
+          templateId,
+        });
+
+      await expect(addEmailStep(foreignTemplate.id)).rejects.toMatchObject({
+        code: 404,
+        message: 'Template not found',
+      });
+      await expect(addEmailStep(missingTemplateId)).rejects.toMatchObject({
+        code: 404,
+        message: 'Template not found',
+      });
+      await expect(
+        WorkflowService.addStep(projectId, workflow.id, {
+          type: WorkflowStepType.DELAY,
+          name: 'Wait 1 hour',
+          position: {x: 200, y: 100},
+          config: {delay: 3600},
+          templateId: foreignTemplate.id,
+        }),
+      ).rejects.toMatchObject({code: 404, message: 'Template not found'});
+
+      const addedSteps = await prisma.workflowStep.findMany({where: {workflowId: workflow.id}});
+      expect(addedSteps).toHaveLength(1);
+      expect(addedSteps[0]?.type).toBe(WorkflowStepType.TRIGGER);
+    });
+
     it('should auto-connect to previous step by default', async () => {
       const workflow = await factories.createWorkflow({projectId});
 
@@ -612,6 +650,33 @@ describe('WorkflowService', () => {
       });
 
       expect(updated.templateId).toBe(template2.id);
+    });
+
+    it('should reject updating an email step to foreign and missing templates', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const template = await factories.createTemplate({projectId});
+      const {project: otherProject} = await factories.createUserWithProject();
+      const foreignTemplate = await factories.createTemplate({projectId: otherProject.id});
+      const missingTemplateId = '00000000-0000-0000-0000-000000000000';
+      const step = await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        type: WorkflowStepType.SEND_EMAIL,
+        templateId: template.id,
+      });
+
+      await expect(
+        WorkflowService.updateStep(projectId, workflow.id, step.id, {
+          templateId: foreignTemplate.id,
+        }),
+      ).rejects.toMatchObject({code: 404, message: 'Template not found'});
+      await expect(
+        WorkflowService.updateStep(projectId, workflow.id, step.id, {
+          templateId: missingTemplateId,
+        }),
+      ).rejects.toMatchObject({code: 404, message: 'Template not found'});
+
+      const unchanged = await prisma.workflowStep.findUnique({where: {id: step.id}});
+      expect(unchanged?.templateId).toBe(template.id);
     });
 
     it('should remove template reference when set to null', async () => {
@@ -876,6 +941,31 @@ describe('WorkflowService', () => {
       // The transition carrying the flow onwards is unconditional
       const outgoing = await prisma.workflowTransition.findMany({where: {fromStepId: newStep.id}});
       expect(outgoing[0]?.condition).toBeNull();
+    });
+
+    it('should reject inserting an email step with a foreign template', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const stepA = await factories.createWorkflowStep({workflowId: workflow.id});
+      const stepB = await factories.createWorkflowStep({workflowId: workflow.id});
+      const transition = await prisma.workflowTransition.create({
+        data: {fromStepId: stepA.id, toStepId: stepB.id},
+      });
+      const {project: otherProject} = await factories.createUserWithProject();
+      const foreignTemplate = await factories.createTemplate({projectId: otherProject.id});
+      const stepCount = await prisma.workflowStep.count({where: {workflowId: workflow.id}});
+
+      await expect(
+        WorkflowService.insertStepOnTransition(projectId, workflow.id, transition.id, {
+          type: WorkflowStepType.SEND_EMAIL,
+          name: 'Inserted email',
+          config: {},
+          templateId: foreignTemplate.id,
+        }),
+      ).rejects.toMatchObject({code: 404, message: 'Template not found'});
+
+      const original = await prisma.workflowTransition.findUnique({where: {id: transition.id}});
+      expect(original?.toStepId).toBe(stepB.id);
+      expect(await prisma.workflowStep.count({where: {workflowId: workflow.id}})).toBe(stepCount);
     });
 
     it('should attach the downstream step to the first branch when inserting a CONDITION', async () => {
