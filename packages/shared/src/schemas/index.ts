@@ -1,4 +1,4 @@
-import {CampaignAudienceType, TemplateType, TrackingMode, WorkflowStepType, WorkflowTriggerType} from '@plunk/db';
+import {CampaignAudienceType, TemplateType, TrackingMode, WorkflowStepType, WorkflowTriggerType, WorkflowWaitOutcome} from '@plunk/db';
 import type {FilterCondition, FilterGroup} from '@plunk/types';
 import {z} from 'zod';
 
@@ -263,6 +263,7 @@ export const WorkflowSchemas = {
     fromStepId: uuid,
     toStepId: uuid,
     condition: jsonSchema.optional(),
+    waitOutcome: z.nativeEnum(WorkflowWaitOutcome).optional(),
     priority: z.number().int().min(0).default(0),
   }),
   startExecution: z.object({

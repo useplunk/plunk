@@ -7,7 +7,7 @@ import type {
   WorkflowStep,
   WorkflowStepExecution,
 } from '@plunk/db';
-import {StepExecutionStatus, WorkflowExecutionStatus} from '@plunk/db';
+import {StepExecutionStatus, WorkflowExecutionStatus, WorkflowWaitOutcome} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
 import {renderTemplate, WorkflowStepConfigSchemas} from '@plunk/shared';
 import dns from 'node:dns/promises';
@@ -30,6 +30,7 @@ type WorkflowStepWithTransitions = WorkflowStep & {
   outgoingTransitions?: Array<{
     id: string;
     condition: Prisma.JsonValue;
+    waitOutcome: WorkflowWaitOutcome | null;
     priority: number;
     toStep: WorkflowStep;
   }>;
@@ -328,71 +329,28 @@ export class WorkflowExecutionService {
       return;
     }
 
+    const result = {
+      waitOutcome: WorkflowWaitOutcome.TIMEOUT,
+      timedOut: true,
+      eventName:
+        stepExecution.step.config &&
+        typeof stepExecution.step.config === 'object' &&
+        'eventName' in stepExecution.step.config
+          ? stepExecution.step.config.eventName
+          : undefined,
+    };
+
     // Mark step as completed with timeout
     await prisma.workflowStepExecution.update({
       where: {id: stepExecution.id},
       data: {
         status: StepExecutionStatus.COMPLETED,
         completedAt: new Date(),
-        output: {
-          timedOut: true,
-          eventName:
-            stepExecution.step.config &&
-            typeof stepExecution.step.config === 'object' &&
-            'eventName' in stepExecution.step.config
-              ? stepExecution.step.config.eventName
-              : undefined,
-        },
+        output: toPrismaJson(result),
       },
     });
 
-    // Continue workflow - find transitions with timeout/fallback logic
-    const transitions = stepExecution.step.outgoingTransitions || [];
-    const fallbackTransition = transitions.find(
-      t =>
-        (t.condition &&
-          typeof t.condition === 'object' &&
-          'branch' in t.condition &&
-          t.condition.branch === 'timeout') ||
-        (t.condition && typeof t.condition === 'object' && 'fallback' in t.condition && t.condition.fallback === true),
-    );
-
-    if (fallbackTransition) {
-      // Follow timeout branch
-      await prisma.workflowExecution.update({
-        where: {id: stepExecution.executionId},
-        data: {
-          status: WorkflowExecutionStatus.RUNNING,
-          currentStepId: fallbackTransition.toStep.id,
-        },
-      });
-
-      await this.processStepExecution(stepExecution.executionId, fallbackTransition.toStep.id);
-    } else if (transitions.length > 0) {
-      // No timeout branch, follow first transition
-      const firstTransition = transitions[0];
-      if (firstTransition?.toStep) {
-        const nextStep = firstTransition.toStep;
-        await prisma.workflowExecution.update({
-          where: {id: stepExecution.executionId},
-          data: {
-            status: WorkflowExecutionStatus.RUNNING,
-            currentStepId: nextStep.id,
-          },
-        });
-
-        await this.processStepExecution(stepExecution.executionId, nextStep.id);
-      }
-    } else {
-      // No transitions, complete workflow
-      await prisma.workflowExecution.update({
-        where: {id: stepExecution.executionId},
-        data: {
-          status: WorkflowExecutionStatus.COMPLETED,
-          completedAt: new Date(),
-        },
-      });
-    }
+    await this.processNextSteps(stepExecution.execution, stepExecution.step, result);
   }
 
   /**
@@ -1290,7 +1248,7 @@ export class WorkflowExecutionService {
    * Process next steps based on transitions
    */
   private static async processNextSteps(
-    execution: WorkflowExecutionWithRelations,
+    execution: Pick<WorkflowExecution, 'id'>,
     currentStep: WorkflowStepWithTransitions,
     stepResult: StepResult,
   ): Promise<void> {
@@ -1309,7 +1267,8 @@ export class WorkflowExecutionService {
       return;
     }
 
-    // Find the appropriate transition based on conditions
+    // WAIT_FOR_EVENT owns a distinct routing dimension. It does not borrow the
+    // condition JSON used by CONDITION steps.
     let nextStep = null;
 
     if (currentStep.type === 'WAIT_FOR_EVENT') {
@@ -1523,7 +1482,7 @@ export class WorkflowExecutionService {
   private static evaluateTransitionCondition(
     _condition: Prisma.JsonValue,
     _stepResult: StepResult,
-    _execution: WorkflowExecutionWithRelations,
+    _execution: Pick<WorkflowExecution, 'id'>,
   ): boolean {
     // Implement custom transition condition logic here
     // For now, return false as default

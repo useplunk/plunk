@@ -311,7 +311,7 @@ export class Workflows {
   public async createTransition(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;
     const workflowId = req.params.id;
-    const {fromStepId, toStepId, condition, priority} = req.body;
+    const {fromStepId, toStepId, condition, waitOutcome, priority} = req.body;
 
     if (!workflowId) {
       return res.status(400).json({error: 'Workflow ID is required'});
@@ -325,6 +325,7 @@ export class Workflows {
       fromStepId,
       toStepId,
       condition,
+      waitOutcome,
       priority,
     });
 

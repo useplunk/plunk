@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {WorkflowExecutionStatus, WorkflowStepType, WorkflowTriggerType} from '@plunk/db';
+import {WorkflowExecutionStatus, WorkflowStepType, WorkflowTriggerType, WorkflowWaitOutcome} from '@plunk/db';
 import {WorkflowService} from '../WorkflowService';
 import {Keys} from '../keys';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
@@ -426,9 +426,9 @@ describe('WorkflowService', () => {
       const mine = await factories.createWorkflow({projectId});
       const foreign = await factories.createWorkflow({projectId: otherProject.id});
 
-      await expect(
-        WorkflowService.bulkUpdate(projectId, {ids: [mine.id, foreign.id], delete: true}),
-      ).rejects.toThrow(/not found in this project/i);
+      await expect(WorkflowService.bulkUpdate(projectId, {ids: [mine.id, foreign.id], delete: true})).rejects.toThrow(
+        /not found in this project/i,
+      );
 
       // Both survive — atomic rollback, no cross-project leak.
       expect(await prisma.workflow.findUnique({where: {id: mine.id}})).not.toBeNull();
@@ -443,9 +443,9 @@ describe('WorkflowService', () => {
         status: WorkflowExecutionStatus.RUNNING,
       });
 
-      await expect(
-        WorkflowService.bulkUpdate(projectId, {ids: [busy.id, idle.id], delete: true}),
-      ).rejects.toThrow(/active execution/i);
+      await expect(WorkflowService.bulkUpdate(projectId, {ids: [busy.id, idle.id], delete: true})).rejects.toThrow(
+        /active execution/i,
+      );
 
       // Partial delete must be impossible — the idle workflow must survive too.
       expect(await prisma.workflow.findUnique({where: {id: busy.id}})).not.toBeNull();
@@ -817,6 +817,83 @@ describe('WorkflowService', () => {
 
       expect(yesTransition.condition).toEqual({branch: 'yes'});
       expect(noTransition.condition).toEqual({branch: 'no'});
+    });
+
+    it('should create distinct event and timeout routes from WAIT_FOR_EVENT steps', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const waitStep = await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        type: WorkflowStepType.WAIT_FOR_EVENT,
+        config: {eventName: 'purchase.completed', timeout: 3600},
+      });
+      const eventStep = await factories.createWorkflowStep({workflowId: workflow.id});
+      const timeoutStep = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      const eventTransition = await WorkflowService.createTransition(projectId, workflow.id, {
+        fromStepId: waitStep.id,
+        toStepId: eventStep.id,
+        waitOutcome: WorkflowWaitOutcome.EVENT,
+      });
+      const timeoutTransition = await WorkflowService.createTransition(projectId, workflow.id, {
+        fromStepId: waitStep.id,
+        toStepId: timeoutStep.id,
+        waitOutcome: WorkflowWaitOutcome.TIMEOUT,
+      });
+
+      expect(eventTransition.waitOutcome).toBe(WorkflowWaitOutcome.EVENT);
+      expect(timeoutTransition.waitOutcome).toBe(WorkflowWaitOutcome.TIMEOUT);
+      expect(eventTransition.condition).toBeNull();
+      expect(timeoutTransition.condition).toBeNull();
+    });
+
+    it('should reject duplicate or condition-based WAIT_FOR_EVENT routes', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const waitStep = await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        type: WorkflowStepType.WAIT_FOR_EVENT,
+      });
+      const step2 = await factories.createWorkflowStep({workflowId: workflow.id});
+      const step3 = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      await WorkflowService.createTransition(projectId, workflow.id, {
+        fromStepId: waitStep.id,
+        toStepId: step2.id,
+        waitOutcome: WorkflowWaitOutcome.EVENT,
+      });
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: waitStep.id,
+          toStepId: step3.id,
+          waitOutcome: WorkflowWaitOutcome.EVENT,
+        }),
+      ).rejects.toThrow(/already has a transition/i);
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: waitStep.id,
+          toStepId: step3.id,
+          condition: {branch: 'timeout'},
+        }),
+      ).rejects.toThrow(/waitOutcome/i);
+    });
+
+    it('should reject a timeout route when the wait has no timeout', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const waitStep = await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        type: WorkflowStepType.WAIT_FOR_EVENT,
+        config: {eventName: 'purchase.completed'},
+      });
+      const timeoutStep = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: waitStep.id,
+          toStepId: timeoutStep.id,
+          waitOutcome: WorkflowWaitOutcome.TIMEOUT,
+        }),
+      ).rejects.toThrow(/positive timeout/i);
     });
 
     it('should reject a second outgoing transition from a non-condition step', async () => {

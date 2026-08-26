@@ -438,13 +438,15 @@ model WorkflowTransition {
   toStepId String
 
   // Conditional routing
-  condition Json? // null = always follow, or { branch: "yes" } for condition steps
-  priority  Int   @default(0) // Order to evaluate transitions
+  condition   Json? // CONDITION steps: { branch: "yes" }; null for other step types
+  waitOutcome WorkflowWaitOutcome? // WAIT_FOR_EVENT steps: event arrival or timeout
+  priority    Int                  @default(0) // Order to evaluate transitions
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([fromStepId, waitOutcome])
   @@index([fromStepId])
   @@index([toStepId])
   @@map("workflow_transitions")
@@ -812,6 +814,11 @@ enum WorkflowStepType {
   EXIT // Early exit point
   WEBHOOK // Call external webhook
   UPDATE_CONTACT // Update contact fields
+}
+
+enum WorkflowWaitOutcome {
+  EVENT
+  TIMEOUT
 }
 
 enum WorkflowExecutionStatus {
