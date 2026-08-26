@@ -39,9 +39,8 @@ export class Actions {
    * Response:
    * - success: boolean
    * - data: object with contact ID, event ID, and timestamp
-   * - 500 if synchronous workflow dispatch fails after the event is stored;
-   *   Plunk retries that durable event internally, so callers must not replay it
-   *   with a fresh Idempotency-Key
+   * - 200 once the event is stored; workflow dispatch may finish synchronously
+   *   or through Plunk's bounded internal reconciliation sweep
    *
    * Example:
    * {

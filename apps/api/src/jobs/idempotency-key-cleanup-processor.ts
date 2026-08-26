@@ -49,7 +49,60 @@ async function processCleanup(job: Job<IdempotencyKeyCleanupJobData>): Promise<{
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    signale.success(`[IDEMPOTENCY-CLEANUP] Cleanup complete. Deleted ${totalDeleted} expired keys`);
+    for (;;) {
+      const deleted = await prisma.$executeRaw`
+        DELETE FROM "sns_webhook_receipts"
+        WHERE "id" IN (
+          SELECT "id" FROM "sns_webhook_receipts"
+          WHERE "expiresAt" < NOW()
+          LIMIT ${BATCH_SIZE}
+        )
+      `;
+
+      totalDeleted += deleted;
+
+      if (deleted < BATCH_SIZE) {
+        break;
+      }
+
+      signale.info(`[IDEMPOTENCY-CLEANUP] Deleted ${totalDeleted} claims so far, continuing...`);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    const reconciliationStartedAt = new Date();
+    const pendingEvents = await prisma.event.findMany({
+      where: {
+        processedAt: null,
+        dispatchFailedAt: null,
+        createdAt: {lt: new Date(Date.now() - EVENT_DISPATCH_GRACE_MS)},
+        AND: [
+          {OR: [{nextDispatchAt: null}, {nextDispatchAt: {lte: reconciliationStartedAt}}]},
+          {OR: [{dispatchLeaseExpiresAt: null}, {dispatchLeaseExpiresAt: {lte: reconciliationStartedAt}}]},
+        ],
+      },
+      select: {id: true},
+      orderBy: {createdAt: 'asc'},
+      take: EVENT_DISPATCH_BATCH_SIZE,
+    });
+    let dispatchedEvents = 0;
+
+    for (const event of pendingEvents) {
+      try {
+        await EventService.dispatchStoredEvent(event.id);
+        dispatchedEvents += 1;
+      } catch (error) {
+        // dispatchStoredEvent recorded backoff or terminal failure. Keep the
+        // event durable without letting it monopolize every sweep.
+        signale.error(`[EVENT-OUTBOX] Failed to dispatch event ${event.id}:`, error);
+      }
+    }
+
+    signale.success(`[IDEMPOTENCY-CLEANUP] Cleanup complete. Deleted ${totalDeleted} expired records`);
+    if (pendingEvents.length > 0) {
+      signale.info(
+        `[EVENT-OUTBOX] Dispatched ${dispatchedEvents}/${pendingEvents.length} pending events; failures retry next sweep`,
+      );
+    }
 
     await job.updateProgress(100);
 

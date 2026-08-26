@@ -1,3 +1,5 @@
+import {randomUUID} from 'node:crypto';
+
 import type {Event} from '@plunk/db';
 import {Prisma} from '@plunk/db';
 import type {FilterCondition, FilterGroup} from '@plunk/types';
@@ -9,6 +11,17 @@ import {redis} from '../database/redis.js';
 import {Keys} from './keys.js';
 
 import {WorkflowExecutionService} from './WorkflowExecutionService.js';
+
+const EVENT_DISPATCH_MAX_ATTEMPTS = 8;
+const EVENT_DISPATCH_BASE_DELAY_MS = 60 * 1000;
+const EVENT_DISPATCH_MAX_DELAY_MS = 60 * 60 * 1000;
+const EVENT_DISPATCH_LEASE_MS = 15 * 60 * 1000;
+const EVENT_DISPATCH_HEARTBEAT_MS = EVENT_DISPATCH_LEASE_MS / 3;
+
+type DispatchLeaseGuard = {
+  assertOwnership: () => Promise<void>;
+  stop: () => void;
+};
 
 /**
  * Event Service
@@ -37,16 +50,200 @@ export class EventService {
       },
     });
 
-    // Trigger workflows that are listening for this event
-    await this.triggerWorkflows(projectId, eventName, contactId, data);
-
-    // Resume workflows waiting for this event
-    await WorkflowExecutionService.handleEvent(projectId, eventName, contactId, data);
+    try {
+      await this.dispatchStoredEvent(event.id);
+    } catch (error) {
+      // The event is already committed. Keep processedAt null and acknowledge
+      // ingestion; the bounded reconciliation sweep owns workflow delivery.
+      signale.error(`[EVENT-OUTBOX] Event ${event.id} is stored but dispatch failed:`, error);
+    }
 
     return event;
   }
 
   /**
+   * Dispatch a durably stored event to workflow triggers and waits. A failed
+   * dispatch leaves processedAt null so the reconciliation worker can retry it.
+   * The fenced lease keeps a sweep from overlapping live request dispatch.
+   */
+  public static async dispatchStoredEvent(eventId: string): Promise<void> {
+    const leaseId = randomUUID();
+    const now = new Date();
+    const claimed = await prisma.event.updateMany({
+      where: {
+        id: eventId,
+        processedAt: null,
+        dispatchFailedAt: null,
+        OR: [{dispatchLeaseExpiresAt: null}, {dispatchLeaseExpiresAt: {lte: now}}],
+      },
+      data: {
+        dispatchLeaseId: leaseId,
+        dispatchLeaseExpiresAt: new Date(now.getTime() + EVENT_DISPATCH_LEASE_MS),
+      },
+    });
+    if (claimed.count === 0) return;
+
+    const lease = this.startDispatchLeaseHeartbeat(eventId, leaseId);
+    try {
+      const event = await prisma.event.findUnique({where: {id: eventId}});
+      if (!event) return;
+
+      const data =
+        event.data && typeof event.data === 'object' && !Array.isArray(event.data)
+          ? (event.data as Record<string, unknown>)
+          : undefined;
+
+      let errors: unknown[] = [];
+      try {
+        errors = await this.triggerWorkflows(
+          event.id,
+          event.projectId,
+          event.name,
+          event.contactId ?? undefined,
+          data,
+          lease.assertOwnership,
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+
+      try {
+        await lease.assertOwnership();
+        await WorkflowExecutionService.handleEvent(
+          event.projectId,
+          event.name,
+          event.contactId ?? undefined,
+          data,
+          event.id,
+          lease.assertOwnership,
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+
+      if (errors.length > 0) {
+        throw new AggregateError(errors, `Event ${event.id} failed ${errors.length} dispatch target(s)`);
+      }
+
+      await lease.assertOwnership();
+      const completed = await prisma.event.updateMany({
+        where: {id: event.id, dispatchLeaseId: leaseId, processedAt: null, dispatchFailedAt: null},
+        data: {
+          processedAt: new Date(),
+          nextDispatchAt: null,
+          dispatchError: null,
+          dispatchLeaseId: null,
+          dispatchLeaseExpiresAt: null,
+        },
+      });
+
+      if (completed.count !== 1) {
+        throw new Error(`Event ${event.id} dispatch lease was lost before acknowledgement`);
+      }
+    } catch (error) {
+      await this.recordDispatchFailure(eventId, leaseId, error);
+      throw error;
+    } finally {
+      lease.stop();
+    }
+  }
+
+  /**
+   * Renew a fenced lease while workflow continuations are running. A failed
+   * heartbeat permanently invalidates this dispatcher so it cannot keep
+   * delivering after another worker may have reclaimed the event.
+   */
+  private static startDispatchLeaseHeartbeat(
+    eventId: string,
+    leaseId: string,
+    intervalMs = EVENT_DISPATCH_HEARTBEAT_MS,
+  ): DispatchLeaseGuard {
+    let heartbeatError: unknown;
+    let renewal: Promise<void> | undefined;
+
+    const renew = async (): Promise<void> => {
+      if (heartbeatError) throw heartbeatError;
+      if (renewal) return renewal;
+
+      renewal = (async () => {
+        const now = new Date();
+        const renewed = await prisma.event.updateMany({
+          where: {id: eventId, dispatchLeaseId: leaseId, processedAt: null, dispatchFailedAt: null},
+          data: {dispatchLeaseExpiresAt: new Date(now.getTime() + EVENT_DISPATCH_LEASE_MS)},
+        });
+        if (renewed.count !== 1) {
+          throw new Error(`Event ${eventId} dispatch lease is no longer owned by ${leaseId}`);
+        }
+      })()
+        .catch(error => {
+          heartbeatError = error;
+          throw error;
+        })
+        .finally(() => {
+          renewal = undefined;
+        });
+
+      return renewal;
+    };
+
+    const timer = setInterval(() => {
+      void renew().catch(error => {
+        signale.error(`[EVENT-OUTBOX] Event ${eventId} dispatch lease heartbeat failed:`, error);
+      });
+    }, intervalMs);
+    timer.unref();
+
+    return {
+      assertOwnership: renew,
+      stop: () => clearInterval(timer),
+    };
+  }
+
+  /**
+   * Back off repeated failures and dead-letter a poison event after a bounded
+   * number of attempts. Terminal rows remain inspectable but leave the sweep.
+   */
+  private static async recordDispatchFailure(eventId: string, leaseId: string, error: unknown): Promise<void> {
+    const event = await prisma.event.findUnique({
+      where: {id: eventId},
+      select: {dispatchAttempts: true, dispatchLeaseId: true, processedAt: true, dispatchFailedAt: true},
+    });
+    if (!event || event.dispatchLeaseId !== leaseId || event.processedAt || event.dispatchFailedAt) return;
+
+    const attempts = event.dispatchAttempts + 1;
+    const terminal = attempts >= EVENT_DISPATCH_MAX_ATTEMPTS;
+    const delayMs = Math.min(
+      EVENT_DISPATCH_BASE_DELAY_MS * 2 ** Math.max(0, attempts - 1),
+      EVENT_DISPATCH_MAX_DELAY_MS,
+    );
+    const message = (
+      error instanceof AggregateError
+        ? `${error.message}: ${error.errors
+            .map(cause => (cause instanceof Error ? cause.message : String(cause)))
+            .join('; ')}`
+        : error instanceof Error
+          ? error.message
+          : String(error)
+    ).slice(0, 2000);
+
+    const updated = await prisma.event.updateMany({
+      where: {id: eventId, dispatchLeaseId: leaseId, processedAt: null, dispatchFailedAt: null},
+      data: {
+        dispatchAttempts: attempts,
+        dispatchError: message,
+        nextDispatchAt: terminal ? null : new Date(Date.now() + delayMs),
+        dispatchFailedAt: terminal ? new Date() : null,
+        dispatchLeaseId: null,
+        dispatchLeaseExpiresAt: null,
+      },
+    });
+
+    if (terminal && updated.count > 0) {
+      signale.error(`[EVENT-OUTBOX] Event ${eventId} exhausted ${attempts} dispatch attempts and was dead-lettered`);
+    }
+  }
+
+   /**
    * Invalidate the workflow cache for a project
    * Should be called when workflows are enabled/disabled or updated
    */
@@ -349,11 +546,14 @@ export class EventService {
    * Uses Redis caching for enabled workflows to improve performance
    */
   private static async triggerWorkflows(
+    eventId: string,
     projectId: string,
     eventName: string,
     contactId?: string,
     data?: Record<string, unknown>,
-  ): Promise<void> {
+    assertDispatchOwnership?: () => Promise<void>,
+  ): Promise<unknown[]> {
+    const errors: unknown[] = [];
     // Try to get workflows from cache
     const cacheKey = Keys.Workflow.enabled(projectId);
     let workflows;
@@ -395,9 +595,16 @@ export class EventService {
 
       // Check if this workflow is triggered by this event
       if (triggerConfig?.eventName === eventName) {
+        await assertDispatchOwnership?.();
+
         // If event is for a specific contact, start workflow for that contact
         if (contactId) {
-          await this.startWorkflowForContact(workflow.id, contactId, data);
+          try {
+            await this.startWorkflowForContact(workflow.id, contactId, eventId, data);
+          } catch (error) {
+            signale.error(`[EVENT] Failed to enroll workflow ${workflow.id} from event ${eventId}:`, error);
+            errors.push(error);
+          }
         } else {
           // If event is not contact-specific, you might want different logic
           // For example, trigger for all contacts, or skip
@@ -405,6 +612,8 @@ export class EventService {
         }
       }
     }
+
+    return errors;
   }
 
   /**
@@ -413,6 +622,7 @@ export class EventService {
   private static async startWorkflowForContact(
     workflowId: string,
     contactId: string,
+    sourceEventId: string,
     context?: Record<string, unknown>,
   ): Promise<void> {
     // Get workflow with steps and configuration
@@ -444,6 +654,33 @@ export class EventService {
       return;
     }
 
+    const triggerStep = workflow.steps[0];
+
+    if (!triggerStep) {
+      signale.error(`[EVENT] Workflow ${workflowId} trigger step not found`);
+      return;
+    }
+
+    // Once a step has begun, enrollment is durably delivered. Do not replay a
+    // failed step: its external effect may have succeeded before the engine
+    // recorded the failure. A RUNNING execution with no step row is safe to
+    // resume because no workflow step has started yet.
+    const eventExecution = await prisma.workflowExecution.findFirst({
+      where: {workflowId, sourceEventId},
+      select: {
+        id: true,
+        status: true,
+        stepExecutions: {select: {id: true}, take: 1},
+      },
+    });
+
+    if (eventExecution) {
+      if (eventExecution.status === 'RUNNING' && eventExecution.stepExecutions.length === 0) {
+        await WorkflowExecutionService.processStepExecution(eventExecution.id, triggerStep.id);
+      }
+      return;
+    }
+
     // Check re-entry rules
     if (!workflow.allowReentry) {
       // If re-entry is not allowed, check if contact has ANY execution (regardless of status)
@@ -472,30 +709,33 @@ export class EventService {
       }
     }
 
-    const triggerStep = workflow.steps[0];
-
-    if (!triggerStep) {
-      signale.error(`[EVENT] Workflow ${workflowId} trigger step not found`);
-      return;
+    let execution;
+    try {
+      execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId,
+          contactId,
+          status: 'RUNNING',
+          currentStepId: triggerStep.id,
+          sourceEventId,
+          context: context ? toPrismaJson(context) : undefined,
+        },
+      });
+    } catch (error) {
+      // Concurrent dispatchers may both observe no enrollment. The database
+      // chooses one winner; the other has nothing left to deliver.
+      if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+        return;
+      }
+      throw error;
     }
-
-    // Create workflow execution
-    const execution = await prisma.workflowExecution.create({
-      data: {
-        workflowId,
-        contactId,
-        status: 'RUNNING',
-        currentStepId: triggerStep.id,
-        context: context ? toPrismaJson(context) : undefined,
-      },
-    });
 
     signale.info(
       `[EVENT] Started workflow ${workflowId} execution ${execution.id} for contact ${contactId}${workflow.allowReentry ? ' (re-entry allowed)' : ''}`,
     );
 
-    // A dispatch failure must propagate so the event stays unprocessed and the
-    // request returns 5xx. The maintenance sweep will retry the durable event.
+    // A dispatch failure must propagate so the event stays unprocessed. The
+    // request still acknowledges the committed event; maintenance retries it.
     await WorkflowExecutionService.processStepExecution(execution.id, triggerStep.id);
   }
 

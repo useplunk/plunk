@@ -53,11 +53,11 @@ model Project {
   // Card verification: the onboarding charge is customer-initiated and on-session, which
   // proves nothing about whether the card accepts the merchant-initiated renewal a month
   // later. A second, off-session charge tests that directly. See CardVerificationService.
-  cardVerification       CardVerificationStatus?
-  cardVerificationIntent String? // PaymentIntent of the last attempt, for support/debugging
-  cardVerificationAt     DateTime? // When the current status was set; drives the reconciliation sweep
-  cardVerificationSession String? // Checkout session, so a retry reuses the same Stripe idempotency key
-  cardVerificationAttempts Int @default(0) // Sweep retries spent; bounds them and marks escalation
+  cardVerification         CardVerificationStatus?
+  cardVerificationIntent   String? // PaymentIntent of the last attempt, for support/debugging
+  cardVerificationAt       DateTime? // When the current status was set; drives the reconciliation sweep
+  cardVerificationSession  String? // Checkout session, so a retry reuses the same Stripe idempotency key
+  cardVerificationAttempts Int                     @default(0) // Sweep retries spent; bounds them and marks escalation
 
   // Billing Limits (per calendar month, null = unlimited)
   billingLimitWorkflows     Int? // Max workflow emails per month
@@ -460,6 +460,11 @@ model WorkflowExecution {
   contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
   contactId String
 
+  // Event that enrolled this execution. The durable event outbox uses this to
+  // recognize completed enrollment without replaying workflow side effects.
+  sourceEvent   Event?  @relation(fields: [sourceEventId], references: [id], onDelete: SetNull)
+  sourceEventId String?
+
   // Execution state
   status WorkflowExecutionStatus @default(RUNNING)
 
@@ -484,10 +489,12 @@ model WorkflowExecution {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([workflowId, sourceEventId])
   @@index([workflowId, contactId]) // Index for querying executions by workflow and contact
   @@index([workflowId, status])
   @@index([contactId, status])
   @@index([status, currentStepId])
+  @@index([sourceEventId])
   @@map("workflow_executions")
 }
 
@@ -500,6 +507,11 @@ model WorkflowStepExecution {
 
   step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
   stepId String
+
+  // Event that claimed this wait for resumption. It keeps a failed continuation
+  // discoverable by the same durable event while excluding later events/timeouts.
+  resumeEvent   Event?  @relation(fields: [resumeEventId], references: [id], onDelete: SetNull)
+  resumeEventId String?
 
   // Execution state
   status StepExecutionStatus @default(PENDING)
@@ -524,6 +536,7 @@ model WorkflowStepExecution {
 
   @@index([executionId, status])
   @@index([stepId])
+  @@index([resumeEventId])
   @@index([status, scheduledFor]) // For delay queue processor
   @@index([scheduledFor])
   @@map("workflow_step_executions")
@@ -634,6 +647,19 @@ model Event {
   email   Email?  @relation(fields: [emailId], references: [id], onDelete: Cascade)
   emailId String?
 
+  workflowExecutions    WorkflowExecution[]
+  resumedStepExecutions WorkflowStepExecution[]
+
+  // Workflow dispatch is separate from durable event ingestion. Null means a
+  // committed event still needs dispatch or reconciliation.
+  processedAt            DateTime?
+  dispatchAttempts       Int       @default(0)
+  nextDispatchAt         DateTime?
+  dispatchFailedAt       DateTime?
+  dispatchError          String?
+  dispatchLeaseId        String?
+  dispatchLeaseExpiresAt DateTime?
+
   // Timestamps
   createdAt DateTime @default(now())
 
@@ -641,6 +667,9 @@ model Event {
   @@index([contactId])
   @@index([emailId])
   @@index([createdAt])
+  @@index([processedAt, createdAt])
+  // The partial reconciliation index lives in its SQL migration because Prisma
+  // schema syntax cannot express its pending-only predicate.
   @@index([projectId, contactId, name, createdAt]) // For event-based segment queries (fast!)
   @@index([contactId, name, createdAt]) // For per-contact event lookups
   @@index([projectId, name, createdAt]) // For event stats and analytics by type over time
