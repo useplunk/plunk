@@ -8,19 +8,17 @@
     "build": "tsc"
   },
   "devDependencies": {
-    "@plunk/typescript-config": "*",
-    "@react-email/preview-server": "5.0.1",
-    "@types/react": "^19.2.7",
-    "react-email": "5.0.1",
-    "typescript": "^5.7.2"
+    "@plunk/typescript-config": "workspace:*",
+    "@types/react": "^19.2.14",
+    "react-email": "6.1.1",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@plunk/db": "*",
-    "@plunk/types": "*",
-    "@react-email/components": "^1.0.0",
-    "@react-email/tailwind": "^2.0.1",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1"
+    "@plunk/db": "workspace:*",
+    "@plunk/types": "workspace:*",
+    "@react-email/components": "^1.0.12",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   },
   "exports": {
     ".": "./dist/index.js"

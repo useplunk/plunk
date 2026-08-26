@@ -1,0 +1,1125 @@
+{
+  "finding_counts": {
+    "apps/api/src/app.ts": {
+      "crap_critical": {
+        "count": 2
+      }
+    },
+    "apps/api/src/controllers/Actions.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Activity.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Auth.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "apps/api/src/controllers/Campaigns.ts": {
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "apps/api/src/controllers/Contacts.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 7
+      }
+    },
+    "apps/api/src/controllers/Domains.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Events.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Oauth/Github.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Oauth/Google.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Projects.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Segments.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Templates.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Uploads.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/controllers/Users.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/api/src/controllers/Webhooks.ts": {
+      "complexity_critical": {
+        "count": 2
+      },
+      "crap_critical": {
+        "count": 2
+      }
+    },
+    "apps/api/src/controllers/Workflows.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/jobs/bulk-contact-processor.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/jobs/domain-verification.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/jobs/email-processor.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/jobs/import-processor.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/jobs/segment-count-processor.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/middleware/__tests__/requestLogger.test.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/middleware/auth.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 3
+      }
+    },
+    "apps/api/src/middleware/requestLogger.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/ActivityService.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 4
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/AnalyticsService.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/api/src/services/BillingLimitService.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/CampaignService.ts": {
+      "complexity_high": {
+        "count": 2
+      },
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/ContactService.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/DomainService.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/EmailService.ts": {
+      "complexity_critical": {
+        "count": 2
+      },
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "apps/api/src/services/EmailVerificationService.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/api/src/services/EventService.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/QueueService.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/S3Service.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/SESService.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/SecurityService.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/SegmentService.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/UserService.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/api/src/services/WorkflowExecutionService.ts": {
+      "complexity_critical": {
+        "count": 3
+      },
+      "crap_critical": {
+        "count": 3
+      },
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "apps/api/src/services/WorkflowService.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "apps/api/src/services/__tests__/SecurityService.test.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/components/CodeBlock.tsx": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/components/ComparisonTable.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/components/Navbar/Navbar.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/components/guides/GuideLayout.tsx": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/components/guides/InfoBox.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/components/tools/EmailVerificationResult.tsx": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/components/tools/MarkdownEmailToolbar.tsx": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/lib/network.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/middleware.ts": {
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "apps/landing/src/pages/api/verify-email.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/pages/features/email-editor.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/pages/features/inbound-email.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/pages/features/segments.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/pages/features/smtp.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/pages/features/workflows.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/pages/index.tsx": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/landing/src/pages/tools/spam-checker.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/landing/src/pages/tools/verify-email.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/smtp/src/server.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/ActivityFeed.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/ActivityItem.tsx": {
+      "complexity_critical": {
+        "count": 2
+      },
+      "crap_critical": {
+        "count": 4
+      }
+    },
+    "apps/web/src/components/ApiKeyDisplay.tsx": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/BillingConsumption.tsx": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/BillingInvoices.tsx": {
+      "crap_high": {
+        "count": 3
+      }
+    },
+    "apps/web/src/components/BillingLimits.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "apps/web/src/components/CampaignSelectionDialog.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/CommandPalette.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/ContactPicker.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/DashboardLayout.tsx": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/DataManagementSettings.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/web/src/components/DomainsSettings.tsx": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "apps/web/src/components/EmailDomainInput.tsx": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/EmailEditor/EmailEditor.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 4
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/web/src/components/EmailEditor/ResizableImage.tsx": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/web/src/components/EmailEditor/Toolbar.tsx": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/EmailPreviewModal.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/EmailSettings.tsx": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/KeyValueEditor.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/QuickStart.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/SecuritySettings.tsx": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/SecurityWarningBanner.tsx": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/SegmentFilterBuilder.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 3
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "apps/web/src/components/SmtpSettings.tsx": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/TeamSettings.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/TemplateSearchPicker.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/TemplateSelectionDialog.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/UnpaidInvoiceBanner.tsx": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/WorkflowBuilder.tsx": {
+      "complexity_critical": {
+        "count": 3
+      },
+      "crap_critical": {
+        "count": 5
+      },
+      "crap_high": {
+        "count": 4
+      },
+      "crap_moderate": {
+        "count": 5
+      }
+    },
+    "apps/web/src/components/WorkflowVisualizer.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 3
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/onboarding/CodeTabs.tsx": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/components/onboarding/OnboardingBanner.tsx": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/lib/contexts/ActiveProjectProvider.tsx": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/lib/hooks/useAnalytics.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/lib/hooks/useContacts.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/lib/hooks/useDashboardStats.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/lib/hooks/useOnboardingStatus.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/lib/network.ts": {
+      "crap_critical": {
+        "count": 2
+      }
+    },
+    "apps/web/src/lib/validation.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/_app.tsx": {
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/web/src/pages/activity/index.tsx": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/analytics/index.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/auth/login.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/auth/reset-password.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/auth/signup.tsx": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/auth/verify-email.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/web/src/pages/campaigns/[id].tsx": {
+      "complexity_critical": {
+        "count": 2
+      },
+      "crap_critical": {
+        "count": 3
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/campaigns/create.tsx": {
+      "complexity_critical": {
+        "count": 2
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/campaigns/index.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 3
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/contacts/[id].tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/contacts/index.tsx": {
+      "complexity_critical": {
+        "count": 5
+      },
+      "crap_critical": {
+        "count": 5
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/web/src/pages/index.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/manage/[id].tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/onboarding/developer.tsx": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/onboarding/workflows.tsx": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/segments/[id].tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/web/src/pages/segments/index.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "apps/web/src/pages/segments/new.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/settings/index.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "apps/web/src/pages/subscribe/[id].tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/templates/[id].tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/templates/create.tsx": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/templates/index.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/unsubscribe/[id].tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/web/src/pages/workflows/[id].tsx": {
+      "complexity_critical": {
+        "count": 7
+      },
+      "crap_critical": {
+        "count": 9
+      },
+      "crap_high": {
+        "count": 9
+      },
+      "crap_moderate": {
+        "count": 9
+      }
+    },
+    "apps/web/src/pages/workflows/index.tsx": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 3
+      }
+    },
+    "apps/wiki/lib/remark-replace-env.mjs": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "apps/wiki/middleware.ts": {
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "packages/ui/src/components/atoms/Chart.tsx": {
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "test/helpers/factories.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "test/mocks/queue.mock.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    }
+  },
+  "runtime_coverage_findings": [],
+  "target_keys": [
+    "apps/api/src/services/DomainService.ts:complexity",
+    "apps/web/src/lib/hooks/useOnboardingPath.ts:high impact",
+    "apps/web/src/pages/campaigns/create.tsx:complexity",
+    "apps/api/src/services/ContactService.ts:complexity",
+    "apps/web/src/pages/workflows/[id].tsx:complexity",
+    "apps/api/src/jobs/email-processor.ts:complexity",
+    "apps/api/src/services/SecurityService.ts:complexity",
+    "apps/web/src/components/ContactPicker.tsx:complexity",
+    "apps/landing/src/middleware.ts:untested risk",
+    "apps/api/src/services/EmailService.ts:circular dependency",
+    "apps/api/src/services/WorkflowExecutionService.ts:circular dependency",
+    "apps/wiki/middleware.ts:untested risk",
+    "apps/web/src/lib/hooks/useOnboardingComplete.ts:high impact",
+    "apps/api/src/services/EventService.ts:circular dependency",
+    "apps/web/src/components/CommandPalette.tsx:complexity",
+    "apps/api/src/jobs/domain-verification.ts:complexity",
+    "apps/api/src/controllers/Actions.ts:complexity",
+    "apps/api/src/controllers/Webhooks.ts:complexity",
+    "apps/web/src/pages/campaigns/[id].tsx:complexity",
+    "apps/web/src/components/TemplateSelectionDialog.tsx:complexity",
+    "apps/web/src/components/EmailEditor/EmailEditor.tsx:complexity",
+    "apps/web/src/components/DataManagementSettings.tsx:complexity",
+    "apps/api/src/services/SegmentService.ts:complexity",
+    "apps/web/src/components/ActivityItem.tsx:complexity",
+    "apps/web/src/pages/contacts/index.tsx:complexity",
+    "apps/web/src/pages/segments/[id].tsx:complexity",
+    "apps/api/src/jobs/import-processor.ts:complexity",
+    "apps/web/src/pages/settings/index.tsx:complexity",
+    "apps/api/src/services/ActivityService.ts:complexity",
+    "apps/web/src/components/SegmentFilterBuilder.tsx:complexity",
+    "apps/web/src/pages/analytics/index.tsx:complexity",
+    "apps/web/src/components/EmailEditor/Toolbar.tsx:complexity",
+    "apps/smtp/src/server.ts:complexity"
+  ]
+}

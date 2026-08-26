@@ -1,0 +1,77 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  "entry": [
+    "apps/api/src/app.ts",
+    "apps/api/src/jobs/worker.ts",
+    "apps/smtp/src/server.ts",
+    "apps/wiki/scripts/*.{js,mts}",
+    "apps/wiki/middleware.ts",
+    "apps/wiki/source.config.ts",
+    "test/setup.ts"
+  ],
+  "ignorePatterns": [
+    ".claude/**",
+    ".turbo/**",
+    "**/.turbo/**",
+    "**/.next/**",
+    "**/dist/**",
+    "docker/**",
+    "packages/db/prisma/migrations/**",
+    "apps/wiki/.source/**",
+    "apps/wiki/content/**",
+    // Static assets served by URL convention (a <script src> the Docker entrypoint rewrites, or
+    // a Next.js public/ passthrough), not reached by any import graph.
+    "apps/*/public/**",
+    "test/performance/**"
+  ],
+  "workspaces": {
+    "patterns": ["apps/*", "packages/*"]
+  },
+  "ignoreDependencies": [
+    // Root-owned toolchain deps: apps/api and apps/smtp import these only from their
+    // eslint.config.mjs, and apps/wiki's generate-openapi.js imports dotenv — all three
+    // resolve via Node's parent-directory node_modules walk-up to this root's own
+    // devDependency, the same deliberate "shared tooling lives at the workspace root only"
+    // convention eslint/typescript/prettier/turbo already follow here. Not shippable code,
+    // so no per-app copy.
+    "@eslint/js",
+    "typescript-eslint",
+    "dotenv"
+  ],
+  "ignoreUnresolvedImports": [
+    // apps/api/src/services/__tests__/WorkflowExecutionService.integration.test.ts mocks
+    // '../../services/ses', which has never resolved (the real file is ./SESService.ts,
+    // exporting sendRawEmail, not an `ses` object) — a stale test mock, pre-existing and
+    // inert since it targets a path that never matched what EmailService actually imports.
+    // Left for a human to fix or remove; out of scope for a dead-code pass on an already-red
+    // test suite.
+    "../../services/ses"
+  ],
+  "ignoreExports": [
+    {
+      // Next.js App Router convention: generateStaticParams is called by the framework at
+      // build time, not imported by any module. fallow's Next.js rule recognizes it on
+      // page.tsx/layout.tsx (see apps/wiki/app/[[...slug]]/page.tsx, correctly unflagged)
+      // but not on a route.ts handler. Globbed past the literal `[[...slug]]` segment
+      // because "file" is a glob and square brackets are character-class syntax there.
+      "file": "apps/wiki/app/llms.mdx/**/route.ts",
+      "exports": ["generateStaticParams"]
+    }
+  ],
+  "rules": {
+    "unused-files": "warn",
+    "unused-exports": "warn",
+    "unused-types": "warn",
+    "unused-dependencies": "warn",
+    "unused-dev-dependencies": "warn",
+    "unresolved-imports": "error",
+    "unlisted-dependencies": "error",
+    "duplicate-exports": "error",
+    "circular-dependencies": "warn"
+  },
+  "audit": {
+    "deadCodeBaseline": ".fallow/baselines/dead-code.json",
+    "healthBaseline": ".fallow/baselines/health.json",
+    "dupesBaseline": ".fallow/baselines/dupes.json"
+  }
+}
