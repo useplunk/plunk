@@ -415,91 +415,88 @@ export class EventService {
     contactId: string,
     context?: Record<string, unknown>,
   ): Promise<void> {
-    try {
-      // Get workflow with steps and configuration
-      const workflow = await prisma.workflow.findUnique({
-        where: {id: workflowId},
-        include: {
-          steps: {
-            where: {type: 'TRIGGER'},
-          },
+    // Get workflow with steps and configuration
+    const workflow = await prisma.workflow.findUnique({
+      where: {id: workflowId},
+      include: {
+        steps: {
+          where: {type: 'TRIGGER'},
+        },
+      },
+    });
+
+    if (!workflow || workflow.steps.length === 0) {
+      signale.error(`[EVENT] Workflow ${workflowId} has no trigger step`);
+      return;
+    }
+
+    // Never run a workflow against a contact from another project.
+    // Queried directly instead of via ContactService, which imports this service.
+    const contact = await prisma.contact.findFirst({
+      where: {id: contactId, projectId: workflow.projectId},
+      select: {id: true},
+    });
+
+    if (!contact) {
+      signale.warn(
+        `[EVENT] Refusing to start workflow ${workflowId} for contact ${contactId}: contact does not belong to project ${workflow.projectId}`,
+      );
+      return;
+    }
+
+    // Check re-entry rules
+    if (!workflow.allowReentry) {
+      // If re-entry is not allowed, check if contact has ANY execution (regardless of status)
+      const existingExecution = await prisma.workflowExecution.findFirst({
+        where: {
+          workflowId,
+          contactId,
         },
       });
 
-      if (!workflow || workflow.steps.length === 0) {
-        signale.error(`[EVENT] Workflow ${workflowId} has no trigger step`);
+      if (existingExecution) {
         return;
       }
-
-      // Never run a workflow against a contact from another project.
-      // Queried directly instead of via ContactService, which imports this service.
-      const contact = await prisma.contact.findFirst({
-        where: {id: contactId, projectId: workflow.projectId},
-        select: {id: true},
-      });
-
-      if (!contact) {
-        signale.warn(
-          `[EVENT] Refusing to start workflow ${workflowId} for contact ${contactId}: contact does not belong to project ${workflow.projectId}`,
-        );
-        return;
-      }
-
-      // Check re-entry rules
-      if (!workflow.allowReentry) {
-        // If re-entry is not allowed, check if contact has ANY execution (regardless of status)
-        const existingExecution = await prisma.workflowExecution.findFirst({
-          where: {
-            workflowId,
-            contactId,
-          },
-        });
-
-        if (existingExecution) {
-          return;
-        }
-      } else {
-        // If re-entry is allowed, only check if there's a currently RUNNING execution
-        const runningExecution = await prisma.workflowExecution.findFirst({
-          where: {
-            workflowId,
-            contactId,
-            status: 'RUNNING',
-          },
-        });
-
-        if (runningExecution) {
-          return;
-        }
-      }
-
-      const triggerStep = workflow.steps[0];
-
-      if (!triggerStep) {
-        signale.error(`[EVENT] Workflow ${workflowId} trigger step not found`);
-        return;
-      }
-
-      // Create workflow execution
-      const execution = await prisma.workflowExecution.create({
-        data: {
+    } else {
+      // If re-entry is allowed, only check if there's a currently RUNNING execution
+      const runningExecution = await prisma.workflowExecution.findFirst({
+        where: {
           workflowId,
           contactId,
           status: 'RUNNING',
-          currentStepId: triggerStep.id,
-          context: context ? toPrismaJson(context) : undefined,
         },
       });
 
-      signale.info(
-        `[EVENT] Started workflow ${workflowId} execution ${execution.id} for contact ${contactId}${workflow.allowReentry ? ' (re-entry allowed)' : ''}`,
-      );
-
-      // Start executing the workflow
-      await WorkflowExecutionService.processStepExecution(execution.id, triggerStep.id);
-    } catch (error) {
-      signale.error(`[EVENT] Error starting workflow ${workflowId}:`, error);
+      if (runningExecution) {
+        return;
+      }
     }
+
+    const triggerStep = workflow.steps[0];
+
+    if (!triggerStep) {
+      signale.error(`[EVENT] Workflow ${workflowId} trigger step not found`);
+      return;
+    }
+
+    // Create workflow execution
+    const execution = await prisma.workflowExecution.create({
+      data: {
+        workflowId,
+        contactId,
+        status: 'RUNNING',
+        currentStepId: triggerStep.id,
+        context: context ? toPrismaJson(context) : undefined,
+      },
+    });
+
+    signale.info(
+      `[EVENT] Started workflow ${workflowId} execution ${execution.id} for contact ${contactId}${workflow.allowReentry ? ' (re-entry allowed)' : ''}`,
+    );
+
+    // A dispatch failure must propagate so the event stays unprocessed and the
+    // request returns 5xx. The maintenance sweep will retry the durable event.
+    await WorkflowExecutionService.processStepExecution(execution.id, triggerStep.id);
   }
 
   /**

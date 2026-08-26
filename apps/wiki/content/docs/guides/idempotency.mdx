@@ -115,6 +115,11 @@ Not every failed request burns the key.
 
 If a `5xx` burns a key for a request you're confident never went through, retry with a new key.
 
+For `POST /v1/track`, the event is stored before workflow dispatch. If dispatch
+fails, the endpoint returns `5xx`, keeps the idempotency key, and retries the
+stored event internally. Do not submit the same logical event with a new key:
+that would create a second event while the first is still waiting for recovery.
+
 ## Scope and expiry
 
 Keys are scoped to your **project**, not to an endpoint. A key used on `/v1/track` cannot be reused on `/v1/send`. Two different projects can use the same key string independently.

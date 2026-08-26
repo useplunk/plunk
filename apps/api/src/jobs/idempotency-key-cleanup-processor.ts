@@ -8,9 +8,12 @@ import {REDIS_URL} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 
 /**
- * Idempotency Key Cleanup Worker
- * Deletes claims past their expiresAt, which both bounds table growth and is what
- * makes an expired key reusable. Runs hourly, since the TTL is measured in hours.
+ * Durable-state maintenance worker.
+ *
+ * Deletes expired API/SNS claims and reconciles aged event-outbox rows. The
+ * five-minute grace window keeps the minutely sweep away from normal
+ * synchronous dispatch while bounding the usual recovery delay below six
+ * minutes.
  */
 
 const BATCH_SIZE = 10000; // Delete in batches to avoid long-held locks
