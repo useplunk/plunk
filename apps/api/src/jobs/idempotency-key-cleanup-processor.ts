@@ -6,6 +6,7 @@ import signale from 'signale';
 
 import {REDIS_URL} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
+import {EventService} from '../services/EventService.js';
 
 /**
  * Durable-state maintenance worker.
@@ -17,12 +18,14 @@ import {prisma} from '../database/prisma.js';
  */
 
 const BATCH_SIZE = 10000; // Delete in batches to avoid long-held locks
+const EVENT_DISPATCH_BATCH_SIZE = 100;
+const EVENT_DISPATCH_GRACE_MS = 5 * 60 * 1000;
 
 /**
  * Process idempotency key cleanup job
  */
-async function processCleanup(job: Job<IdempotencyKeyCleanupJobData>): Promise<{deleted: number}> {
-  signale.info('[IDEMPOTENCY-CLEANUP] Starting cleanup of expired idempotency keys...');
+export async function processCleanup(job: Job<IdempotencyKeyCleanupJobData>): Promise<{deleted: number}> {
+  signale.info('[IDEMPOTENCY-CLEANUP] Starting durable-state maintenance...');
 
   let totalDeleted = 0;
 

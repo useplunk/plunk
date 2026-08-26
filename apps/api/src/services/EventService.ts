@@ -243,7 +243,7 @@ export class EventService {
     }
   }
 
-   /**
+  /**
    * Invalidate the workflow cache for a project
    * Should be called when workflows are enabled/disabled or updated
    */

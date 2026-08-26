@@ -709,6 +709,31 @@ model IdempotencyKey {
 }
 
 // ============================================
+// SNS WEBHOOK RECEIPTS
+// ============================================
+
+model SnsWebhookReceipt {
+  id String @id @default(uuid())
+
+  // AWS signs the outer SNS MessageId, making it the durable delivery identity.
+  messageId String @unique
+
+  // A token-scoped claim prevents concurrent deliveries from processing together.
+  // Failed claims can be retried immediately; abandoned claims become reclaimable.
+  status              SnsWebhookReceiptStatus @default(PROCESSING)
+  processingToken     String
+  processingStartedAt DateTime                @default(now())
+  completedAt         DateTime?
+  expiresAt           DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("sns_webhook_receipts")
+}
+
+// ============================================
 // ENUMS
 // ============================================
 
@@ -718,6 +743,12 @@ enum ProjectDisabledReason {
   PHISHING_DETECTED // Phishing content detected by LLM scan
   CARD_VERIFICATION_FAILED // Card hard-declined the off-session onboarding charge
   MANUAL // Disabled by support/admin (e.g. directly in DB)
+}
+
+enum SnsWebhookReceiptStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 enum CardVerificationStatus {

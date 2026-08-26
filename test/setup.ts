@@ -38,13 +38,14 @@ process.env.NODE_ENV = 'test';
 // with, since those two ship empty. Tests never reach SES, so fill in placeholders
 // rather than requiring every contributor to invent credentials.
 //
-// Only these two: every other required var (JWT_SECRET, the *_URI values,
-// AWS_SES_REGION, DATABASE_URL, REDIS_URL) ships with a value in .env.example and
-// is set by the CI workflow, and the DB/Redis URLs must point at real services.
+// Only supply safe test placeholders for required values that may be absent.
+// Database and Redis URLs must still point at real isolated test services.
 const TEST_ENV_DEFAULTS: Record<string, string> = {
   JWT_SECRET: 'test-jwt-secret-key-for-testing',
   AWS_SES_ACCESS_KEY_ID: 'test-ses-access-key-id',
   AWS_SES_SECRET_ACCESS_KEY: 'test-ses-secret-access-key',
+  SNS_TOPIC_ARNS:
+    'arn:aws:sns:us-east-1:123456789012:plunk-ses-events,arn:aws:sns:eu-west-1:123456789012:plunk-ses-inbound',
 };
 
 for (const [key, value] of Object.entries(TEST_ENV_DEFAULTS)) {
