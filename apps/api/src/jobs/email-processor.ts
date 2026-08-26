@@ -10,7 +10,7 @@
  * doing before this logic is next changed.
  */
 
-import {EmailStatus} from '@plunk/db';
+import {EmailSourceType, EmailStatus, type TemplateType} from '@plunk/db';
 import type {SendEmailJobData} from '@plunk/types';
 import {type Job, Worker} from 'bullmq';
 import signale from 'signale';
@@ -81,6 +81,66 @@ function deriveWorkerConcurrency(rateLimit: number): number {
   const MIN_CONCURRENCY = 5;
   const derived = Math.ceil(rateLimit * TARGET_JOB_SECONDS);
   return Math.max(MIN_CONCURRENCY, Math.min(derived, EMAIL_WORKER_MAX_CONCURRENCY));
+}
+
+const UNSUBSCRIBED_ERROR = 'Contact is unsubscribed from marketing emails';
+
+/**
+ * Re-read subscription state at the last possible point before handing a
+ * marketing email to SES. The email may have waited in Redis after the earlier
+ * enqueue-time check, so the contact bundled into the initial worker query can
+ * already be stale.
+ */
+export async function submitEmailWithSubscriptionCheck<T>(
+  params: {
+    emailId: string;
+    sourceType: EmailSourceType;
+    templateType?: TemplateType | null;
+    hasRecipientOverride: boolean;
+  },
+  submit: () => Promise<T>,
+): Promise<{submitted: false} | {submitted: true; result: T}> {
+  // Source type carries the transactional exemption. A MARKETING template is
+  // the one deliberate override: the transactional API rejects that template
+  // for an unsubscribed contact, so the backlog check must preserve the same
+  // policy if the contact unsubscribes after enqueueing.
+  const requiresSubscription =
+    !params.hasRecipientOverride &&
+    (params.sourceType !== EmailSourceType.TRANSACTIONAL || params.templateType === 'MARKETING');
+
+  if (requiresSubscription) {
+    const latestEmail = await prisma.email.findUnique({
+      where: {id: params.emailId},
+      select: {
+        contact: {
+          select: {
+            email: true,
+            subscribed: true,
+          },
+        },
+      },
+    });
+
+    if (!latestEmail) {
+      throw new Error(`Email ${params.emailId} not found during subscription check`);
+    }
+
+    if (!latestEmail.contact.subscribed) {
+      signale.warn(
+        `[EMAIL-PROCESSOR] Skipping marketing email ${params.emailId} to unsubscribed contact ${latestEmail.contact.email}`,
+      );
+      await prisma.email.update({
+        where: {id: params.emailId},
+        data: {
+          status: EmailStatus.FAILED,
+          error: UNSUBSCRIBED_ERROR,
+        },
+      });
+      return {submitted: false};
+    }
+  }
+
+  return {submitted: true, result: await submit()};
 }
 
 export async function createEmailWorker() {
@@ -241,22 +301,42 @@ export async function createEmailWorker() {
           throw new Error(`Project ${email.projectId} has been disabled due to a policy violation`);
         }
 
-        // Send via AWS SES
-        const result = await sendRawEmail({
-          from: {
-            name: fromName,
-            email: fromEmail,
+        // The contact may have unsubscribed while this job was waiting in Redis.
+        // Wrap the actual SES call so that the fresh subscription read and submit
+        // cannot accidentally drift apart later.
+        const submission = await submitEmailWithSubscriptionCheck(
+          {
+            emailId,
+            sourceType: email.sourceType,
+            templateType: email.template?.type,
+            hasRecipientOverride: Boolean(customHeaders?.['X-Plunk-Recipient-Override']),
           },
-          to: typeof recipient === 'string' ? [recipient] : [{name: recipient.name, email: recipient.email}],
-          content: {
-            subject: formattedEmail.subject,
-            html: compiledHtml,
-          },
-          reply: email.replyTo || undefined,
-          headers: outboundHeaders,
-          tracking: shouldTrack,
-          attachments: email.attachments as {filename: string; content: string; contentType: string}[] | null,
-        });
+          () =>
+            sendRawEmail({
+              from: {
+                name: fromName,
+                email: fromEmail,
+              },
+              to: typeof recipient === 'string' ? [recipient] : [{name: recipient.name, email: recipient.email}],
+              content: {
+                subject: formattedEmail.subject,
+                html: compiledHtml,
+              },
+              reply: email.replyTo || undefined,
+              headers: outboundHeaders,
+              tracking: shouldTrack,
+              attachments: email.attachments as {filename: string; content: string; contentType: string}[] | null,
+            }),
+        );
+
+        if (!submission.submitted) {
+          if (email.campaignId) {
+            await CampaignService.finalizeIfDone(email.campaignId);
+          }
+          return;
+        }
+
+        const {result} = submission;
 
         // Mark as sent with SES message ID.
         //
