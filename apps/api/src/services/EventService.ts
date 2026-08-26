@@ -37,13 +37,31 @@ export class EventService {
       },
     });
 
-    // Trigger workflows that are listening for this event
-    await this.triggerWorkflows(projectId, eventName, contactId, data);
-
-    // Resume workflows waiting for this event
-    await WorkflowExecutionService.handleEvent(projectId, eventName, contactId, data);
+    await this.dispatchStoredEvent(event.id);
 
     return event;
+  }
+
+  /**
+   * Dispatch a durably stored event to workflow triggers and waits. A failed
+   * dispatch leaves processedAt null so the reconciliation worker can retry it.
+   */
+  public static async dispatchStoredEvent(eventId: string): Promise<void> {
+    const event = await prisma.event.findUnique({where: {id: eventId}});
+    if (!event || event.processedAt) return;
+
+    const data =
+      event.data && typeof event.data === 'object' && !Array.isArray(event.data)
+        ? (event.data as Record<string, unknown>)
+        : undefined;
+
+    await this.triggerWorkflows(event.projectId, event.name, event.contactId ?? undefined, data);
+    await WorkflowExecutionService.handleEvent(event.projectId, event.name, event.contactId ?? undefined, data);
+
+    await prisma.event.updateMany({
+      where: {id: event.id, processedAt: null},
+      data: {processedAt: new Date()},
+    });
   }
 
   /**

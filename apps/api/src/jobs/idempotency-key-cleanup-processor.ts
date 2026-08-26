@@ -6,20 +6,24 @@ import signale from 'signale';
 
 import {REDIS_URL} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
+import {EventService} from '../services/EventService.js';
 
 /**
- * Idempotency Key Cleanup Worker
- * Deletes claims past their expiresAt, which both bounds table growth and is what
- * makes an expired key reusable. Runs hourly, since the TTL is measured in hours.
+ * Durable-state maintenance worker.
+ *
+ * Deletes expired API/SNS claims and reconciles aged event-outbox rows. The
+ * grace window keeps the hourly sweep away from normal synchronous dispatch.
  */
 
 const BATCH_SIZE = 10000; // Delete in batches to avoid long-held locks
+const EVENT_DISPATCH_BATCH_SIZE = 100;
+const EVENT_DISPATCH_GRACE_MS = 5 * 60 * 1000;
 
 /**
  * Process idempotency key cleanup job
  */
-async function processCleanup(job: Job<IdempotencyKeyCleanupJobData>): Promise<{deleted: number}> {
-  signale.info('[IDEMPOTENCY-CLEANUP] Starting cleanup of expired idempotency keys...');
+export async function processCleanup(job: Job<IdempotencyKeyCleanupJobData>): Promise<{deleted: number}> {
+  signale.info('[IDEMPOTENCY-CLEANUP] Starting durable-state maintenance...');
 
   let totalDeleted = 0;
 
@@ -46,7 +50,54 @@ async function processCleanup(job: Job<IdempotencyKeyCleanupJobData>): Promise<{
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    signale.success(`[IDEMPOTENCY-CLEANUP] Cleanup complete. Deleted ${totalDeleted} expired keys`);
+    for (;;) {
+      const deleted = await prisma.$executeRaw`
+        DELETE FROM "sns_webhook_receipts"
+        WHERE "id" IN (
+          SELECT "id" FROM "sns_webhook_receipts"
+          WHERE "expiresAt" < NOW()
+          LIMIT ${BATCH_SIZE}
+        )
+      `;
+
+      totalDeleted += deleted;
+
+      if (deleted < BATCH_SIZE) {
+        break;
+      }
+
+      signale.info(`[IDEMPOTENCY-CLEANUP] Deleted ${totalDeleted} claims so far, continuing...`);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    const pendingEvents = await prisma.event.findMany({
+      where: {
+        processedAt: null,
+        createdAt: {lt: new Date(Date.now() - EVENT_DISPATCH_GRACE_MS)},
+      },
+      select: {id: true},
+      orderBy: {createdAt: 'asc'},
+      take: EVENT_DISPATCH_BATCH_SIZE,
+    });
+    let dispatchedEvents = 0;
+
+    for (const event of pendingEvents) {
+      try {
+        await EventService.dispatchStoredEvent(event.id);
+        dispatchedEvents += 1;
+      } catch (error) {
+        // Keep processedAt null. A later sweep can retry without replaying the
+        // external request that originally committed this event.
+        signale.error(`[EVENT-OUTBOX] Failed to dispatch event ${event.id}:`, error);
+      }
+    }
+
+    signale.success(`[IDEMPOTENCY-CLEANUP] Cleanup complete. Deleted ${totalDeleted} expired records`);
+    if (pendingEvents.length > 0) {
+      signale.info(
+        `[EVENT-OUTBOX] Dispatched ${dispatchedEvents}/${pendingEvents.length} pending events; failures retry next sweep`,
+      );
+    }
 
     await job.updateProgress(100);
 
