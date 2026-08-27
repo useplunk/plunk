@@ -285,6 +285,65 @@ describe('EventService', () => {
       expect(executions).toHaveLength(2);
     });
 
+    it('should not re-enter while an enabled execution is waiting', async () => {
+      const contact = await factories.createContact({projectId});
+      const workflow = await factories.createWorkflow({
+        projectId,
+        enabled: true,
+        allowReentry: true,
+        triggerType: WorkflowTriggerType.EVENT,
+        triggerConfig: {eventName: 'waiting.event'},
+      });
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: 'TRIGGER'},
+      });
+      await prisma.workflowExecution.create({
+        data: {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          status: WorkflowExecutionStatus.WAITING,
+          currentStepId: triggerStep.id,
+        },
+      });
+
+      await EventService.trackEvent(projectId, 'waiting.event', contact.id);
+
+      expect(await prisma.workflowExecution.count({where: {workflowId: workflow.id, contactId: contact.id}})).toBe(1);
+    });
+
+    it('should enroll parallel duplicate events only once while the workflow is active', async () => {
+      const contact = await factories.createContact({projectId});
+      const workflow = await factories.createWorkflow({
+        projectId,
+        enabled: true,
+        allowReentry: true,
+        triggerType: WorkflowTriggerType.EVENT,
+        triggerConfig: {eventName: 'parallel.event'},
+      });
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: 'TRIGGER'},
+      });
+      const delayStep = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: 'DELAY',
+          name: 'Keep execution active',
+          position: {x: 100, y: 0},
+          config: {amount: 1, unit: 'minutes'},
+        },
+      });
+      await prisma.workflowTransition.create({
+        data: {fromStepId: triggerStep.id, toStepId: delayStep.id},
+      });
+
+      await Promise.all([
+        EventService.trackEvent(projectId, 'parallel.event', contact.id),
+        EventService.trackEvent(projectId, 'parallel.event', contact.id),
+      ]);
+
+      expect(await prisma.workflowExecution.count({where: {workflowId: workflow.id, contactId: contact.id}})).toBe(1);
+    });
+
     it('should trigger multiple workflows listening for same event', async () => {
       const contact = await factories.createContact({projectId});
 

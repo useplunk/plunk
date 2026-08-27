@@ -1230,16 +1230,16 @@ export class WorkflowService {
         );
       }
     } else {
-      // If re-entry is allowed, only check if there's a currently RUNNING execution
-      const runningExecution = await prisma.workflowExecution.findFirst({
+      // Re-entry allows a later run, not overlap with a delay or event wait.
+      const activeExecution = await prisma.workflowExecution.findFirst({
         where: {
           workflowId,
           contactId,
-          status: WorkflowExecutionStatus.RUNNING,
+          status: {in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING]},
         },
       });
 
-      if (runningExecution) {
+      if (activeExecution) {
         throw new HttpException(409, 'Workflow is already running for this contact');
       }
     }
@@ -1252,15 +1252,23 @@ export class WorkflowService {
     }
 
     // Create workflow execution
-    const execution = await prisma.workflowExecution.create({
-      data: {
-        workflowId,
-        contactId,
-        status: WorkflowExecutionStatus.RUNNING,
-        currentStepId: triggerStep.id,
-        context: context ?? Prisma.JsonNull,
-      },
-    });
+    let execution: WorkflowExecution;
+    try {
+      execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId,
+          contactId,
+          status: WorkflowExecutionStatus.RUNNING,
+          currentStepId: triggerStep.id,
+          context: context ?? Prisma.JsonNull,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+        throw new HttpException(409, 'Workflow is already running for this contact');
+      }
+      throw error;
+    }
 
     // Start executing the workflow asynchronously
     // Don't await - let it run in background

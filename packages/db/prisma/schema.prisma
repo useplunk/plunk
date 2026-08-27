@@ -497,6 +497,8 @@ model WorkflowExecution {
   @@index([contactId, status])
   @@index([status, currentStepId])
   @@index([sourceEventId])
+  // The partial RUNNING/WAITING uniqueness guard lives in its SQL migration
+  // because Prisma schema syntax cannot express its status predicate.
   @@map("workflow_executions")
 }
 
@@ -536,6 +538,7 @@ model WorkflowStepExecution {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([executionId, stepId])
   @@index([executionId, status])
   @@index([stepId])
   @@index([resumeEventId])

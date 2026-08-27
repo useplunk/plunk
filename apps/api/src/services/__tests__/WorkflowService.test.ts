@@ -3,6 +3,7 @@ import {WorkflowExecutionStatus, WorkflowStepType, WorkflowTriggerType, Workflow
 import {WorkflowService} from '../WorkflowService';
 import {Keys} from '../keys';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
+import {prisma as servicePrisma} from '../../database/prisma';
 
 // Mock Redis for caching tests - must be inline to avoid hoisting issues
 vi.mock('../../database/redis', () => {
@@ -1260,6 +1261,81 @@ describe('WorkflowService', () => {
       await expect(WorkflowService.startExecution(projectId, workflow.id, contact.id)).rejects.toThrow(
         /already running/i,
       );
+    });
+
+    it('should treat a waiting execution as active when re-entry is enabled', async () => {
+      const workflow = await factories.createWorkflow({
+        projectId,
+        enabled: true,
+        allowReentry: true,
+      });
+      const contact = await factories.createContact({projectId});
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: WorkflowStepType.TRIGGER},
+      });
+      await prisma.workflowExecution.create({
+        data: {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          status: WorkflowExecutionStatus.WAITING,
+          currentStepId: triggerStep.id,
+        },
+      });
+
+      await expect(WorkflowService.startExecution(projectId, workflow.id, contact.id)).rejects.toThrow(
+        /already running/i,
+      );
+    });
+
+    it('uses the database constraint to reject parallel active starts', async () => {
+      const workflow = await factories.createWorkflow({
+        projectId,
+        enabled: true,
+        allowReentry: true,
+      });
+      const contact = await factories.createContact({projectId});
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: WorkflowStepType.TRIGGER},
+      });
+      const delayStep = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.DELAY,
+          name: 'Keep execution active',
+          position: {x: 100, y: 0},
+          config: {amount: 1, unit: 'minutes'},
+        },
+      });
+      await prisma.workflowTransition.create({
+        data: {fromStepId: triggerStep.id, toStepId: delayStep.id},
+      });
+
+      const originalFindFirst = servicePrisma.workflowExecution.findFirst.bind(servicePrisma.workflowExecution);
+      let activeLookups = 0;
+      let releaseActiveLookups!: () => void;
+      const bothCheckedForActiveExecution = new Promise<void>(resolve => {
+        releaseActiveLookups = resolve;
+      });
+      const executionLookup = vi.spyOn(servicePrisma.workflowExecution, 'findFirst').mockImplementation(async args => {
+        if (args.where?.workflowId === workflow.id && args.where?.contactId === contact.id && args.where?.status) {
+          activeLookups += 1;
+          if (activeLookups === 2) releaseActiveLookups();
+          await bothCheckedForActiveExecution;
+          return null;
+        }
+
+        return originalFindFirst(args);
+      });
+
+      const starts = await Promise.allSettled([
+        WorkflowService.startExecution(projectId, workflow.id, contact.id),
+        WorkflowService.startExecution(projectId, workflow.id, contact.id),
+      ]);
+
+      executionLookup.mockRestore();
+      expect(starts.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+      expect(starts.filter(result => result.status === 'rejected')).toHaveLength(1);
+      expect(await prisma.workflowExecution.count({where: {workflowId: workflow.id, contactId: contact.id}})).toBe(1);
     });
   });
 

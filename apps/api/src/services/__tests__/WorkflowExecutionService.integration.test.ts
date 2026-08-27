@@ -874,6 +874,188 @@ describe('WorkflowExecutionService - Integration Tests', () => {
   });
 
   // ========================================
+  // CONCURRENT EXECUTION SAFETY
+  // ========================================
+  describe('Concurrent Execution Safety', () => {
+    it('claims a workflow step once when duplicate jobs run in parallel', async () => {
+      const contact = await factories.createContact({projectId});
+      const workflow = await factories.createWorkflow({projectId});
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: WorkflowStepType.TRIGGER},
+      });
+      const execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          status: WorkflowExecutionStatus.RUNNING,
+          currentStepId: triggerStep.id,
+        },
+      });
+
+      await Promise.all(
+        Array.from({length: 8}, () => WorkflowExecutionService.processStepExecution(execution.id, triggerStep.id)),
+      );
+
+      expect(
+        await prisma.workflowStepExecution.count({
+          where: {executionId: execution.id, stepId: triggerStep.id},
+        }),
+      ).toBe(1);
+      expect((await prisma.workflowExecution.findUniqueOrThrow({where: {id: execution.id}})).status).toBe(
+        WorkflowExecutionStatus.COMPLETED,
+      );
+    });
+
+    it('lets exactly one of an event and timeout resume a persisted wait', async () => {
+      const contact = await factories.createContact({projectId});
+      const workflow = await factories.createWorkflow({projectId});
+      const waitStep = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.WAIT_FOR_EVENT,
+          name: 'Wait for payment',
+          position: {x: 100, y: 0},
+          config: toPrismaJson({eventName: 'payment.completed', timeout: 3600}),
+        },
+      });
+      const eventExit = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.EXIT,
+          name: 'Event path',
+          position: {x: 200, y: -50},
+          config: toPrismaJson({reason: 'event'}),
+        },
+      });
+      const timeoutExit = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.EXIT,
+          name: 'Timeout path',
+          position: {x: 200, y: 50},
+          config: toPrismaJson({reason: 'timeout'}),
+        },
+      });
+      await prisma.workflowTransition.createMany({
+        data: [
+          {fromStepId: waitStep.id, toStepId: eventExit.id, waitOutcome: WorkflowWaitOutcome.EVENT},
+          {fromStepId: waitStep.id, toStepId: timeoutExit.id, waitOutcome: WorkflowWaitOutcome.TIMEOUT},
+        ],
+      });
+      const execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          status: WorkflowExecutionStatus.WAITING,
+          currentStepId: waitStep.id,
+        },
+      });
+      const waitExecution = await prisma.workflowStepExecution.create({
+        data: {
+          executionId: execution.id,
+          stepId: waitStep.id,
+          status: StepExecutionStatus.WAITING,
+          startedAt: new Date(),
+        },
+      });
+      const event = await prisma.event.create({
+        data: {
+          projectId,
+          contactId: contact.id,
+          name: 'payment.completed',
+        },
+      });
+
+      await Promise.all([
+        WorkflowExecutionService.handleEvent(
+          projectId,
+          'payment.completed',
+          contact.id,
+          {invoiceId: 'invoice-123'},
+          event.id,
+        ),
+        WorkflowExecutionService.processTimeout(execution.id, waitStep.id, waitExecution.id),
+      ]);
+
+      const wait = await prisma.workflowStepExecution.findUniqueOrThrow({where: {id: waitExecution.id}});
+      const outcome = (wait.output as {waitOutcome?: WorkflowWaitOutcome} | null)?.waitOutcome;
+      expect([WorkflowWaitOutcome.EVENT, WorkflowWaitOutcome.TIMEOUT]).toContain(outcome);
+      expect(wait.status).toBe(StepExecutionStatus.COMPLETED);
+      expect(
+        await prisma.workflowStepExecution.count({
+          where: {executionId: execution.id, stepId: {in: [eventExit.id, timeoutExit.id]}},
+        }),
+      ).toBe(1);
+      expect(
+        await prisma.workflowStepExecution.count({
+          where: {
+            executionId: execution.id,
+            stepId: outcome === WorkflowWaitOutcome.EVENT ? eventExit.id : timeoutExit.id,
+          },
+        }),
+      ).toBe(1);
+    });
+
+    it('processes a duplicated delayed continuation once', async () => {
+      const contact = await factories.createContact({projectId});
+      const workflow = await factories.createWorkflow({projectId});
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: WorkflowStepType.TRIGGER},
+      });
+      const delayStep = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.DELAY,
+          name: 'Wait one minute',
+          position: {x: 100, y: 0},
+          config: toPrismaJson({amount: 1, unit: 'minutes'}),
+        },
+      });
+      const exitStep = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.EXIT,
+          name: 'Continue once',
+          position: {x: 200, y: 0},
+          config: toPrismaJson({}),
+        },
+      });
+      await prisma.workflowTransition.createMany({
+        data: [
+          {fromStepId: triggerStep.id, toStepId: delayStep.id},
+          {fromStepId: delayStep.id, toStepId: exitStep.id},
+        ],
+      });
+      const execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          status: WorkflowExecutionStatus.RUNNING,
+          currentStepId: triggerStep.id,
+        },
+      });
+
+      await WorkflowExecutionService.processStepExecution(execution.id, triggerStep.id);
+      expect((await prisma.workflowExecution.findUniqueOrThrow({where: {id: execution.id}})).status).toBe(
+        WorkflowExecutionStatus.WAITING,
+      );
+
+      await Promise.all(
+        Array.from({length: 8}, () => WorkflowExecutionService.processStepExecution(execution.id, exitStep.id)),
+      );
+
+      expect(
+        await prisma.workflowStepExecution.count({
+          where: {executionId: execution.id, stepId: exitStep.id},
+        }),
+      ).toBe(1);
+      expect((await prisma.workflowExecution.findUniqueOrThrow({where: {id: execution.id}})).status).toBe(
+        WorkflowExecutionStatus.COMPLETED,
+      );
+    });
+  });
+
+  // ========================================
   // ERROR HANDLING
   // ========================================
   describe('Error Handling', () => {

@@ -115,7 +115,7 @@ describe('POST /v1/track durability', () => {
       triggerConfig: {eventName: 'shipment.created'},
     });
     const completeStep = vi
-      .spyOn(servicePrisma.workflowStepExecution, 'update')
+      .spyOn(servicePrisma.workflowStepExecution, 'updateMany')
       .mockRejectedValueOnce(new Error('injected failure after workflow enrollment'));
 
     const response = await request(createTrackApp(projectId))
@@ -456,7 +456,9 @@ describe('POST /v1/track durability', () => {
       if (
         args.where?.workflowId === workflow.id &&
         args.where?.contactId === contact.id &&
-        args.where?.status === 'RUNNING'
+        args.where?.status &&
+        typeof args.where.status === 'object' &&
+        'in' in args.where.status
       ) {
         return null;
       }
