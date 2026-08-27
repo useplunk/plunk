@@ -466,6 +466,7 @@ export const ActionSchemas = {
     event: z.string().min(1),
     email,
     subscribed: z.boolean().optional(),
+    preserveExistingSubscription: z.boolean().optional(),
     data: jsonSchema.optional(),
   }),
   send: z
