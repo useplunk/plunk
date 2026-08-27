@@ -1,18 +1,18 @@
 import dayjs from 'dayjs';
+import type {Response} from 'express';
+import {getDomain} from 'tldts';
 
-import {API_URI, NODE_ENV} from '../app/constants.js';
+import {API_URI, DASHBOARD_URI, NODE_ENV} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {wrapRedis} from '../database/redis.js';
 
 import {Keys} from './keys.js';
 
 /**
- * Extract base domain from URL for cookie sharing across subdomains
- * e.g., "http://api.example.com" -> ".example.com"
- * e.g., "http://api.localhost" -> ".localhost"
- * e.g., "http://app.plunk.local" -> ".plunk.local"
+ * Reproduce the domain scope used before host-only cookies. This is used only
+ * to expire an existing legacy cookie during login/logout migration.
  */
-function getCookieDomain(): string | undefined {
+function getLegacyCookieDomain(): string | undefined {
   if (NODE_ENV === 'development') {
     return undefined;
   }
@@ -26,18 +26,15 @@ function getCookieDomain(): string | undefined {
       return undefined;
     }
 
-    // Extract base domain (last two parts for most domains, or .localhost)
+    // This intentionally matches the old last-two-label algorithm exactly.
     const parts = hostname.split('.');
     if (parts.length >= 2) {
-      // For *.localhost, use .localhost (reserved TLD)
       if (hostname.endsWith('.localhost')) {
         return '.localhost';
       }
-      // For *.local (mDNS TLD), use the actual base domain
       if (hostname.endsWith('.local')) {
         return `.${parts.slice(-2).join('.')}`;
       }
-      // For other domains, use the last two parts (e.g., .example.com)
       return `.${parts.slice(-2).join('.')}`;
     }
 
@@ -45,6 +42,28 @@ function getCookieDomain(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function getSchemefulSite(uri: string): string | undefined {
+  try {
+    const url = new URL(uri);
+    const registrableDomain = getDomain(url.hostname, {allowPrivateDomains: true});
+
+    return `${url.protocol}//${registrableDomain ?? url.hostname}`;
+  } catch {
+    return undefined;
+  }
+}
+
+export function getCookieSameSite(apiUri: string, dashboardUri: string, secure: boolean): 'lax' | 'none' {
+  if (!secure) {
+    return 'lax';
+  }
+
+  const apiSite = getSchemefulSite(apiUri);
+  const dashboardSite = getSchemefulSite(dashboardUri);
+
+  return apiSite !== undefined && apiSite === dashboardSite ? 'lax' : 'none';
 }
 
 export class UserService {
@@ -95,9 +114,29 @@ export class UserService {
       httpOnly: true,
       expires: expires ?? dayjs().add(7, 'days').toDate(),
       secure: isHttps,
-      sameSite: isHttps ? 'none' : 'lax',
+      sameSite: getCookieSameSite(API_URI, DASHBOARD_URI, isHttps),
       path: '/',
-      domain: getCookieDomain(),
     } as const;
+  }
+
+  private static clearLegacyCookie(res: Response) {
+    const domain = getLegacyCookieDomain();
+
+    if (domain) {
+      res.cookie(UserService.COOKIE_NAME, '', {
+        ...UserService.cookieOptions(new Date()),
+        domain,
+      });
+    }
+  }
+
+  public static setAuthCookie(res: Response, token: string) {
+    UserService.clearLegacyCookie(res);
+    return res.cookie(UserService.COOKIE_NAME, token, UserService.cookieOptions());
+  }
+
+  public static clearAuthCookie(res: Response) {
+    UserService.clearLegacyCookie(res);
+    return res.cookie(UserService.COOKIE_NAME, '', UserService.cookieOptions(new Date()));
   }
 }
