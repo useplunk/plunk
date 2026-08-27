@@ -350,6 +350,25 @@ export class ContactService {
           },
         });
       } catch (error) {
+        if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+          const elected = await prisma.contact.findUnique({
+            where: {
+              projectId_email: {
+                projectId,
+                email: normalizedEmail,
+              },
+            },
+          });
+
+          if (elected) {
+            // This payload was derived from an empty contact before another
+            // request won the insert. Reapplying it as an update could undo a
+            // concurrent unsubscribe or persistent-data write, so continue
+            // against the row elected by the unique constraint as-is.
+            return elected;
+          }
+        }
+
         // Provide helpful error message for database/validation issues
         throw new HttpException(
           500,
