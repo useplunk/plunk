@@ -134,6 +134,78 @@ describe('ContactService - Duplicate Prevention & Data Merging', () => {
       expect(stored.data).toEqual({source: 'unsubscribe'});
       expect(await prisma.contact.count({where: {projectId, email}})).toBe(1);
     });
+
+    it('should honor a losing explicit unsubscribe without overwriting the elected contact data', async () => {
+      const email = 'losing-unsubscribe@example.com';
+      const concurrency = 8;
+      const originalFindFirst = servicePrisma.contact.findFirst.bind(servicePrisma.contact);
+      const originalCreate = servicePrisma.contact.create.bind(servicePrisma.contact);
+      let initialLookups = 0;
+      let releaseInitialLookups!: () => void;
+      const allInitialLookupsStarted = new Promise<void>(resolve => {
+        releaseInitialLookups = resolve;
+      });
+      let releaseLosingCreates!: () => void;
+      const electedContactCreated = new Promise<void>(resolve => {
+        releaseLosingCreates = resolve;
+      });
+
+      const contactLookup = vi.spyOn(servicePrisma.contact, 'findFirst').mockImplementation(async args => {
+        if (args.where?.projectId === projectId && args.where?.email === email) {
+          initialLookups += 1;
+          if (initialLookups === concurrency) releaseInitialLookups();
+          await allInitialLookupsStarted;
+          return null;
+        }
+
+        return originalFindFirst(args);
+      });
+      const contactCreate = vi.spyOn(servicePrisma.contact, 'create').mockImplementation(async args => {
+        const contactData = args.data.data;
+        const shouldWin =
+          contactData !== null &&
+          typeof contactData === 'object' &&
+          !Array.isArray(contactData) &&
+          'source' in contactData &&
+          contactData.source === 'winner';
+
+        if (args.data.projectId === projectId && args.data.email === email && !shouldWin) {
+          await electedContactCreated;
+        }
+
+        const contact = await originalCreate(args);
+        if (args.data.projectId === projectId && args.data.email === email && shouldWin) {
+          releaseLosingCreates();
+        }
+        return contact;
+      });
+
+      try {
+        const contacts = await Promise.all([
+          ContactService.upsert(projectId, email, {source: 'winner'}, true),
+          ContactService.upsert(projectId, email, {source: 'losing unsubscribe'}, false),
+          ...Array.from({length: concurrency - 2}, (_, index) =>
+            ContactService.upsert(projectId, ` LOSING-UNSUBSCRIBE@EXAMPLE.COM `, {attempt: index}),
+          ),
+        ]);
+
+        expect(new Set(contacts.map(contact => contact.id))).toEqual(new Set([contacts[0]!.id]));
+      } finally {
+        contactLookup.mockRestore();
+        contactCreate.mockRestore();
+      }
+
+      const stored = await prisma.contact.findUniqueOrThrow({
+        where: {projectId_email: {projectId, email}},
+      });
+      expect(stored.subscribed).toBe(false);
+      expect(stored.data).toEqual({source: 'winner'});
+      expect(
+        await prisma.event.count({
+          where: {projectId, contactId: stored.id, name: 'contact.unsubscribed'},
+        }),
+      ).toBe(1);
+    });
   });
 
   describe('Email Normalization (case-insensitive find-or-create)', () => {

@@ -362,9 +362,21 @@ export class ContactService {
 
           if (elected) {
             // This payload was derived from an empty contact before another
-            // request won the insert. Reapplying it as an update could undo a
-            // concurrent unsubscribe or persistent-data write, so continue
-            // against the row elected by the unique constraint as-is.
+            // request won the insert. An explicit opt-out is monotonic and may
+            // safely win the race, but never replay stale contact data or a
+            // true/default subscription value over the elected row.
+            if (subscribed === false) {
+              const unsubscribed = await prisma.contact.updateMany({
+                where: {id: elected.id, subscribed: true},
+                data: {subscribed: false},
+              });
+              if (unsubscribed.count === 1) {
+                await EventService.trackEvent(projectId, 'contact.unsubscribed', elected.id);
+              }
+
+              return prisma.contact.findUniqueOrThrow({where: {id: elected.id}});
+            }
+
             return elected;
           }
         }
