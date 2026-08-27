@@ -206,6 +206,42 @@ describe('ContactService - Duplicate Prevention & Data Merging', () => {
         }),
       ).toBe(1);
     });
+
+    it('should emit one unsubscribe event when concurrent upserts observe the same subscribed contact', async () => {
+      const email = 'concurrent-unsubscribe@example.com';
+      const contact = await ContactService.upsert(projectId, email, {source: 'initial'}, true);
+      const originalFindFirst = servicePrisma.contact.findFirst.bind(servicePrisma.contact);
+      let lookups = 0;
+      let releaseLookups!: () => void;
+      const bothLookupsCompleted = new Promise<void>(resolve => {
+        releaseLookups = resolve;
+      });
+      const contactLookup = vi.spyOn(servicePrisma.contact, 'findFirst').mockImplementation(async args => {
+        const found = await originalFindFirst(args);
+        if (args.where?.projectId === projectId && args.where?.email === email) {
+          lookups += 1;
+          if (lookups === 2) releaseLookups();
+          await bothLookupsCompleted;
+        }
+        return found;
+      });
+
+      try {
+        await Promise.all([
+          ContactService.upsert(projectId, email, {first: true}, false),
+          ContactService.upsert(projectId, email, {second: true}, false),
+        ]);
+      } finally {
+        contactLookup.mockRestore();
+      }
+
+      expect((await prisma.contact.findUniqueOrThrow({where: {id: contact.id}})).subscribed).toBe(false);
+      expect(
+        await prisma.event.count({
+          where: {projectId, contactId: contact.id, name: 'contact.unsubscribed'},
+        }),
+      ).toBe(1);
+    });
   });
 
   describe('Email Normalization (case-insensitive find-or-create)', () => {
