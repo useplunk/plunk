@@ -283,7 +283,9 @@ export const WorkflowSchemas = {
 
 export const WorkflowStepConfigSchemas = {
   sendEmail: z.object({
-    templateId: uuid,
+    // The WorkflowStep.template relation is authoritative. This deprecated
+    // JSON copy is accepted when present for compatibility with older clients.
+    templateId: uuid.optional(),
     recipient: z
       .object({
         type: z.enum(['CONTACT', 'CUSTOM']),
