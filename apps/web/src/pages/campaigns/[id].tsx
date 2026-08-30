@@ -107,11 +107,38 @@ export default function CampaignDetailsPage() {
   const {id} = router.query;
   const {activeProject} = useActiveProject();
 
+  // Set when a cancel comes back still CANCELLED but with its revert queued: the
+  // unsent emails are being cleared in the background and the campaign becomes a draft
+  // when that finishes. Polled rather than pushed, and given up on after a while --
+  // clearing a million rows outruns any sensible poll, and the page is correct either
+  // way once it is reloaded.
+  const [revertPending, setRevertPending] = useState(false);
+
   const {
     data: campaign,
     mutate,
     isLoading,
-  } = useSWR<{data: Campaign}>(id ? `/campaigns/${id}` : null, {revalidateOnFocus: false});
+  } = useSWR<{data: Campaign}>(id ? `/campaigns/${id}` : null, {
+    revalidateOnFocus: false,
+    refreshInterval: revertPending ? 5000 : 0,
+  });
+
+  // Stop polling the moment the cleanup promotes the campaign, and give up if it is
+  // taking longer than a poll is worth -- a very large cleanup finishes long after the
+  // user has moved on, and the next page load shows the truth regardless.
+  const revertedStatus = campaign?.data.status;
+  useEffect(() => {
+    if (!revertPending) return;
+
+    if (revertedStatus === CampaignStatus.DRAFT) {
+      setRevertPending(false);
+      toast.success('Campaign returned to draft');
+      return;
+    }
+
+    const giveUp = setTimeout(() => setRevertPending(false), 2 * 60 * 1000);
+    return () => clearTimeout(giveUp);
+  }, [revertPending, revertedStatus]);
 
   const {
     data: stats,
@@ -156,8 +183,23 @@ export default function CampaignDetailsPage() {
 
   const handleCancel = async () => {
     try {
-      await network.fetch('POST', `/campaigns/${id}/cancel`);
-      toast.success('Campaign canceled');
+      // Three outcomes, and the confirmation reports the one that happened rather than
+      // asserting a cancellation: straight back to draft, cancelled for good, or
+      // stopped with the revert still draining in the background.
+      const res = await network.fetch<{data: {status: CampaignStatus}; revertPending?: boolean}>(
+        'POST',
+        `/campaigns/${id}/cancel`,
+      );
+
+      if (res.revertPending) {
+        setRevertPending(true);
+        toast.success('Campaign stopped. Clearing its unsent emails, then it returns to draft.');
+      } else {
+        toast.success(
+          res.data.status === CampaignStatus.DRAFT ? 'Campaign stopped and returned to draft' : 'Campaign canceled',
+        );
+      }
+
       void mutate();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Couldn’t cancel the campaign. Try again.');
@@ -371,6 +413,30 @@ export default function CampaignDetailsPage() {
   const lostContacts = s ? s.bouncedCount + s.complainedCount + s.unsubscribedCount : 0;
   // A scheduled campaign has stats, but they are all zero until it starts sending.
   const hasResults = c.status === CampaignStatus.SENDING || c.status === CampaignStatus.SENT;
+
+  // Cancelling has two very different outcomes, and the dialog has to name the one
+  // the user is about to get. A campaign with nothing sent comes back as an editable
+  // draft; once a single email is away the record is frozen for good. The sent count
+  // is a poll behind the send, so while a campaign is in flight this promises only
+  // what is certain -- already-delivered copies cannot be recalled.
+  const sentSoFar = s?.sentCount ?? 0;
+  const cancelCopy =
+    c.status === CampaignStatus.SCHEDULED || sentSoFar === 0
+      ? {
+          title: 'Stop this campaign?',
+          description:
+            c.status === CampaignStatus.SCHEDULED
+              ? 'Nothing has been sent yet, so the campaign returns to draft and stays editable.'
+              : 'Sending stops now. If nothing has gone out yet the campaign returns to draft; any contact who already received it keeps their copy.',
+          confirmText: 'Stop campaign',
+        }
+      : {
+          title: 'Cancel this campaign?',
+          description: `Sending stops now. The ${sentSoFar.toLocaleString()} ${
+            sentSoFar === 1 ? 'contact' : 'contacts'
+          } who already received it keep their copy, and the campaign is permanently cancelled.`,
+          confirmText: 'Cancel campaign',
+        };
 
   // Get recipient count for draft campaigns from the campaign's totalRecipients field
   // The backend calculates this for all audience types when the campaign is created/updated
@@ -1301,10 +1367,10 @@ export default function CampaignDetailsPage() {
         open={dialog.type === 'cancel'}
         onOpenChange={open => !open && setDialog({type: 'none'})}
         onConfirm={handleCancel}
-        title="Cancel this campaign?"
-        description="Sending stops now. Contacts who already received it keep their copy."
+        title={cancelCopy.title}
+        description={cancelCopy.description}
         cancelText="Keep sending"
-        confirmText="Cancel campaign"
+        confirmText={cancelCopy.confirmText}
         variant="destructive"
       />
     </DashboardLayout>

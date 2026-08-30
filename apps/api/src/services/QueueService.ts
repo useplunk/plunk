@@ -12,6 +12,7 @@ import type {
   CardVerificationSweepJobData,
   ContactImportJobData,
   DomainVerificationJobData,
+  CampaignCancelCleanupJobData,
   EmailBodyCleanupJobData,
   IdempotencyKeyCleanupJobData,
   MeterEventJobData,
@@ -176,6 +177,22 @@ export const emailBodyCleanupQueue = new Queue<EmailBodyCleanupJobData>('email-b
     },
     removeOnComplete: 5, // Keep last 5 completed jobs
     removeOnFail: 20, // Keep last 20 failed jobs
+  },
+});
+
+export const campaignCancelCleanupQueue = new Queue<CampaignCancelCleanupJobData>('campaign-cancel-cleanup', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    // Retried generously: the job is idempotent (it deletes what is left and re-checks
+    // before promoting the campaign), and a campaign stuck at CANCELLED with nothing
+    // sent is precisely the state this feature exists to avoid.
+    attempts: 5,
+    backoff: {
+      type: 'exponential',
+      delay: 10000,
+    },
+    removeOnComplete: 100,
+    removeOnFail: 500,
   },
 });
 
@@ -375,6 +392,25 @@ export class QueueService {
     if (job) {
       await job.remove();
     }
+  }
+
+  /**
+   * Queue the cleanup that returns a cancelled campaign to draft.
+   *
+   * The job id is derived from the campaign so that re-running `cancel` on a campaign
+   * whose cleanup died mid-way -- the repair path -- re-uses the existing job instead
+   * of starting a second one racing it over the same rows.
+   */
+  public static async queueCampaignCancelCleanup(
+    campaignId: string,
+    projectId: string,
+    cancelledAt: Date,
+  ): Promise<void> {
+    await campaignCancelCleanupQueue.add(
+      'cleanup',
+      {campaignId, projectId, cancelledAt: cancelledAt.toISOString()},
+      {jobId: `campaign-cancel-cleanup-${campaignId}`},
+    );
   }
 
   /**

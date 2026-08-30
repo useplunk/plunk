@@ -267,6 +267,12 @@ export class Campaigns {
   /**
    * Cancel a campaign
    * POST /campaigns/:id/cancel
+   *
+   * A campaign that had not sent anything returns to DRAFT rather than CANCELLED --
+   * see `CampaignService.cancel`. When it was stopped mid-send that revert is
+   * asynchronous, so the response carries `revertPending` and the campaign is still
+   * CANCELLED here; the client polls for the promotion rather than being told a draft
+   * exists before it does.
    */
   @Post(':id/cancel')
   @Middleware([requireAuth, requireEmailVerified])
@@ -275,12 +281,17 @@ export class Campaigns {
     const auth = res.locals.auth;
     const {id} = UtilitySchemas.id.parse(req.params);
 
-    const campaign = await CampaignService.cancel(auth.projectId, id!);
+    const {campaign, revertPending} = await CampaignService.cancel(auth.projectId, id!);
 
     return res.json({
       success: true,
       data: campaign,
-      message: 'Campaign cancelled successfully',
+      revertPending,
+      message: revertPending
+        ? 'Campaign stopped before any email was sent; it returns to draft once its unsent emails are cleared'
+        : campaign.status === CampaignStatus.DRAFT
+          ? 'Campaign stopped before any email was sent and returned to draft'
+          : 'Campaign cancelled successfully',
     });
   }
 
