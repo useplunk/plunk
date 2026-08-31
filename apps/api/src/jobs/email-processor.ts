@@ -10,7 +10,7 @@
  * doing before this logic is next changed.
  */
 
-import {EmailSourceType, EmailStatus, type TemplateType} from '@plunk/db';
+import {CampaignStatus, EmailSourceType, EmailStatus, type TemplateType} from '@plunk/db';
 import type {SendEmailJobData} from '@plunk/types';
 import {type Job, Worker} from 'bullmq';
 import signale from 'signale';
@@ -161,15 +161,46 @@ export async function createEmailWorker() {
           contact: true,
           project: true,
           template: {select: {type: true}},
-          campaign: {select: {type: true}},
+          campaign: {select: {type: true, status: true}},
         },
       });
 
+      // A missing row is now an expected outcome rather than an error: cancelling a
+      // campaign before it sent anything deletes its unsent emails in the background,
+      // and every job already queued for them arrives here to find nothing. Throwing
+      // would put each one through three retries and into the failed set -- millions
+      // of executions for a large campaign, burying real failures. There is nothing to
+      // send and nothing to record, so the job is simply done.
       if (!email) {
-        throw new Error(`Email ${emailId} not found`);
+        signale.warn(`[EMAIL-PROCESSOR] Email ${emailId} no longer exists, skipping`);
+        return;
       }
 
       if (email.status !== EmailStatus.PENDING) {
+        return;
+      }
+
+      // A campaign that was cancelled (or reverted to draft) after this job was
+      // queued must not keep sending. `CampaignService.processBatch` stops the batch
+      // chain on its own status check, but the per-email jobs it already created are
+      // in this queue and would otherwise ship regardless -- which is what made a
+      // cancel of a SENDING campaign a relabel rather than a stop. Marking the email
+      // FAILED rather than deleting it keeps the row that `cancel` counts when it
+      // decides whether the campaign is still reversible.
+      if (email.campaign && email.campaign.status !== CampaignStatus.SENDING) {
+        signale.warn(
+          `[EMAIL-PROCESSOR] Campaign ${email.campaignId} is ${email.campaign.status}, skipping email ${emailId}`,
+        );
+        await prisma.email.update({
+          where: {id: emailId},
+          data: {
+            status: EmailStatus.FAILED,
+            error: `Campaign ${email.campaign.status.toLowerCase()}`,
+          },
+        });
+
+        // No `finalizeIfDone` here: it only advances a campaign that is still
+        // SENDING, and this branch runs precisely when it is not.
         return;
       }
 

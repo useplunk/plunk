@@ -106,7 +106,11 @@ export default function CampaignsPage() {
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [campaignToCancel, setCampaignToCancel] = useState<string | null>(null);
+  // Status travels with the id: cancelling has two outcomes and the dialog has to
+  // name the right one. Deliberately not keyed off the row's `sentCount` -- that
+  // column is only written when a send finalizes, so it reads 0 for a campaign that
+  // is mid-flight and has in fact already sent thousands.
+  const [campaignToCancel, setCampaignToCancel] = useState<{id: string; status: CampaignStatus} | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
@@ -154,8 +158,20 @@ export default function CampaignsPage() {
     if (!campaignToCancel) return;
 
     try {
-      await network.fetch('POST', `/campaigns/${campaignToCancel}/cancel`);
-      toast.success('Campaign canceled');
+      const res = await network.fetch<{data: {status: CampaignStatus}; revertPending?: boolean}>(
+        'POST',
+        `/campaigns/${campaignToCancel.id}/cancel`,
+      );
+      // A campaign stopped mid-send has its unsent emails cleared in the background and
+      // only then becomes a draft, so the list reports the stop rather than an outcome
+      // it would have to poll for. The next load shows where it landed.
+      toast.success(
+        res.revertPending
+          ? 'Campaign stopped. Clearing its unsent emails, then it returns to draft.'
+          : res.data.status === CampaignStatus.DRAFT
+            ? 'Campaign stopped and returned to draft'
+            : 'Campaign canceled',
+      );
       void mutate();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Couldn’t cancel the campaign. Try again.');
@@ -498,7 +514,7 @@ export default function CampaignsPage() {
                 title="Cancel campaign"
                 aria-label="Cancel campaign"
                 onClick={() => {
-                  setCampaignToCancel(row.original.id);
+                  setCampaignToCancel({id: row.original.id, status: row.original.status});
                   setShowCancelDialog(true);
                 }}
               >
@@ -879,7 +895,7 @@ export default function CampaignsPage() {
                               size="sm"
                               title="Cancel campaign"
                               onClick={() => {
-                                setCampaignToCancel(campaign.id);
+                                setCampaignToCancel({id: campaign.id, status: campaign.status});
                                 setShowCancelDialog(true);
                               }}
                             >
@@ -947,10 +963,14 @@ export default function CampaignsPage() {
           open={showCancelDialog}
           onOpenChange={setShowCancelDialog}
           onConfirm={handleCancel}
-          title="Cancel this campaign?"
-          description="Sending stops now. Contacts who already received it keep their copy."
+          title={campaignToCancel?.status === CampaignStatus.SCHEDULED ? 'Stop this campaign?' : 'Cancel this campaign?'}
+          description={
+            campaignToCancel?.status === CampaignStatus.SCHEDULED
+              ? 'Nothing has been sent yet, so the campaign returns to draft and stays editable.'
+              : 'Sending stops now. If nothing has gone out yet the campaign returns to draft; otherwise it is permanently cancelled and contacts who already received it keep their copy.'
+          }
           cancelText="Keep sending"
-          confirmText="Cancel campaign"
+          confirmText={campaignToCancel?.status === CampaignStatus.SCHEDULED ? 'Stop campaign' : 'Cancel campaign'}
           variant="destructive"
         />
 

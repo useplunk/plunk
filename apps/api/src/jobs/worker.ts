@@ -12,6 +12,7 @@ import signale from 'signale';
 import {createApiRequestCleanupWorker} from './api-request-cleanup-processor.js';
 import {createIdempotencyKeyCleanupWorker} from './idempotency-key-cleanup-processor.js';
 import {createBulkContactWorker} from './bulk-contact-processor.js';
+import {createCampaignCancelCleanupWorker} from './campaign-cancel-cleanup-processor.js';
 import {createCampaignWorker} from './campaign-processor.js';
 import {createCardVerificationWorker} from './card-verification-processor.js';
 import {createCampaignStatsSweepWorker} from './campaign-stats-sweep-processor.js';
@@ -40,6 +41,11 @@ async function startWorkers() {
     const campaignWorker = createCampaignWorker();
     workers.push({name: 'campaign', worker: campaignWorker});
     signale.success('[WORKER] Campaign worker started');
+
+    // Start campaign cancel cleanup worker
+    const campaignCancelCleanupWorker = createCampaignCancelCleanupWorker();
+    workers.push({name: 'campaign-cancel-cleanup', worker: campaignCancelCleanupWorker});
+    signale.success('[WORKER] Campaign cancel cleanup worker started');
 
     // Start campaign stats reconcile sweep worker
     const campaignStatsSweepWorker = createCampaignStatsSweepWorker();

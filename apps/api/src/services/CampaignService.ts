@@ -870,13 +870,91 @@ export class CampaignService {
   }
 
   /**
-   * Cancel a campaign
+   * Statuses an email can hold once it is beyond recall.
+   *
+   * SENDING counts: the worker is past its guard and inside the SES call. Everything
+   * from SENT onwards is self-evident. PENDING and FAILED are the only two that mean
+   * nothing left -- with one exception, handled in `hasDepartedEmail`.
    */
-  public static async cancel(projectId: string, campaignId: string): Promise<Campaign> {
+  private static readonly DEPARTED_EMAIL_STATUSES = [
+    EmailStatus.SENDING,
+    EmailStatus.SENT,
+    EmailStatus.DELIVERED,
+    EmailStatus.RECEIVED,
+    EmailStatus.OPENED,
+    EmailStatus.CLICKED,
+    EmailStatus.BOUNCED,
+    EmailStatus.COMPLAINED,
+  ];
+
+  /**
+   * Has any of this campaign's mail actually reached SES?
+   *
+   * Deliberately a `findFirst` and not a count: on a million-recipient campaign the
+   * answer is usually "no", and a count would read every row to say so. Both branches
+   * are probes against the (campaignId, status) index, so the query costs the same
+   * whether the campaign has a thousand rows or a million.
+   *
+   * The second branch is the exception to the status test. The send path's catch
+   * marks an email FAILED without clearing `sentAt`, so an email that SES accepted
+   * before a later step threw is FAILED *and* sent. Testing status alone would read
+   * that as never-sent and delete the only record of a message a recipient received.
+   */
+  private static async hasDepartedEmail(campaignId: string): Promise<boolean> {
+    const departed = await prisma.email.findFirst({
+      where: {
+        campaignId,
+        OR: [
+          {status: {in: this.DEPARTED_EMAIL_STATUSES}},
+          {status: EmailStatus.FAILED, sentAt: {not: null}},
+        ],
+      },
+      select: {id: true},
+    });
+
+    return departed !== null;
+  }
+
+  /**
+   * Cancel a campaign.
+   *
+   * The outcome depends on whether anything actually reached a recipient:
+   *
+   * - Nothing sent yet -> the campaign returns to DRAFT and is editable again.
+   * - At least one email away -> CANCELLED, which is terminal. Part of the audience
+   *   has the mail and no edit can unsend it, so the record stays frozen as proof of
+   *   what those recipients received.
+   *
+   * Note that `Email` rows are a poor proxy for "sent": `processBatch` creates them
+   * PENDING well before the worker hands anything to SES.
+   *
+   * Ordering matters. The status flip to CANCELLED happens first, before anything is
+   * counted, because it is what closes the door: `processBatch` stops the batch chain
+   * on it and the email worker skips every job it already queued. Counting first
+   * would race the workers and could hand back an editable draft while messages were
+   * still going out.
+   *
+   * Returns the campaign plus whether a revert is still in flight. A campaign that
+   * never got as far as creating rows -- a schedule cancelled before its time, which
+   * is the common case -- is reverted here and comes back as a DRAFT. One stopped
+   * mid-send owns up to a row per recipient, far too many to delete in a request, so
+   * it comes back CANCELLED with `revertPending` set and is promoted by the cleanup
+   * worker. Re-running cancel on a campaign already CANCELLED is the repair path for
+   * a cleanup that died: it re-queues the job rather than erroring.
+   */
+  public static async cancel(
+    projectId: string,
+    campaignId: string,
+  ): Promise<{campaign: Campaign; revertPending: boolean}> {
     const campaign = await this.get(projectId, campaignId);
 
-    // Can only cancel scheduled or sending campaigns
-    if (campaign.status !== CampaignStatus.SCHEDULED && campaign.status !== CampaignStatus.SENDING) {
+    const isRepair = campaign.status === CampaignStatus.CANCELLED;
+
+    if (
+      campaign.status !== CampaignStatus.SCHEDULED &&
+      campaign.status !== CampaignStatus.SENDING &&
+      !isRepair
+    ) {
       throw new HttpException(400, 'Can only cancel scheduled or sending campaigns');
     }
 
@@ -885,7 +963,8 @@ export class CampaignService {
       await QueueService.cancelScheduledCampaign(campaignId);
     }
 
-    // Update status
+    // Stop the send first -- see the ordering note above. Already CANCELLED on the
+    // repair path, but the write is idempotent and keeps the timestamp fresh.
     const cancelledCampaign = await prisma.campaign.update({
       where: {id: campaignId},
       data: {
@@ -898,10 +977,123 @@ export class CampaignService {
       },
     });
 
-    // Send notification about campaign cancellation
-    await NtfyService.notifyCampaignCancelled(cancelledCampaign.name, cancelledCampaign.project.name, projectId);
+    // Now that no further email can be dispatched, the answer is stable.
+    if (await this.hasDepartedEmail(campaignId)) {
+      if (!isRepair) {
+        await NtfyService.notifyCampaignCancelled(cancelledCampaign.name, cancelledCampaign.project.name, projectId);
+      }
 
-    return cancelledCampaign;
+      return {campaign: cancelledCampaign, revertPending: false};
+    }
+
+    // Nothing left. If the campaign never created any rows there is nothing to clean
+    // up and it can go straight back to draft, which is the path a cancelled schedule
+    // takes.
+    const anyEmail = await prisma.email.findFirst({where: {campaignId}, select: {id: true}});
+
+    if (!anyEmail) {
+      return {campaign: await this.finishRevertToDraft(projectId, campaignId), revertPending: false};
+    }
+
+    await QueueService.queueCampaignCancelCleanup(campaignId, projectId, new Date());
+
+    return {campaign: cancelledCampaign, revertPending: true};
+  }
+
+  /**
+   * Finish the revert once a cleanup job has cleared the unsent rows.
+   *
+   * Re-checks rather than trusting the decision `cancel` made: the cleanup runs for as
+   * long as the deletion takes, and a worker that was inside its SES call when the
+   * campaign was cancelled can stamp an email in that window. If one did, the
+   * campaign stays CANCELLED and keeps the rows that prove it.
+   *
+   * Returns the status the campaign ended on, for the worker to log.
+   */
+  public static async completeCancelRevert(projectId: string, campaignId: string): Promise<CampaignStatus> {
+    const campaign = await prisma.campaign.findUnique({
+      where: {id: campaignId},
+      select: {status: true},
+    });
+
+    if (!campaign) {
+      // Deleted while the cleanup drained. Nothing to promote, and nothing wrong.
+      return CampaignStatus.CANCELLED;
+    }
+
+    if (campaign.status !== CampaignStatus.CANCELLED) {
+      // Already promoted by an earlier attempt of this job, or moved on by hand.
+      return campaign.status;
+    }
+
+    if (await this.hasDepartedEmail(campaignId)) {
+      signale.warn(
+        `[CAMPAIGN] Campaign ${campaignId} sent an email while its cancellation was being cleaned up, staying cancelled`,
+      );
+      return CampaignStatus.CANCELLED;
+    }
+
+    await this.finishRevertToDraft(projectId, campaignId);
+
+    return CampaignStatus.DRAFT;
+  }
+
+  /**
+   * Put a cancelled campaign back to how a draft looks.
+   *
+   * Not merely a relabel: `startSending` stamps `sentAt` on the campaign before the
+   * first batch runs, and a stale `scheduledFor` would have it render as due in the
+   * past. The counters go back to zero because the emails they described are gone.
+   *
+   * `totalRecipients` is deliberately left alone -- it is the audience estimate the
+   * editor shows, and `send` recomputes it before the next send anyway.
+   */
+  private static async finishRevertToDraft(
+    projectId: string,
+    campaignId: string,
+  ): Promise<Campaign & {project: {name: string}}> {
+    const draftCampaign = await prisma.campaign.update({
+      where: {id: campaignId},
+      data: {
+        status: CampaignStatus.DRAFT,
+        sentAt: null,
+        scheduledFor: null,
+        sentCount: 0,
+        deliveredCount: 0,
+        openedCount: 0,
+        clickedCount: 0,
+        bouncedCount: 0,
+        complainedCount: 0,
+        unsubscribedCount: 0,
+      },
+      include: {
+        project: {
+          select: {name: true},
+        },
+      },
+    });
+
+    // Redis holds the live send progress and a dirty-stats flag for in-flight
+    // campaigns. Neither describes a draft, and a stale progress key would be folded
+    // into `sentCount` by the next `reconcileStats`. Never allowed to fail the
+    // revert: the campaign is already a draft by this point, and both keys are
+    // self-correcting (the progress key expires, the dirty flag reconciles a campaign
+    // whose counters are all zero to zero).
+    try {
+      await redis.del(Keys.Campaign.sentProgress(campaignId));
+      await redis.srem(Keys.Campaign.statsDirty(), campaignId);
+    } catch (error) {
+      signale.warn(`[CAMPAIGN] Failed to clear send progress for reverted campaign ${campaignId}:`, error);
+    }
+
+    // Any deleted rows no longer count toward this month's quota, which is a count of
+    // Email rows rather than a running total -- so the cache is invalidated and
+    // recomputed rather than adjusted.
+    await BillingLimitService.invalidateCache(projectId);
+
+    signale.info(`[CAMPAIGN] Campaign ${campaignId} cancelled before any email was sent, returned to draft`);
+
+    return draftCampaign;
   }
 
   /**
