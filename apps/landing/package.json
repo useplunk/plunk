@@ -14,7 +14,7 @@
     "@plunk/db": "*",
     "@plunk/shared": "*",
     "@plunk/ui": "*",
-    "@tiptap/core": "^3.11.0",
+    "@tiptap/core": "^3.30.4",
     "@tiptap/extension-color": "^3.11.0",
     "@tiptap/extension-image": "^3.11.0",
     "@tiptap/extension-link": "^3.11.0",
