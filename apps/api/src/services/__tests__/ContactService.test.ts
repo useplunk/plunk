@@ -1,6 +1,8 @@
-import {beforeEach, describe, expect, it} from 'vitest';
-import {ContactService} from '../ContactService';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+
 import {factories, getPrismaClient} from '../../../../../test/helpers';
+import {prisma as servicePrisma} from '../../database/prisma';
+import {ContactService} from '../ContactService';
 
 describe('ContactService - Duplicate Prevention & Data Merging', () => {
   let projectId: string;
@@ -72,6 +74,173 @@ describe('ContactService - Duplicate Prevention & Data Merging', () => {
         where: {projectId, email},
       });
       expect(contacts).toHaveLength(1);
+    });
+
+    it('should return the elected contact to concurrent first-seen upserts without overwriting it', async () => {
+      const email = 'first-seen-race@example.com';
+      const concurrency = 8;
+      const originalFindFirst = servicePrisma.contact.findFirst.bind(servicePrisma.contact);
+      const originalCreate = servicePrisma.contact.create.bind(servicePrisma.contact);
+      let initialLookups = 0;
+      let releaseInitialLookups!: () => void;
+      const allInitialLookupsStarted = new Promise<void>(resolve => {
+        releaseInitialLookups = resolve;
+      });
+      let releaseLosingCreates!: () => void;
+      const electedContactCreated = new Promise<void>(resolve => {
+        releaseLosingCreates = resolve;
+      });
+
+      const contactLookup = vi.spyOn(servicePrisma.contact, 'findFirst').mockImplementation(async args => {
+        if (args.where?.projectId === projectId && args.where?.email === email) {
+          initialLookups += 1;
+          if (initialLookups === concurrency) releaseInitialLookups();
+          await allInitialLookupsStarted;
+          return null;
+        }
+
+        return originalFindFirst(args);
+      });
+      const contactCreate = vi.spyOn(servicePrisma.contact, 'create').mockImplementation(async args => {
+        if (args.data.projectId === projectId && args.data.email === email && args.data.subscribed !== false) {
+          await electedContactCreated;
+        }
+
+        const contact = await originalCreate(args);
+        if (args.data.projectId === projectId && args.data.email === email && args.data.subscribed === false) {
+          releaseLosingCreates();
+        }
+        return contact;
+      });
+
+      try {
+        const contacts = await Promise.all([
+          ContactService.upsert(projectId, email, {source: 'unsubscribe'}, false),
+          ...Array.from({length: concurrency - 1}, (_, index) =>
+            ContactService.upsert(projectId, ` FIRST-SEEN-RACE@EXAMPLE.COM `, {attempt: index}),
+          ),
+        ]);
+
+        expect(new Set(contacts.map(contact => contact.id))).toEqual(new Set([contacts[0]!.id]));
+      } finally {
+        contactLookup.mockRestore();
+        contactCreate.mockRestore();
+      }
+
+      const stored = await prisma.contact.findUniqueOrThrow({
+        where: {projectId_email: {projectId, email}},
+      });
+      expect(stored.subscribed).toBe(false);
+      expect(stored.data).toEqual({source: 'unsubscribe'});
+      expect(await prisma.contact.count({where: {projectId, email}})).toBe(1);
+    });
+
+    it('should honor a losing explicit unsubscribe without overwriting the elected contact data', async () => {
+      const email = 'losing-unsubscribe@example.com';
+      const concurrency = 8;
+      const originalFindFirst = servicePrisma.contact.findFirst.bind(servicePrisma.contact);
+      const originalCreate = servicePrisma.contact.create.bind(servicePrisma.contact);
+      let initialLookups = 0;
+      let releaseInitialLookups!: () => void;
+      const allInitialLookupsStarted = new Promise<void>(resolve => {
+        releaseInitialLookups = resolve;
+      });
+      let releaseLosingCreates!: () => void;
+      const electedContactCreated = new Promise<void>(resolve => {
+        releaseLosingCreates = resolve;
+      });
+
+      const contactLookup = vi.spyOn(servicePrisma.contact, 'findFirst').mockImplementation(async args => {
+        if (args.where?.projectId === projectId && args.where?.email === email) {
+          initialLookups += 1;
+          if (initialLookups === concurrency) releaseInitialLookups();
+          await allInitialLookupsStarted;
+          return null;
+        }
+
+        return originalFindFirst(args);
+      });
+      const contactCreate = vi.spyOn(servicePrisma.contact, 'create').mockImplementation(async args => {
+        const contactData = args.data.data;
+        const shouldWin =
+          contactData !== null &&
+          typeof contactData === 'object' &&
+          !Array.isArray(contactData) &&
+          'source' in contactData &&
+          contactData.source === 'winner';
+
+        if (args.data.projectId === projectId && args.data.email === email && !shouldWin) {
+          await electedContactCreated;
+        }
+
+        const contact = await originalCreate(args);
+        if (args.data.projectId === projectId && args.data.email === email && shouldWin) {
+          releaseLosingCreates();
+        }
+        return contact;
+      });
+
+      try {
+        const contacts = await Promise.all([
+          ContactService.upsert(projectId, email, {source: 'winner'}, true),
+          ContactService.upsert(projectId, email, {source: 'losing unsubscribe'}, false),
+          ...Array.from({length: concurrency - 2}, (_, index) =>
+            ContactService.upsert(projectId, ` LOSING-UNSUBSCRIBE@EXAMPLE.COM `, {attempt: index}),
+          ),
+        ]);
+
+        expect(new Set(contacts.map(contact => contact.id))).toEqual(new Set([contacts[0]!.id]));
+      } finally {
+        contactLookup.mockRestore();
+        contactCreate.mockRestore();
+      }
+
+      const stored = await prisma.contact.findUniqueOrThrow({
+        where: {projectId_email: {projectId, email}},
+      });
+      expect(stored.subscribed).toBe(false);
+      expect(stored.data).toEqual({source: 'winner'});
+      expect(
+        await prisma.event.count({
+          where: {projectId, contactId: stored.id, name: 'contact.unsubscribed'},
+        }),
+      ).toBe(1);
+    });
+
+    it('should emit one unsubscribe event when concurrent upserts observe the same subscribed contact', async () => {
+      const email = 'concurrent-unsubscribe@example.com';
+      const contact = await ContactService.upsert(projectId, email, {source: 'initial'}, true);
+      const originalFindFirst = servicePrisma.contact.findFirst.bind(servicePrisma.contact);
+      let lookups = 0;
+      let releaseLookups!: () => void;
+      const bothLookupsCompleted = new Promise<void>(resolve => {
+        releaseLookups = resolve;
+      });
+      const contactLookup = vi.spyOn(servicePrisma.contact, 'findFirst').mockImplementation(async args => {
+        const found = await originalFindFirst(args);
+        if (args.where?.projectId === projectId && args.where?.email === email) {
+          lookups += 1;
+          if (lookups === 2) releaseLookups();
+          await bothLookupsCompleted;
+        }
+        return found;
+      });
+
+      try {
+        await Promise.all([
+          ContactService.upsert(projectId, email, {first: true}, false),
+          ContactService.upsert(projectId, email, {second: true}, false),
+        ]);
+      } finally {
+        contactLookup.mockRestore();
+      }
+
+      expect((await prisma.contact.findUniqueOrThrow({where: {id: contact.id}})).subscribed).toBe(false);
+      expect(
+        await prisma.event.count({
+          where: {projectId, contactId: contact.id, name: 'contact.unsubscribed'},
+        }),
+      ).toBe(1);
     });
   });
 
