@@ -304,8 +304,8 @@ export default function PrivacyPolicy() {
                 <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
                   <li>Purpose: Store JWT token for dashboard login</li>
                   <li>Duration: 7 days</li>
-                  <li>Type: First-party, httpOnly, secure (HTTPS only)</li>
-                  <li>Scope: *.useplunk.com</li>
+                  <li>Type: Essential, httpOnly, secure (HTTPS only)</li>
+                  <li>Scope: API host only</li>
                   <li>Can be deleted: Yes (logout clears cookie)</li>
                 </ul>
 
@@ -469,7 +469,7 @@ export default function PrivacyPolicy() {
                 </p>
                 <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
                   <li>Password hashing: Industry-standard secure hashing</li>
-                  <li>Cookies: httpOnly, secure, SameSite=none (HTTPS)</li>
+                  <li>Cookies: httpOnly, secure, SameSite=Lax for same-site deployments</li>
                   <li>Database: TLS/SSL encrypted connections</li>
                   <li>API: HTTPS-only (TLS 1.2+)</li>
                   <li>JWT tokens: 7-day expiration, httpOnly cookies</li>
@@ -883,7 +883,7 @@ export default function PrivacyPolicy() {
                       <strong className="font-semibold text-neutral-900">Duration:</strong> 7 days
                     </li>
                     <li>
-                      <strong className="font-semibold text-neutral-900">Domain:</strong> *.useplunk.com
+                      <strong className="font-semibold text-neutral-900">Domain:</strong> API host only
                     </li>
                     <li>
                       <strong className="font-semibold text-neutral-900">Data stored:</strong> Encrypted JWT with user

@@ -55,11 +55,7 @@ export class Auth {
     await redis.set(Keys.User.id(user.id), JSON.stringify(user), 'EX', REDIS_ONE_MINUTE * 60);
 
     const token = jwt.sign(user.id);
-    const cookie = UserService.cookieOptions();
-
-    return res
-      .cookie(UserService.COOKIE_NAME, token, cookie)
-      .json({success: true, data: {id: user.id, email: user.email}});
+    return UserService.setAuthCookie(res, token).json({success: true, data: {id: user.id, email: user.email}});
   }
 
   @Post('signup')
@@ -148,9 +144,7 @@ export class Auth {
     }
 
     const token = jwt.sign(created_user.id);
-    const cookie = UserService.cookieOptions();
-
-    return res.cookie(UserService.COOKIE_NAME, token, cookie).json({
+    return UserService.setAuthCookie(res, token).json({
       success: true,
       data: {id: created_user.id, email: created_user.email},
     });
@@ -158,8 +152,7 @@ export class Auth {
 
   @Get('logout')
   public logout(req: Request, res: Response) {
-    res.cookie(UserService.COOKIE_NAME, '', UserService.cookieOptions(new Date()));
-    return res.json(true);
+    return UserService.clearAuthCookie(res).json(true);
   }
 
   @Get('oauth-config')
