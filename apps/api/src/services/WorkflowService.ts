@@ -1,5 +1,5 @@
 import type {Workflow, WorkflowExecution, WorkflowStep, WorkflowTransition} from '@plunk/db';
-import {Prisma, WorkflowExecutionStatus} from '@plunk/db';
+import {Prisma, WorkflowExecutionStatus, WorkflowWaitOutcome} from '@plunk/db';
 import type {PaginatedResponse, WorkflowExecutionWithDetails, WorkflowWithDetails} from '@plunk/types';
 import {toPrismaJson} from '@plunk/types';
 import signale from 'signale';
@@ -14,6 +14,56 @@ import {NtfyService} from './NtfyService.js';
 import {WorkflowExecutionService} from './WorkflowExecutionService.js';
 
 export class WorkflowService {
+  private static async validateStepTemplate(projectId: string, templateId?: string | null): Promise<void> {
+    if (templateId === undefined || templateId === null) {
+      return;
+    }
+
+    const template = await prisma.template.findFirst({
+      where: {id: templateId, projectId},
+      select: {id: true},
+    });
+
+    if (!template) {
+      throw new HttpException(404, 'Template not found');
+    }
+  }
+
+  private static waitHasTimeout(config: Prisma.JsonValue): boolean {
+    return (
+      typeof config === 'object' &&
+      config !== null &&
+      !Array.isArray(config) &&
+      typeof config.timeout === 'number' &&
+      config.timeout > 0
+    );
+  }
+
+  /**
+   * Build the default route(s) when a step is inserted into a linear path.
+   * WAIT_FOR_EVENT keeps event and timeout routing explicit even when both
+   * outcomes continue to the same next step.
+   */
+  private static defaultOutgoingTransitions(
+    step: Pick<WorkflowStep, 'id' | 'type' | 'config'>,
+    toStepId: string,
+  ): Prisma.WorkflowTransitionCreateManyInput[] {
+    const base = {fromStepId: step.id, toStepId, priority: 0};
+
+    if (step.type === 'CONDITION') {
+      return [{...base, condition: toPrismaJson({branch: 'yes'})}];
+    }
+
+    if (step.type === 'WAIT_FOR_EVENT') {
+      return [
+        {...base, waitOutcome: WorkflowWaitOutcome.EVENT},
+        ...(this.waitHasTimeout(step.config) ? [{...base, waitOutcome: WorkflowWaitOutcome.TIMEOUT, priority: 1}] : []),
+      ];
+    }
+
+    return [base];
+  }
+
   /**
    * Get all workflows for a project with pagination
    */
@@ -469,6 +519,7 @@ export class WorkflowService {
               transition.condition === null
                 ? Prisma.JsonNull
                 : (transition.condition as Prisma.InputJsonValue),
+            waitOutcome: transition.waitOutcome,
             priority: transition.priority,
           },
         });
@@ -504,6 +555,8 @@ export class WorkflowService {
       }
     }
 
+    await this.validateStepTemplate(projectId, data.templateId);
+
     // Create the new step
     const newStep = await prisma.workflowStep.create({
       data: {
@@ -530,12 +583,8 @@ export class WorkflowService {
         const lastStep = stepsWithoutOutgoing[stepsWithoutOutgoing.length - 1];
 
         if (lastStep) {
-          await prisma.workflowTransition.create({
-            data: {
-              fromStepId: lastStep.id,
-              toStepId: newStep.id,
-              priority: 0,
-            },
+          await prisma.workflowTransition.createMany({
+            data: this.defaultOutgoingTransitions(lastStep, newStep.id),
           });
         }
       }
@@ -588,6 +637,8 @@ export class WorkflowService {
         }
       }
     }
+
+    await this.validateStepTemplate(projectId, data.templateId);
 
     const updateData: Prisma.WorkflowStepUpdateInput = {};
 
@@ -746,7 +797,7 @@ export class WorkflowService {
 
   /**
    * Splice a step out of the flow: re-wire its parent(s) directly to its child,
-   * then delete only the step itself. Not allowed for CONDITION or TRIGGER steps.
+   * then delete only the step itself. Not allowed for branching or TRIGGER steps.
    */
   public static async spliceStep(projectId: string, workflowId: string, stepId: string): Promise<void> {
     await this.get(projectId, workflowId);
@@ -767,8 +818,8 @@ export class WorkflowService {
       throw new HttpException(400, 'Cannot remove the trigger step.');
     }
 
-    if (step.type === 'CONDITION') {
-      throw new HttpException(400, 'Cannot splice a condition step out of the flow.');
+    if (step.type === 'CONDITION' || step.type === 'WAIT_FOR_EVENT') {
+      throw new HttpException(400, 'Cannot splice a branching step out of the flow.');
     }
 
     // Check for active executions on this step
@@ -812,10 +863,8 @@ export class WorkflowService {
    * so a condition branch keeps its label) and a fresh transition carries the
    * flow on to the original target.
    *
-   * When the inserted step is itself a CONDITION, the downstream transition is
-   * attached to its first branch (`yes`) rather than left unconditional — a
-   * condition step routes exclusively by branch, so an unconditional outgoing
-   * transition would never be taken and B would be stranded.
+   * A newly inserted CONDITION starts on `yes`. A newly inserted WAIT_FOR_EVENT
+   * gets explicit event and, when configured, timeout routes to B.
    *
    * Purely additive — no step is removed and nothing becomes unreachable — so
    * unlike splice/delete this does not need to guard against in-flight executions.
@@ -860,6 +909,8 @@ export class WorkflowService {
       );
     }
 
+    await this.validateStepTemplate(projectId, data.templateId);
+
     return prisma.$transaction(async tx => {
       const newStep = await tx.workflowStep.create({
         data: {
@@ -879,15 +930,8 @@ export class WorkflowService {
         data: {toStepId: newStep.id},
       });
 
-      await tx.workflowTransition.create({
-        data: {
-          fromStepId: newStep.id,
-          toStepId: transition.toStepId,
-          // A freshly created condition has no config yet, which the builder reads
-          // as the default binary yes/no pair — so `yes` is its first branch.
-          condition: data.type === 'CONDITION' ? toPrismaJson({branch: 'yes'}) : Prisma.JsonNull,
-          priority: 0,
-        },
+      await tx.workflowTransition.createMany({
+        data: this.defaultOutgoingTransitions(newStep, transition.toStepId),
       });
 
       return newStep;
@@ -940,6 +984,7 @@ export class WorkflowService {
       fromStepId: string;
       toStepId: string;
       condition?: Prisma.JsonValue;
+      waitOutcome?: WorkflowWaitOutcome;
       priority?: number;
     },
   ): Promise<WorkflowTransition> {
@@ -967,32 +1012,61 @@ export class WorkflowService {
       throw new HttpException(400, 'An exit step ends the flow and cannot be connected to another step');
     }
 
-    // For CONDITION steps, validate that this branch doesn't already have a transition
-    if (fromStep?.type === 'CONDITION' && data.condition) {
-      const conditionObj =
-        typeof data.condition === 'object' && data.condition !== null
-          ? (data.condition as Record<string, unknown>)
-          : null;
-      if (conditionObj && 'branch' in conditionObj) {
-        // Check if a transition with this branch already exists
-        const existingTransition = await prisma.workflowTransition.findFirst({
-          where: {
-            fromStepId: data.fromStepId,
-            condition: {
-              path: ['branch'],
-              equals: toPrismaJson(conditionObj.branch),
-            },
-          },
-        });
+    const hasCondition = data.condition !== undefined && data.condition !== null;
 
-        if (existingTransition) {
-          throw new HttpException(
-            400,
-            `A transition for the "${conditionObj.branch}" branch already exists from this step`,
-          );
+    if (fromStep?.type === 'WAIT_FOR_EVENT') {
+      if (hasCondition) {
+        throw new HttpException(400, 'Wait routes use waitOutcome, not transition conditions');
+      }
+      if (!data.waitOutcome) {
+        throw new HttpException(400, 'WAIT_FOR_EVENT transitions require an EVENT or TIMEOUT outcome');
+      }
+      if (data.waitOutcome === WorkflowWaitOutcome.TIMEOUT && !this.waitHasTimeout(fromStep.config)) {
+        throw new HttpException(400, 'A TIMEOUT transition requires a positive timeout on the wait step');
+      }
+
+      const existingOutcome = await prisma.workflowTransition.findFirst({
+        where: {fromStepId: data.fromStepId, waitOutcome: data.waitOutcome},
+      });
+      if (existingOutcome) {
+        throw new HttpException(400, `The ${data.waitOutcome} route already has a transition`);
+      }
+    } else if (fromStep?.type === 'CONDITION') {
+      if (data.waitOutcome) {
+        throw new HttpException(400, 'Condition branches cannot declare a wait outcome');
+      }
+      if (data.condition) {
+        const conditionObj =
+          typeof data.condition === 'object' && data.condition !== null
+            ? (data.condition as Record<string, unknown>)
+            : null;
+        if (conditionObj && 'branch' in conditionObj) {
+          // Check if a transition with this branch already exists
+          const existingTransition = await prisma.workflowTransition.findFirst({
+            where: {
+              fromStepId: data.fromStepId,
+              condition: {
+                path: ['branch'],
+                equals: toPrismaJson(conditionObj.branch),
+              },
+            },
+          });
+
+          if (existingTransition) {
+            throw new HttpException(
+              400,
+              `A transition for the "${conditionObj.branch}" branch already exists from this step`,
+            );
+          }
         }
       }
-    } else if (fromStep?.type !== 'CONDITION') {
+    } else {
+      if (data.waitOutcome) {
+        throw new HttpException(400, 'Only WAIT_FOR_EVENT steps can declare a wait outcome');
+      }
+      if (hasCondition) {
+        throw new HttpException(400, 'Only CONDITION steps can declare a transition condition');
+      }
       // Every other step type routes to exactly one next step. A second outgoing
       // transition would make the next hop ambiguous at execution time.
       const existingOutgoing = await prisma.workflowTransition.findFirst({
@@ -1018,6 +1092,7 @@ export class WorkflowService {
         fromStepId: data.fromStepId,
         toStepId: data.toStepId,
         condition: data.condition ?? Prisma.JsonNull,
+        waitOutcome: data.waitOutcome,
         priority: data.priority ?? 0,
       },
     });
@@ -1155,16 +1230,16 @@ export class WorkflowService {
         );
       }
     } else {
-      // If re-entry is allowed, only check if there's a currently RUNNING execution
-      const runningExecution = await prisma.workflowExecution.findFirst({
+      // Re-entry allows a later run, not overlap with a delay or event wait.
+      const activeExecution = await prisma.workflowExecution.findFirst({
         where: {
           workflowId,
           contactId,
-          status: WorkflowExecutionStatus.RUNNING,
+          status: {in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING]},
         },
       });
 
-      if (runningExecution) {
+      if (activeExecution) {
         throw new HttpException(409, 'Workflow is already running for this contact');
       }
     }
@@ -1177,15 +1252,23 @@ export class WorkflowService {
     }
 
     // Create workflow execution
-    const execution = await prisma.workflowExecution.create({
-      data: {
-        workflowId,
-        contactId,
-        status: WorkflowExecutionStatus.RUNNING,
-        currentStepId: triggerStep.id,
-        context: context ?? Prisma.JsonNull,
-      },
-    });
+    let execution: WorkflowExecution;
+    try {
+      execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId,
+          contactId,
+          status: WorkflowExecutionStatus.RUNNING,
+          currentStepId: triggerStep.id,
+          context: context ?? Prisma.JsonNull,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+        throw new HttpException(409, 'Workflow is already running for this contact');
+      }
+      throw error;
+    }
 
     // Start executing the workflow asynchronously
     // Don't await - let it run in background

@@ -64,6 +64,7 @@ export type WorkflowStepWithTransitions = WorkflowStep & {
   outgoingTransitions?: Array<{
     id: string;
     condition: Prisma.JsonValue;
+    waitOutcome: WorkflowTransition['waitOutcome'];
     priority: number;
     toStep: WorkflowStep;
   }>;

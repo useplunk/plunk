@@ -291,7 +291,7 @@ Each workflow consists of a **workflow** record, a graph of **steps**, **transit
 | PATCH  | `/workflows/:id/steps/:stepId`                    | Update a step's config.                                                                  |
 | DELETE | `/workflows/:id/steps/:stepId?splice=true`        | Delete a step. Pass `splice=true` to auto-reconnect surrounding transitions.             |
 | **Transitions** |                                          |                                                                                          |
-| POST   | `/workflows/:id/transitions`                      | Add a transition between two steps. For `CONDITION` steps, include `branch: "yes" \| "no"`. |
+| POST   | `/workflows/:id/transitions`                      | Add a transition. Use `condition.branch` for a `CONDITION` route or `waitOutcome: "EVENT" \| "TIMEOUT"` for a `WAIT_FOR_EVENT` route. |
 | DELETE | `/workflows/:id/transitions/:transitionId`        | Delete a transition.                                                                     |
 | **Executions** |                                           |                                                                                          |
 | POST   | `/workflows/:id/executions`                       | Manually start an execution for a contact. Optional `context` JSON for per-execution variables. |

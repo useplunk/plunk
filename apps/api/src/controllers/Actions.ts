@@ -39,6 +39,8 @@ export class Actions {
    * Response:
    * - success: boolean
    * - data: object with contact ID, event ID, and timestamp
+   * - 200 once the event is stored; workflow dispatch may finish synchronously
+   *   or through Plunk's bounded internal reconciliation sweep
    *
    * Example:
    * {

@@ -26,12 +26,14 @@ interface WorkflowVisualizerProps {
       id: string;
       toStepId: string;
       condition: unknown;
+      waitOutcome: 'EVENT' | 'TIMEOUT' | null;
       priority: number;
     }>;
     incomingTransitions: Array<{
       id: string;
       fromStepId: string;
       condition: unknown;
+      waitOutcome: 'EVENT' | 'TIMEOUT' | null;
       priority: number;
     }>;
   })[];
@@ -325,6 +327,27 @@ export function WorkflowVisualizer({steps}: WorkflowVisualizerProps) {
             transition.condition && typeof transition.condition === 'object' && 'branch' in transition.condition
               ? transition.condition.branch
               : undefined;
+          const waitOutcome = step.type === 'WAIT_FOR_EVENT' ? transition.waitOutcome : null;
+          const routeLabel = isConditional
+            ? branch === 'yes'
+              ? 'Yes'
+              : 'No'
+            : waitOutcome === 'EVENT'
+              ? 'Event received'
+              : waitOutcome === 'TIMEOUT'
+                ? 'Timed out'
+                : undefined;
+          const routeColor = isConditional
+            ? branch === 'yes'
+              ? '#16a34a'
+              : branch === 'no'
+                ? '#dc2626'
+                : '#64748b'
+            : waitOutcome === 'EVENT'
+              ? '#16a34a'
+              : waitOutcome === 'TIMEOUT'
+                ? '#d97706'
+                : '#64748b';
 
           edges.push({
             id: transition.id,
@@ -332,9 +355,9 @@ export function WorkflowVisualizer({steps}: WorkflowVisualizerProps) {
             target: transition.toStepId,
             type: 'smoothstep',
             animated: false,
-            label: isConditional ? (branch === 'yes' ? 'Yes' : 'No') : undefined,
+            label: routeLabel,
             labelStyle: {
-              fill: branch === 'yes' ? '#16a34a' : branch === 'no' ? '#dc2626' : '#64748b',
+              fill: routeColor,
               fontWeight: 600,
               fontSize: 12,
             },

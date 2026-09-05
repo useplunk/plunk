@@ -1,8 +1,9 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {WorkflowExecutionStatus, WorkflowStepType, WorkflowTriggerType} from '@plunk/db';
+import {WorkflowExecutionStatus, WorkflowStepType, WorkflowTriggerType, WorkflowWaitOutcome} from '@plunk/db';
 import {WorkflowService} from '../WorkflowService';
 import {Keys} from '../keys';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
+import {prisma as servicePrisma} from '../../database/prisma';
 
 // Mock Redis for caching tests - must be inline to avoid hoisting issues
 vi.mock('../../database/redis', () => {
@@ -426,9 +427,9 @@ describe('WorkflowService', () => {
       const mine = await factories.createWorkflow({projectId});
       const foreign = await factories.createWorkflow({projectId: otherProject.id});
 
-      await expect(
-        WorkflowService.bulkUpdate(projectId, {ids: [mine.id, foreign.id], delete: true}),
-      ).rejects.toThrow(/not found in this project/i);
+      await expect(WorkflowService.bulkUpdate(projectId, {ids: [mine.id, foreign.id], delete: true})).rejects.toThrow(
+        /not found in this project/i,
+      );
 
       // Both survive — atomic rollback, no cross-project leak.
       expect(await prisma.workflow.findUnique({where: {id: mine.id}})).not.toBeNull();
@@ -443,9 +444,9 @@ describe('WorkflowService', () => {
         status: WorkflowExecutionStatus.RUNNING,
       });
 
-      await expect(
-        WorkflowService.bulkUpdate(projectId, {ids: [busy.id, idle.id], delete: true}),
-      ).rejects.toThrow(/active execution/i);
+      await expect(WorkflowService.bulkUpdate(projectId, {ids: [busy.id, idle.id], delete: true})).rejects.toThrow(
+        /active execution/i,
+      );
 
       // Partial delete must be impossible — the idle workflow must survive too.
       expect(await prisma.workflow.findUnique({where: {id: busy.id}})).not.toBeNull();
@@ -496,6 +497,44 @@ describe('WorkflowService', () => {
       });
 
       expect(step.templateId).toBe(template.id);
+    });
+
+    it('should reject foreign and missing templates without revealing which exists', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const {project: otherProject} = await factories.createUserWithProject();
+      const foreignTemplate = await factories.createTemplate({projectId: otherProject.id});
+      const missingTemplateId = '00000000-0000-0000-0000-000000000000';
+
+      const addEmailStep = (templateId: string) =>
+        WorkflowService.addStep(projectId, workflow.id, {
+          type: WorkflowStepType.SEND_EMAIL,
+          name: 'Send welcome email',
+          position: {x: 200, y: 100},
+          config: {},
+          templateId,
+        });
+
+      await expect(addEmailStep(foreignTemplate.id)).rejects.toMatchObject({
+        code: 404,
+        message: 'Template not found',
+      });
+      await expect(addEmailStep(missingTemplateId)).rejects.toMatchObject({
+        code: 404,
+        message: 'Template not found',
+      });
+      await expect(
+        WorkflowService.addStep(projectId, workflow.id, {
+          type: WorkflowStepType.DELAY,
+          name: 'Wait 1 hour',
+          position: {x: 200, y: 100},
+          config: {delay: 3600},
+          templateId: foreignTemplate.id,
+        }),
+      ).rejects.toMatchObject({code: 404, message: 'Template not found'});
+
+      const addedSteps = await prisma.workflowStep.findMany({where: {workflowId: workflow.id}});
+      expect(addedSteps).toHaveLength(1);
+      expect(addedSteps[0]?.type).toBe(WorkflowStepType.TRIGGER);
     });
 
     it('should auto-connect to previous step by default', async () => {
@@ -612,6 +651,33 @@ describe('WorkflowService', () => {
       });
 
       expect(updated.templateId).toBe(template2.id);
+    });
+
+    it('should reject updating an email step to foreign and missing templates', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const template = await factories.createTemplate({projectId});
+      const {project: otherProject} = await factories.createUserWithProject();
+      const foreignTemplate = await factories.createTemplate({projectId: otherProject.id});
+      const missingTemplateId = '00000000-0000-0000-0000-000000000000';
+      const step = await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        type: WorkflowStepType.SEND_EMAIL,
+        templateId: template.id,
+      });
+
+      await expect(
+        WorkflowService.updateStep(projectId, workflow.id, step.id, {
+          templateId: foreignTemplate.id,
+        }),
+      ).rejects.toMatchObject({code: 404, message: 'Template not found'});
+      await expect(
+        WorkflowService.updateStep(projectId, workflow.id, step.id, {
+          templateId: missingTemplateId,
+        }),
+      ).rejects.toMatchObject({code: 404, message: 'Template not found'});
+
+      const unchanged = await prisma.workflowStep.findUnique({where: {id: step.id}});
+      expect(unchanged?.templateId).toBe(template.id);
     });
 
     it('should remove template reference when set to null', async () => {
@@ -754,6 +820,83 @@ describe('WorkflowService', () => {
       expect(noTransition.condition).toEqual({branch: 'no'});
     });
 
+    it('should create distinct event and timeout routes from WAIT_FOR_EVENT steps', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const waitStep = await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        type: WorkflowStepType.WAIT_FOR_EVENT,
+        config: {eventName: 'purchase.completed', timeout: 3600},
+      });
+      const eventStep = await factories.createWorkflowStep({workflowId: workflow.id});
+      const timeoutStep = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      const eventTransition = await WorkflowService.createTransition(projectId, workflow.id, {
+        fromStepId: waitStep.id,
+        toStepId: eventStep.id,
+        waitOutcome: WorkflowWaitOutcome.EVENT,
+      });
+      const timeoutTransition = await WorkflowService.createTransition(projectId, workflow.id, {
+        fromStepId: waitStep.id,
+        toStepId: timeoutStep.id,
+        waitOutcome: WorkflowWaitOutcome.TIMEOUT,
+      });
+
+      expect(eventTransition.waitOutcome).toBe(WorkflowWaitOutcome.EVENT);
+      expect(timeoutTransition.waitOutcome).toBe(WorkflowWaitOutcome.TIMEOUT);
+      expect(eventTransition.condition).toBeNull();
+      expect(timeoutTransition.condition).toBeNull();
+    });
+
+    it('should reject duplicate or condition-based WAIT_FOR_EVENT routes', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const waitStep = await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        type: WorkflowStepType.WAIT_FOR_EVENT,
+      });
+      const step2 = await factories.createWorkflowStep({workflowId: workflow.id});
+      const step3 = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      await WorkflowService.createTransition(projectId, workflow.id, {
+        fromStepId: waitStep.id,
+        toStepId: step2.id,
+        waitOutcome: WorkflowWaitOutcome.EVENT,
+      });
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: waitStep.id,
+          toStepId: step3.id,
+          waitOutcome: WorkflowWaitOutcome.EVENT,
+        }),
+      ).rejects.toThrow(/already has a transition/i);
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: waitStep.id,
+          toStepId: step3.id,
+          condition: {branch: 'timeout'},
+        }),
+      ).rejects.toThrow(/waitOutcome/i);
+    });
+
+    it('should reject a timeout route when the wait has no timeout', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const waitStep = await factories.createWorkflowStep({
+        workflowId: workflow.id,
+        type: WorkflowStepType.WAIT_FOR_EVENT,
+        config: {eventName: 'purchase.completed'},
+      });
+      const timeoutStep = await factories.createWorkflowStep({workflowId: workflow.id});
+
+      await expect(
+        WorkflowService.createTransition(projectId, workflow.id, {
+          fromStepId: waitStep.id,
+          toStepId: timeoutStep.id,
+          waitOutcome: WorkflowWaitOutcome.TIMEOUT,
+        }),
+      ).rejects.toThrow(/positive timeout/i);
+    });
+
     it('should reject a second outgoing transition from a non-condition step', async () => {
       const workflow = await factories.createWorkflow({projectId});
       const step1 = await factories.createWorkflowStep({workflowId: workflow.id, type: WorkflowStepType.DELAY});
@@ -876,6 +1019,31 @@ describe('WorkflowService', () => {
       // The transition carrying the flow onwards is unconditional
       const outgoing = await prisma.workflowTransition.findMany({where: {fromStepId: newStep.id}});
       expect(outgoing[0]?.condition).toBeNull();
+    });
+
+    it('should reject inserting an email step with a foreign template', async () => {
+      const workflow = await factories.createWorkflow({projectId});
+      const stepA = await factories.createWorkflowStep({workflowId: workflow.id});
+      const stepB = await factories.createWorkflowStep({workflowId: workflow.id});
+      const transition = await prisma.workflowTransition.create({
+        data: {fromStepId: stepA.id, toStepId: stepB.id},
+      });
+      const {project: otherProject} = await factories.createUserWithProject();
+      const foreignTemplate = await factories.createTemplate({projectId: otherProject.id});
+      const stepCount = await prisma.workflowStep.count({where: {workflowId: workflow.id}});
+
+      await expect(
+        WorkflowService.insertStepOnTransition(projectId, workflow.id, transition.id, {
+          type: WorkflowStepType.SEND_EMAIL,
+          name: 'Inserted email',
+          config: {},
+          templateId: foreignTemplate.id,
+        }),
+      ).rejects.toMatchObject({code: 404, message: 'Template not found'});
+
+      const original = await prisma.workflowTransition.findUnique({where: {id: transition.id}});
+      expect(original?.toStepId).toBe(stepB.id);
+      expect(await prisma.workflowStep.count({where: {workflowId: workflow.id}})).toBe(stepCount);
     });
 
     it('should attach the downstream step to the first branch when inserting a CONDITION', async () => {
@@ -1093,6 +1261,81 @@ describe('WorkflowService', () => {
       await expect(WorkflowService.startExecution(projectId, workflow.id, contact.id)).rejects.toThrow(
         /already running/i,
       );
+    });
+
+    it('should treat a waiting execution as active when re-entry is enabled', async () => {
+      const workflow = await factories.createWorkflow({
+        projectId,
+        enabled: true,
+        allowReentry: true,
+      });
+      const contact = await factories.createContact({projectId});
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: WorkflowStepType.TRIGGER},
+      });
+      await prisma.workflowExecution.create({
+        data: {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          status: WorkflowExecutionStatus.WAITING,
+          currentStepId: triggerStep.id,
+        },
+      });
+
+      await expect(WorkflowService.startExecution(projectId, workflow.id, contact.id)).rejects.toThrow(
+        /already running/i,
+      );
+    });
+
+    it('uses the database constraint to reject parallel active starts', async () => {
+      const workflow = await factories.createWorkflow({
+        projectId,
+        enabled: true,
+        allowReentry: true,
+      });
+      const contact = await factories.createContact({projectId});
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: WorkflowStepType.TRIGGER},
+      });
+      const delayStep = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.DELAY,
+          name: 'Keep execution active',
+          position: {x: 100, y: 0},
+          config: {amount: 1, unit: 'minutes'},
+        },
+      });
+      await prisma.workflowTransition.create({
+        data: {fromStepId: triggerStep.id, toStepId: delayStep.id},
+      });
+
+      const originalFindFirst = servicePrisma.workflowExecution.findFirst.bind(servicePrisma.workflowExecution);
+      let activeLookups = 0;
+      let releaseActiveLookups!: () => void;
+      const bothCheckedForActiveExecution = new Promise<void>(resolve => {
+        releaseActiveLookups = resolve;
+      });
+      const executionLookup = vi.spyOn(servicePrisma.workflowExecution, 'findFirst').mockImplementation(async args => {
+        if (args.where?.workflowId === workflow.id && args.where?.contactId === contact.id && args.where?.status) {
+          activeLookups += 1;
+          if (activeLookups === 2) releaseActiveLookups();
+          await bothCheckedForActiveExecution;
+          return null;
+        }
+
+        return originalFindFirst(args);
+      });
+
+      const starts = await Promise.allSettled([
+        WorkflowService.startExecution(projectId, workflow.id, contact.id),
+        WorkflowService.startExecution(projectId, workflow.id, contact.id),
+      ]);
+
+      executionLookup.mockRestore();
+      expect(starts.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+      expect(starts.filter(result => result.status === 'rejected')).toHaveLength(1);
+      expect(await prisma.workflowExecution.count({where: {workflowId: workflow.id, contactId: contact.id}})).toBe(1);
     });
   });
 

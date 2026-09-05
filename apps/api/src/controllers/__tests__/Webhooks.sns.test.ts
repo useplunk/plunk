@@ -1,4 +1,5 @@
 import type {Request, Response} from 'express';
+import {randomUUID} from 'node:crypto';
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {EmailStatus} from '@plunk/db';
@@ -71,10 +72,10 @@ describe('Webhooks - SES event notifications', () => {
   }
 
   /** Deliver one SES event notification, shaped the way SNS posts it. */
-  async function post(event: Record<string, unknown>) {
+  async function post(event: Record<string, unknown>, snsMessageId = randomUUID()) {
     const {res, captured, sent} = mockResponse();
     const req = {
-      body: {Type: 'Notification', Message: JSON.stringify(event)},
+      body: {Type: 'Notification', MessageId: snsMessageId, Message: JSON.stringify(event)},
       get: () => undefined,
       headers: {},
     } as unknown as Request;
@@ -242,8 +243,10 @@ describe('Webhooks - SES event notifications', () => {
       await sentEmail('ses-campaign-2', campaign.id);
       await prisma.campaign.update({where: {id: campaign.id}, data: {sentCount: 1}});
 
-      await post(notification('Delivery', 'ses-campaign-2'));
-      await post(notification('Delivery', 'ses-campaign-2'));
+      const replayedNotification = notification('Delivery', 'ses-campaign-2');
+      const replayedSnsMessageId = randomUUID();
+      await post(replayedNotification, replayedSnsMessageId);
+      await post(replayedNotification, replayedSnsMessageId);
       await CampaignService.sweepDirtyStats(100);
 
       const stats = await CampaignService.getStats(projectId, campaign.id);
@@ -272,10 +275,10 @@ describe('Webhooks - SES event notifications', () => {
       expect(updated?.deliveredAt).toBeNull();
     });
 
-    it('404s an event for a messageId it does not know', async () => {
+    it('retries an event for a messageId it does not know', async () => {
       const captured = await post(notification('Delivery', 'ses-never-sent'));
 
-      expect(captured.status).toBe(404);
+      expect(captured.status).toBe(500);
     });
   });
 });

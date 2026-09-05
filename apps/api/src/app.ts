@@ -523,20 +523,23 @@ void prisma.$connect().then(async () => {
 
   signale.info('[BACKGROUND-JOB] API request cleanup scheduled (BullMQ repeatable job, runs daily at 3 AM)');
 
-  // Set up repeatable job for expired idempotency key cleanup (BullMQ)
-  // Runs hourly: expiry is what makes a key reusable, so the sweep should track the TTL
-  await idempotencyKeyCleanupQueue.add(
+  // Set up repeatable durable-state maintenance (BullMQ). Event dispatch uses a
+  // five-minute grace window, so a minutely sweep retries failed ingestion in
+  // under six minutes during normal operation without racing live requests.
+  // v0.14.0 registered this job hourly through BullMQ's legacy repeat API.
+  // Remove that exact entry before moving the stable scheduler to one minute.
+  await idempotencyKeyCleanupQueue.removeRepeatable(
     'cleanup-expired-keys',
-    {},
-    {
-      repeat: {
-        pattern: '0 * * * *', // Hourly, on the hour
-      },
-      jobId: 'idempotency-key-cleanup-repeatable', // Fixed ID to prevent duplicates
-    },
+    {pattern: '0 * * * *'},
+    'idempotency-key-cleanup-repeatable',
+  );
+  await idempotencyKeyCleanupQueue.upsertJobScheduler(
+    'idempotency-key-cleanup-repeatable',
+    {pattern: '* * * * *'},
+    {name: 'cleanup-expired-keys', data: {}},
   );
 
-  signale.info('[BACKGROUND-JOB] Idempotency key cleanup scheduled (BullMQ repeatable job, runs hourly)');
+  signale.info('[BACKGROUND-JOB] Durable-state maintenance scheduled (BullMQ repeatable job, runs every minute)');
 
   // Set up repeatable job for email body cleanup (BullMQ)
   // Run daily at 4 AM, offset from the API request cleanup so the two don't overlap
