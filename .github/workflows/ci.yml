@@ -110,6 +110,7 @@ jobs:
           AWS_SES_REGION=us-east-1
           AWS_SES_ACCESS_KEY_ID=mock
           AWS_SES_SECRET_ACCESS_KEY=mock
+          SNS_TOPIC_ARNS=arn:aws:sns:us-east-1:123456789012:plunk-ses-events
           SES_CONFIGURATION_SET=test
           SES_CONFIGURATION_SET_NO_TRACKING=test-no-tracking
           EOF
@@ -195,6 +196,7 @@ jobs:
           AWS_SES_REGION=us-east-1
           AWS_SES_ACCESS_KEY_ID=mock
           AWS_SES_SECRET_ACCESS_KEY=mock
+          SNS_TOPIC_ARNS=arn:aws:sns:us-east-1:123456789012:plunk-ses-events
           SES_CONFIGURATION_SET=test
           SES_CONFIGURATION_SET_NO_TRACKING=test
           EOF

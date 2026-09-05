@@ -51,12 +51,14 @@ interface WorkflowBuilderProps {
       id: string;
       toStepId: string;
       condition: unknown;
+      waitOutcome: 'EVENT' | 'TIMEOUT' | null;
       priority: number;
     }>;
     incomingTransitions: Array<{
       id: string;
       fromStepId: string;
       condition: unknown;
+      waitOutcome: 'EVENT' | 'TIMEOUT' | null;
       priority: number;
     }>;
   })[];
@@ -154,6 +156,37 @@ function getBranchColor(config: any, branchId: string): string {
     return BRANCH_COLORS[idx % BRANCH_COLORS.length]!;
   }
   return branchId === 'yes' ? '#16a34a' : '#dc2626';
+}
+
+type WaitOutcome = 'EVENT' | 'TIMEOUT';
+const WAIT_OUTCOMES: WaitOutcome[] = ['EVENT', 'TIMEOUT'];
+
+function waitHasTimeout(config: any): boolean {
+  return typeof config?.timeout === 'number' && config.timeout > 0;
+}
+
+function getWaitOutcomeHandles(config: any, transitions: Array<{waitOutcome: WaitOutcome | null}> = []): WaitOutcome[] {
+  const expected = waitHasTimeout(config) ? WAIT_OUTCOMES : WAIT_OUTCOMES.slice(0, 1);
+  const wired = transitions.map(t => t.waitOutcome).filter((outcome): outcome is WaitOutcome => Boolean(outcome));
+
+  return [...expected, ...wired.filter(outcome => !expected.includes(outcome))];
+}
+
+function getWaitOutcomeLabel(outcome: WaitOutcome): string {
+  return outcome === 'EVENT' ? 'Event received' : 'Timed out';
+}
+
+function getWaitOutcomeColor(outcome: WaitOutcome): string {
+  return outcome === 'EVENT' ? '#16a34a' : '#d97706';
+}
+
+function getRoutePriority(stepType: string | undefined, config: any, outcome?: string | null): number {
+  if (!outcome) return 0;
+
+  const routes =
+    stepType === 'WAIT_FOR_EVENT' ? WAIT_OUTCOMES : stepType === 'CONDITION' ? getExpectedBranches(config) : [];
+  const index = routes.findIndex(route => route === outcome);
+  return index >= 0 ? index : 0;
 }
 
 // Dagre layout function
@@ -289,9 +322,9 @@ function CustomNode({
     template?: {id: string; name: string};
     config?: any;
     /**
-     * One entry per outgoing slot. Condition steps get a handle per branch so a
-     * dragged connection carries the branch it started from; everything else has
-     * a single unnamed slot. Empty for EXIT, which ends the path.
+     * One entry per outgoing slot. Conditions and event waits get named handles
+     * so a dragged connection carries its route; linear steps get one unnamed
+     * slot. Empty for EXIT, which ends the path.
      */
     sourceHandles?: {id: string; color: string; connectable: boolean}[];
   };
@@ -305,12 +338,7 @@ function CustomNode({
 
   return (
     <>
-      <Handle
-        id={TARGET_HANDLE_ID}
-        type="target"
-        position={Position.Top}
-        style={HANDLE_STYLE}
-      />
+      <Handle id={TARGET_HANDLE_ID} type="target" position={Position.Top} style={HANDLE_STYLE} />
 
       <div
         className="px-5 py-4 rounded-xl border-2 bg-white shadow-sm hover:shadow-md transition-all relative group"
@@ -503,10 +531,10 @@ const edgeTypes = {
 
 /**
  * Where a newly picked step should land.
- * - `append`: after an existing step (optionally on a specific condition branch)
+ * - `append`: after an existing step, optionally on a named branch or wait outcome
  * - `insert`: in the middle of an existing transition, splitting it in two
  */
-type PickerContext = {mode: 'append'; fromStepId: string; branch?: string} | {mode: 'insert'; transitionId: string};
+type PickerContext = {mode: 'append'; fromStepId: string; outcome?: string} | {mode: 'insert'; transitionId: string};
 
 // Step type options for adding new steps
 const STEP_TYPE_OPTIONS = [
@@ -558,9 +586,9 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
   const handleDeleteStepClick = useCallback(
     (stepId: string) => {
       const step = steps.find(s => s.id === stepId);
-      const isCondition = step?.type === 'CONDITION';
+      const isBranching = step?.type === 'CONDITION' || step?.type === 'WAIT_FOR_EVENT';
       const hasChildren = (step?.outgoingTransitions?.length ?? 0) > 0;
-      setDeleteMode(isCondition || !hasChildren ? 'cascade' : 'splice');
+      setDeleteMode(isBranching || !hasChildren ? 'cascade' : 'splice');
       setStepToDelete(stepId);
       setShowDeleteDialog(true);
     },
@@ -577,8 +605,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       const color = STEP_TYPE_COLORS[step.type as keyof typeof STEP_TYPE_COLORS] || '#6b7280';
       const bgColor = STEP_TYPE_BG[step.type as keyof typeof STEP_TYPE_BG] || '#f3f4f6';
 
-      // EXIT ends the path, a condition routes per branch, everything else has a
-      // single next step.
+      // EXIT ends the path. Conditions and event waits expose named routes;
+      // every other step has one unnamed next step.
       const outgoing = step.outgoingTransitions ?? [];
       const sourceHandles =
         step.type === 'EXIT'
@@ -589,7 +617,13 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
                 color: getBranchColor(step.config, branchId),
                 connectable: !outgoing.some(t => getTransitionBranch(t.condition) === branchId),
               }))
-            : [{id: SOURCE_HANDLE_ID, color: '#94a3b8', connectable: outgoing.length === 0}];
+            : step.type === 'WAIT_FOR_EVENT'
+              ? getWaitOutcomeHandles(step.config, outgoing).map(outcome => ({
+                  id: outcome,
+                  color: getWaitOutcomeColor(outcome),
+                  connectable: !outgoing.some(t => t.waitOutcome === outcome),
+                }))
+              : [{id: SOURCE_HANDLE_ID, color: '#94a3b8', connectable: outgoing.length === 0}];
 
       return {
         id: step.id,
@@ -631,13 +665,28 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
               draggable: false,
               data: {
                 label: getBranchLabel(step.config, branchId),
-                onClick: () => setPickerContext({mode: 'append', fromStepId: step.id, branch: branchId}),
+                onClick: () => setPickerContext({mode: 'append', fromStepId: step.id, outcome: branchId}),
+              },
+            });
+          }
+        });
+      } else if (step.type === 'WAIT_FOR_EVENT') {
+        getWaitOutcomeHandles(step.config, step.outgoingTransitions ?? []).forEach(outcome => {
+          if (!step.outgoingTransitions?.some(t => t.waitOutcome === outcome)) {
+            nodes.push({
+              id: `${step.id}-add-${outcome}`,
+              type: 'addStep',
+              position: {x: 0, y: 0},
+              draggable: false,
+              data: {
+                label: getWaitOutcomeLabel(outcome),
+                onClick: () => setPickerContext({mode: 'append', fromStepId: step.id, outcome}),
               },
             });
           }
         });
       } else {
-        // For non-condition steps, add + node if no outgoing transitions
+        // For linear steps, add + node if no outgoing transitions.
         if (!step.outgoingTransitions || step.outgoingTransitions.length === 0) {
           nodes.push({
             id: `${step.id}-add`,
@@ -664,26 +713,34 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       if (step.outgoingTransitions && step.outgoingTransitions.length > 0) {
         step.outgoingTransitions.forEach(transition => {
           const condition = transition.condition;
-          const isConditional = condition && typeof condition === 'object' && 'branch' in condition;
-          const branch =
+          const conditionBranch =
             condition && typeof condition === 'object' && 'branch' in condition
               ? (condition.branch as string)
               : undefined;
-
-          const branchColor = branch ? getBranchColor(step.config, branch) : '#94a3b8';
-          const branchLabel = branch ? getBranchLabel(step.config, branch) : undefined;
+          const waitOutcome = step.type === 'WAIT_FOR_EVENT' ? transition.waitOutcome : undefined;
+          const route = conditionBranch ?? waitOutcome ?? undefined;
+          const routeColor = conditionBranch
+            ? getBranchColor(step.config, conditionBranch)
+            : waitOutcome
+              ? getWaitOutcomeColor(waitOutcome)
+              : '#64748b';
+          const routeLabel = conditionBranch
+            ? getBranchLabel(step.config, conditionBranch)
+            : waitOutcome
+              ? getWaitOutcomeLabel(waitOutcome)
+              : undefined;
 
           edges.push({
             id: transition.id,
             source: step.id,
             target: transition.toStepId,
-            sourceHandle: branch ?? SOURCE_HANDLE_ID,
+            sourceHandle: route ?? SOURCE_HANDLE_ID,
             targetHandle: TARGET_HANDLE_ID,
             type: 'workflow',
             animated: false,
             data: {
-              branchLabel: isConditional ? branchLabel : undefined,
-              branchColor: isConditional ? branchColor : '#64748b',
+              branchLabel: routeLabel,
+              branchColor: routeColor,
               onInsert: () => setPickerContext({mode: 'insert', transitionId: transition.id}),
               onDisconnect: () => setTransitionToDisconnect(transition.id),
             },
@@ -738,6 +795,30 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             });
           }
         });
+      } else if (step.type === 'WAIT_FOR_EVENT') {
+        getWaitOutcomeHandles(step.config, step.outgoingTransitions ?? []).forEach(outcome => {
+          if (!step.outgoingTransitions?.some(t => t.waitOutcome === outcome)) {
+            const color = getWaitOutcomeColor(outcome);
+            const label = getWaitOutcomeLabel(outcome);
+
+            edges.push({
+              id: `${step.id}-add-${outcome}-edge`,
+              source: step.id,
+              target: `${step.id}-add-${outcome}`,
+              sourceHandle: outcome,
+              targetHandle: TARGET_HANDLE_ID,
+              type: 'smoothstep',
+              animated: false,
+              label,
+              labelStyle: {fill: color, fontWeight: 600, fontSize: 12},
+              labelBgStyle: {fill: '#fff', fillOpacity: 0.95},
+              labelBgPadding: [8, 4] as [number, number],
+              labelBgBorderRadius: 4,
+              style: {stroke: '#94a3b8', strokeWidth: 2, strokeDasharray: '5,5'},
+              markerEnd: {type: MarkerType.ArrowClosed, color: '#94a3b8', width: 20, height: 20},
+            });
+          }
+        });
       } else {
         if (!step.outgoingTransitions || step.outgoingTransitions.length === 0) {
           edges.push({
@@ -766,7 +847,6 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
 
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges);
-
 
   // Update nodes/edges when layout changes
   useEffect(() => {
@@ -816,31 +896,38 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       const addStepContext = pickerContext;
 
       try {
-        // Validate that this branch doesn't already have a transition
+        // Validate that this named route doesn't already have a transition.
         const fromStep = steps.find(s => s.id === addStepContext.fromStepId);
         if (!fromStep) {
           toast.error('Parent step not found');
           return;
         }
 
-        // For CONDITION steps, check if the branch already exists
-        if (fromStep.type === 'CONDITION' && addStepContext.branch) {
+        if (fromStep.type === 'CONDITION' && addStepContext.outcome) {
           const existingBranchTransition = fromStep.outgoingTransitions?.find(t => {
             const condition = t.condition;
             return (
               condition &&
               typeof condition === 'object' &&
               'branch' in condition &&
-              condition.branch === addStepContext.branch
+              condition.branch === addStepContext.outcome
             );
           });
           if (existingBranchTransition) {
-            toast.error(`The ${addStepContext.branch} branch already has a connection`);
+            toast.error(`The ${addStepContext.outcome} branch already has a connection`);
             return;
           }
         }
+        if (
+          fromStep.type === 'WAIT_FOR_EVENT' &&
+          addStepContext.outcome &&
+          fromStep.outgoingTransitions?.some(t => t.waitOutcome === addStepContext.outcome)
+        ) {
+          toast.error(`The ${addStepContext.outcome} route already has a connection`);
+          return;
+        }
 
-        // Create the new step (autoConnect: false because we manually create the transition with branch info)
+        // Create the new step; the named route is connected explicitly below.
         const newStep = await network.fetch<WorkflowStep, typeof WorkflowSchemas.addStep>(
           'POST',
           `/workflows/${workflowId}/steps`,
@@ -849,17 +936,17 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             name: `New ${stepType.toLowerCase().replace('_', ' ')}`,
             position: {x: 0, y: 0}, // Will be auto-positioned by dagre layout
             config: {},
-            autoConnect: false, // We manually create transitions to preserve branch information
+            autoConnect: false,
           },
         );
 
         const newStepId = newStep.id;
 
-        // Create the transition with proper condition
-        const condition = addStepContext.branch ? {branch: addStepContext.branch} : null;
-        const expectedBranches = fromStep.type === 'CONDITION' ? getExpectedBranches(fromStep.config) : [];
-        const branchIndex = addStepContext.branch ? expectedBranches.indexOf(addStepContext.branch) : -1;
-        const priority = branchIndex >= 0 ? branchIndex : 0;
+        const condition =
+          fromStep.type === 'CONDITION' && addStepContext.outcome ? {branch: addStepContext.outcome} : null;
+        const waitOutcome =
+          fromStep.type === 'WAIT_FOR_EVENT' ? (addStepContext.outcome as WaitOutcome | undefined) : undefined;
+        const priority = getRoutePriority(fromStep.type, fromStep.config, addStepContext.outcome);
 
         await network.fetch<unknown, typeof WorkflowSchemas.createTransition>(
           'POST',
@@ -868,6 +955,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             fromStepId: addStepContext.fromStepId,
             toStepId: newStepId,
             condition,
+            waitOutcome,
             priority,
           },
         );
@@ -1013,6 +1101,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       // The slot being dragged from has to be free
       if (fromStep.type === 'CONDITION') {
         if (fromStep.outgoingTransitions?.some(t => getTransitionBranch(t.condition) === sourceHandle)) return false;
+      } else if (fromStep.type === 'WAIT_FOR_EVENT') {
+        if (fromStep.outgoingTransitions?.some(t => t.waitOutcome === sourceHandle)) return false;
       } else if ((fromStep.outgoingTransitions?.length ?? 0) > 0) {
         return false;
       }
@@ -1030,8 +1120,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
 
       const fromStep = steps.find(s => s.id === source);
       const branch = fromStep?.type === 'CONDITION' ? sourceHandle : null;
-      const expectedBranches = fromStep?.type === 'CONDITION' ? getExpectedBranches(fromStep.config) : [];
-      const branchIndex = branch ? expectedBranches.indexOf(branch) : -1;
+      const waitOutcome = fromStep?.type === 'WAIT_FOR_EVENT' ? (sourceHandle as WaitOutcome | null) : null;
+      const priority = getRoutePriority(fromStep?.type, fromStep?.config, branch ?? waitOutcome);
 
       try {
         await network.fetch<unknown, typeof WorkflowSchemas.createTransition>(
@@ -1041,7 +1131,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             fromStepId: source,
             toStepId: target,
             condition: branch ? {branch} : null,
-            priority: branchIndex >= 0 ? branchIndex : 0,
+            waitOutcome: waitOutcome ?? undefined,
+            priority,
           },
         );
 
@@ -1060,8 +1151,11 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
 
       try {
         const fromStep = steps.find(s => s.id === pickerContext.fromStepId);
-        const expectedBranches = fromStep?.type === 'CONDITION' ? getExpectedBranches(fromStep.config) : [];
-        const branchIndex = pickerContext.branch ? expectedBranches.indexOf(pickerContext.branch) : -1;
+        const priority = getRoutePriority(fromStep?.type, fromStep?.config, pickerContext.outcome);
+        const condition =
+          fromStep?.type === 'CONDITION' && pickerContext.outcome ? {branch: pickerContext.outcome} : null;
+        const waitOutcome =
+          fromStep?.type === 'WAIT_FOR_EVENT' ? (pickerContext.outcome as WaitOutcome | undefined) : undefined;
 
         await network.fetch<unknown, typeof WorkflowSchemas.createTransition>(
           'POST',
@@ -1069,8 +1163,9 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           {
             fromStepId: pickerContext.fromStepId,
             toStepId,
-            condition: pickerContext.branch ? {branch: pickerContext.branch} : null,
-            priority: branchIndex >= 0 ? branchIndex : 0,
+            condition,
+            waitOutcome,
+            priority,
           },
         );
 
@@ -1084,7 +1179,6 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
     [pickerContext, steps, workflowId, onUpdate],
   );
 
-
   if (steps.length === 0) {
     return (
       <div className="bg-neutral-50 border-2 border-dashed border-neutral-300 rounded-lg p-12 text-center">
@@ -1097,12 +1191,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
 
   return (
     <>
-      {isExpanded && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40"
-          onClick={() => setIsExpanded(false)}
-        />
-      )}
+      {isExpanded && <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setIsExpanded(false)} />}
       <div
         className={
           isExpanded
@@ -1138,10 +1227,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           proOptions={{hideAttribution: true}}
         >
           <Background color="#e5e7eb" gap={16} size={1} />
-          <Controls
-            showInteractive={false}
-            className="bg-white border border-neutral-200 rounded-lg shadow-md"
-          />
+          <Controls showInteractive={false} className="bg-white border border-neutral-200 rounded-lg shadow-md" />
           <MiniMap
             nodeColor={node => {
               const step = steps.find(s => s.id === node.id);
@@ -1150,10 +1236,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             className="bg-white border border-neutral-200 rounded-lg shadow-md"
             maskColor="rgba(0, 0, 0, 0.05)"
           />
-          <Panel
-            position="top-left"
-            className="bg-white px-4 py-2.5 rounded-lg shadow-md border border-neutral-200"
-          >
+          <Panel position="top-left" className="bg-white px-4 py-2.5 rounded-lg shadow-md border border-neutral-200">
             <div className="flex items-center gap-3">
               <GitBranch className="h-4 w-4 text-neutral-700" />
               <div className="text-sm">
@@ -1185,8 +1268,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             <div className="flex items-center gap-2 text-sm text-neutral-600">
               <Lightbulb className="h-4 w-4" />
               <span>
-                Click a + to add a step, hover a connection to insert or disconnect, or drag between the dots to
-                connect two steps.
+                Click a + to add a step, hover a connection to insert or disconnect, or drag between the dots to connect
+                two steps.
               </span>
             </div>
           </Panel>
@@ -1314,9 +1397,10 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           const affectedSteps = getAffectedSteps(stepToDelete);
           const stepToDeleteData = steps.find(s => s.id === stepToDelete);
           const downstreamSteps = affectedSteps.filter(s => s.id !== stepToDelete);
-          const isCondition = stepToDeleteData?.type === 'CONDITION';
+          const isBranching =
+            stepToDeleteData?.type === 'CONDITION' || stepToDeleteData?.type === 'WAIT_FOR_EVENT';
           const hasChildren = downstreamSteps.length > 0;
-          const canSplice = !isCondition && hasChildren;
+          const canSplice = !isBranching && hasChildren;
 
           return (
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -1352,7 +1436,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
                         }`}
                       >
                         <p className="text-sm font-medium text-neutral-900">
-                          Delete with {downstreamSteps.length} downstream {downstreamSteps.length === 1 ? 'step' : 'steps'}
+                          Delete with {downstreamSteps.length} downstream{' '}
+                          {downstreamSteps.length === 1 ? 'step' : 'steps'}
                         </p>
                         <p className="text-xs text-neutral-500 mt-0.5">
                           Permanently removes this step and everything below it. This cannot be undone.
@@ -1360,11 +1445,11 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
                       </button>
                     </div>
                   </div>
-                ) : isCondition && hasChildren ? (
+                ) : isBranching && hasChildren ? (
                   <div className="space-y-3 py-1">
                     <p className="text-sm text-neutral-600">
-                      Removing a condition step will also delete all {downstreamSteps.length} downstream{' '}
-                      {downstreamSteps.length === 1 ? 'step' : 'steps'} across its branches:
+                      Removing this branching step will also delete all {downstreamSteps.length} downstream{' '}
+                      {downstreamSteps.length === 1 ? 'step' : 'steps'} across its routes:
                     </p>
                     <ul className="list-disc list-inside text-sm text-neutral-600 max-h-32 overflow-y-auto bg-neutral-50 p-3 rounded border border-neutral-200">
                       {downstreamSteps.map(step => (
@@ -1376,7 +1461,9 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
                     <p className="text-sm font-medium text-red-600">This action cannot be undone.</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-neutral-600 py-1">This step is removed from the workflow. This can&apos;t be undone.</p>
+                  <p className="text-sm text-neutral-600 py-1">
+                    This step is removed from the workflow. This can&apos;t be undone.
+                  </p>
                 )}
 
                 <DialogFooter>

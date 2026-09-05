@@ -35,7 +35,7 @@ A workflow always begins with a single auto-created `TRIGGER` step. You build th
 | `TRIGGER`         | Auto-created entry point. Holds the trigger configuration.                                             | `eventName` (for `EVENT` trigger)                                |
 | `SEND_EMAIL`      | Sends an email to the contact using a template. Template variables resolve from contact data + execution context. | `templateId`, optional `from` override                  |
 | `DELAY`           | Pauses the execution for a fixed duration before continuing.                                           | `amount`, `unit` (`minutes` / `hours` / `days`)                  |
-| `WAIT_FOR_EVENT`  | Pauses until a specified event is tracked on the contact, with a timeout fallback.                     | `eventName`, `timeout` (seconds)                                 |
+| `WAIT_FOR_EVENT`  | Pauses until a specified event is tracked on the contact. Event arrival and timeout have distinct outgoing routes. | `eventName`, optional `timeout` (seconds)              |
 | `CONDITION`       | Branches the execution based on contact data or event data. Each `CONDITION` step has two outgoing transitions tagged `yes` / `no`. | A filter expression (same shape as segment filters) |
 | `WEBHOOK`         | Calls an external HTTPS endpoint with contact + execution context as the JSON body. `url`, header values, and `body` support `{{variables}}`. | `url`, optional `method`, `headers`, `body`            |
 | `UPDATE_CONTACT`  | Patches contact data — useful for tagging contacts as they progress (`{ stage: "activated" }`).        | `data` object                                                    |
@@ -43,9 +43,9 @@ A workflow always begins with a single auto-created `TRIGGER` step. You build th
 
 ## Transitions
 
-Transitions are the edges of the workflow graph. For most step types a transition is a simple "next" pointer. For `CONDITION` steps, each transition carries a `branch` discriminator (`"yes"` or `"no"`) so the engine knows which path to take when the condition evaluates.
+Transitions are the edges of the workflow graph. For most step types a transition is a simple "next" pointer. `CONDITION` transitions carry their branch in `condition`; `WAIT_FOR_EVENT` transitions use a separate `waitOutcome` of `EVENT` or `TIMEOUT`. A timeout route is available only when the wait step has a positive timeout.
 
-When deleting a step in the middle of a chain, pass `?splice=true` on `DELETE /workflows/:id/steps/:stepId` to automatically reconnect the surrounding transitions; otherwise the deletion leaves the graph disconnected.
+When deleting a non-branching step in the middle of a chain, pass `?splice=true` on `DELETE /workflows/:id/steps/:stepId` to automatically reconnect the surrounding transitions; otherwise the deletion leaves the graph disconnected. Condition and event-wait steps must be removed with their branches rather than spliced.
 
 ## Executions
 
@@ -60,7 +60,7 @@ Each contact entering the workflow creates a `WorkflowExecution`. Executions mov
 | `FAILED`    | An unrecoverable error occurred (e.g. webhook returned non-2xx after retries, template not found). |
 | `CANCELLED` | Cancelled manually via the API or dashboard.                                                  |
 
-Each execution carries a `context` JSON object that's merged with the contact's `data` when rendering templates and evaluating conditions. When you start an execution manually with `POST /workflows/:id/executions`, you can pass an initial `context` — this is how you parameterise per-execution variables (a coupon code, a referrer name) without storing them on the contact.
+Each execution carries a `context` JSON object that's merged with the contact's `data` when rendering templates and evaluating conditions. When you start an execution manually with `POST /workflows/:id/executions`, you can pass an initial `context` — this is how you parameterise per-execution variables (a coupon code, a referrer name) without storing them on the contact. When a `WAIT_FOR_EVENT` resumes, the arriving event data is shallow-merged into that context, replacing keys with the newer event values. Downstream email, condition, and webhook steps can read it through `event.*`.
 
 ## Locking active workflows
 

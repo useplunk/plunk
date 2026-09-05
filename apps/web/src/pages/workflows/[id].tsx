@@ -273,6 +273,23 @@ export default function WorkflowEditorPage() {
           }
         }
       }
+
+      if (step.type === 'WAIT_FOR_EVENT' && step.outgoingTransitions) {
+        const config = step.config && typeof step.config === 'object' && !Array.isArray(step.config) ? step.config : {};
+        const expectedOutcomes =
+          typeof config.timeout === 'number' && config.timeout > 0 ? ['EVENT', 'TIMEOUT'] : ['EVENT'];
+        const missingOutcomes = expectedOutcomes.filter(
+          outcome => !step.outgoingTransitions.some(transition => transition.waitOutcome === outcome),
+        );
+
+        if (missingOutcomes.length > 0) {
+          errors.push(
+            `"${step.name}" wait step is missing connections for: ${missingOutcomes
+              .map(outcome => (outcome === 'EVENT' ? 'Event received' : 'Timed out'))
+              .join(', ')}`,
+          );
+        }
+      }
     });
 
     return {valid: errors.length === 0, errors};
@@ -893,4 +910,3 @@ function SettingsDialog({workflow, open, onOpenChange, onSave}: SettingsDialogPr
     </Dialog>
   );
 }
-

@@ -41,7 +41,7 @@ curl -X POST https://api.useplunk.com/v1/send \
 await fetch('https://api.useplunk.com/v1/send', {
   method: 'POST',
   headers: {
-    Authorization: 'Bearer sk_your_secret_key',
+    'Authorization': 'Bearer sk_your_secret_key',
     'Idempotency-Key': 'receipt-order-1234',
     'Content-Type': 'application/json',
   },
@@ -100,20 +100,28 @@ Reusing a key returns `409` with the error code `IDEMPOTENCY_KEY_REUSED`. The `d
 An `originalStatusCode` of `null` means the original request is still in flight — two requests with the same key arrived at once, and this one lost the race.
 
 <Callout type="warn">
-Plunk **refuses** a reused key; it does not replay the original response. A `409` tells you the operation was not performed twice, but it does not return the original email or event ID. If you need that ID, record it when the first request succeeds.
+  Plunk **refuses** a reused key; it does not replay the original response. A `409` tells you the operation was not
+  performed twice, but it does not return the original email or event ID. If you need that ID, record it when the first
+  request succeeds.
 </Callout>
 
 ## Which failures free the key
 
 Not every failed request burns the key.
 
-| Outcome of the first request | Key is | Why |
-| ---------------------------- | ------ | --- |
-| `2xx` success | **Kept** | The operation happened. A retry would duplicate it. |
-| `4xx` client error | **Released** | Validation and permission errors are rejected before anything is written, so it is safe to fix the request and retry with the same key. |
-| `5xx` server error | **Kept** | The request may have partially completed. Refusing the retry is the whole point of the key. |
+| Outcome of the first request | Key is       | Why                                                                                                                                     |
+| ---------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `2xx` success                | **Kept**     | The operation happened. A retry would duplicate it.                                                                                     |
+| `4xx` client error           | **Released** | Validation and permission errors are rejected before anything is written, so it is safe to fix the request and retry with the same key. |
+| `5xx` server error           | **Kept**     | The request may have partially completed. Refusing the retry is the whole point of the key.                                             |
 
 If a `5xx` burns a key for a request you're confident never went through, retry with a new key.
+
+`POST /v1/track` returns `2xx` as soon as the event is stored. Workflow dispatch
+usually finishes in the request, but Plunk retries it internally with bounded
+backoff if needed. An expiring dispatch lease prevents recovery from overlapping
+active work after a process restart. The event ID in the response identifies the
+accepted event; do not submit the same logical event again with a new key.
 
 ## Scope and expiry
 
