@@ -6244,12 +6244,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/core@npm:^3.11.0, @tiptap/core@npm:^3.13.0":
+"@tiptap/core@npm:^3.13.0":
   version: 3.13.0
   resolution: "@tiptap/core@npm:3.13.0"
   peerDependencies:
     "@tiptap/pm": ^3.13.0
   checksum: 10c0/0f27527d5af0e54100e582ec33cc010e40600dfcbe28c860bb12fe1e51f7db155ae7f62c97ec9917e9c146e64a5e65f411e18d0d81c77b6eff876b2932c53134
+  languageName: node
+  linkType: hard
+
+"@tiptap/core@npm:^3.30.4":
+  version: 3.30.4
+  resolution: "@tiptap/core@npm:3.30.4"
+  peerDependencies:
+    "@tiptap/pm": 3.30.4
+  checksum: 10c0/51cc37a296eee4b1ec0b969bf1c5a95a29793533d976a0085db15b033b4ac6d5e2765a94225a19266fb1c4eec403ec712ea4aa84cb67269d51cd41ce431b28b7
   languageName: node
   linkType: hard
 
@@ -13415,7 +13424,7 @@ __metadata:
     "@tailwindcss/forms": "npm:^0.5.10"
     "@tailwindcss/postcss": "npm:^4.1.17"
     "@tailwindcss/typography": "npm:^0.5.19"
-    "@tiptap/core": "npm:^3.11.0"
+    "@tiptap/core": "npm:^3.30.4"
     "@tiptap/extension-color": "npm:^3.11.0"
     "@tiptap/extension-image": "npm:^3.11.0"
     "@tiptap/extension-link": "npm:^3.11.0"
@@ -19990,7 +19999,7 @@ __metadata:
     "@tailwindcss/postcss": "npm:^4.1.17"
     "@tailwindcss/typography": "npm:^0.5.19"
     "@tanstack/react-table": "npm:^8.21.3"
-    "@tiptap/core": "npm:^3.11.0"
+    "@tiptap/core": "npm:^3.30.4"
     "@tiptap/extension-color": "npm:^3.11.0"
     "@tiptap/extension-image": "npm:^3.11.0"
     "@tiptap/extension-link": "npm:^3.11.0"
