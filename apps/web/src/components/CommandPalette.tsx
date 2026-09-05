@@ -24,6 +24,7 @@ import {
   Megaphone,
   Plus,
   Settings,
+  UserCog,
   Users,
   Workflow as WorkflowIcon,
 } from 'lucide-react';
@@ -52,7 +53,8 @@ const NAV_ACTIONS: Action[] = [
   {label: 'Templates', href: '/templates', icon: FileText, keywords: 'email design', shortcut: ['G', 'T']},
   {label: 'Workflows', href: '/workflows', icon: WorkflowIcon, keywords: 'automation trigger', shortcut: ['G', 'W']},
   {label: 'Campaigns', href: '/campaigns', icon: Megaphone, keywords: 'broadcast newsletter', shortcut: ['G', 'M']},
-  {label: 'Settings', href: '/settings', icon: Settings, keywords: 'config account billing', shortcut: ['G', ',']},
+  {label: 'Settings', href: '/settings', icon: Settings, keywords: 'config project billing', shortcut: ['G', ',']},
+  {label: 'Account', href: '/account', icon: UserCog, keywords: 'profile password delete account me', shortcut: ['G', 'U']},
 ];
 
 const CREATE_ACTIONS: Action[] = [

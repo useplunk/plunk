@@ -397,6 +397,15 @@ export class NtfyService {
   }
 
   /**
+   * Notify about a user deleting their own account - DEFAULT priority
+   */
+  public static async notifyUserDeleted(userEmail: string, userId: string): Promise<void> {
+    await this.sendDefault('Account Deleted', `User deleted their account: ${userEmail} (${userId})`, [
+      NtfyTag.WARNING,
+    ]);
+  }
+
+  /**
    * Notify about failed signup attempt with invalid email - LOW priority
    */
   public static async notifyFailedSignupAttempt(email: string, reasons: string[]): Promise<void> {

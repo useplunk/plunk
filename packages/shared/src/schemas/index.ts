@@ -61,6 +61,13 @@ export const AuthenticationSchemas = {
   }),
 } as const;
 
+export const UserSchemas = {
+  changePassword: z.object({
+    currentPassword: z.string().min(1, 'Enter your current password'),
+    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  }),
+} as const;
+
 // Zero-width / bidi / formatting characters that render invisibly and aren't normalized away by NFKC.
 const invisibleCharRegex =
   /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\u3164\uFEFF\uFFA0]/u;

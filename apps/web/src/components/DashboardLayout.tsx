@@ -1,7 +1,8 @@
+import {avatarGradient} from '../lib/avatar';
 import {useActiveProject} from '../lib/contexts/ActiveProjectProvider';
+import {useLogout} from '../lib/hooks/useLogout';
 import {useUser} from '../lib/hooks/useUser';
 import {WIKI_URI} from '../lib/constants';
-import {network} from '../lib/network';
 import {OnboardingBanner} from './onboarding/OnboardingBanner';
 import {
   Activity,
@@ -16,13 +17,14 @@ import {
   Menu,
   Plus,
   Settings,
+  UserCog,
   Users,
   Workflow
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,21 +71,10 @@ const navigation: NavSection[] = [
   },
 ];
 
-// Deterministically derives a soft two-tone gradient from a string (e.g. an email),
-// so every account gets a stable, distinct avatar without storing any image.
-function avatarGradient(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-  }
-  const hue = Math.abs(hash) % 360;
-  const hue2 = (hue + 45) % 360;
-  return `linear-gradient(135deg, hsl(${hue} 70% 55%), hsl(${hue2} 75% 45%))`;
-}
-
 export function DashboardLayout({children}: DashboardLayoutProps) {
   const router = useRouter();
-  const {data: user, mutate: mutateUser} = useUser();
+  const {data: user} = useUser();
+  const handleLogout = useLogout();
   const {activeProject, availableProjects, setActiveProject} = useActiveProject();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -91,29 +82,6 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
   const sortedProjects = useMemo(() => {
     return [...availableProjects].sort((a, b) => a.name.localeCompare(b.name));
   }, [availableProjects]);
-
-  const handleLogout = useCallback(async () => {
-    try {
-      // Call the logout endpoint to clear the cookie
-      await network.fetch('GET', '/auth/logout');
-
-      // Clear local storage
-      localStorage.removeItem('token');
-      localStorage.removeItem('activeProjectId');
-
-      // Clear SWR cache for user data
-      await mutateUser(null, false);
-
-      // Redirect to login
-      await router.push('/auth/login');
-    } catch {
-      // Even if the API call fails, try to redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('activeProjectId');
-      await mutateUser(null, false);
-      await router.push('/auth/login');
-    }
-  }, [mutateUser, router]);
 
   // Sidebar content (reusable for both desktop and mobile)
   const getSidebarContent = () => (
@@ -250,6 +218,13 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
             <DropdownMenuLabel className="px-3 py-2 font-normal text-xs text-neutral-500 truncate">
               {user?.email}
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="gap-2 px-3 py-2 cursor-pointer text-neutral-700">
+              <Link href="/account" onClick={() => setShowMobileMenu(false)}>
+                <UserCog className="h-4 w-4" />
+                <span>Account settings</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => void handleLogout()}

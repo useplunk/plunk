@@ -12,12 +12,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  ConfirmDialog,
   Form,
   FormControl,
   FormDescription,
@@ -92,8 +87,6 @@ export default function Settings() {
   const {data: user} = useUser();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [resetConfirmText, setResetConfirmText] = useState('');
 
   type SettingsDialog = {type: 'none'} | {type: 'regenerate'} | {type: 'delete'} | {type: 'reset'};
   const [dialog, setDialog] = useState<SettingsDialog>({type: 'none'});
@@ -305,7 +298,7 @@ export default function Settings() {
   };
 
   const handleResetProject = async () => {
-    if (!activeProject || resetConfirmText !== 'RESET') return;
+    if (!activeProject) return;
 
     try {
       setErrorMessage(null);
@@ -315,7 +308,6 @@ export default function Settings() {
 
       setSuccessMessage('Project reset. All campaigns, contacts, workflows, templates, and events are gone.');
       setDialog({type: 'none'});
-      setResetConfirmText('');
 
       // Refresh the page to reload data
       setTimeout(() => {
@@ -324,12 +316,11 @@ export default function Settings() {
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Couldn’t reset the project. Try again.');
       setDialog({type: 'none'});
-      setResetConfirmText('');
     }
   };
 
   const handleDeleteProject = async () => {
-    if (!activeProject || deleteConfirmText !== 'DELETE') return;
+    if (!activeProject) return;
 
     try {
       setErrorMessage(null);
@@ -339,7 +330,6 @@ export default function Settings() {
 
       setSuccessMessage('Project deleted. Redirecting…');
       setDialog({type: 'none'});
-      setDeleteConfirmText('');
 
       // Refresh projects list and redirect to dashboard
       await projectsMutate();
@@ -351,7 +341,6 @@ export default function Settings() {
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Couldn’t delete the project. Try again.');
       setDialog({type: 'none'});
-      setDeleteConfirmText('');
     }
   };
 
@@ -821,144 +810,57 @@ export default function Settings() {
           </Tabs>
         </div>
 
-        {/* Regenerate Keys Confirmation Dialog */}
-        <Dialog open={dialog.type === 'regenerate'} onOpenChange={open => !open && setDialog({type: 'none'})}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-                Regenerate API keys?
-              </DialogTitle>
-              <DialogDescription className="space-y-3">
-                <Alert variant="warning">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Your current keys stop working <strong>immediately</strong>. Every integration using them fails
-                    until you swap in the new keys.
-                  </AlertDescription>
-                </Alert>
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialog({type: 'none'})}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleRegenerateKeys}>
-                Regenerate keys
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ConfirmDialog
+          open={dialog.type === 'regenerate'}
+          onOpenChange={open => !open && setDialog({type: 'none'})}
+          onConfirm={handleRegenerateKeys}
+          title="Regenerate API keys?"
+          description="Your current keys stop working immediately."
+          details={
+            <Alert variant="warning">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Every integration using the old keys fails until you swap in the new ones.
+              </AlertDescription>
+            </Alert>
+          }
+          confirmText="Regenerate keys"
+          loadingText="Regenerating…"
+          variant="destructive"
+        />
 
-        {/* Reset Project Confirmation Dialog */}
-        <Dialog open={dialog.type === 'reset'} onOpenChange={open => !open && setDialog({type: 'none'})}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader className="space-y-3">
-              <div className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                <Database className="h-6 w-6 text-amber-700" />
-              </div>
-              <DialogTitle className="text-center text-xl">Reset Project Data?</DialogTitle>
-              <DialogDescription className="text-center text-base">
-                All your campaigns, contacts, workflows, and templates will be permanently deleted. Your API keys and
-                settings will remain intact.
-              </DialogDescription>
-            </DialogHeader>
+        <ConfirmDialog
+          open={dialog.type === 'reset'}
+          onOpenChange={open => !open && setDialog({type: 'none'})}
+          onConfirm={handleResetProject}
+          title="Reset project data?"
+          description="Every campaign, contact, workflow, template and event in this project is deleted. Your API keys, domains and billing stay as they are."
+          confirmPhrase="RESET"
+          confirmText="Reset data"
+          loadingText="Resetting…"
+          variant="destructive"
+        />
 
-            <div className="py-4">
-              <label className="text-sm font-medium text-neutral-700 block mb-2 text-center">
-                Type{' '}
-                <span className="font-mono font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">RESET</span>{' '}
-                to confirm
-              </label>
-              <Input
-                value={resetConfirmText}
-                onChange={e => setResetConfirmText(e.target.value)}
-                placeholder="Type RESET here"
-                className="text-center"
-                autoFocus
-              />
-            </div>
+        <ConfirmDialog
+          open={dialog.type === 'delete'}
+          onOpenChange={open => !open && setDialog({type: 'none'})}
+          onConfirm={handleDeleteProject}
+          title={`Delete ${activeProject.name}?`}
+          description="This permanently deletes the project and everything in it. It cannot be undone."
+          details={
+            activeProject.subscription ? (
+              <Alert variant="warning">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>Your active subscription will be canceled.</AlertDescription>
+              </Alert>
+            ) : undefined
+          }
+          confirmPhrase="DELETE"
+          confirmText="Delete project"
+          loadingText="Deleting…"
+          variant="destructive"
+        />
 
-            <DialogFooter className="flex-col-reverse gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDialog({type: 'none'});
-                  setResetConfirmText('');
-                }}
-                className="w-full"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleResetProject}
-                disabled={resetConfirmText !== 'RESET'}
-                className="w-full"
-              >
-                Reset data
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Project Confirmation Dialog */}
-        <Dialog open={dialog.type === 'delete'} onOpenChange={open => !open && setDialog({type: 'none'})}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader className="space-y-3">
-              <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              </div>
-              <DialogTitle className="text-center text-xl">Delete Project Permanently?</DialogTitle>
-              <DialogDescription className="text-center text-base space-y-2">
-                <p>
-                  This will <strong className="text-red-600">permanently delete</strong> your entire project and all
-                  data. This action cannot be undone.
-                </p>
-                {activeProject?.subscription && (
-                  <p className="text-sm text-red-700 bg-red-50 rounded p-2 border border-red-200">
-                    Your active subscription will be canceled
-                  </p>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="py-4">
-              <label className="text-sm font-medium text-neutral-700 block mb-2 text-center">
-                Type <span className="font-mono font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded">DELETE</span>{' '}
-                to confirm
-              </label>
-              <Input
-                value={deleteConfirmText}
-                onChange={e => setDeleteConfirmText(e.target.value)}
-                placeholder="Type DELETE here"
-                className="text-center"
-                autoFocus
-              />
-            </div>
-
-            <DialogFooter className="flex-col-reverse gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDialog({type: 'none'});
-                  setDeleteConfirmText('');
-                }}
-                className="w-full"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDeleteProject}
-                disabled={deleteConfirmText !== 'DELETE'}
-                className="w-full"
-              >
-                Delete forever
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </DashboardLayout>
     </>
   );

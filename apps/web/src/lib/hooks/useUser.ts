@@ -1,3 +1,4 @@
+import type {AccountUser} from '@plunk/types';
 import useSWR from 'swr';
 
 /**
@@ -5,5 +6,5 @@ import useSWR from 'swr';
  *
  */
 export function useUser() {
-  return useSWR('/users/@me', {shouldRetryOnError: false});
+  return useSWR<AccountUser | null>('/users/@me', {shouldRetryOnError: false});
 }

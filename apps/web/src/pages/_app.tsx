@@ -33,8 +33,9 @@ const PUBLIC_ROUTES = [
   '/manage',
 ];
 
-// Routes that don't require a project
-const NO_PROJECT_ROUTES = ['/projects/create'];
+// Routes that don't require a project. /account has to be here: deleting your account is
+// only allowed once you have left every project, so the page must stay reachable at zero.
+const NO_PROJECT_ROUTES = ['/projects/create', '/account'];
 
 function App({Component, pageProps}: AppProps) {
   return (

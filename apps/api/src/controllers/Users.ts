@@ -1,19 +1,29 @@
 import {randomBytes} from 'node:crypto';
 
 import {Controller, Delete, Get, Middleware, Patch, Post, Put} from '@overnightjs/core';
-import {BillingLimitSchemas, ProjectSchemas, UtilitySchemas} from '@plunk/shared';
+import {BillingLimitSchemas, ProjectSchemas, UserSchemas, UtilitySchemas} from '@plunk/shared';
 import type {NextFunction, Request, Response} from 'express';
 
-import {DASHBOARD_URI, STRIPE_ENABLED, STRIPE_PRICE_EMAIL_USAGE, STRIPE_PRICE_ONBOARDING} from '../app/constants.js';
+import {
+  DASHBOARD_URI,
+  PASSWORD_CHANGE_RATE_LIMIT,
+  PASSWORD_CHANGE_RATE_WINDOW,
+  STRIPE_ENABLED,
+  STRIPE_PRICE_EMAIL_USAGE,
+  STRIPE_PRICE_ONBOARDING,
+} from '../app/constants.js';
 import {stripe} from '../app/stripe.js';
 import {prisma} from '../database/prisma.js';
-import {ErrorCode, HttpException, NotAuthenticated, NotFound} from '../exceptions/index.js';
+import {redis} from '../database/redis.js';
+import {BadRequest, ErrorCode, HttpException, NotAuthenticated, NotFound, RateLimitError} from '../exceptions/index.js';
 import {isAuthenticated, requireEmailVerified} from '../middleware/auth.js';
+import {AuthService} from '../services/AuthService.js';
 import {BillingLimitService} from '../services/BillingLimitService.js';
 import {MembershipService} from '../services/MembershipService.js';
 import {NtfyService} from '../services/NtfyService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {UserService} from '../services/UserService.js';
+import {Keys} from '../services/keys.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 import signale from 'signale';
 
@@ -35,7 +45,128 @@ export class Users {
       throw new NotAuthenticated();
     }
 
-    return res.status(200).json({id: me.id, email: me.email});
+    return res.status(200).json({
+      id: me.id,
+      email: me.email,
+      type: me.type,
+      emailVerified: me.emailVerified,
+      createdAt: me.createdAt,
+    });
+  }
+
+  @Post('@me/password')
+  @Middleware([isAuthenticated, requireEmailVerified])
+  @CatchAsync
+  public async changePassword(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+
+    if (!auth.userId) {
+      throw new NotAuthenticated();
+    }
+
+    const {currentPassword, newPassword} = UserSchemas.changePassword.parse(req.body);
+
+    const rateLimitKey = Keys.User.passwordChangeRateLimit(auth.userId);
+    const attempts = await redis.get(rateLimitKey);
+
+    if (attempts && parseInt(attempts) >= PASSWORD_CHANGE_RATE_LIMIT) {
+      throw new RateLimitError('Too many password change attempts. Please try again later.');
+    }
+
+    // Read straight from the database: UserService.id is Redis-cached for an hour, and a
+    // stale entry here would mean checking the old hash.
+    const user = await prisma.user.findUnique({where: {id: auth.userId}});
+
+    if (!user) {
+      throw new NotAuthenticated();
+    }
+
+    if (user.type !== 'PASSWORD' || !user.password) {
+      throw new BadRequest('Your password is managed by your identity provider, so it cannot be changed here');
+    }
+
+    // Count the attempt before verifying, so a wrong guess is what the limit actually bounds.
+    if (attempts) {
+      await redis.incr(rateLimitKey);
+    } else {
+      await redis.setex(rateLimitKey, PASSWORD_CHANGE_RATE_WINDOW, '1');
+    }
+
+    const verified = await AuthService.verifyHash(currentPassword, user.password);
+
+    if (!verified) {
+      throw new BadRequest('Current password is incorrect');
+    }
+
+    await prisma.user.update({
+      where: {id: user.id},
+      data: {password: await AuthService.generateHash(newPassword)},
+    });
+
+    // UserService caches the user under both keys; a stale copy would keep the old hash alive.
+    await redis.del(Keys.User.id(user.id));
+    await redis.del(Keys.User.email(user.email));
+    await redis.del(rateLimitKey);
+
+    return res.status(200).json({success: true, message: 'Password changed successfully'});
+  }
+
+  /**
+   * Delete the authenticated user's account.
+   *
+   * Deliberately not behind `requireEmailVerified`: someone who signed up with a typo'd
+   * address can never verify it, and the dashboard bounces every EMAIL_VERIFICATION_REQUIRED
+   * response to the verification page, which would leave that account impossible to remove.
+   */
+  @Delete('@me')
+  @Middleware([isAuthenticated])
+  @CatchAsync
+  public async deleteAccount(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+
+    if (!auth.userId) {
+      throw new NotAuthenticated();
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {id: auth.userId},
+      select: {id: true, email: true},
+    });
+
+    if (!user) {
+      throw new NotAuthenticated();
+    }
+
+    // The authoritative gate. The dashboard checks this too, but only to explain what is
+    // blocking deletion -- this is the check that decides.
+    const memberships = await prisma.membership.count({where: {userId: user.id}});
+
+    if (memberships > 0) {
+      throw new BadRequest(
+        'You are still a member of at least one project. Leave or delete every project before deleting your account.',
+      );
+    }
+
+    await prisma.$transaction(async tx => {
+      // ApiRequest.userId is a plain column with no foreign key, so these audit rows would
+      // otherwise keep pointing at a user that no longer exists. Keep the log, drop the identity.
+      await tx.apiRequest.updateMany({
+        where: {userId: user.id},
+        data: {userId: null},
+      });
+
+      await tx.user.delete({where: {id: user.id}});
+    });
+
+    await redis.del(Keys.User.id(user.id));
+    await redis.del(Keys.User.email(user.email));
+
+    await NtfyService.notifyUserDeleted(user.email, user.id);
+
+    return res
+      .status(200)
+      .cookie(UserService.COOKIE_NAME, '', UserService.cookieOptions(new Date()))
+      .json({success: true, message: 'Account deleted successfully'});
   }
 
   @Get('@me/projects')

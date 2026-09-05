@@ -1,3 +1,4 @@
+import type {ProjectWithRole} from '@plunk/types';
 import dayjs from 'dayjs';
 
 import {API_URI, NODE_ENV} from '../app/constants.js';
@@ -73,14 +74,20 @@ export class UserService {
     });
   }
 
-  public static async projects(userId: string) {
+  /**
+   * The projects this user belongs to, each carrying the user's role in it.
+   *
+   * The role rides along on the membership rows we already read, so the account
+   * page can show it without a per-project members lookup.
+   */
+  public static async projects(userId: string): Promise<ProjectWithRole[]> {
     const memberships = await prisma.user.findUnique({where: {id: userId}}).memberships({
       include: {
         project: true,
       },
     });
 
-    return memberships ? memberships.map(({project}) => project) : [];
+    return memberships ? memberships.map(({project, role}) => ({...project, role})) : [];
   }
 
   /**
