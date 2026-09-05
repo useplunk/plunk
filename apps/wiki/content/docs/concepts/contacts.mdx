@@ -98,6 +98,10 @@ Every contact has a `subscribed` field that determines which types of emails the
 
 When you update a contact, **omitting `subscribed` keeps the current state** — it is not the same as passing `false`. To change the state, pass an explicit `true` or `false`.
 
+For a one-call double-opt-in event, pass `subscribed: false` with
+`preserveExistingSubscription: true` to create a new contact pending while
+leaving every existing contact's preference unchanged.
+
 Every flip of `subscribed` automatically tracks an event on the contact:
 
 - `subscribed` flipped to `true` → `contact.subscribed` event

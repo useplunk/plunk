@@ -35,21 +35,24 @@ import {Step, Steps} from 'fumadocs-ui/components/steps';
 
 <Step>
 
-### Trigger the signup from your backend
+### Trigger the signup
 
-Two calls with your secret key (`sk_*`): create the contact unsubscribed, then track the event that fires the confirmation workflow.
+One call with your public key (`pk_*`) creates a new contact unsubscribed and tracks the event that fires the confirmation workflow:
 
 ```bash
-curl https://next-api.useplunk.com/contacts \
-  -H "Authorization: Bearer sk_your_secret_key" \
-  -d '{ "email": "ada@example.com", "subscribed": false, "data": { "firstName": "Ada" } }'
-
 curl https://next-api.useplunk.com/v1/track \
-  -H "Authorization: Bearer sk_your_secret_key" \
-  -d '{ "event": "signup.pending", "email": "ada@example.com", "subscribed": false }'
+  -H "Authorization: Bearer pk_your_public_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "signup.pending",
+    "email": "ada@example.com",
+    "subscribed": false,
+    "preserveExistingSubscription": true,
+    "data": { "firstName": "Ada" }
+  }'
 ```
 
-Both calls pass `subscribed: false`. If you skip the first call and rely on `/v1/track` alone, tracking on an unknown email creates the contact — but defaults it to subscribed, which defeats the point.
+`subscribed: false` makes a new contact pending. `preserveExistingSubscription: true` makes that value create-only: an existing active contact stays active, while an existing unsubscribed contact stays unsubscribed. This is the safe shape for repeat opt-ins and retries because it never silently changes an existing preference.
 
 </Step>
 
