@@ -458,13 +458,18 @@ export const CampaignSchemas = {
   }),
   // Bulk operation payload for POST /campaigns/bulk-update.
   //
-  // Currently the only supported operation is `delete: true` (bulk delete).
-  // Mirrors `TemplateSchemas.bulkUpdate` and is intentionally kept open-ended so
-  // future bulk operations can stack onto the same endpoint without changing the
-  // request shape callers already depend on.
+  // Two modes, and exactly one of them per request:
+  // - `delete: true` bulk-deletes (drafts only, enforced server-side).
+  // - `archived: true | false` archives or restores the selection.
+  // Mirrors `TemplateSchemas.bulkUpdate` and stays open-ended so further bulk
+  // operations can stack onto the same endpoint without changing the request shape
+  // callers already depend on. The mutual exclusion is enforced in
+  // CampaignService.bulkUpdate rather than here, so it comes back in the same error
+  // envelope as the ownership and status guards.
   bulkUpdate: z.object({
     ids: z.array(uuid).min(1).max(1000),
     delete: z.boolean().optional(),
+    archived: z.boolean().optional(),
   }),
 } as const;
 

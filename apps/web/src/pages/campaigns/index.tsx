@@ -16,7 +16,7 @@ import {
 import type {Campaign, Template} from '@plunk/db';
 import {CampaignStatus} from '@plunk/db';
 import {CampaignSchemas} from '@plunk/shared';
-import type {PaginatedResponse} from '@plunk/types';
+import type {CampaignListResponse} from '@plunk/types';
 import {
   getCoreRowModel,
   useReactTable,
@@ -44,7 +44,22 @@ import {
 import {useShiftClickSelection} from '../../lib/hooks/useShiftClickSelection';
 import {network} from '../../lib/network';
 import {formatRelativeTime} from '../../lib/dateUtils';
-import {Ban, Calendar, ChevronDown, Copy, Edit, FileText, Mail, Plus, RefreshCw, Search, Trash2, X} from 'lucide-react';
+import {
+  Archive,
+  ArchiveRestore,
+  Ban,
+  Calendar,
+  ChevronDown,
+  Copy,
+  Edit,
+  FileText,
+  Mail,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
@@ -82,6 +97,15 @@ const STATUS_OPTIONS: ReadonlyArray<Exclude<StatusFilter, 'ALL'>> = [
   'CANCELLED',
 ];
 
+// Statuses a campaign can be archived from. Mirrors ARCHIVABLE_STATUSES in the API's
+// CampaignService: a SCHEDULED or SENDING campaign still needs attention, so the row action
+// is hidden for those rather than offering a button the server would reject.
+const ARCHIVABLE_STATUSES: ReadonlyArray<CampaignStatus> = [
+  CampaignStatus.DRAFT,
+  CampaignStatus.SENT,
+  CampaignStatus.CANCELLED,
+];
+
 const statusBadgeConfig: Record<CampaignStatus, {label: string; variant: 'neutral' | 'default' | 'success'}> = {
   DRAFT: {label: 'Draft', variant: 'neutral'},
   SCHEDULED: {label: 'Scheduled', variant: 'default'},
@@ -115,6 +139,10 @@ export default function CampaignsPage() {
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [bulkDeleteStatus, setBulkDeleteStatus] = useState<'idle' | 'loading'>('idle');
+  // Archive scope. Deliberately NOT persisted, unlike the view and column preferences: an
+  // archive scope you don't remember entering looks like a project that lost its campaigns.
+  const [showArchived, setShowArchived] = useState(false);
+  const [bulkArchiveStatus, setBulkArchiveStatus] = useState<'idle' | 'loading'>('idle');
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showCampaignDialog, setShowCampaignDialog] = useState(false);
   const [view, setView] = usePersistentState<DataTableView>(VIEW_STORAGE_KEY, 'card', isDataTableView);
@@ -131,12 +159,14 @@ export default function CampaignsPage() {
   const sortParam = sorting[0]?.id ?? '';
   const dirParam = sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : '';
 
-  const {data, mutate, isLoading} = useSWR<PaginatedResponse<Campaign>>(
+  const {data, mutate, isLoading} = useSWR<CampaignListResponse>(
     `/campaigns?page=${page}&pageSize=20${search ? `&search=${encodeURIComponent(search)}` : ''}${
       statusFilter !== 'ALL' ? `&status=${statusFilter}` : ''
-    }${sortParam ? `&sort=${sortParam}&dir=${dirParam}` : ''}`,
+    }${showArchived ? '&archived=true' : ''}${sortParam ? `&sort=${sortParam}&dir=${dirParam}` : ''}`,
     {revalidateOnFocus: false},
   );
+
+  const archivedCount = data?.archivedCount ?? 0;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -152,7 +182,14 @@ export default function CampaignsPage() {
   // campaigns they can no longer see.
   useEffect(() => {
     setRowSelection({});
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, showArchived]);
+
+  // Entering or leaving the archive is a different data set, so restart at page 1 rather
+  // than landing on a page number the new scope may not have.
+  const handleToggleArchived = (next: boolean) => {
+    setShowArchived(next);
+    setPage(1);
+  };
 
   const handleCancel = async () => {
     if (!campaignToCancel) return;
@@ -187,6 +224,30 @@ export default function CampaignsPage() {
       void mutate();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Couldn’t duplicate the campaign. Try again.');
+    }
+  };
+
+  const handleUnarchive = async (campaignId: string) => {
+    try {
+      await network.fetch('POST', `/campaigns/${campaignId}/unarchive`);
+      toast.success('Campaign restored');
+      void mutate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Couldn\u2019t restore the campaign. Try again.');
+    }
+  };
+
+  // No confirmation dialog on purpose: archiving destroys nothing and the undo action on the
+  // toast reverses it in one click, which is a cheaper recovery than a modal on every archive.
+  const handleArchive = async (campaignId: string) => {
+    try {
+      await network.fetch('POST', `/campaigns/${campaignId}/archive`);
+      toast.success('Campaign archived', {
+        action: {label: 'Undo', onClick: () => void handleUnarchive(campaignId)},
+      });
+      void mutate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Couldn\u2019t archive the campaign. Try again.');
     }
   };
 
@@ -227,6 +288,33 @@ export default function CampaignsPage() {
     } finally {
       // ConfirmDialog closes itself after onConfirm resolves.
       setBulkDeleteStatus('idle');
+    }
+  };
+
+  const handleBulkArchive = async (archived: boolean) => {
+    if (selectedIds.length === 0) return;
+    setBulkArchiveStatus('loading');
+    try {
+      const result = await network.fetch<{updated?: number}, typeof CampaignSchemas.bulkUpdate>(
+        'POST',
+        '/campaigns/bulk-update',
+        {
+          ids: selectedIds,
+          archived,
+        },
+      );
+      const count = result?.updated ?? selectedIds.length;
+      toast.success(`${count} campaign${count === 1 ? '' : 's'} ${archived ? 'archived' : 'restored'}`);
+      setRowSelection({});
+      void mutate();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `Couldn\u2019t ${archived ? 'archive' : 'restore'} those campaigns. Try again.`,
+      );
+    } finally {
+      setBulkArchiveStatus('idle');
     }
   };
 
@@ -484,42 +572,70 @@ export default function CampaignsPage() {
                 <Edit className="h-4 w-4" />
               </Link>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Duplicate campaign"
-              aria-label="Duplicate campaign"
-              onClick={() => handleDuplicate(row.original.id)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            {row.original.status === 'DRAFT' && (
+            {/* Inside the archive the row is down to view + restore. Duplicating or deleting
+                something the user has filed away is noise, and dropping the two of them keeps
+                the row at the same action count the active list had before archive existed. */}
+            {showArchived ? (
               <Button
                 variant="ghost"
                 size="sm"
-                title="Delete campaign"
-                aria-label="Delete campaign"
-                onClick={() => {
-                  setCampaignToDelete(row.original.id);
-                  setShowDeleteDialog(true);
-                }}
+                title="Restore campaign"
+                aria-label="Restore campaign"
+                onClick={() => void handleUnarchive(row.original.id)}
               >
-                <Trash2 className="h-4 w-4" />
+                <ArchiveRestore className="h-4 w-4" />
               </Button>
-            )}
-            {(row.original.status === 'SCHEDULED' || row.original.status === 'SENDING') && (
-              <Button
-                variant="ghost"
-                size="sm"
-                title="Cancel campaign"
-                aria-label="Cancel campaign"
-                onClick={() => {
-                  setCampaignToCancel({id: row.original.id, status: row.original.status});
-                  setShowCancelDialog(true);
-                }}
-              >
-                <Ban className="h-4 w-4" />
-              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  title="Duplicate campaign"
+                  aria-label="Duplicate campaign"
+                  onClick={() => handleDuplicate(row.original.id)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                {ARCHIVABLE_STATUSES.includes(row.original.status) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Archive campaign"
+                    aria-label="Archive campaign"
+                    onClick={() => void handleArchive(row.original.id)}
+                  >
+                    <Archive className="h-4 w-4" />
+                  </Button>
+                )}
+                {row.original.status === 'DRAFT' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Delete campaign"
+                    aria-label="Delete campaign"
+                    onClick={() => {
+                      setCampaignToDelete(row.original.id);
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+                {(row.original.status === 'SCHEDULED' || row.original.status === 'SENDING') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Cancel campaign"
+                    aria-label="Cancel campaign"
+                    onClick={() => {
+                      setCampaignToCancel({id: row.original.id, status: row.original.status});
+                      setShowCancelDialog(true);
+                    }}
+                  >
+                    <Ban className="h-4 w-4" />
+                  </Button>
+                )}
+              </>
             )}
           </div>
         ),
@@ -672,26 +788,87 @@ export default function CampaignsPage() {
               {view === 'table' && (
                 <DataTableViewOptions table={table} lockedColumnIds={['select', 'name', 'actions']} />
               )}
+              {/* Scope toggle, not a filter: archived is orthogonal to status, so it sits
+                  beside the Status control rather than inside it. Hidden entirely until the
+                  project has archived something, so a list that never uses the feature pays
+                  no chrome for it. */}
+              {(archivedCount > 0 || showArchived) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-pressed={showArchived}
+                  title={showArchived ? 'Back to active campaigns' : 'Show archived campaigns'}
+                  onClick={() => handleToggleArchived(!showArchived)}
+                  className={'gap-1.5 ' + (showArchived ? 'bg-neutral-100 border-neutral-300' : '')}
+                >
+                  <Archive className="h-4 w-4 text-neutral-500" />
+                  <span>Archived</span>
+                  {!showArchived && archivedCount > 0 && (
+                    <span className="text-neutral-500 tabular-nums">{archivedCount.toLocaleString()}</span>
+                  )}
+                </Button>
+              )}
               <span className="hidden sm:block h-5 w-px bg-neutral-200" aria-hidden="true" />
               <DataTableViewSwitcher view={view} onChange={setView} />
             </div>
           </div>
+
+          {/* Scope indicator. One text row rather than a banner card -- the toggle above
+              already carries the state, this just makes it unmissable and offers the exit. */}
+          {showArchived && (
+            <div className="flex items-center gap-2 text-sm text-neutral-500">
+              <span>Showing archived campaigns.</span>
+              <button
+                type="button"
+                onClick={() => handleToggleArchived(false)}
+                className="font-medium text-neutral-900 underline underline-offset-2 hover:text-neutral-600 transition-colors"
+              >
+                Back to active
+              </button>
+            </div>
+          )}
 
           {/* Bulk action bar — table view only (the selection column lives
               there). Wires the delete action; the children slot stays open for
               future bulk operations. */}
           {view === 'table' && (
             <BulkActionBar selectedCount={selectedIds.length} itemNoun="campaign" onClear={() => setRowSelection({})}>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => setShowBulkDeleteDialog(true)}
-                disabled={bulkDeleteStatus === 'loading'}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete selected
-              </Button>
+              {showArchived ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleBulkArchive(false)}
+                  disabled={bulkArchiveStatus === 'loading'}
+                >
+                  <ArchiveRestore className="h-4 w-4" />
+                  Restore selected
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleBulkArchive(true)}
+                    disabled={bulkArchiveStatus === 'loading'}
+                  >
+                    <Archive className="h-4 w-4" />
+                    Archive selected
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowBulkDeleteDialog(true)}
+                    disabled={bulkDeleteStatus === 'loading'}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete selected
+                  </Button>
+                </>
+              )}
             </BulkActionBar>
           )}
 
@@ -710,8 +887,24 @@ export default function CampaignsPage() {
                 <CardContent>
                   {hasActiveFilters ? (
                     // Items exist, but the active search/status filters matched
-                    // none — offer a one-click recovery.
+                    // none — offer a one-click recovery. `clearFilters` deliberately
+                    // leaves the archive scope alone: the scope is not a filter, and
+                    // silently returning the user to the active list would look like
+                    // the clear had done something else entirely.
                     <NoResultsState icon={Mail} itemNoun="campaigns" onClear={clearFilters} />
+                  ) : showArchived ? (
+                    // Archive scope with nothing in it. Reachable after restoring the last
+                    // archived campaign without leaving the scope.
+                    <EmptyState
+                      icon={Archive}
+                      title="No archived campaigns"
+                      description="Archiving hides a campaign from your list without deleting it. Its stats stay available."
+                      action={
+                        <Button variant="outline" onClick={() => handleToggleArchived(false)}>
+                          Back to active
+                        </Button>
+                      }
+                    />
                   ) : (
                     // Genuinely empty project — first-run state.
                     <EmptyState
@@ -873,34 +1066,61 @@ export default function CampaignsPage() {
                           <Button asChild variant="ghost" size="sm" title={campaign.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}>
                             <Link href={`/campaigns/${campaign.id}`} aria-label={campaign.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}><Edit className="h-4 w-4" /></Link>
                           </Button>
-                          <Button variant="ghost" size="sm" title="Duplicate campaign" onClick={() => handleDuplicate(campaign.id)}>
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          {campaign.status === 'DRAFT' && (
+                          {/* Mirrors the table view's actions column: inside the archive the
+                              row is view + restore only. */}
+                          {showArchived ? (
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="Delete campaign"
-                              onClick={() => {
-                                setCampaignToDelete(campaign.id);
-                                setShowDeleteDialog(true);
-                              }}
+                              title="Restore campaign"
+                              aria-label="Restore campaign"
+                              onClick={() => void handleUnarchive(campaign.id)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <ArchiveRestore className="h-4 w-4" />
                             </Button>
-                          )}
-                          {(campaign.status === 'SCHEDULED' || campaign.status === 'SENDING') && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Cancel campaign"
-                              onClick={() => {
-                                setCampaignToCancel({id: campaign.id, status: campaign.status});
-                                setShowCancelDialog(true);
-                              }}
-                            >
-                              <Ban className="h-4 w-4" />
-                            </Button>
+                          ) : (
+                            <>
+                              <Button variant="ghost" size="sm" title="Duplicate campaign" onClick={() => handleDuplicate(campaign.id)}>
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              {ARCHIVABLE_STATUSES.includes(campaign.status) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Archive campaign"
+                                  aria-label="Archive campaign"
+                                  onClick={() => void handleArchive(campaign.id)}
+                                >
+                                  <Archive className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {campaign.status === 'DRAFT' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Delete campaign"
+                                  onClick={() => {
+                                    setCampaignToDelete(campaign.id);
+                                    setShowDeleteDialog(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {(campaign.status === 'SCHEDULED' || campaign.status === 'SENDING') && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Cancel campaign"
+                                  onClick={() => {
+                                    setCampaignToCancel({id: campaign.id, status: campaign.status});
+                                    setShowCancelDialog(true);
+                                  }}
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>

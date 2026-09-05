@@ -66,6 +66,7 @@ export class Campaigns {
    * - page, pageSize: pagination
    * - status: filter by CampaignStatus
    * - search: filter by name/subject/from
+   * - archived: 'true' lists the archive instead of the active campaigns (default: false)
    * - sort: name | createdAt | updatedAt (default: createdAt)
    * - dir: asc | desc (default: desc)
    */
@@ -76,6 +77,9 @@ export class Campaigns {
     const auth = res.locals.auth;
     const status = req.query.status as CampaignStatus | undefined;
     const search = typeof req.query.search === 'string' ? req.query.search.trim() || undefined : undefined;
+    // Opt-in only: anything other than the literal 'true' lists active campaigns, so a
+    // malformed value can never accidentally hide a project's whole campaign list.
+    const archived = req.query.archived === 'true';
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const sort = parseListSort(req.query.sort, req.query.dir, {field: 'createdAt', direction: 'desc'});
@@ -88,6 +92,7 @@ export class Campaigns {
     const result = await CampaignService.list(auth.projectId, {
       status,
       search,
+      archived,
       page,
       pageSize,
       sort,
@@ -100,13 +105,14 @@ export class Campaigns {
    * Apply a bulk operation to multiple campaigns at once.
    * POST /campaigns/bulk-update
    *
-   * Currently supports `{ids: string[], delete: true}` for bulk delete. The
-   * schema is intentionally open-ended so future bulk operations can stack on
-   * the same endpoint.
+   * Supports `{ids: string[], delete: true}` for bulk delete and
+   * `{ids: string[], archived: boolean}` for bulk archive / restore, one mode per
+   * request. The schema is intentionally open-ended so further bulk operations can
+   * stack on the same endpoint.
    *
-   * Atomicity: the underlying service wraps the ownership check, the
-   * draft-only guard, and the delete in a single Prisma transaction, so a
-   * partial bulk delete is not possible.
+   * Atomicity: the underlying service wraps the ownership check, the status guard
+   * (draft-only for delete, not-in-flight for archive), and the write in a single
+   * Prisma transaction, so a partially-applied bulk operation is not possible.
    *
    * NOTE: This must be defined BEFORE the :id route to avoid conflicts.
    */
@@ -230,6 +236,50 @@ export class Campaigns {
       success: true,
       data: campaign,
       message: 'Campaign duplicated successfully',
+    });
+  }
+
+  /**
+   * Archive a campaign, hiding it from the default campaign list.
+   * POST /campaigns/:id/archive
+   *
+   * Reversible and lossless: nothing about the campaign's status, stats or emails
+   * changes, and GET /campaigns/:id keeps returning it. Rejected with a 400 for
+   * SCHEDULED and SENDING campaigns, which still need attention.
+   */
+  @Post(':id/archive')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  private async archive(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+    const {id} = UtilitySchemas.id.parse(req.params);
+
+    const campaign = await CampaignService.setArchived(auth.projectId, id!, true);
+
+    return res.json({
+      success: true,
+      data: campaign,
+      message: 'Campaign archived successfully',
+    });
+  }
+
+  /**
+   * Restore an archived campaign back to the default list.
+   * POST /campaigns/:id/unarchive
+   */
+  @Post(':id/unarchive')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  private async unarchive(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+    const {id} = UtilitySchemas.id.parse(req.params);
+
+    const campaign = await CampaignService.setArchived(auth.projectId, id!, false);
+
+    return res.json({
+      success: true,
+      data: campaign,
+      message: 'Campaign restored successfully',
     });
   }
 

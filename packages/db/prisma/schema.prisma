@@ -332,6 +332,12 @@ model Campaign {
   // bouncedCount and complainedCount, and would otherwise be counted twice.
   unsubscribedCount Int @default(0)
 
+  // Hides a campaign from the default list without touching its data. Orthogonal to
+  // `status` on purpose: a campaign is both SENT and archived, so this is not a sixth
+  // CampaignStatus value. Stats, emails and analytics ignore it entirely -- archiving
+  // is a view preference, it must never move a number.
+  archived Boolean @default(false)
+
   // Relations
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
@@ -344,6 +350,10 @@ model Campaign {
   updatedAt DateTime  @updatedAt
 
   @@index([projectId, status])
+  // Serves the scoped campaign list (every list query filters projectId + archived and
+  // defaults to `ORDER BY createdAt DESC`) and, via its projectId+archived prefix, the
+  // archived-count query that drives the list's Archived toggle.
+  @@index([projectId, archived, createdAt])
   @@index([scheduledFor])
   @@index([segmentId])
   @@index([audienceCondition(ops: JsonbOps)], type: Gin) // GIN index for campaign audience condition queries

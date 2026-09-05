@@ -41,6 +41,8 @@ import {formatFullDateTime, formatUTCDateTime, getUserTimezone, schedulePresets}
 import {useChangeTracking} from '../../lib/hooks/useChangeTracking';
 import {
   AlertCircle,
+  Archive,
+  ArchiveRestore,
   ArrowLeft,
   Calendar,
   ChevronDown,
@@ -213,6 +215,24 @@ export default function CampaignDetailsPage() {
       void router.push('/campaigns');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Couldn’t delete the campaign. Try again.');
+    }
+  };
+
+  /**
+   * Archive or restore. No confirmation: archiving destroys nothing, and the detail page
+   * stays on the campaign afterwards so the state change is visible in the header badge.
+   */
+  const handleSetArchived = async (archived: boolean) => {
+    try {
+      await network.fetch('POST', `/campaigns/${id}/${archived ? 'archive' : 'unarchive'}`);
+      toast.success(archived ? 'Campaign archived' : 'Campaign restored');
+      void mutate();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `Couldn\u2019t ${archived ? 'archive' : 'restore'} the campaign. Try again.`,
+      );
     }
   };
 
@@ -530,6 +550,26 @@ export default function CampaignDetailsPage() {
                         <div className="flex flex-col gap-0.5 flex-1">
                           <span className="font-medium text-sm">Schedule for later</span>
                           <span className="text-xs text-neutral-500 leading-snug">Choose a specific date and time</span>
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => void handleSetArchived(!c.archived)}
+                      className="py-3 cursor-pointer"
+                    >
+                      <div className="flex items-start gap-3">
+                        {c.archived ? (
+                          <ArchiveRestore className="h-4 w-4 mt-0.5 text-neutral-700" />
+                        ) : (
+                          <Archive className="h-4 w-4 mt-0.5 text-neutral-700" />
+                        )}
+                        <div className="flex flex-col gap-0.5 flex-1">
+                          <span className="font-medium text-sm">{c.archived ? 'Restore draft' : 'Archive draft'}</span>
+                          <span className="text-xs text-neutral-500 leading-snug">
+                            {c.archived
+                              ? 'Put it back on the campaigns list'
+                              : 'Hide it from the campaigns list without deleting it'}
+                          </span>
                         </div>
                       </div>
                     </DropdownMenuItem>
@@ -1079,18 +1119,39 @@ export default function CampaignDetailsPage() {
               <div className="flex items-center gap-2 sm:gap-3 mb-2">
                 <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 truncate">{c.name}</h1>
                 {getStatusBadge(c.status)}
+                {/* Explains, to someone who arrived by direct link, why this campaign is
+                    missing from the list. */}
+                {c.archived && (
+                  <Badge variant="neutral" className="shrink-0">
+                    <Archive className="h-3 w-3" />
+                    Archived
+                  </Badge>
+                )}
               </div>
               {c.description && <p className="text-neutral-500 text-sm sm:text-base">{c.description}</p>}
             </div>
           </div>
 
           {/* Actions */}
-          {(c.status === CampaignStatus.SCHEDULED || c.status === CampaignStatus.SENDING) && (
+          {c.status === CampaignStatus.SCHEDULED || c.status === CampaignStatus.SENDING ? (
             <div className="flex justify-end">
               <Button variant="destructive" onClick={() => setDialog({type: 'cancel'})} className="w-full sm:w-auto">
                 <XCircle className="h-4 w-4" />
                 <span className="hidden sm:inline">Cancel campaign</span>
                 <span className="sm:hidden">Cancel</span>
+              </Button>
+            </div>
+          ) : (
+            /* SENT and CANCELLED. This region was empty for them, and it is the natural place
+               to file a campaign away: the user has just finished reading its results. */
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => void handleSetArchived(!c.archived)}
+                className="w-full sm:w-auto"
+              >
+                {c.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                {c.archived ? 'Restore campaign' : 'Archive campaign'}
               </Button>
             </div>
           )}

@@ -1,7 +1,12 @@
 import type {Campaign, Contact, Prisma} from '@plunk/db';
 import {CampaignAudienceType, CampaignStatus, EmailSourceType, EmailStatus, TemplateType} from '@plunk/db';
 import {compileTemplate} from '@plunk/shared';
-import type {CreateCampaignData, FilterCondition, PaginatedResponse, UpdateCampaignData} from '@plunk/types';
+import type {
+  CampaignListResponse,
+  CreateCampaignData,
+  FilterCondition,
+  UpdateCampaignData,
+} from '@plunk/types';
 import {fromPrismaJson, toPrismaJson} from '@plunk/types';
 import signale from 'signale';
 
@@ -23,6 +28,20 @@ import {DASHBOARD_URI, STRIPE_ENABLED} from '../app/constants.js';
 import {sendRawEmail} from './SESService.js';
 
 const BATCH_SIZE = 500; // Number of emails to process per batch (increased for better performance)
+
+/**
+ * Statuses a campaign may be archived from.
+ *
+ * SCHEDULED and SENDING are excluded deliberately: archiving hides a campaign from the
+ * default list, and both of those still need the operator's attention -- one is about to
+ * send, the other is mid-flight -- so hiding them would let a campaign change state, and
+ * potentially fail, out of sight. Restoring is unrestricted; it only ever reveals.
+ */
+const ARCHIVABLE_STATUSES: readonly CampaignStatus[] = [
+  CampaignStatus.DRAFT,
+  CampaignStatus.SENT,
+  CampaignStatus.CANCELLED,
+];
 
 export class CampaignService {
   /**
@@ -185,23 +204,37 @@ export class CampaignService {
   }
 
   /**
-   * List campaigns for a project
+   * List campaigns for a project.
+   *
+   * Scoped to unarchived campaigns unless `archived` is explicitly true. This default is
+   * what every caller wants -- the dashboard list, and the "copy from a previous campaign"
+   * picker, which should not offer something the user has filed away -- so archiving is
+   * enforced here rather than left to each call site to remember.
    */
   public static async list(
     projectId: string,
     options: {
       status?: CampaignStatus;
       search?: string;
+      archived?: boolean;
       page?: number;
       pageSize?: number;
       sort?: ListSort;
     } = {},
-  ): Promise<PaginatedResponse<Campaign>> {
-    const {status, search, page = 1, pageSize = 20, sort = {field: 'createdAt', direction: 'desc'}} = options;
+  ): Promise<CampaignListResponse> {
+    const {
+      status,
+      search,
+      archived = false,
+      page = 1,
+      pageSize = 20,
+      sort = {field: 'createdAt', direction: 'desc'},
+    } = options;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.CampaignWhereInput = {
       projectId,
+      archived,
       ...(status ? {status} : {}),
       ...(search
         ? {
@@ -214,7 +247,7 @@ export class CampaignService {
         : {}),
     };
 
-    const [campaigns, total] = await Promise.all([
+    const [campaigns, total, archivedTotal] = await Promise.all([
       prisma.campaign.findMany({
         where,
         include: {
@@ -225,6 +258,11 @@ export class CampaignService {
         take: pageSize,
       }),
       prisma.campaign.count({where}),
+      // How many archived campaigns the project has, ignoring the page, the search and the
+      // status filter -- the list only offers its Archived toggle once this is non-zero, so
+      // it has to be an unfiltered figure. Skipped entirely when already listing the archive,
+      // where `total` is the same number. Covered by the (projectId, archived) index prefix.
+      archived ? Promise.resolve(null) : prisma.campaign.count({where: {projectId, archived: true}}),
     ]);
 
     return {
@@ -233,7 +271,44 @@ export class CampaignService {
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
+      archivedCount: archivedTotal ?? total,
     };
+  }
+
+  /**
+   * Archive or restore a campaign.
+   *
+   * Archiving only affects whether the campaign shows up in the default list. It leaves the
+   * status, the materialized counters, the emails and every analytics figure untouched, and
+   * `get()` deliberately still returns archived campaigns so a bookmarked link keeps working.
+   */
+  public static async setArchived(projectId: string, campaignId: string, archived: boolean): Promise<Campaign> {
+    const campaign = await prisma.campaign.findFirst({
+      where: {id: campaignId, projectId},
+      select: {id: true, status: true, archived: true},
+    });
+
+    if (!campaign) {
+      throw new HttpException(404, 'Campaign not found');
+    }
+
+    if (archived && !ARCHIVABLE_STATUSES.includes(campaign.status)) {
+      throw new HttpException(
+        400,
+        `Can only archive draft, sent or cancelled campaigns. This one is ${campaign.status.toLowerCase()}.`,
+      );
+    }
+
+    // Already in the requested state: return it rather than burning a write. Makes the
+    // endpoint idempotent, which matters for the list's undo affordance.
+    if (campaign.archived === archived) {
+      return this.get(projectId, campaignId);
+    }
+
+    return prisma.campaign.update({
+      where: {id: campaignId},
+      data: {archived},
+    });
   }
 
   /**
@@ -270,8 +345,9 @@ export class CampaignService {
    * Apply a bulk operation to multiple campaigns at once.
    *
    * The payload is intentionally open-ended (a single endpoint) so future bulk
-   * operations can stack on the same operation. For now the only supported mode
-   * is `delete: true` (bulk delete).
+   * operations can stack on the same operation. Two modes are supported, and exactly
+   * one may be used per request: `delete: true` (bulk delete) and
+   * `archived: true | false` (bulk archive / restore).
    *
    * Atomicity: every selected campaign must belong to the requesting project AND
    * every one of them must be a DRAFT. Both checks plus the `deleteMany` are
@@ -288,9 +364,15 @@ export class CampaignService {
    */
   public static async bulkUpdate(
     projectId: string,
-    options: {ids: string[]; delete?: boolean},
+    options: {ids: string[]; delete?: boolean; archived?: boolean},
   ): Promise<{deleted?: number; updated?: number}> {
-    const {ids, delete: shouldDelete} = options;
+    const {ids, delete: shouldDelete, archived} = options;
+
+    // The two modes mean opposite things for the same selection, so refuse rather than
+    // silently letting one win.
+    if (shouldDelete && archived !== undefined) {
+      throw new HttpException(400, 'Cannot delete and archive in the same request');
+    }
 
     // Dedup defensively — the schema permits the same id twice and we don't
     // want duplicates inflating the ownership / row counts below.
@@ -335,8 +417,47 @@ export class CampaignService {
       });
     }
 
-    // No-op shape for forward-compat: when other bulk modes ship they'll branch
-    // off here. Returning {updated: 0} keeps the response shape stable.
+    if (archived !== undefined) {
+      return prisma.$transaction(async tx => {
+        // 1. Ownership / project-scope check, exactly as the delete branch does. Cross-project
+        //    leaks are the main thing this endpoint must defend against.
+        const owned = await tx.campaign.findMany({
+          where: {id: {in: uniqueIds}, projectId},
+          select: {id: true, status: true},
+        });
+
+        if (owned.length !== uniqueIds.length) {
+          throw new HttpException(404, 'One or more campaigns not found in this project');
+        }
+
+        // 2. Archiving a SCHEDULED or SENDING campaign would hide something still in flight,
+        //    so reject the whole batch if any selected campaign is not archivable rather than
+        //    quietly skipping it. Restoring has no such constraint -- it only ever reveals.
+        if (archived) {
+          const notArchivable = owned.filter(c => !ARCHIVABLE_STATUSES.includes(c.status));
+
+          if (notArchivable.length > 0) {
+            const count = notArchivable.length;
+            throw new HttpException(
+              400,
+              `Can only archive draft, sent or cancelled campaigns: ${count} of the selected campaign${
+                count === 1 ? ' is' : 's are'
+              } scheduled or sending.`,
+            );
+          }
+        }
+
+        const result = await tx.campaign.updateMany({
+          where: {id: {in: uniqueIds}, projectId},
+          data: {archived},
+        });
+
+        return {updated: result.count};
+      });
+    }
+
+    // No mode supplied. Returning {updated: 0} keeps the response shape stable for a caller
+    // that sends only `ids`.
     return {updated: 0};
   }
 
