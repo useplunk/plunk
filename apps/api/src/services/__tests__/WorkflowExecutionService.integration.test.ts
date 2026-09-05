@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {StepExecutionStatus, WorkflowExecutionStatus, WorkflowStepType} from '@plunk/db';
+import {StepExecutionStatus, WorkflowExecutionStatus, WorkflowStepType, WorkflowWaitOutcome} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
 import {WorkflowExecutionService} from '../WorkflowExecutionService';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
@@ -511,6 +511,173 @@ describe('WorkflowExecutionService - Integration Tests', () => {
 
       // Step should be completed after event arrives
       expect(waitStepExecution?.status).toBe(StepExecutionStatus.COMPLETED);
+    });
+
+    it('should resume a persisted wait on the event route with merged event context', async () => {
+      const contact = await factories.createContact({projectId});
+      const workflow = await factories.createWorkflow({projectId});
+      const waitStep = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.WAIT_FOR_EVENT,
+          name: 'Wait for Purchase',
+          position: {x: 100, y: 0},
+          config: toPrismaJson({eventName: 'purchase.completed', timeout: 3600}),
+        },
+      });
+      const eventCondition = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.CONDITION,
+          name: 'Inspect resumed plan',
+          position: {x: 200, y: -50},
+          config: toPrismaJson({field: 'event.plan', operator: 'equals', value: 'pro'}),
+        },
+      });
+      const eventExit = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.EXIT,
+          name: 'Event path',
+          position: {x: 300, y: -75},
+          config: toPrismaJson({}),
+        },
+      });
+      const wrongPlanExit = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.EXIT,
+          name: 'Wrong plan path',
+          position: {x: 300, y: -25},
+          config: toPrismaJson({}),
+        },
+      });
+      const timeoutExit = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.EXIT,
+          name: 'Timeout path',
+          position: {x: 200, y: 50},
+          config: toPrismaJson({}),
+        },
+      });
+
+      await prisma.workflowTransition.createMany({
+        data: [
+          {fromStepId: waitStep.id, toStepId: eventCondition.id, waitOutcome: WorkflowWaitOutcome.EVENT},
+          {fromStepId: waitStep.id, toStepId: timeoutExit.id, waitOutcome: WorkflowWaitOutcome.TIMEOUT},
+          {fromStepId: eventCondition.id, toStepId: eventExit.id, condition: toPrismaJson({branch: 'yes'})},
+          {fromStepId: eventCondition.id, toStepId: wrongPlanExit.id, condition: toPrismaJson({branch: 'no'})},
+        ],
+      });
+
+      // These durable rows are all a new worker needs after a restart mid-wait.
+      const execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          status: WorkflowExecutionStatus.WAITING,
+          currentStepId: waitStep.id,
+          context: toPrismaJson({source: 'signup', plan: 'free'}),
+        },
+      });
+      const waitExecution = await prisma.workflowStepExecution.create({
+        data: {
+          executionId: execution.id,
+          stepId: waitStep.id,
+          status: StepExecutionStatus.WAITING,
+          startedAt: new Date(),
+        },
+      });
+
+      await WorkflowExecutionService.handleEvent(projectId, 'purchase.completed', contact.id, {
+        plan: 'pro',
+        orderId: 'order-123',
+      });
+
+      const resumed = await prisma.workflowExecution.findUniqueOrThrow({where: {id: execution.id}});
+      expect(resumed.context).toEqual({source: 'signup', plan: 'pro', orderId: 'order-123'});
+
+      const stepExecutions = await prisma.workflowStepExecution.findMany({
+        where: {executionId: execution.id},
+        include: {step: true},
+      });
+      expect(stepExecutions.some(item => item.step.id === eventExit.id)).toBe(true);
+      expect(stepExecutions.some(item => item.step.id === timeoutExit.id)).toBe(false);
+      expect(stepExecutions.some(item => item.step.id === wrongPlanExit.id)).toBe(false);
+      expect(
+        (stepExecutions.find(item => item.step.id === eventCondition.id)?.output as {branch?: string} | null)?.branch,
+      ).toBe('yes');
+      expect(
+        (await prisma.workflowStepExecution.findUniqueOrThrow({where: {id: waitExecution.id}})).output,
+      ).toMatchObject({waitOutcome: WorkflowWaitOutcome.EVENT, eventData: {plan: 'pro', orderId: 'order-123'}});
+    });
+
+    it('should follow only the timeout route when a persisted wait expires', async () => {
+      const contact = await factories.createContact({projectId});
+      const workflow = await factories.createWorkflow({projectId});
+      const waitStep = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.WAIT_FOR_EVENT,
+          name: 'Wait for Purchase',
+          position: {x: 100, y: 0},
+          config: toPrismaJson({eventName: 'purchase.completed', timeout: 3600}),
+        },
+      });
+      const eventExit = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.EXIT,
+          name: 'Event path',
+          position: {x: 200, y: -50},
+          config: toPrismaJson({}),
+        },
+      });
+      const timeoutExit = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.EXIT,
+          name: 'Timeout path',
+          position: {x: 200, y: 50},
+          config: toPrismaJson({}),
+        },
+      });
+      await prisma.workflowTransition.createMany({
+        data: [
+          {fromStepId: waitStep.id, toStepId: eventExit.id, waitOutcome: WorkflowWaitOutcome.EVENT},
+          {fromStepId: waitStep.id, toStepId: timeoutExit.id, waitOutcome: WorkflowWaitOutcome.TIMEOUT},
+        ],
+      });
+      const execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          status: WorkflowExecutionStatus.WAITING,
+          currentStepId: waitStep.id,
+          context: toPrismaJson({source: 'signup'}),
+        },
+      });
+      const waitExecution = await prisma.workflowStepExecution.create({
+        data: {
+          executionId: execution.id,
+          stepId: waitStep.id,
+          status: StepExecutionStatus.WAITING,
+          startedAt: new Date(),
+        },
+      });
+
+      await WorkflowExecutionService.processTimeout(execution.id, waitStep.id, waitExecution.id);
+
+      const stepExecutions = await prisma.workflowStepExecution.findMany({
+        where: {executionId: execution.id},
+        select: {stepId: true},
+      });
+      expect(stepExecutions.some(item => item.stepId === timeoutExit.id)).toBe(true);
+      expect(stepExecutions.some(item => item.stepId === eventExit.id)).toBe(false);
+      expect(
+        (await prisma.workflowStepExecution.findUniqueOrThrow({where: {id: waitExecution.id}})).output,
+      ).toMatchObject({waitOutcome: WorkflowWaitOutcome.TIMEOUT, timedOut: true});
     });
   });
 
