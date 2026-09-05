@@ -5,14 +5,13 @@
  * This is the only send path. `EmailService.sendEmail` used to hold a second copy of it, tested
  * while this one was not, and the two had drifted; it has been removed. The behaviour those tests
  * claimed to cover -- PENDING → SENDING → SENT, the failure transition, send idempotency, and
- * attachments reaching SES -- is implemented here and is currently untested, because the job body
- * is inline in `createEmailWorker` and cannot be called without a queue. Extracting it is worth
- * doing before this logic is next changed.
+ * attachments reaching SES -- is implemented here. Integration tests exercise it through real
+ * queue jobs; keep new assertions on this path rather than reviving a second send implementation.
  */
 
 import {CampaignStatus, EmailStatus} from '@plunk/db';
 import type {SendEmailJobData} from '@plunk/types';
-import {type Job, Worker} from 'bullmq';
+import {type Job, UnrecoverableError, Worker} from 'bullmq';
 import signale from 'signale';
 
 import {
@@ -83,6 +82,45 @@ function deriveWorkerConcurrency(rateLimit: number): number {
   return Math.max(MIN_CONCURRENCY, Math.min(derived, EMAIL_WORKER_MAX_CONCURRENCY));
 }
 
+function isExplicitlyRetryableSesFailure(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const {name, $metadata} = error as {
+    name?: string;
+    $metadata?: {httpStatusCode?: number};
+  };
+  const status = $metadata?.httpStatusCode;
+
+  // A signed SES error response establishes that SES rejected this attempt.
+  // Transport errors without a response are ambiguous and must not be retried,
+  // because SES may have accepted the message before the connection failed.
+  return (
+    status === 429 ||
+    (status !== undefined && status >= 500) ||
+    name === 'Throttling' ||
+    name === 'ThrottlingException' ||
+    name === 'TooManyRequestsException'
+  );
+}
+
+type SesAcceptance = {messageId: string; sentAt: Date};
+
+async function checkpointSesAcceptance(job: Job<SendEmailJobData>, accepted: SesAcceptance): Promise<boolean> {
+  try {
+    await job.updateData({
+      ...job.data,
+      acceptedBySes: {
+        messageId: accepted.messageId,
+        sentAt: accepted.sentAt.toISOString(),
+      },
+    });
+    return true;
+  } catch (error) {
+    signale.error(`[EMAIL-PROCESSOR] Failed to checkpoint SES acceptance for ${job.data.emailId}:`, error);
+    return false;
+  }
+}
+
 export async function createEmailWorker() {
   // Fetch the rate limit (from env, AWS, or default)
   const rateLimit = await getEmailRateLimit();
@@ -116,7 +154,23 @@ export async function createEmailWorker() {
         return;
       }
 
-      if (email.status !== EmailStatus.PENDING) {
+      const recoveredAcceptance = job.data.acceptedBySes
+        ? {
+            messageId: job.data.acceptedBySes.messageId,
+            sentAt: new Date(job.data.acceptedBySes.sentAt),
+          }
+        : undefined;
+
+      if (email.status === EmailStatus.SENDING && !recoveredAcceptance) {
+        const message = 'Previous attempt ended without an SES acceptance checkpoint; not retried to avoid a duplicate';
+        await prisma.email.update({
+          where: {id: emailId},
+          data: {status: EmailStatus.FAILED, error: message},
+        });
+        throw new UnrecoverableError(message);
+      }
+
+      if (email.status !== EmailStatus.PENDING && !(email.status === EmailStatus.SENDING && recoveredAcceptance)) {
         return;
       }
 
@@ -145,7 +199,7 @@ export async function createEmailWorker() {
       }
 
       // Check if project is disabled
-      if (email.project.disabled) {
+      if (email.project.disabled && !recoveredAcceptance) {
         signale.warn(`[EMAIL-PROCESSOR] Project ${email.projectId} is disabled, cancelling email ${emailId}`);
         await prisma.email.update({
           where: {id: emailId},
@@ -162,6 +216,11 @@ export async function createEmailWorker() {
         }
         return;
       }
+
+      let acceptedBySes: SesAcceptance | undefined = recoveredAcceptance;
+      let acceptedPersisted = email.sentAt !== null;
+      let acceptanceCheckpointed = recoveredAcceptance !== undefined;
+      let sesSubmissionStarted = false;
 
       try {
         // Update status to sending
@@ -242,52 +301,59 @@ export async function createEmailWorker() {
         // Determine tracking based on project settings and email type
         const shouldTrack = EmailService.shouldTrackEmail(email.project.tracking, email.sourceType);
 
-        // Check for phishing/dangerous content before sending
-        const phishingCheck = await SecurityService.checkPhishingContent(
-          email.projectId,
-          email.project.name,
-          email.from,
-          formattedEmail.subject,
-          compiledHtml,
-        );
-
-        if (phishingCheck.shouldDisable) {
-          // Disable project immediately
-          await SecurityService.disableProjectForPhishing(
+        if (!acceptedBySes) {
+          // Check for phishing/dangerous content before sending
+          const phishingCheck = await SecurityService.checkPhishingContent(
             email.projectId,
+            email.project.name,
+            email.from,
             formattedEmail.subject,
-            phishingCheck.confidence,
-            'Phishing content detected',
+            compiledHtml,
           );
 
-          // Mark email as failed
-          await prisma.email.update({
-            where: {id: emailId},
-            data: {
-              status: EmailStatus.FAILED,
-              error: 'This email could not be sent. The project has been disabled. Please contact support.',
+          if (phishingCheck.shouldDisable) {
+            // Disable project immediately
+            await SecurityService.disableProjectForPhishing(
+              email.projectId,
+              formattedEmail.subject,
+              phishingCheck.confidence,
+              'Phishing content detected',
+            );
+
+            // Mark email as failed
+            await prisma.email.update({
+              where: {id: emailId},
+              data: {
+                status: EmailStatus.FAILED,
+                error: 'This email could not be sent. The project has been disabled. Please contact support.',
+              },
+            });
+
+            throw new UnrecoverableError(`Project ${email.projectId} has been disabled due to a policy violation`);
+          }
+
+          // Send via AWS SES, then checkpoint acceptance in Redis before any
+          // database work. If Postgres is unavailable, the retry can finalize
+          // this exact message without submitting it again.
+          sesSubmissionStarted = true;
+          const result = await sendRawEmail({
+            from: {
+              name: fromName,
+              email: fromEmail,
             },
+            to: typeof recipient === 'string' ? [recipient] : [{name: recipient.name, email: recipient.email}],
+            content: {
+              subject: formattedEmail.subject,
+              html: compiledHtml,
+            },
+            reply: email.replyTo || undefined,
+            headers: outboundHeaders,
+            tracking: shouldTrack,
+            attachments: email.attachments as {filename: string; content: string; contentType: string}[] | null,
           });
-
-          throw new Error(`Project ${email.projectId} has been disabled due to a policy violation`);
+          acceptedBySes = {messageId: result.messageId, sentAt: new Date()};
+          acceptanceCheckpointed = await checkpointSesAcceptance(job, acceptedBySes);
         }
-
-        // Send via AWS SES
-        const result = await sendRawEmail({
-          from: {
-            name: fromName,
-            email: fromEmail,
-          },
-          to: typeof recipient === 'string' ? [recipient] : [{name: recipient.name, email: recipient.email}],
-          content: {
-            subject: formattedEmail.subject,
-            html: compiledHtml,
-          },
-          reply: email.replyTo || undefined,
-          headers: outboundHeaders,
-          tracking: shouldTrack,
-          attachments: email.attachments as {filename: string; content: string; contentType: string}[] | null,
-        });
 
         // Mark as sent with SES message ID.
         //
@@ -298,10 +364,12 @@ export async function createEmailWorker() {
           where: {id: emailId, sentAt: null},
           data: {
             status: EmailStatus.SENT,
-            sentAt: new Date(),
-            messageId: result.messageId,
+            sentAt: acceptedBySes.sentAt,
+            messageId: acceptedBySes.messageId,
+            error: null,
           },
         });
+        acceptedPersisted = true;
 
         // Zero rows means another run already stamped this email -- SES accepted the
         // message, then the job was retried. Everything below sends a second signal
@@ -336,7 +404,7 @@ export async function createEmailWorker() {
           subject: formattedEmail.subject,
           from: email.from,
           fromName: email.fromName,
-          messageId: result.messageId,
+          messageId: acceptedBySes.messageId,
           emailId: email.id,
           templateId: email.templateId,
           campaignId: email.campaignId,
@@ -350,14 +418,69 @@ export async function createEmailWorker() {
       } catch (error) {
         signale.error(`[EMAIL-PROCESSOR] Failed to send email ${emailId}:`, error);
 
-        // Mark as failed
+        if (acceptedBySes) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+
+          // SES accepted the message, so another attempt must never submit it
+          // again. Best-effort persistence keeps the delivery truthful even when
+          // a later billing/event/finalization step failed.
+          try {
+            await prisma.email.update({
+              where: {id: emailId},
+              data: {
+                status: EmailStatus.SENT,
+                sentAt: acceptedBySes.sentAt,
+                messageId: acceptedBySes.messageId,
+                error: `Post-send processing failed: ${message}`,
+              },
+            });
+            acceptedPersisted = true;
+
+            if (email.campaignId) {
+              await CampaignService.finalizeIfDone(email.campaignId);
+            }
+          } catch (persistenceError) {
+            signale.error(`[EMAIL-PROCESSOR] Failed to persist accepted SES message ${emailId}:`, persistenceError);
+          }
+
+          if (!acceptedPersisted && !acceptanceCheckpointed) {
+            acceptanceCheckpointed = await checkpointSesAcceptance(job, acceptedBySes);
+          }
+
+          if (!acceptedPersisted) {
+            // A checkpointed retry finalizes the known SES message. Without one,
+            // the retry turns the stranded SENDING row into an explicit FAILED
+            // state rather than silently completing or risking a second send.
+            throw error;
+          }
+
+          throw new UnrecoverableError(`SES accepted email ${emailId}, but post-send processing failed: ${message}`);
+        }
+
+        const configuredAttempts = Math.max(1, job.opts.attempts ?? 1);
+        const attemptsExhausted = job.attemptsMade + 1 >= configuredAttempts;
+        const hasAmbiguousSesOutcome =
+          sesSubmissionStarted && !acceptedBySes && !isExplicitlyRetryableSesFailure(error);
+        const isTerminal = error instanceof UnrecoverableError || attemptsExhausted || hasAmbiguousSesOutcome;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const persistedError = hasAmbiguousSesOutcome
+          ? `SES outcome is unknown; not retried to avoid a duplicate: ${errorMessage}`
+          : errorMessage;
+
+        // Keep retryable failures eligible for the next BullMQ attempt. The
+        // worker's entry guard only processes PENDING rows, so writing FAILED
+        // before attempts are exhausted silently turns the retry into a no-op.
         await prisma.email.update({
           where: {id: emailId},
           data: {
-            status: EmailStatus.FAILED,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            status: isTerminal ? EmailStatus.FAILED : EmailStatus.PENDING,
+            error: persistedError,
           },
         });
+
+        if (hasAmbiguousSesOutcome) {
+          throw new UnrecoverableError(persistedError);
+        }
 
         throw error; // Re-throw to trigger retry
       }
