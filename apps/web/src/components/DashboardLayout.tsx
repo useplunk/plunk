@@ -1,5 +1,6 @@
 import {avatarGradient} from '../lib/avatar';
 import {useActiveProject} from '../lib/contexts/ActiveProjectProvider';
+import {useConfig} from '../lib/hooks/useConfig';
 import {useLogout} from '../lib/hooks/useLogout';
 import {useUser} from '../lib/hooks/useUser';
 import {WIKI_URI} from '../lib/constants';
@@ -10,6 +11,7 @@ import {
   BookOpen,
   ChevronDown,
   FileText,
+  Heart,
   Layers,
   LayoutDashboard,
   LogOut,
@@ -75,6 +77,7 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
   const router = useRouter();
   const {data: user} = useUser();
   const handleLogout = useLogout();
+  const {data: config} = useConfig();
   const {activeProject, availableProjects, setActiveProject} = useActiveProject();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -189,6 +192,18 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
           <BookOpen className="h-5 w-5" />
           Documentation
         </a>
+
+        {config?.features.sponsor.enabled && (
+          <a
+            href="https://github.com/sponsors/driaug"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <Heart className="h-5 w-5" />
+            Sponsor
+          </a>
+        )}
 
         <Link
           href="/settings"

@@ -14,6 +14,7 @@ export interface ConfigResponse {
     authProviders: {github: boolean; google: boolean};
     signup: {signupsDisabled: boolean};
     email: {trackingToggleEnabled: boolean};
+    sponsor: {enabled: boolean};
     smtp: {
       enabled: boolean;
       domain: string | null;

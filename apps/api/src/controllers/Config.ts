@@ -12,6 +12,7 @@ import {
   MAIL_FROM_SUBDOMAIN,
   NODE_ENV,
   S3_ENABLED,
+  SHOW_SPONSOR,
   SMTP_DOMAIN,
   SMTP_ENABLED,
   SMTP_PORT_SECURE,
@@ -53,6 +54,9 @@ export class Config {
         },
         email: {
           trackingToggleEnabled: TRACKING_TOGGLE_ENABLED,
+        },
+        sponsor: {
+          enabled: SHOW_SPONSOR,
         },
         smtp: {
           enabled: SMTP_ENABLED,

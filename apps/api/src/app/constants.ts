@@ -129,6 +129,9 @@ export const AUTO_PROJECT_DISABLE = validateEnv('AUTO_PROJECT_DISABLE', 'true') 
 export const DISABLE_SIGNUPS = process.env.DISABLE_SIGNUPS === 'true';
 // Controls whether email validation checks are performed on signup (default: false)
 export const VERIFY_EMAIL_ON_SIGNUP = process.env.VERIFY_EMAIL_ON_SIGNUP === 'true';
+// Controls whether the sponsor link is shown in the dashboard navigation (default: true)
+// Disable this on hosted instances where sponsorship prompts are not relevant
+export const SHOW_SPONSOR = validateEnv('SHOW_SPONSOR', 'true') === 'true';
 
 // Attachment Limits (optional)
 // Maximum total attachment size in MB (default: 10). AWS SES supports up to 40 MB.
