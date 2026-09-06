@@ -644,6 +644,10 @@ model Event {
   email   Email?  @relation(fields: [emailId], references: [id], onDelete: Cascade)
   emailId String?
 
+  // Workflow dispatch is separate from durable event ingestion. Null means a
+  // committed event still needs dispatch or reconciliation.
+  processedAt DateTime?
+
   // Timestamps
   createdAt DateTime @default(now())
 
@@ -651,6 +655,7 @@ model Event {
   @@index([contactId])
   @@index([emailId])
   @@index([createdAt])
+  @@index([processedAt, createdAt])
   @@index([projectId, contactId, name, createdAt]) // For event-based segment queries (fast!)
   @@index([contactId, name, createdAt]) // For per-contact event lookups
   @@index([projectId, name, createdAt]) // For event stats and analytics by type over time
@@ -690,6 +695,31 @@ model IdempotencyKey {
 }
 
 // ============================================
+// SNS WEBHOOK RECEIPTS
+// ============================================
+
+model SnsWebhookReceipt {
+  id String @id @default(uuid())
+
+  // AWS signs the outer SNS MessageId, making it the durable delivery identity.
+  messageId String @unique
+
+  // A token-scoped claim prevents concurrent deliveries from processing together.
+  // Failed claims can be retried immediately; abandoned claims become reclaimable.
+  status              SnsWebhookReceiptStatus @default(PROCESSING)
+  processingToken     String
+  processingStartedAt DateTime                @default(now())
+  completedAt         DateTime?
+  expiresAt           DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("sns_webhook_receipts")
+}
+
+// ============================================
 // ENUMS
 // ============================================
 
@@ -699,6 +729,12 @@ enum ProjectDisabledReason {
   PHISHING_DETECTED // Phishing content detected by LLM scan
   CARD_VERIFICATION_FAILED // Card hard-declined the off-session onboarding charge
   MANUAL // Disabled by support/admin (e.g. directly in DB)
+}
+
+enum SnsWebhookReceiptStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 enum CardVerificationStatus {
