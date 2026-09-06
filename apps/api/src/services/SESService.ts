@@ -199,21 +199,34 @@ ${breakLongLines(attachment.content, 76, true)}`;
   const configurationSetName =
     TRACKING_TOGGLE_ENABLED && !tracking ? SES_CONFIGURATION_SET_NO_TRACKING : SES_CONFIGURATION_SET;
 
-  // Send via SES
-  const response = await ses.sendRawEmail({
-    Destinations: destinations,
-    ConfigurationSetName: configurationSetName,
-    RawMessage: {
-      Data: new TextEncoder().encode(rawMessage),
-    },
-    Source: `${from.name} <${from.email}>`,
-  });
+  try {
+    // Send via SES
+    const response = await ses.sendRawEmail({
+      Destinations: destinations,
+      ConfigurationSetName: configurationSetName,
+      RawMessage: {
+        Data: new TextEncoder().encode(rawMessage),
+      },
+      Source: `${from.name} <${from.email}>`,
+    });
 
-  if (!response.MessageId) {
-    throw new Error('Could not send email');
+    if (!response.MessageId) {
+      throw new Error('Could not send email');
+    }
+
+    return {messageId: response.MessageId};
+  } catch (error) {
+    const originalMessage = error instanceof Error ? error.message : String(error);
+    const noTrackingMessage =
+      TRACKING_TOGGLE_ENABLED && !tracking
+        ? ' If this was a preview/test email, verify SES_CONFIGURATION_SET_NO_TRACKING exists in AWS SES.'
+        : '';
+
+    throw new Error(
+      `Failed to send email via SES using configuration set "${configurationSetName}".${noTrackingMessage} Original error: ${originalMessage}`,
+      {cause: error},
+    );
   }
-
-  return {messageId: response.MessageId};
 }
 
 /**
