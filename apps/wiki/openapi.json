@@ -1000,6 +1000,10 @@
                     "type": "boolean",
                     "description": "Subscription state to apply to the contact. **New** contacts default to subscribed (`true`). **Existing** contacts keep their current state unless you pass an explicit value here. Pass `false` to track an event without resubscribing an unsubscribed contact."
                   },
+                  "preserveExistingSubscription": {
+                    "type": "boolean",
+                    "description": "When `true`, applies `subscribed` only if this request creates the contact. Existing contacts keep their stored subscription state, including when another request wins a concurrent first-contact race. Use with `subscribed: false` for one-call double opt-in."
+                  },
                   "data": {
                     "type": "object",
                     "additionalProperties": true,

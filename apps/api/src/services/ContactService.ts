@@ -7,6 +7,10 @@ import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
 import {EventService} from './EventService.js';
 
+export interface ContactUpsertOptions {
+  /** Apply `subscribed` only when this call creates the contact. */
+  preserveExistingSubscription?: boolean;
+}
 export class ContactService {
   /**
    * Normalize an email address for storage and lookup.
@@ -296,6 +300,7 @@ export class ContactService {
     data?: Record<string, unknown>,
     subscribed?: boolean,
     defaultSubscribed: boolean = true,
+    options: ContactUpsertOptions = {},
   ): Promise<Contact> {
     const normalizedEmail = ContactService.normalizeEmail(email);
 
@@ -311,7 +316,8 @@ export class ContactService {
 
     if (existing) {
       // Track subscription status change
-      const isSubscriptionChanging = subscribed !== undefined && existing.subscribed !== subscribed;
+      const isSubscriptionChanging =
+        subscribed !== undefined && !options.preserveExistingSubscription && existing.subscribed !== subscribed;
       const wasSubscribed = existing.subscribed;
 
       try {
@@ -319,7 +325,7 @@ export class ContactService {
           where: {id: existing.id},
           data: {
             data: Object.keys(mergedData).length > 0 ? toPrismaJson(mergedData) : Prisma.JsonNull,
-            ...(subscribed !== undefined ? {subscribed} : {}),
+            ...(subscribed !== undefined && !options.preserveExistingSubscription ? {subscribed} : {}),
           },
         });
 
@@ -351,6 +357,23 @@ export class ContactService {
           },
         });
       } catch (error) {
+        if (
+          options.preserveExistingSubscription &&
+          error instanceof Error &&
+          'code' in error &&
+          error.code === 'P2002'
+        ) {
+          const elected = await prisma.contact.findUnique({
+            where: {
+              projectId_email: {
+                projectId,
+                email: normalizedEmail,
+              },
+            },
+          });
+          if (elected) return elected;
+        }
+
         // Provide helpful error message for database/validation issues
         throw new HttpException(
           500,
