@@ -286,6 +286,28 @@ export class ContactService {
   }
 
   /**
+   * Apply an explicit subscription transition once, even when callers observed
+   * the same stale contact state. The compare-and-set result owns event emission.
+   */
+  private static async applySubscriptionChange(
+    projectId: string,
+    contactId: string,
+    subscribed: boolean,
+  ): Promise<void> {
+    const changed = await prisma.contact.updateMany({
+      where: {id: contactId, projectId, subscribed: !subscribed},
+      data: {subscribed},
+    });
+    if (changed.count === 1) {
+      await EventService.trackEvent(
+        projectId,
+        subscribed ? 'contact.subscribed' : 'contact.unsubscribed',
+        contactId,
+      );
+    }
+  }
+
+  /**
    * Upsert a contact (create or update) with metadata merging
    * Supports persistent and non-persistent data fields
    * Reserved fields: plunk_id, plunk_email
@@ -310,29 +332,18 @@ export class ContactService {
     const mergedData = ContactService.mergeContactData(existing?.data ?? null, data ?? {});
 
     if (existing) {
-      // Track subscription status change
-      const isSubscriptionChanging = subscribed !== undefined && existing.subscribed !== subscribed;
-      const wasSubscribed = existing.subscribed;
-
       try {
         const updated = await prisma.contact.update({
           where: {id: existing.id},
           data: {
             data: Object.keys(mergedData).length > 0 ? toPrismaJson(mergedData) : Prisma.JsonNull,
-            ...(subscribed !== undefined ? {subscribed} : {}),
           },
         });
 
-        // Track subscription event if status changed
-        if (isSubscriptionChanging) {
-          if (subscribed && !wasSubscribed) {
-            await EventService.trackEvent(projectId, 'contact.subscribed', updated.id);
-          } else if (!subscribed && wasSubscribed) {
-            await EventService.trackEvent(projectId, 'contact.unsubscribed', updated.id);
-          }
-        }
+        if (subscribed === undefined) return updated;
 
-        return updated;
+        await ContactService.applySubscriptionChange(projectId, updated.id, subscribed);
+        return prisma.contact.findUniqueOrThrow({where: {id: updated.id}});
       } catch (error) {
         // Provide helpful error message for database/validation issues
         throw new HttpException(
@@ -351,6 +362,30 @@ export class ContactService {
           },
         });
       } catch (error) {
+        if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+          const elected = await prisma.contact.findUnique({
+            where: {
+              projectId_email: {
+                projectId,
+                email: normalizedEmail,
+              },
+            },
+          });
+
+          if (elected) {
+            // This payload was derived from an empty contact before another
+            // request won the insert. An explicit opt-out is monotonic and may
+            // safely win the race, but never replay stale contact data or a
+            // true/default subscription value over the elected row.
+            if (subscribed === false) {
+              await ContactService.applySubscriptionChange(projectId, elected.id, false);
+              return prisma.contact.findUniqueOrThrow({where: {id: elected.id}});
+            }
+
+            return elected;
+          }
+        }
+
         // Provide helpful error message for database/validation issues
         throw new HttpException(
           500,
