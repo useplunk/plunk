@@ -45,6 +45,19 @@ export const AWS_SES_REGION = validateEnv('AWS_SES_REGION');
 export const AWS_SES_ACCESS_KEY_ID = validateEnv('AWS_SES_ACCESS_KEY_ID');
 export const AWS_SES_SECRET_ACCESS_KEY = validateEnv('AWS_SES_SECRET_ACCESS_KEY');
 
+// Exact SNS topic ARNs authorized to deliver SES events to /webhooks/sns.
+// Multiple topics support deployments that separate outbound and inbound SES.
+const snsTopicArns = validateEnv('SNS_TOPIC_ARNS')
+  .split(',')
+  .map(topicArn => topicArn.trim())
+  .filter(Boolean);
+
+if (snsTopicArns.length === 0) {
+  throw new Error('SNS_TOPIC_ARNS must contain at least one topic ARN');
+}
+
+export const SNS_TOPIC_ARNS: ReadonlySet<string> = new Set(snsTopicArns);
+
 // Custom MAIL FROM subdomain used to construct `<subdomain>.<your-domain>`
 // when a domain is added. Defaults to `plunk`. Override when `plunk.<your-domain>`
 // is already used for something else (e.g. a CDN), since the MAIL FROM hostname

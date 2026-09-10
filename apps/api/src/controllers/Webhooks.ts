@@ -1,6 +1,9 @@
+import {randomUUID} from 'node:crypto';
+
 import {Controller, Post} from '@overnightjs/core';
 import type {Prisma} from '@plunk/db';
 import {EmailSourceType, EmailStatus} from '@plunk/db';
+import {toPrismaJson} from '@plunk/types';
 import type {Request, Response} from 'express';
 import {simpleParser} from 'mailparser';
 import sanitizeHtml from 'sanitize-html';
@@ -24,6 +27,157 @@ import {QueueService} from '../services/QueueService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
+const SNS_CLAIM_LEASE_MS = 5 * 60 * 1000;
+const SNS_CLAIM_HEARTBEAT_MS = 60 * 1000;
+const SNS_CLAIM_ATTEMPTS = 3;
+const SNS_RECEIPT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+type ActiveSnsClaim = {
+  messageId: string;
+  processingToken: string;
+};
+
+type SnsReceiptClient = Pick<Prisma.TransactionClient, 'snsWebhookReceipt'>;
+
+type SnsClaimResult =
+  | {outcome: 'claimed'; claim: ActiveSnsClaim}
+  | {outcome: 'completed'}
+  | {outcome: 'in-flight'};
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'P2002';
+}
+
+/**
+ * Claim a signed SNS MessageId before applying its side effects.
+ *
+ * The unique index decides concurrent races. Completed deliveries are safe to
+ * acknowledge, active deliveries receive a retryable response, and failed or
+ * abandoned deliveries are reclaimed with a compare-and-swap update.
+ */
+async function claimSnsNotification(messageId: string): Promise<SnsClaimResult> {
+  for (let attempt = 0; attempt < SNS_CLAIM_ATTEMPTS; attempt++) {
+    const processingToken = randomUUID();
+    const processingStartedAt = new Date();
+
+    try {
+      await prisma.snsWebhookReceipt.create({
+        data: {
+          messageId,
+          processingToken,
+          processingStartedAt,
+          expiresAt: new Date(processingStartedAt.getTime() + SNS_RECEIPT_TTL_MS),
+        },
+      });
+      return {outcome: 'claimed', claim: {messageId, processingToken}};
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) {
+        throw error;
+      }
+    }
+
+    const existing = await prisma.snsWebhookReceipt.findUnique({
+      where: {messageId},
+      select: {status: true, processingToken: true, processingStartedAt: true},
+    });
+
+    // The prior row may have been released between the unique conflict and read.
+    if (!existing) {
+      continue;
+    }
+
+    if (existing.status === 'COMPLETED') {
+      return {outcome: 'completed'};
+    }
+
+    const leaseCutoff = Date.now() - SNS_CLAIM_LEASE_MS;
+    if (existing.status === 'PROCESSING' && existing.processingStartedAt.getTime() > leaseCutoff) {
+      return {outcome: 'in-flight'};
+    }
+
+    const reclaimed = await prisma.snsWebhookReceipt.updateMany({
+      where: {
+        messageId,
+        status: existing.status,
+        processingToken: existing.processingToken,
+        processingStartedAt: existing.processingStartedAt,
+      },
+      data: {
+        status: 'PROCESSING',
+        processingToken,
+        processingStartedAt,
+        completedAt: null,
+      },
+    });
+
+    if (reclaimed.count === 1) {
+      return {outcome: 'claimed', claim: {messageId, processingToken}};
+    }
+  }
+
+  // Repeated claim races are transient. Do not acknowledge until one delivery
+  // has durably recorded completion.
+  return {outcome: 'in-flight'};
+}
+
+async function completeSnsNotification(
+  claim: ActiveSnsClaim,
+  client: SnsReceiptClient = prisma,
+): Promise<void> {
+  const completed = await client.snsWebhookReceipt.updateMany({
+    where: {
+      messageId: claim.messageId,
+      processingToken: claim.processingToken,
+      status: 'PROCESSING',
+    },
+    data: {status: 'COMPLETED', completedAt: new Date()},
+  });
+
+  if (completed.count !== 1) {
+    throw new Error(`SNS claim ${claim.messageId} could not be completed`);
+  }
+}
+
+async function failSnsNotification(claim: ActiveSnsClaim): Promise<void> {
+  const failed = await prisma.snsWebhookReceipt.updateMany({
+    where: {
+      messageId: claim.messageId,
+      processingToken: claim.processingToken,
+      status: 'PROCESSING',
+    },
+    data: {status: 'FAILED'},
+  });
+
+  if (failed.count !== 1) {
+    signale.warn(`[WEBHOOK] SNS claim ${claim.messageId} was no longer active while recording failure`);
+  }
+}
+
+function startSnsClaimHeartbeat(claim: ActiveSnsClaim): () => void {
+  const timer = setInterval(() => {
+    void prisma.snsWebhookReceipt
+      .updateMany({
+        where: {
+          messageId: claim.messageId,
+          processingToken: claim.processingToken,
+          status: 'PROCESSING',
+        },
+        data: {processingStartedAt: new Date()},
+      })
+      .then(renewed => {
+        if (renewed.count !== 1) {
+          signale.warn(`[WEBHOOK] SNS claim ${claim.messageId} was no longer active during heartbeat`);
+        }
+      })
+      .catch(error => {
+        signale.error(`[WEBHOOK] Failed to renew SNS claim ${claim.messageId}:`, error);
+      });
+  }, SNS_CLAIM_HEARTBEAT_MS);
+
+  timer.unref();
+  return () => clearInterval(timer);
+}
+
 /**
  * Webhooks Controller
  * Handles incoming webhooks from external services (AWS SNS/SES)
@@ -38,6 +192,16 @@ export class Webhooks {
   @Post('sns')
   @CatchAsync
   public async receiveSNSWebhook(req: Request, res: Response) {
+    let activeSnsClaim: ActiveSnsClaim | undefined;
+    let stopSnsClaimHeartbeat: (() => void) | undefined;
+
+    const completeActiveClaim = async () => {
+      if (!activeSnsClaim) return;
+
+      await completeSnsNotification(activeSnsClaim);
+      activeSnsClaim = undefined;
+    };
+
     try {
       // Verify SNS message signature before processing anything
       const signatureValid = await SecurityService.verifySnsSignature(req.body as Record<string, string>);
@@ -89,14 +253,14 @@ export class Webhooks {
             });
           } else {
             signale.error('Failed to confirm SNS subscription:', confirmResponse.statusText);
-            return res.status(200).json({
+            return res.status(502).json({
               success: false,
               message: 'Failed to confirm subscription',
             });
           }
         } catch (confirmError) {
           signale.error('Error confirming SNS subscription:', confirmError);
-          return res.status(200).json({
+          return res.status(502).json({
             success: false,
             message: 'Error confirming subscription',
           });
@@ -109,23 +273,75 @@ export class Webhooks {
         return res.status(200).json({success: false, message: 'Unknown message type'});
       }
 
+      const snsMessageId: unknown = req.body.MessageId;
+      if (typeof snsMessageId !== 'string' || snsMessageId.length === 0) {
+        signale.warn('[WEBHOOK] SNS notification missing MessageId');
+        return res.status(400).json({success: false, message: 'Missing SNS MessageId'});
+      }
+
       // Parse the nested SES event from the Message field
       const body = JSON.parse(req.body.Message);
+
+      const claimResult = await claimSnsNotification(snsMessageId);
+      if (claimResult.outcome === 'completed') {
+        return res.status(200).json({success: true, duplicate: true});
+      }
+      if (claimResult.outcome === 'in-flight') {
+        return res.status(503).json({success: false, message: 'SNS notification is already being processed'});
+      }
+      activeSnsClaim = claimResult.claim;
+      stopSnsClaimHeartbeat = startSnsClaimHeartbeat(activeSnsClaim);
 
       // Check if this is an inbound email notification (SES Receiving)
       if (body.notificationType === 'Received') {
         signale.info('[WEBHOOK] Received inbound email notification from SES');
 
         try {
-          // Extract recipient addresses from the inbound email
           const recipients = body.receipt?.recipients || [];
 
           if (recipients.length === 0) {
             signale.warn('[WEBHOOK] No recipients found in inbound email');
+            await completeActiveClaim();
             return res.status(200).json({success: true, message: 'No recipients found'});
           }
 
-          // For each recipient, identify the domain and create events
+          const senderEmail = body.mail?.source;
+          if (typeof senderEmail !== 'string' || senderEmail.length === 0) {
+            throw new Error('Inbound SNS notification is missing mail.source');
+          }
+          const normalizedSender = ContactService.normalizeEmail(senderEmail);
+          const senderFromHeader = body.mail?.commonHeaders?.from?.[0] || senderEmail;
+          let htmlBody: string | undefined;
+
+          if (body.content && typeof body.content === 'string') {
+            try {
+              const isBase64 = body.receipt?.action?.encoding === 'BASE64';
+              const emailBuffer = isBase64 ? Buffer.from(body.content, 'base64') : Buffer.from(body.content);
+              const parsed = await simpleParser(emailBuffer);
+              const raw =
+                (parsed.html ? String(parsed.html) : undefined) ?? parsed.textAsHtml ?? parsed.text ?? undefined;
+
+              if (raw) {
+                htmlBody = sanitizeHtml(raw, {
+                  allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
+                  allowedAttributes: {
+                    ...sanitizeHtml.defaults.allowedAttributes,
+                    img: ['src', 'alt', 'width', 'height'],
+                    '*': ['style'],
+                  },
+                  allowedSchemes: ['http', 'https', 'mailto'],
+                });
+              }
+            } catch (parseError) {
+              signale.error('[WEBHOOK] Failed to parse email content:', parseError);
+            }
+          }
+
+          const targets: Array<{
+            recipientEmail: string;
+            project: {id: string; name: string; customer: string | null};
+          }> = [];
+
           for (const recipient of recipients) {
             const recipientEmail = recipient as string;
             const domain = recipientEmail.split('@')[1];
@@ -152,140 +368,132 @@ export class Webhooks {
               continue;
             }
 
-            signale.info(
-              `[WEBHOOK] Found ${domainRecords.length} project(s) with verified domain ${domain}. Processing inbound email for all.`,
-            );
-
-            // Extract sender information (same for all projects)
-            const senderEmail = body.mail?.source;
-            const senderFromHeader = body.mail?.commonHeaders?.from?.[0] || senderEmail;
-
-            // Parse email content if available
-            let htmlBody: string | undefined;
-
-            if (body.content && typeof body.content === 'string') {
-              try {
-                const isBase64 = body.receipt?.action?.encoding === 'BASE64';
-                const emailBuffer = isBase64
-                  ? Buffer.from(body.content, 'base64')
-                  : Buffer.from(body.content);
-
-                const parsed = await simpleParser(emailBuffer);
-                const raw =
-                  (parsed.html ? String(parsed.html) : undefined) ??
-                  parsed.textAsHtml ??
-                  parsed.text ??
-                  undefined;
-
-                if (raw) {
-                  htmlBody = sanitizeHtml(raw, {
-                    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
-                    allowedAttributes: {
-                      ...sanitizeHtml.defaults.allowedAttributes,
-                      img: ['src', 'alt', 'width', 'height'],
-                      '*': ['style'],
-                    },
-                    allowedSchemes: ['http', 'https', 'mailto'],
-                  });
-                }
-              } catch (parseError) {
-                signale.error('[WEBHOOK] Failed to parse email content:', parseError);
-              }
-            }
-
-            // Process inbound email for each project that has this domain verified
             for (const domainRecord of domainRecords) {
               signale.info(`[WEBHOOK] Processing inbound email for project: ${domainRecord.project.name}`);
-
-              // Check billing limits before processing inbound email
               const limitCheck = await BillingLimitService.checkLimit(domainRecord.projectId, EmailSourceType.INBOUND);
 
               if (!limitCheck.allowed) {
                 signale.warn(
                   `[WEBHOOK] Inbound email blocked for project ${domainRecord.project.name}: ${limitCheck.message}`,
                 );
-                continue; // Skip this project but continue processing for other projects
+                continue;
               }
 
-              // Find or create a contact for the sender in this project
-              let contact;
-              if (senderEmail) {
-                contact = await ContactService.upsert(
-                  domainRecord.projectId,
-                  senderEmail,
-                  undefined, // No additional data
-                  true, // Subscribe by default for inbound email senders
-                );
+              targets.push({recipientEmail, project: domainRecord.project});
+            }
+          }
+
+          const claim = activeSnsClaim;
+          if (!claim) {
+            throw new Error(`SNS notification ${snsMessageId} lost its processing claim`);
+          }
+
+          const committed = await prisma.$transaction(async tx => {
+            const effects: Array<{
+              emailId: string;
+              eventIds: string[];
+              project: {id: string; name: string; customer: string | null};
+              recipientEmail: string;
+            }> = [];
+
+            for (const target of targets) {
+              const existingContact = await tx.contact.findUnique({
+                where: {projectId_email: {projectId: target.project.id, email: normalizedSender}},
+              });
+              const contact = existingContact
+                ? await tx.contact.update({
+                    where: {id: existingContact.id},
+                    data: {subscribed: true},
+                  })
+                : await tx.contact.create({
+                    data: {projectId: target.project.id, email: normalizedSender, subscribed: true},
+                  });
+              const eventIds: string[] = [];
+
+              if (existingContact && !existingContact.subscribed) {
+                const subscribedEvent = await tx.event.create({
+                  data: {
+                    projectId: target.project.id,
+                    contactId: contact.id,
+                    name: 'contact.subscribed',
+                  },
+                });
+                eventIds.push(subscribedEvent.id);
               }
 
-              // Create an Email record for tracking with parsed content
-              const inboundEmail = await prisma.email.create({
+              const inboundEmail = await tx.email.create({
                 data: {
-                  projectId: domainRecord.projectId,
-                  contactId: contact!.id,
+                  projectId: target.project.id,
+                  contactId: contact.id,
                   subject: body.mail?.commonHeaders?.subject || '(No subject)',
-                  body: htmlBody || '', // Store HTML body in the body field
-                  from: recipientEmail, // The recipient address that received the email
+                  body: htmlBody || '',
+                  from: target.recipientEmail,
                   sourceType: EmailSourceType.INBOUND,
-                  status: EmailStatus.RECEIVED, // Inbound emails use RECEIVED status
+                  status: EmailStatus.RECEIVED,
                   deliveredAt: new Date(body.mail?.timestamp || new Date()),
                 },
               });
-
-              // Increment usage counter in cache
-              await BillingLimitService.incrementUsage(domainRecord.projectId, EmailSourceType.INBOUND);
-
-              // Record Stripe metering if project has customer
-              if (domainRecord.project.customer) {
-                await MeterService.recordEmailSent(
-                  domainRecord.project.customer,
-                  1, // Inbound emails count as 1 credit
-                  `email_${inboundEmail.id}`,
-                );
-              }
-
-              // Prepare event data with all inbound email details including body content
               const eventData = {
                 messageId: body.mail?.messageId,
                 from: senderEmail,
                 fromHeader: senderFromHeader,
-                to: recipientEmail,
+                to: target.recipientEmail,
                 subject: body.mail?.commonHeaders?.subject,
                 timestamp: body.mail?.timestamp,
                 recipients: body.receipt?.recipients,
                 hasContent: !!body.content,
-                // Email body content
                 body: htmlBody,
-                // Security verdicts
                 spamVerdict: body.receipt?.spamVerdict?.status,
                 virusVerdict: body.receipt?.virusVerdict?.status,
                 spfVerdict: body.receipt?.spfVerdict?.status,
                 dkimVerdict: body.receipt?.dkimVerdict?.status,
                 dmarcVerdict: body.receipt?.dmarcVerdict?.status,
-                // Processing metadata
                 processingTimeMillis: body.receipt?.processingTimeMillis,
               };
-
-              // Create the email.received event (this will trigger workflows)
-              await EventService.trackEvent(
-                domainRecord.projectId,
-                'email.received',
-                contact?.id,
-                inboundEmail.id, // Link the event to the inbound email record
-                eventData,
-              );
-
-              signale.success(
-                `[WEBHOOK] Created email.received event for ${senderEmail} → ${recipientEmail} (project: ${domainRecord.project.name})`,
-              );
+              const receivedEvent = await tx.event.create({
+                data: {
+                  projectId: target.project.id,
+                  contactId: contact.id,
+                  emailId: inboundEmail.id,
+                  name: 'email.received',
+                  data: toPrismaJson(eventData),
+                },
+              });
+              eventIds.push(receivedEvent.id);
+              effects.push({
+                emailId: inboundEmail.id,
+                eventIds,
+                project: target.project,
+                recipientEmail: target.recipientEmail,
+              });
             }
+
+            await completeSnsNotification(claim, tx);
+            return effects;
+          });
+          activeSnsClaim = undefined;
+
+          for (const effect of committed) {
+            await BillingLimitService.incrementUsage(effect.project.id, EmailSourceType.INBOUND);
+            if (effect.project.customer) {
+              await MeterService.recordEmailSent(effect.project.customer, 1, `email_${effect.emailId}`);
+            }
+            for (const eventId of effect.eventIds) {
+              try {
+                await EventService.dispatchStoredEvent(eventId);
+              } catch (dispatchError) {
+                signale.error(`[WEBHOOK] Deferred workflow dispatch for event ${eventId}:`, dispatchError);
+              }
+            }
+            signale.success(
+              `[WEBHOOK] Created email.received event for ${senderEmail} → ${effect.recipientEmail} (project: ${effect.project.name})`,
+            );
           }
 
           return res.status(200).json({success: true, message: 'Inbound email processed'});
         } catch (inboundError) {
           signale.error('[WEBHOOK] Error processing inbound email:', inboundError);
-          // Return 200 to acknowledge receipt even if processing failed
-          return res.status(200).json({success: true, message: 'Error processing inbound email'});
+          throw inboundError;
         }
       }
 
@@ -295,6 +503,7 @@ export class Webhooks {
 
       if (!messageId) {
         signale.warn('[WEBHOOK] No messageId found in SNS notification');
+        await completeActiveClaim();
         return res.status(400).json({success: false, error: 'No messageId found'});
       }
 
@@ -309,15 +518,22 @@ export class Webhooks {
 
       if (!email) {
         // Error level for the same reason as a signature failure: an event that matches no
-        // email row is silently lost, and SES gives up after its retries. A run of these
-        // means the send path is not stamping `messageId`, which is invisible from outside.
-        signale.error(`[WEBHOOK] ${eventType} event dropped — no email found for messageId: ${messageId}`);
-        return res.status(404).json({success: false, error: 'Email not found'});
+        // email row is silently lost. A run of these means the send path is not stamping
+        // `messageId`, which is invisible from outside.
+        signale.error(`[WEBHOOK] ${eventType} event has no email for messageId: ${messageId}`);
+        // SES can publish before the sender has persisted its returned messageId.
+        // Keep the receipt retryable so that race cannot permanently lose the event.
+        throw new Error(`Email not found for messageId: ${messageId}`);
       }
 
       const now = new Date();
       const updateData: Prisma.EmailUpdateInput = {};
       const eventName = `email.${eventType.toLowerCase()}`;
+      let unsubscribeContact = false;
+      let bounceNotification = false;
+      let bounceNotificationType: string | undefined;
+      let complaintNotification = false;
+      let enforceSecurityLimits = false;
 
       // Base event data with email metadata
       const baseEventData = {
@@ -350,14 +566,8 @@ export class Webhooks {
           if (!email.openedAt) {
             updateData.openedAt = now;
           }
-          updateData.opens = (email.opens || 0) + 1;
+          updateData.opens = {increment: 1};
           updateData.status = EmailStatus.OPENED;
-          eventData = {
-            ...baseEventData,
-            openedAt: email.openedAt?.toISOString() || now.toISOString(),
-            opens: (email.opens || 0) + 1,
-            isFirstOpen: !email.openedAt,
-          };
           break;
 
         case 'Click': {
@@ -367,14 +577,11 @@ export class Webhooks {
           if (!email.clickedAt) {
             updateData.clickedAt = now;
           }
-          updateData.clicks = (email.clicks || 0) + 1;
+          updateData.clicks = {increment: 1};
           updateData.status = EmailStatus.CLICKED;
           eventData = {
             ...baseEventData,
             link: clickedLink,
-            clickedAt: email.clickedAt?.toISOString() || now.toISOString(),
-            clicks: (email.clicks || 0) + 1,
-            isFirstClick: !email.clickedAt,
           };
           break;
         }
@@ -389,19 +596,15 @@ export class Webhooks {
             signale.warn(`[WEBHOOK] Permanent bounce received for ${email.contact.email} from ${email.project.name}`);
             updateData.status = EmailStatus.BOUNCED;
             updateData.bouncedAt = now;
-            // Unsubscribe contact on permanent bounce
-            await prisma.contact.update({
-              where: {id: email.contactId},
-              data: {subscribed: false},
-            });
+            unsubscribeContact = true;
+            bounceNotification = true;
+            bounceNotificationType = bounceType;
+            enforceSecurityLimits = true;
             eventData = {
               ...baseEventData,
               bounceType,
               bouncedAt: now.toISOString(),
             };
-
-            // Send notification about permanent bounce
-            await NtfyService.notifyEmailBounce(email.project.name, email.projectId, email.contact.email, bounceType);
           } else if (isTransientBounce) {
             // Soft bounce (e.g., out-of-office, mailbox full) - don't count toward bounce rate
             signale.info(
@@ -421,17 +624,14 @@ export class Webhooks {
             );
             updateData.status = EmailStatus.BOUNCED;
             updateData.bouncedAt = now;
-            await prisma.contact.update({
-              where: {id: email.contactId},
-              data: {subscribed: false},
-            });
+            unsubscribeContact = true;
+            bounceNotification = true;
+            bounceNotificationType = bounceType;
             eventData = {
               ...baseEventData,
               bounceType,
               bouncedAt: now.toISOString(),
             };
-
-            await NtfyService.notifyEmailBounce(email.project.name, email.projectId, email.contact.email, bounceType);
           }
           break;
         }
@@ -440,30 +640,71 @@ export class Webhooks {
           signale.warn(`[WEBHOOK] Complaint received for ${email.contact.email} from ${email.project.name}`);
           updateData.status = EmailStatus.COMPLAINED;
           updateData.complainedAt = now;
-          // Unsubscribe contact on complaint
-          await prisma.contact.update({
-            where: {id: email.contactId},
-            data: {subscribed: false},
-          });
+          unsubscribeContact = true;
+          complaintNotification = true;
+          enforceSecurityLimits = true;
           eventData = {
             ...baseEventData,
             complainedAt: now.toISOString(),
           };
-
-          // Send notification about complaint
-          await NtfyService.notifyEmailComplaint(email.project.name, email.projectId, email.contact.email);
           break;
 
         default:
           signale.warn(`[WEBHOOK] Unknown event type: ${eventType}`);
+          await completeActiveClaim();
           return res.status(200).json({success: true});
       }
 
-      // Update email with new status and timestamps
-      await prisma.email.update({
-        where: {id: email.id},
-        data: updateData,
+      const claim = activeSnsClaim;
+      if (!claim) {
+        throw new Error(`SNS notification ${snsMessageId} lost its processing claim`);
+      }
+
+      // The business mutation, durable event, and receipt completion share one
+      // commit. A database failure therefore leaves no partial effects for the
+      // SNS retry to duplicate.
+      const storedEvent = await prisma.$transaction(async tx => {
+        if (unsubscribeContact) {
+          await tx.contact.update({
+            where: {id: email.contactId},
+            data: {subscribed: false},
+          });
+        }
+
+        const updatedEmail = await tx.email.update({
+          where: {id: email.id},
+          data: updateData,
+        });
+
+        if (eventType === 'Open') {
+          eventData = {
+            ...baseEventData,
+            openedAt: updatedEmail.openedAt?.toISOString(),
+            opens: updatedEmail.opens,
+            isFirstOpen: !email.openedAt,
+          };
+        } else if (eventType === 'Click') {
+          eventData = {
+            ...eventData,
+            clickedAt: updatedEmail.clickedAt?.toISOString(),
+            clicks: updatedEmail.clicks,
+            isFirstClick: !email.clickedAt,
+          };
+        }
+
+        const event = await tx.event.create({
+          data: {
+            projectId: email.projectId,
+            contactId: email.contactId,
+            emailId: email.id,
+            name: eventName,
+            data: toPrismaJson(eventData),
+          },
+        });
+        await completeSnsNotification(claim, tx);
+        return event;
       });
+      activeSnsClaim = undefined;
 
       // The campaign counters the stats endpoint reads live on the campaign row, and this
       // event has just moved one of them. They are not incremented from here: this handler
@@ -474,13 +715,30 @@ export class Webhooks {
         await CampaignService.markStatsDirty(email.campaignId);
       }
 
-      // Track event (this will trigger workflows)
-      await EventService.trackEvent(email.projectId, eventName, email.contactId, email.id, eventData);
+      if (bounceNotification) {
+        try {
+          await NtfyService.notifyEmailBounce(
+            email.project.name,
+            email.projectId,
+            email.contact.email,
+            bounceNotificationType,
+          );
+        } catch (notificationError) {
+          signale.error('[WEBHOOK] Failed to notify about email bounce:', notificationError);
+        }
+      } else if (complaintNotification) {
+        await NtfyService.notifyEmailComplaint(email.project.name, email.projectId, email.contact.email);
+      }
 
-      // Check security limits only for permanent bounces and complaints
-      // Transient bounces (soft bounces) don't count toward bounce rate
-      const isPermanentBounce = eventType === 'Bounce' && body.bounce?.bounceType === 'Permanent';
-      if (isPermanentBounce || eventType === 'Complaint') {
+      try {
+        await EventService.dispatchStoredEvent(storedEvent.id);
+      } catch (dispatchError) {
+        // The event row is the outbox. The maintenance worker can retry a null
+        // processedAt without asking SNS to replay committed email effects.
+        signale.error(`[WEBHOOK] Deferred workflow dispatch for event ${storedEvent.id}:`, dispatchError);
+      }
+
+      if (enforceSecurityLimits) {
         await SecurityService.checkAndEnforceSecurityLimits(email.projectId);
       }
 
@@ -488,8 +746,18 @@ export class Webhooks {
       return res.status(200).json({success: true});
     } catch (error) {
       signale.error('[WEBHOOK] Error processing SNS webhook:', error);
-      // Always return 200 to prevent SNS from retrying
-      return res.status(200).json({success: true});
+      if (activeSnsClaim) {
+        try {
+          await failSnsNotification(activeSnsClaim);
+        } catch (settleError) {
+          // The processing lease is the fallback if the database is unavailable
+          // while recording failure. The delivery still receives 5xx and retries.
+          signale.error(`[WEBHOOK] Failed to release SNS claim ${activeSnsClaim.messageId}:`, settleError);
+        }
+      }
+      return res.status(500).json({success: false, message: 'Failed to process SNS notification'});
+    } finally {
+      stopSnsClaimHeartbeat?.();
     }
   }
 

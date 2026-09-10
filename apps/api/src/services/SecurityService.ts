@@ -21,6 +21,7 @@ import {
   PHISHING_CUMULATIVE_WINDOW_MS,
   PHISHING_DETECTION_ENABLED,
   PHISHING_DETECTION_SAMPLE_RATE,
+  SNS_TOPIC_ARNS,
 } from '../app/constants.js';
 
 /**
@@ -171,11 +172,17 @@ export class SecurityService {
   private static readonly CACHE_TTL = 300; // 5 minutes
 
   /**
-   * Verify an AWS SNS message signature. Returns false if the cert URL is
-   * untrusted, or the signature doesn't match.
+   * Authorize the signed topic and verify its AWS SNS signature. Returns false
+   * before certificate I/O when the topic is not configured for this deployment.
    */
   public static async verifySnsSignature(body: Record<string, string>): Promise<boolean> {
     try {
+      const topicArn = body['TopicArn'];
+      if (typeof topicArn !== 'string' || !SNS_TOPIC_ARNS.has(topicArn)) {
+        signale.warn('[SNS] Missing or untrusted TopicArn');
+        return false;
+      }
+
       const certUrl = body['SigningCertURL'];
       const signature = body['Signature'];
 

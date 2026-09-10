@@ -39,10 +39,11 @@ description: Configure email delivery
 2. Type: Standard
 3. Name: `plunk-ses-events`
 4. Create topic
-5. Create subscription:
+5. Copy the topic ARN. You will use it as `SNS_TOPIC_ARNS` in step 4.
+6. Create subscription:
    - Protocol: HTTPS
    - Endpoint: `https://api.yourdomain.com/webhooks/sns`
-6. Plunk automatically confirms the subscription. If it fails, check your logs for the confirmation URL.
+7. Plunk automatically confirms the subscription. If it fails, check your logs for the confirmation URL.
 
 ## 3. Create Configuration Sets
 
@@ -66,6 +67,7 @@ description: Configure email delivery
 AWS_SES_REGION="us-east-1"
 AWS_SES_ACCESS_KEY_ID="your-access-key"
 AWS_SES_SECRET_ACCESS_KEY="your-secret-key"
+SNS_TOPIC_ARNS="arn:aws:sns:us-east-1:123456789012:plunk-ses-events"
 SES_CONFIGURATION_SET="plunk-tracking"
 SES_CONFIGURATION_SET_NO_TRACKING="plunk-no-tracking"
 ```
@@ -87,6 +89,8 @@ Not all AWS regions support SES inbound — confirm `inbound-smtp.<your-region>.
    - **Recipient conditions**: `*@yourdomain.com` (or specific addresses you want to receive)
    - **Actions**: Publish to Amazon SNS topic → select your `plunk-ses-events` topic (or create a separate topic that's also subscribed to `https://api.yourdomain.com/webhooks/sns`)
 3. Set the rule set as **active**
+
+If inbound email uses a separate topic, append its exact ARN to `SNS_TOPIC_ARNS`, separated by a comma.
 
 ### Inbound IAM permissions
 
@@ -119,4 +123,3 @@ After approval, your sending quota will reflect a much higher daily and per-seco
 ## 8. (Optional) Configure a MAIL FROM Domain
 
 For better DMARC alignment, you can configure a custom MAIL FROM subdomain (e.g. `mail.yourdomain.com`). In the SES console under **Verified identities** → your domain → **MAIL FROM domain**, set a subdomain and add the additional MX and TXT records SES displays. Plunk's IAM policy already includes `ses:SetIdentityMailFromDomain` to support this.
-
