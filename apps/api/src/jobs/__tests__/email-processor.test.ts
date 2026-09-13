@@ -2,6 +2,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {EmailSourceType, EmailStatus, TrackingMode} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
 import {createServiceMocks, factories, getPrismaClient} from '../../../../../test/helpers';
+import {submitEmailWithSubscriptionCheck} from '../email-processor';
 
 // Mock MeterService
 vi.mock('../../services/MeterService.js', () => ({
@@ -123,6 +124,100 @@ describe('Email Processor', () => {
       });
 
       expect(template.type).toBe('TRANSACTIONAL');
+    });
+
+    it('should suppress queued marketing email when the contact unsubscribes before SES submission', async () => {
+      const contact = await factories.createContact({projectId});
+      const campaign = await factories.createCampaign({projectId});
+      const email = await factories.createEmail(projectId, contact.id, {
+        campaignId: campaign.id,
+        status: EmailStatus.SENDING,
+      });
+      const submit = vi.fn().mockResolvedValue({messageId: 'ses-message-id'});
+
+      // The email was queued while subscribed, then waited behind a backlog.
+      await prisma.contact.update({where: {id: contact.id}, data: {subscribed: false}});
+
+      const result = await submitEmailWithSubscriptionCheck(
+        {emailId: email.id, sourceType: EmailSourceType.CAMPAIGN, hasRecipientOverride: false},
+        submit,
+      );
+
+      expect(result).toEqual({submitted: false});
+      expect(submit).not.toHaveBeenCalled();
+      await expect(prisma.email.findUnique({where: {id: email.id}})).resolves.toMatchObject({
+        status: EmailStatus.FAILED,
+        error: 'Contact is unsubscribed from marketing emails',
+      });
+    });
+
+    it('should submit queued transactional email after the contact unsubscribes', async () => {
+      const contact = await factories.createContact({projectId, subscribed: false});
+      const email = await factories.createEmail(projectId, contact.id, {
+        sourceType: EmailSourceType.TRANSACTIONAL,
+        status: EmailStatus.SENDING,
+      });
+      const sesResult = {messageId: 'ses-message-id'};
+      const submit = vi.fn().mockResolvedValue(sesResult);
+
+      const result = await submitEmailWithSubscriptionCheck(
+        {emailId: email.id, sourceType: EmailSourceType.TRANSACTIONAL, hasRecipientOverride: false},
+        submit,
+      );
+
+      expect(result).toEqual({submitted: true, result: sesResult});
+      expect(submit).toHaveBeenCalledOnce();
+    });
+
+    it('should submit queued transactional email with a headless template after unsubscribe', async () => {
+      const contact = await factories.createContact({projectId, subscribed: false});
+      const template = await factories.createTemplate({projectId, type: 'HEADLESS'});
+      const email = await factories.createEmail(projectId, contact.id, {
+        templateId: template.id,
+        sourceType: EmailSourceType.TRANSACTIONAL,
+        status: EmailStatus.SENDING,
+      });
+      const sesResult = {messageId: 'ses-message-id'};
+      const submit = vi.fn().mockResolvedValue(sesResult);
+
+      const result = await submitEmailWithSubscriptionCheck(
+        {
+          emailId: email.id,
+          sourceType: EmailSourceType.TRANSACTIONAL,
+          templateType: 'HEADLESS',
+          hasRecipientOverride: false,
+        },
+        submit,
+      );
+
+      expect(result).toEqual({submitted: true, result: sesResult});
+      expect(submit).toHaveBeenCalledOnce();
+    });
+
+    it('should suppress a queued marketing template sent through the transactional API', async () => {
+      const contact = await factories.createContact({projectId});
+      const template = await factories.createTemplate({projectId, type: 'MARKETING'});
+      const email = await factories.createEmail(projectId, contact.id, {
+        templateId: template.id,
+        sourceType: EmailSourceType.TRANSACTIONAL,
+        status: EmailStatus.SENDING,
+      });
+      const submit = vi.fn().mockResolvedValue({messageId: 'ses-message-id'});
+
+      await prisma.contact.update({where: {id: contact.id}, data: {subscribed: false}});
+
+      const result = await submitEmailWithSubscriptionCheck(
+        {
+          emailId: email.id,
+          sourceType: EmailSourceType.TRANSACTIONAL,
+          templateType: 'MARKETING',
+          hasRecipientOverride: false,
+        },
+        submit,
+      );
+
+      expect(result).toEqual({submitted: false});
+      expect(submit).not.toHaveBeenCalled();
     });
   });
 
