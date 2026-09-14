@@ -102,7 +102,7 @@ function IdentityHeader({user}: {user: AccountUser}) {
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <h2 className="truncate text-base font-semibold text-neutral-900">{user.email}</h2>
-          {!user.emailVerified && <Badge variant="warning">Unverified</Badge>}
+          {user.emailVerificationRequired && <Badge variant="warning">Unverified</Badge>}
         </div>
         <p className="mt-0.5 text-sm text-neutral-500">
           {SIGN_IN_METHODS[user.type]} <span className="text-neutral-300">·</span> Joined {joined}

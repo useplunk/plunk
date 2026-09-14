@@ -8,6 +8,7 @@ import {
   DASHBOARD_URI,
   PASSWORD_CHANGE_RATE_LIMIT,
   PASSWORD_CHANGE_RATE_WINDOW,
+  PLUNK_ENABLED,
   STRIPE_ENABLED,
   STRIPE_PRICE_EMAIL_USAGE,
   STRIPE_PRICE_ONBOARDING,
@@ -50,6 +51,11 @@ export class Users {
       email: me.email,
       type: me.type,
       emailVerified: me.emailVerified,
+      // Whether the dashboard should ask this user to verify. Mirrors requireEmailVerified:
+      // a self-host without platform email configured can never send a verification mail, so
+      // an unverified account there is not something the user can act on -- and nothing gates
+      // on it either.
+      emailVerificationRequired: PLUNK_ENABLED && me.type === 'PASSWORD' && !me.emailVerified,
       createdAt: me.createdAt,
     });
   }

@@ -488,7 +488,7 @@ export default function Index() {
           )}
 
           {/* Email Verification Banner */}
-          {user && user.type === 'PASSWORD' && !user.emailVerified && (
+          {user?.emailVerificationRequired && (
             <Alert variant="warning">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Verify your email address</AlertTitle>

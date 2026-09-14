@@ -15,6 +15,14 @@ export interface AccountUser {
   email: string;
   type: AuthMethod;
   emailVerified: boolean;
+  /**
+   * Whether the dashboard should ask this user to verify their address.
+   *
+   * Not the same as `!emailVerified`: verification only means anything when the
+   * instance has platform email configured. Without it no verification mail can
+   * be sent and nothing is gated on it, so an unverified account is inert.
+   */
+  emailVerificationRequired: boolean;
   createdAt: Date;
 }
 
