@@ -40,7 +40,7 @@ jobs:
           - 6379:6379
 
       minio:
-        image: minio/minio:edge-cicd
+        image: quay.io/minio/minio:latest-cicd
         env:
           MINIO_ROOT_USER: plunk
           MINIO_ROOT_PASSWORD: plunkminiopass
@@ -132,7 +132,7 @@ jobs:
       - name: Create MinIO bucket
         run: |
           docker run --rm --network host \
-            --entrypoint /bin/sh minio/mc:latest \
+            --entrypoint /bin/sh quay.io/minio/mc:latest \
             -c "mc alias set local http://localhost:9000 plunk plunkminiopass && \
                 mc mb local/uploads --ignore-existing"
 
