@@ -8,6 +8,11 @@
  */
 export interface SendEmailJobData {
   emailId: string;
+  /** SES acceptance persisted in Redis before database finalization. */
+  acceptedBySes?: {
+    messageId: string;
+    sentAt: string;
+  };
 }
 
 /**
