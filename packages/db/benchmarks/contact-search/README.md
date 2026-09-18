@@ -47,7 +47,25 @@ Two configurations:
 Postgres 16.15, `en_US.utf8`, `shared_buffers=2GB`, warm cache, median of 5.
 Median `EXPLAIN ANALYZE` execution time in ms.
 
-<!-- RESULTS -->
+**page1** (the `findMany`) and **count** (the first-page total), before → after:
+
+| term | matches | page1 before | page1 after | count before | count after |
+|---|---|---|---|---|---|
+| `gmail.com` | 45% | 416 | **0.37** | 856 | **298** |
+| `ez` (2 chars) | 16% | 385 | **0.99** | 747 | **261** |
+| `nguyen` | 2% | 345 | **3.2** | 320 | **71** |
+| `martinez` | 2% | 361 | **4.1** | 345 | **76** |
+| `elena.pons` | 0.01% | 352 | **10.2** | 355 | **14** |
+| `zzqx` | 0 | 340 | **0.12** | 348 | **0.11** |
+| _(no search)_ | — | 199 | **0.23** | | |
+
+**insert throughput** (50k rows, median of 3):
+
+| | rows/sec | vs before |
+|---|---|---|
+| before | 41,828 | — |
+| after, pre-normalized input (production shape) | 27,759 | −34% |
+| after, mixed-case input (trigger body runs) | 26,376 | −37% |
 
 ## Reading the results
 
