@@ -11,6 +11,7 @@
  */
 
 import {CampaignStatus, EmailStatus} from '@plunk/db';
+import {isMailboxSimulatorAddress} from '@plunk/shared';
 import type {SendEmailJobData} from '@plunk/types';
 import {type Job, Worker} from 'bullmq';
 import signale from 'signale';
@@ -300,6 +301,14 @@ export async function createEmailWorker() {
             status: EmailStatus.SENT,
             sentAt: new Date(),
             messageId: result.messageId,
+            // Stamped here, and only here, because this is the one place that knows the
+            // address SES was actually given -- `recipientEmail` above, which is the
+            // override header when one is set and the contact's address otherwise. The
+            // send path is also the only moment the answer can still change: an email
+            // that was never handed to SES cannot bounce, so a row that never reaches
+            // this update has nothing to exclude. Folded into the existing update rather
+            // than written separately, so it costs no extra query per send.
+            simulated: isMailboxSimulatorAddress(recipientEmail),
           },
         });
 

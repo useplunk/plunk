@@ -604,6 +604,16 @@ model Email {
   opens  Int @default(0)
   clicks Int @default(0)
 
+  /// The address handed to SES belonged to the mailbox simulator
+  /// (`@simulator.amazonses.com`), stamped at send time from the address actually used --
+  /// which is the recipient override when one is set, not necessarily `contact.email`.
+  ///
+  /// AWS itself excludes simulator mail from bounce rates, complaint rates, sending quotas
+  /// and reputation metrics, so Plunk's security rates exclude it from both the numerator
+  /// and the denominator. The events themselves are untouched: the webhook fires, the
+  /// activity feed shows the bounce, the contact is still suppressed.
+  simulated Boolean @default(false)
+
   // Error tracking
   error String?
 

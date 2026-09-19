@@ -360,6 +360,15 @@ export class Webhooks {
         return res.status(404).json({success: false, error: 'Email not found'});
       }
 
+      // Mail addressed to the SES mailbox simulator is a rehearsal of bounce handling, not a
+      // reputation event: it never leaves AWS, and AWS keeps it out of its own bounce rates,
+      // complaint rates, sending quotas and reputation metrics. The event is processed
+      // exactly like any other below -- status transition, activity feed, tracked event,
+      // contact suppression -- but it raises no operator alert and runs no enforcement, so a
+      // sender testing their integration cannot warn or disable their own project. The rates
+      // themselves exclude these emails at the source; see SecurityService.calculateRates.
+      const isSimulated = email.simulated;
+
       const now = new Date();
       const updateData: Prisma.EmailUpdateInput = {};
       const eventName = `email.${eventType.toLowerCase()}`;
@@ -448,7 +457,9 @@ export class Webhooks {
             };
 
             // Send notification about permanent bounce
-            await NtfyService.notifyEmailBounce(email.project.name, email.projectId, email.contact.email, bounceType);
+            if (!isSimulated) {
+              await NtfyService.notifyEmailBounce(email.project.name, email.projectId, email.contact.email, bounceType);
+            }
           } else if (isTransientBounce) {
             // Soft bounce (e.g., out-of-office, mailbox full) - don't count toward bounce rate
             signale.info(
@@ -479,7 +490,9 @@ export class Webhooks {
               bouncedAt: now.toISOString(),
             };
 
-            await NtfyService.notifyEmailBounce(email.project.name, email.projectId, email.contact.email, bounceType);
+            if (!isSimulated) {
+              await NtfyService.notifyEmailBounce(email.project.name, email.projectId, email.contact.email, bounceType);
+            }
           }
           break;
         }
@@ -500,7 +513,9 @@ export class Webhooks {
           };
 
           // Send notification about complaint
-          await NtfyService.notifyEmailComplaint(email.project.name, email.projectId, email.contact.email);
+          if (!isSimulated) {
+            await NtfyService.notifyEmailComplaint(email.project.name, email.projectId, email.contact.email);
+          }
           break;
 
         default:
@@ -538,7 +553,7 @@ export class Webhooks {
       // Check security limits only for permanent bounces and complaints
       // Transient bounces (soft bounces) don't count toward bounce rate
       const isPermanentBounce = eventType === 'Bounce' && body.bounce?.bounceType === 'Permanent';
-      if (isPermanentBounce || eventType === 'Complaint') {
+      if ((isPermanentBounce || eventType === 'Complaint') && !isSimulated) {
         await SecurityService.checkAndEnforceSecurityLimits(email.projectId);
       }
 

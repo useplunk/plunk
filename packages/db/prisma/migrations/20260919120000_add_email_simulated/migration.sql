@@ -1,0 +1,40 @@
+-- Mail sent to the SES mailbox simulator (`@simulator.amazonses.com`) must not move Plunk's
+-- security rates. AWS excludes simulator mail from its own bounce rates, complaint rates,
+-- sending quotas, reputation metrics and Virtual Deliverability Manager, so a deliberate
+-- `bounce@simulator.amazonses.com` test costs the sender nothing with AWS -- but it was
+-- landing in both the numerator and the denominator of Plunk's rates, where enough tests
+-- could raise a warning or auto-disable the project.
+--
+-- The flag lives on the email rather than being derived from the recipient at query time.
+-- The address is on `contacts`, so a derived query would have to join every email row in
+-- the window against contacts (or scan a project's contacts for a suffix LIKE, which no
+-- index can serve) on a table that is in the millions of rows. Stamping one boolean at
+-- send time keeps the three security counts exactly the shape they are today, with one
+-- extra predicate on a column that is false for effectively every row.
+--
+-- No index accompanies the column for that same reason: `simulated = false` selects
+-- ~100% of rows, so it is a filter, never an access path, and an index on it would be
+-- write cost with no read benefit.
+--
+-- Adding a column with a non-volatile DEFAULT is catalog-only on PostgreSQL 11+: existing
+-- rows are not rewritten and the ALTER takes milliseconds regardless of table size.
+--
+-- Deliberately no backfill. Existing rows keep `false`, so simulator mail already sent
+-- still counts until it ages out of the windows; historical rows are corrected by hand
+-- out of band rather than by a full pass over `emails` at deploy time. The equivalent
+-- statement, for reference:
+--
+--   UPDATE "emails" e
+--   SET "simulated" = true
+--   FROM "contacts" c
+--   WHERE c."id" = e."contactId"
+--     AND COALESCE(e."headers" ->> 'X-Plunk-Recipient-Override', c."email")
+--           LIKE '%@simulator.amazonses.com';
+--
+-- No lock_timeout here on purpose, matching the surrounding migrations. The container
+-- entrypoint runs `migrate deploy` at start and refuses to boot on failure, so a migration
+-- that gives up on a lock crash-loops the service rather than degrading gracefully.
+
+-- AlterTable
+ALTER TABLE "emails"
+  ADD COLUMN "simulated" BOOLEAN NOT NULL DEFAULT false;

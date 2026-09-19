@@ -45,7 +45,10 @@ describe('SecurityService', () => {
   /**
    * Helper to create N emails, some of which are bounced
    */
-  async function createEmails(count: number, opts?: {bouncedCount?: number; complainedCount?: number; createdAt?: Date}) {
+  async function createEmails(
+    count: number,
+    opts?: {bouncedCount?: number; complainedCount?: number; createdAt?: Date; simulated?: boolean},
+  ) {
     const bouncedCount = opts?.bouncedCount ?? 0;
     const complainedCount = opts?.complainedCount ?? 0;
     const createdAt = opts?.createdAt ?? new Date();
@@ -62,6 +65,7 @@ describe('SecurityService', () => {
       createdAt,
       bouncedAt: i < bouncedCount ? createdAt : null,
       complainedAt: i >= bouncedCount && i < bouncedCount + complainedCount ? createdAt : null,
+      simulated: opts?.simulated ?? false,
     }));
     await prisma.email.createMany({data});
   }
@@ -241,6 +245,65 @@ describe('SecurityService', () => {
 
       // New project flag should be hidden
       expect(metrics.status.isNewProject).toBe(false);
+    });
+  });
+  describe('SES mailbox simulator', () => {
+    /**
+     * Mail to `@simulator.amazonses.com` never leaves AWS, and AWS excludes it from its own
+     * bounce and complaint rates. Plunk counted it, so rehearsing bounce handling against
+     * the simulator -- the thing AWS documents it for -- could warn or disable the project
+     * doing the rehearsing.
+     */
+    it('should exclude simulated bounces from the rates entirely', async () => {
+      await createEmails(100);
+      // 50 bounces out of 150 is 33%, far past the 10% critical threshold.
+      await createEmails(50, {bouncedCount: 50, simulated: true});
+
+      const status = await SecurityService.getSecurityStatus(projectId);
+
+      expect(status.sevenDay.bounces).toBe(0);
+      expect(status.sevenDay.bounceRate).toBe(0);
+      expect(status.isHealthy).toBe(true);
+      expect(status.shouldDisable).toBe(false);
+      expect(status.violations).toHaveLength(0);
+      expect(status.warnings).toHaveLength(0);
+    });
+
+    it('should exclude simulated complaints from the rates entirely', async () => {
+      await createEmails(100);
+      await createEmails(50, {complainedCount: 50, simulated: true});
+
+      const status = await SecurityService.getSecurityStatus(projectId);
+
+      expect(status.sevenDay.complaints).toBe(0);
+      expect(status.sevenDay.complaintRate).toBe(0);
+      expect(status.isHealthy).toBe(true);
+      expect(status.shouldDisable).toBe(false);
+    });
+
+    it('should leave simulated emails out of the denominator too', async () => {
+      // Dropping only the numerator would leave the test sends padding the denominator and
+      // understating the real bounce rate: 6 bounces in 100 real emails is a warning, but
+      // 6 in 600 reads as 1% and passes.
+      await createEmails(100, {bouncedCount: 6});
+      await createEmails(500, {simulated: true});
+
+      const status = await SecurityService.getSecurityStatus(projectId);
+
+      expect(status.sevenDay.total).toBe(100);
+      expect(status.sevenDay.bounceRate).toBeCloseTo(6, 5);
+      expect(status.warnings.length).toBeGreaterThan(0);
+    });
+
+    it('should still count real bounces alongside simulated ones', async () => {
+      await createEmails(100, {bouncedCount: 11});
+      await createEmails(50, {bouncedCount: 50, simulated: true});
+
+      const status = await SecurityService.getSecurityStatus(projectId);
+
+      expect(status.sevenDay.total).toBe(100);
+      expect(status.sevenDay.bounces).toBe(11);
+      expect(status.shouldDisable).toBe(true);
     });
   });
 });

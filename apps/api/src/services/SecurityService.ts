@@ -444,6 +444,18 @@ export class SecurityService {
   private static async calculateRates(projectId: string, startDate?: Date): Promise<RateData> {
     const where = {
       projectId,
+      // Mail to the SES mailbox simulator is excluded from both sides of every rate: it
+      // never leaves AWS, and AWS itself keeps it out of bounce rates, complaint rates,
+      // sending quotas and reputation metrics. Counting a deliberate
+      // `bounce@simulator.amazonses.com` test here would let a sender rehearsing their
+      // bounce handling warn or auto-disable their own project. Excluding it from the
+      // denominator as well as the numerator is the part that is easy to miss: dropping
+      // only the bounces would leave the test sends inflating the denominator and quietly
+      // understating the real bounce rate.
+      //
+      // Nothing else changes for these emails -- the webhook fires, the activity feed
+      // shows the bounce, the contact is still suppressed.
+      simulated: false,
       ...(startDate && {
         createdAt: {
           gte: startDate,

@@ -37,6 +37,20 @@ Complaints are taken more seriously than bounces by mail providers — even a sm
 - Include a clear, working unsubscribe link in every marketing email — Plunk injects this automatically for `MARKETING` template/campaign types.
 - Monitor your email frequency to avoid overwhelming your contacts.
 - Make sure recipients clearly opted in. Avoid scraped, purchased, or stale lists.
+## Testing bounces and complaints safely
+
+To rehearse your bounce and complaint handling, send to the Amazon SES mailbox simulator instead of to a real address. Mail sent to `@simulator.amazonses.com` never leaves AWS, and the simulator replies with the outcome the address asks for:
+
+| Address | Result |
+|---------|--------|
+| `bounce@simulator.amazonses.com` | Permanent (hard) bounce |
+| `complaint@simulator.amazonses.com` | Complaint |
+| `success@simulator.amazonses.com` | Successful delivery |
+| `ooto@simulator.amazonses.com` | Out-of-office auto-reply |
+| `suppressionlist@simulator.amazonses.com` | Permanent bounce, as if the address were on the suppression list |
+
+These sends are fully visible in Plunk: the event fires, your workflows and webhooks run, and the bounce shows on the contact's activity feed. What they do **not** do is count toward your bounce and complaint rates, so they can never trigger a warning or suspend your project. AWS treats them the same way, excluding them from its own rates, quotas and reputation metrics.
+
 ## Offer a pause, not just an exit
 
 The most expensive complaint is the one from someone who wanted less email, not none. If unsubscribing is the only option on the page, a recipient who is merely overwhelmed either leaves permanently or — worse for your reputation — hits the spam button instead.

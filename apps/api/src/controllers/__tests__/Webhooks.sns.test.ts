@@ -1,5 +1,5 @@
 import type {Request, Response} from 'express';
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {EmailStatus} from '@plunk/db';
 
@@ -7,6 +7,7 @@ import {redis} from '../../database/redis';
 import {CampaignService} from '../../services/CampaignService';
 import {ContactService} from '../../services/ContactService';
 import {Keys} from '../../services/keys';
+import {NtfyService} from '../../services/NtfyService';
 import {SecurityService} from '../../services/SecurityService';
 import {Webhooks} from '../Webhooks';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
@@ -310,6 +311,78 @@ describe('Webhooks - SES event notifications', () => {
       const captured = await post(notification('Delivery', 'ses-never-sent'));
 
       expect(captured.status).toBe(404);
+    });
+  });
+  /**
+   * Mail addressed to `@simulator.amazonses.com` is how AWS documents rehearsing bounce and
+   * complaint handling. It never leaves AWS, and AWS keeps it out of its own bounce rates,
+   * complaint rates, quotas and reputation metrics -- so Plunk treating a simulated bounce
+   * as a reputation event meant a sender testing their integration could warn or disable
+   * their own project. The event itself is still fully processed; only the enforcement and
+   * the operator alert are skipped.
+   */
+  describe('SES mailbox simulator', () => {
+    // These tests spy on the two services the handler is supposed to *not* call, and the
+    // suite configures no automatic mock restoration -- so without this, a later test in
+    // this file would inherit a SecurityService whose enforcement is a no-op and would
+    // pass whether or not the handler still enforces.
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    async function simulatedEmail(messageId: string) {
+      const email = await sentEmail(messageId);
+      return prisma.email.update({where: {id: email.id}, data: {simulated: true}});
+    }
+
+    it('processes a simulated bounce without enforcing security limits', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      const notify = vi.spyOn(NtfyService, 'notifyEmailBounce').mockResolvedValue(undefined);
+      const email = await simulatedEmail('ses-simulated-bounce');
+
+      await post(notification('Bounce', 'ses-simulated-bounce', {bounce: {bounceType: 'Permanent'}}));
+
+      // Everything the activity feed and the suppression list read is still written.
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.status).toBe(EmailStatus.BOUNCED);
+      expect(updated?.bouncedAt).not.toBeNull();
+
+      const contact = await prisma.contact.findUnique({where: {id: contactId}});
+      expect(contact?.subscribed).toBe(false);
+
+      // The tracked event is what fires the customer's own webhooks and workflows.
+      const event = await prisma.event.findFirst({where: {emailId: email.id, name: 'email.bounce'}});
+      expect(event).not.toBeNull();
+
+      expect(enforce).not.toHaveBeenCalled();
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    it('processes a simulated complaint without enforcing security limits', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      const notify = vi.spyOn(NtfyService, 'notifyEmailComplaint').mockResolvedValue(undefined);
+      const email = await simulatedEmail('ses-simulated-complaint');
+
+      await post(notification('Complaint', 'ses-simulated-complaint'));
+
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.status).toBe(EmailStatus.COMPLAINED);
+      expect(updated?.complainedAt).not.toBeNull();
+
+      const event = await prisma.event.findFirst({where: {emailId: email.id, name: 'email.complaint'}});
+      expect(event).not.toBeNull();
+
+      expect(enforce).not.toHaveBeenCalled();
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    it('still enforces on a real bounce', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      await sentEmail('ses-real-bounce');
+
+      await post(notification('Bounce', 'ses-real-bounce', {bounce: {bounceType: 'Permanent'}}));
+
+      expect(enforce).toHaveBeenCalledWith(projectId);
     });
   });
 });
