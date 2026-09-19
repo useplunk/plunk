@@ -11,7 +11,7 @@ import {
   Skeleton,
 } from '@plunk/ui';
 import type {Activity, ActivityStats, CursorPaginatedResponse} from '@plunk/types';
-import {animate, AnimatePresence, motion, useMotionValue, useTransform} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import {
   AlertCircle,
   ArrowDownRight,
@@ -37,6 +37,7 @@ import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useEffect, useMemo, useState} from 'react';
 import useSWR from 'swr';
+import {AnimatedNumber} from '../components/AnimatedNumber';
 import {ApiKeyDisplay} from '../components/ApiKeyDisplay';
 import {DashboardLayout} from '../components/DashboardLayout';
 import {QuickStart} from '../components/QuickStart';
@@ -117,23 +118,6 @@ function TrendChip({trend, label}: {trend: TrendInfo; label?: string}) {
       <span className="text-neutral-400">vs previous 30d</span>
     </div>
   );
-}
-
-function AnimatedNumber({value, format}: {value: number; format?: (n: number) => string}) {
-  const motionValue = useMotionValue(0);
-  const rounded = useTransform(motionValue, latest =>
-    format ? format(Math.round(latest)) : Math.round(latest).toLocaleString(),
-  );
-
-  useEffect(() => {
-    const controls = animate(motionValue, value, {
-      duration: 1.1,
-      ease: [0.22, 1, 0.36, 1],
-    });
-    return () => controls.stop();
-  }, [value, motionValue]);
-
-  return <motion.span>{rounded}</motion.span>;
 }
 
 interface ActivityVisual {

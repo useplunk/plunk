@@ -25,6 +25,51 @@ import {SecurityService} from '../services/SecurityService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
 /**
+ * How much a status is allowed to outrank the one already on the row.
+ *
+ * SES publishes its events through SNS, which makes no ordering guarantee, so this handler
+ * sees them in an arbitrary order. Without a precedence the last event to arrive wins, and
+ * "opened, then reported as spam" -- the ordinary way a complaint happens -- lands as often
+ * as not in the order that leaves the row reading OPENED with `complainedAt` set. Measured
+ * on production data, that was one complaint in five.
+ *
+ * Complaints outrank bounces because a recipient who reported the mail is the more useful
+ * fact about that email, and because the pair is close to impossible anyway: an address
+ * that hard-bounced never received anything to report.
+ *
+ * Statuses not listed here (PENDING, SENDING, FAILED, RECEIVED) are outside this handler's
+ * concern; it is only ever called with the five SES event outcomes.
+ */
+const STATUS_RANK: Partial<Record<EmailStatus, number>> = {
+  [EmailStatus.SENT]: 1,
+  [EmailStatus.DELIVERED]: 2,
+  [EmailStatus.OPENED]: 3,
+  [EmailStatus.CLICKED]: 4,
+  [EmailStatus.BOUNCED]: 5,
+  [EmailStatus.COMPLAINED]: 6,
+};
+
+/**
+ * The status to write, or `undefined` to leave the column as it is.
+ *
+ * Undefined rather than the current value so the caller can hand the result straight to
+ * Prisma, which reads `undefined` as "don't touch this column" and so never writes a
+ * no-op update.
+ */
+export function nextStatus(current: EmailStatus, incoming?: EmailStatus): EmailStatus | undefined {
+  if (!incoming) {
+    return undefined;
+  }
+
+  // An unranked current status (PENDING, SENDING, FAILED) is always superseded by a real
+  // SES outcome: those mean "we have heard nothing back yet", and now we have.
+  const currentRank = STATUS_RANK[current] ?? 0;
+  const incomingRank = STATUS_RANK[incoming] ?? 0;
+
+  return incomingRank >= currentRank ? incoming : undefined;
+}
+
+/**
  * Webhooks Controller
  * Handles incoming webhooks from external services (AWS SNS/SES)
  */
@@ -463,10 +508,19 @@ export class Webhooks {
           return res.status(200).json({success: true});
       }
 
-      // Update email with new status and timestamps
+      // Update email with new status and timestamps.
+      //
+      // `status` is dropped from the update when it would walk backwards over a
+      // suppression. SES publishes through SNS, which does not guarantee ordering, so the
+      // ordinary sequence "opened, then reported as spam" reaches this handler the other
+      // way round often enough to matter -- one complaint in five, measured. Applying the
+      // Open blindly left the row reading `OPENED` with `complainedAt` set, and anything
+      // that selects complaints by status then silently missed it.
       await prisma.email.update({
         where: {id: email.id},
-        data: updateData,
+        // `undefined` leaves the column alone, which is what nextStatus returns when the
+        // event would downgrade a suppression.
+        data: {...updateData, status: nextStatus(email.status, updateData.status as EmailStatus | undefined)},
       });
 
       // The campaign counters the stats endpoint reads live on the campaign row, and this

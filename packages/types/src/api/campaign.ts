@@ -52,3 +52,28 @@ export type CampaignListResponse = PaginatedResponse<Campaign> & {
   /** Archived campaigns in the project, independent of the current page, search or status filter. */
   archivedCount: number;
 };
+
+/**
+ * The two ways a campaign can lose a recipient that are recoverable from the emails
+ * table, and so answerable as a list rather than only as a count.
+ *
+ * Unsubscribes are deliberately absent. They are recorded as a counter increment plus an
+ * Event, and `Email` carries no `unsubscribedAt`, so there is no indexed path from a
+ * campaign to the contacts who opted out of it. Adding one is its own piece of work.
+ */
+export type CampaignRecipientType = 'bounced' | 'complained';
+
+/**
+ * One recipient in a campaign's bounce or complaint list.
+ *
+ * Deliberately narrow: this feeds a list whose job is to answer "who", so it carries the
+ * address, when it happened, and the ids needed to open the contact. The email body and
+ * headers are not part of that question and would make every page far heavier to ship.
+ */
+export interface CampaignRecipient {
+  emailId: string;
+  contactId: string;
+  email: string;
+  /** ISO 8601. The bounce or complaint timestamp, whichever list this is. */
+  occurredAt: string;
+}

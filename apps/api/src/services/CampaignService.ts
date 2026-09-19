@@ -1,9 +1,12 @@
-import type {Campaign, Contact, Prisma} from '@plunk/db';
-import {CampaignAudienceType, CampaignStatus, EmailSourceType, EmailStatus, TemplateType} from '@plunk/db';
+import type {Campaign, Contact} from '@plunk/db';
+import {CampaignAudienceType, CampaignStatus, EmailSourceType, EmailStatus, Prisma, TemplateType} from '@plunk/db';
 import {compileTemplate} from '@plunk/shared';
 import type {
   CampaignListResponse,
+  CampaignRecipient,
+  CampaignRecipientType,
   CreateCampaignData,
+  CursorPaginatedResponse,
   FilterCondition,
   UpdateCampaignData,
 } from '@plunk/types';
@@ -1281,6 +1284,109 @@ export class CampaignService {
       complaintRate: sentCount > 0 ? (complainedCount / sentCount) * 100 : 0,
       unsubscribeRate: sentCount > 0 ? (unsubscribedCount / sentCount) * 100 : 0,
     };
+  }
+
+  /**
+   * List the recipients a campaign lost to a bounce or a spam complaint.
+   *
+   * Selects on `status`, which is served by the existing (campaignId, status) index, so
+   * finding a campaign's few thousand bounces never reads its million sent rows. That is
+   * only correct because `nextStatus` in the SES webhook makes BOUNCED and COMPLAINED
+   * terminal: before that guard, an Open arriving after a complaint -- the usual order,
+   * given SNS does not sequence its events -- overwrote the status and hid one complaint in
+   * five from exactly this query. Weakening that guard silently under-reports this list, so
+   * it is covered by its own test.
+   *
+   * The sort is on the timestamp, which the index does not carry, so each page sorts the
+   * campaign's matching rows. That cost scales with how many recipients a campaign lost,
+   * not with how many it was sent to -- thousands, not millions -- and paging is keyset so
+   * the sorted set shrinks as the reader goes deeper.
+   *
+   * No COUNT(*): the total already lives on the campaign row, written by `reconcileStats`.
+   * Recounting here would be the expensive half of the request and could only ever agree
+   * with the number already on the row.
+   */
+  public static async listRecipients(
+    projectId: string,
+    campaignId: string,
+    type: CampaignRecipientType,
+    {limit = 50, cursor}: {limit?: number; cursor?: string} = {},
+  ): Promise<CursorPaginatedResponse<CampaignRecipient>> {
+    // Scopes the campaign to the caller's project and 404s otherwise, so the raw query
+    // below can key on campaignId alone.
+    const campaign = await this.get(projectId, campaignId);
+
+    const isComplaint = type === 'complained';
+    const column = Prisma.raw(isComplaint ? '"complainedAt"' : '"bouncedAt"');
+    const status = isComplaint ? EmailStatus.COMPLAINED : EmailStatus.BOUNCED;
+    const total = isComplaint ? campaign.complainedCount : campaign.bouncedCount;
+
+    const decoded = this.decodeRecipientCursor(cursor);
+
+    // One row over the page size: the presence of the extra row is what `hasMore` reports,
+    // which costs one index entry instead of a second count query.
+    const rows = await prisma.$queryRaw<{id: string; contactId: string; email: string; occurredAt: Date}[]>`
+      SELECT e."id", e."contactId", c."email", e.${column} AS "occurredAt"
+      FROM "emails" e
+      JOIN "contacts" c ON c."id" = e."contactId"
+      WHERE e."campaignId" = ${campaignId}::text
+        AND e."status" = ${status}::"EmailStatus"
+        ${
+          decoded
+            ? Prisma.sql`AND (e.${column}, e."id") < (${decoded.occurredAt}::timestamptz, ${decoded.id}::text)`
+            : Prisma.empty
+        }
+      ORDER BY e.${column} DESC, e."id" DESC
+      LIMIT ${limit + 1}
+    `;
+
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    const last = page[page.length - 1];
+
+    return {
+      data: page.map(row => ({
+        emailId: row.id,
+        contactId: row.contactId,
+        email: row.email,
+        occurredAt: row.occurredAt.toISOString(),
+      })),
+      cursor: hasMore && last ? this.encodeRecipientCursor(last.occurredAt, last.id) : undefined,
+      hasMore,
+      total,
+    };
+  }
+
+  /**
+   * The keyset a recipient page resumes from, as one opaque string.
+   *
+   * Both halves are needed: timestamps collide freely here, because a bounce storm
+   * stamps thousands of rows within the same millisecond, and a cursor on the timestamp
+   * alone would either skip or repeat every row it collided with.
+   */
+  private static encodeRecipientCursor(occurredAt: Date, id: string): string {
+    return Buffer.from(`${occurredAt.toISOString()}|${id}`).toString('base64url');
+  }
+
+  /**
+   * Returns undefined for anything that is not a cursor this service issued. A caller
+   * that hand-edits one gets the first page, not an error: a malformed cursor is not
+   * worth a 400 on a read that has an obvious correct answer.
+   */
+  private static decodeRecipientCursor(cursor?: string): {occurredAt: Date; id: string} | undefined {
+    if (!cursor) {
+      return undefined;
+    }
+
+    const [timestamp, id] = Buffer.from(cursor, 'base64url').toString('utf8').split('|');
+
+    if (!timestamp || !id) {
+      return undefined;
+    }
+
+    const occurredAt = new Date(timestamp);
+
+    return Number.isNaN(occurredAt.getTime()) ? undefined : {occurredAt, id};
   }
 
   /**

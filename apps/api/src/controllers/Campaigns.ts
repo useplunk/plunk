@@ -365,6 +365,34 @@ export class Campaigns {
   }
 
   /**
+   * List the recipients a campaign lost to a bounce or a spam complaint.
+   * GET /campaigns/:id/recipients?type=bounced|complained&cursor=&limit=
+   *
+   * Cursor-paginated rather than offset-paginated: a campaign can carry tens of
+   * thousands of bounces, and OFFSET would make each page cost more than the last.
+   * `total` comes off the campaign row, so it always matches the figure on the results
+   * panel that this list is opened from.
+   */
+  @Get(':id/recipients')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  private async recipients(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+    const {id} = UtilitySchemas.id.parse(req.params);
+
+    const type = req.query.type === 'complained' ? 'complained' : 'bounced';
+    // Capped at 100 for the same reason every other list here is: one page is what a
+    // reader can look at, and an uncapped limit turns a cheap range scan into a way to
+    // pull a campaign's whole bounce list in one request.
+    const limit = Math.min(Number.parseInt(req.query.limit as string, 10) || 50, 100);
+    const cursor = req.query.cursor as string | undefined;
+
+    const result = await CampaignService.listRecipients(auth.projectId, id!, type, {limit, cursor});
+
+    return res.json({success: true, ...result});
+  }
+
+  /**
    * Send a test email for a campaign
    * POST /campaigns/:id/test
    */
