@@ -1,10 +1,23 @@
 # Deploying `20260918120000_contact_email_lowercase`
 
-The two `CREATE INDEX IF NOT EXISTS` statements in this migration are safe on a small
-database and **not** safe on a large one. Prisma runs a migration inside a single
+This is an **availability** optimization, not a correctness requirement. `migrate deploy`
+produces exactly the same end state either way, and the migration is transactional, so a
+timeout part-way through rolls the whole thing back cleanly with no partial state.
+
+What it buys you is not blocking writes. Prisma runs a migration inside a single
 transaction, and `CREATE INDEX CONCURRENTLY` cannot run in a transaction — so the plain
-`CREATE INDEX` here takes `ACCESS EXCLUSIVE` on `contacts` for the whole build, blocking
-every read and write on the table. On a multi-million-row `contacts` that is an outage.
+`CREATE INDEX` takes `SHARE` and the `CREATE TRIGGER` takes `SHARE ROW EXCLUSIVE`, both
+held until commit:
+
+| operation on `contacts` | during the migration |
+|---|---|
+| `SELECT` | unaffected — neither lock conflicts with `ACCESS SHARE` |
+| `INSERT` / `UPDATE` / `DELETE` | **blocked** until the migration commits |
+
+On a multi-million-row `contacts` the index builds take long enough to stall contact
+ingestion entirely — event tracking, imports and the API all write contacts. Blocked
+writes queue rather than fail, so without a `lock_timeout` they accumulate and can
+exhaust the connection pool, turning a slow migration into a wider outage.
 
 `IF NOT EXISTS` exists so you can avoid that: build both indexes concurrently *before*
 deploying, and the migration's statements become no-ops.

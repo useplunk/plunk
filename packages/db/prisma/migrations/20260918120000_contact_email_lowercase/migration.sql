@@ -67,12 +67,18 @@ CREATE TRIGGER contacts_normalize_email
 -- 3. Indexes for the list and search queries.
 --
 --    IF NOT EXISTS is deliberate. Prisma runs a migration inside one transaction and
---    CREATE INDEX CONCURRENTLY cannot run there, so a plain CREATE INDEX here would
---    hold ACCESS EXCLUSIVE on contacts for the whole build -- blocking every read and
---    write on a multi-million-row table. For production, build both indexes with
---    CONCURRENTLY *before* deploying (see the README.md next to this migration) and
---    these statements become no-ops. Development and fresh self-hosted installs get
---    them created here, where the table is small and the lock is irrelevant.
+--    CREATE INDEX CONCURRENTLY cannot run there. A plain CREATE INDEX takes SHARE, and
+--    the CREATE TRIGGER above takes SHARE ROW EXCLUSIVE; both are held until the
+--    transaction commits. Reads are unaffected (neither conflicts with ACCESS SHARE),
+--    but every INSERT/UPDATE/DELETE on contacts blocks for the whole migration. On a
+--    multi-million-row table that is long enough to stall contact ingestion and, if
+--    nothing times out, to exhaust the connection pool.
+--
+--    For production, build both indexes with CONCURRENTLY *before* deploying (see the
+--    README.md next to this migration) and these statements become no-ops. Development
+--    and fresh self-hosted installs get them created here, where the table is small and
+--    the lock is irrelevant. Correctness does not depend on either path: the migration
+--    is transactional, so a timeout mid-build rolls the whole thing back cleanly.
 
 --    Serves `ORDER BY "createdAt" DESC, id DESC LIMIT n` -- both the unfiltered list
 --    and any search term common enough that 21 matches turn up early in the walk.
