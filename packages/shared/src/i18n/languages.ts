@@ -14,12 +14,6 @@ export const SUPPORTED_LANGUAGES: Language[] = [
   {code: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇧🇷'},
   {code: 'bg', name: 'Bulgarian', nativeName: 'Български', flag: '🇧🇬'},
   {code: 'cs', name: 'Czech', nativeName: 'Čeština', flag: '🇨🇿'},
-  {
-    code: 'cy',
-    name: 'Welsh',
-    nativeName: 'Cymraeg',
-    flag: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}',
-  },
   {code: 'pl', name: 'Polish', nativeName: 'Polski', flag: '🇵🇱'},
   {code: 'es', name: 'Spanish (Spain)', nativeName: 'Español (España)', flag: '🇪🇸'},
   {code: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹'},
@@ -28,6 +22,12 @@ export const SUPPORTED_LANGUAGES: Language[] = [
   {code: 'zh-CN', name: 'Chinese (Simplified, China)', nativeName: '简体中文', flag: '🇨🇳'},
   {code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵'},
   {code: 'sv', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪'},
+  {
+    code: 'cy',
+    name: 'Welsh',
+    nativeName: 'Cymraeg',
+    flag: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}',
+  },
 ];
 
 export const DEFAULT_LANGUAGE = 'en';

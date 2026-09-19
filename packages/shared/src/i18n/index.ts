@@ -8,7 +8,6 @@ import hiTranslations from './locales/hi.json' with {type: 'json'};
 import ptTranslations from './locales/pt.json' with {type: 'json'};
 import bgTranslations from './locales/bg.json' with {type: 'json'};
 import csTranslations from './locales/cs.json' with {type: 'json'};
-import cyTranslations from './locales/cy.json' with {type: 'json'};
 import plTranslations from './locales/pl.json' with {type: 'json'};
 import esTranslations from './locales/es.json' with {type: 'json'};
 import itTranslations from './locales/it.json' with {type: 'json'};
@@ -17,6 +16,7 @@ import zhHKTranslations from './locales/zh-HK.json' with {type: 'json'};
 import zhCNTranslations from './locales/zh-CN.json' with {type: 'json'};
 import jaTranslations from './locales/ja.json' with {type: 'json'};
 import svTranslations from './locales/sv.json' with {type: 'json'};
+import cyTranslations from './locales/cy.json' with {type: 'json'};
 
 export {
   SUPPORTED_LANGUAGES,
@@ -51,7 +51,6 @@ const translationsMap: Record<string, Translations> = {
   'pt': ptTranslations,
   'bg': bgTranslations,
   'cs': csTranslations,
-  'cy': cyTranslations,
   'pl': plTranslations,
   'es': esTranslations,
   'it': itTranslations,
@@ -60,6 +59,7 @@ const translationsMap: Record<string, Translations> = {
   'zh-CN': zhCNTranslations,
   'ja': jaTranslations,
   'sv': svTranslations,
+  'cy': cyTranslations,
 };
 
 // In-memory cache for loaded translations
