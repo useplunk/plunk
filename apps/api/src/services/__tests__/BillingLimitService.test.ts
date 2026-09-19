@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {EmailSourceType} from '@plunk/db';
+import {EmailSourceType, EmailStatus} from '@plunk/db';
 import {BillingLimitService} from '../BillingLimitService';
 import {EmailService} from '../EmailService';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
@@ -351,6 +351,95 @@ describe('BillingLimitService - Critical Enforcement', () => {
 
       // Should only count this month's email
       expect(usage).toBe(1);
+    });
+  });
+
+  describe('Unsent Emails Are Not Billable Usage', () => {
+    it('should not count emails a disabled project never sent', async () => {
+      await prisma.project.update({
+        where: {id: projectId},
+        data: {billingLimitCampaigns: 4000},
+      });
+
+      // The shape of a project disabled mid-campaign: a few emails reached SES, the rest of
+      // the backlog was flipped to FAILED by QueueService.cancelProjectJobs. Only the first
+      // group was ever metered to Stripe, so only the first group may consume quota.
+      for (let i = 0; i < 3; i++) {
+        await factories.createEmail({
+          projectId,
+          contactId,
+          sourceType: EmailSourceType.CAMPAIGN,
+          status: EmailStatus.SENT,
+          sentAt: new Date(),
+        });
+      }
+
+      for (let i = 0; i < 7; i++) {
+        await factories.createEmail({
+          projectId,
+          contactId,
+          sourceType: EmailSourceType.CAMPAIGN,
+          status: EmailStatus.FAILED,
+          error: 'Project is disabled',
+        });
+      }
+
+      await BillingLimitService.invalidateCache(projectId);
+
+      expect(await BillingLimitService.getUsage(projectId, EmailSourceType.CAMPAIGN)).toBe(3);
+    });
+
+    it('should not count a workflow email skipped for an unsubscribed contact', async () => {
+      // EmailService writes this row straight to FAILED and never queues it.
+      await factories.createEmail({
+        projectId,
+        contactId,
+        sourceType: EmailSourceType.WORKFLOW,
+        status: EmailStatus.FAILED,
+        error: 'Contact is unsubscribed from marketing emails',
+      });
+
+      await BillingLimitService.invalidateCache(projectId);
+
+      expect(await BillingLimitService.getUsage(projectId, EmailSourceType.WORKFLOW)).toBe(0);
+    });
+
+    it('should still count in-flight emails that have not been sent yet', async () => {
+      // The limit is checked before the rows exist, and a campaign is checked once for the
+      // whole batch, so PENDING must hold its own quota or a second campaign would sail past
+      // a cap the first one already consumed.
+      await factories.createEmail({
+        projectId,
+        contactId,
+        sourceType: EmailSourceType.CAMPAIGN,
+        status: EmailStatus.PENDING,
+      });
+
+      await BillingLimitService.invalidateCache(projectId);
+
+      expect(await BillingLimitService.getUsage(projectId, EmailSourceType.CAMPAIGN)).toBe(1);
+    });
+
+    it('should exclude failed emails from the free tier total as well', async () => {
+      for (let i = 0; i < 2; i++) {
+        await factories.createEmail({
+          projectId,
+          contactId,
+          sourceType: EmailSourceType.TRANSACTIONAL,
+          status: EmailStatus.SENT,
+          sentAt: new Date(),
+        });
+      }
+
+      await factories.createEmail({
+        projectId,
+        contactId,
+        sourceType: EmailSourceType.WORKFLOW,
+        status: EmailStatus.FAILED,
+        error: 'Project is disabled',
+      });
+
+      expect(await BillingLimitService.getTotalUsage(projectId)).toBe(2);
     });
   });
 

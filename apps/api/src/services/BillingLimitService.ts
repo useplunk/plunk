@@ -1,4 +1,4 @@
-import {EmailSourceType} from '@plunk/db';
+import {EmailSourceType, EmailStatus} from '@plunk/db';
 import type {BillingLimitsResponse, CategoryUsage, LimitCheckResult} from '@plunk/types';
 import {BillingLimitExceededEmail, BillingLimitWarningEmail, sendPlatformEmail} from '@plunk/email';
 import React from 'react';
@@ -21,10 +21,25 @@ import {NtfyService} from './NtfyService.js';
  * - This limit is shared across all email types (workflows + campaigns + transactional)
  * - Paid tier projects (with subscription) can have custom per-category limits or unlimited
  *
+ * WHAT COUNTS AS USAGE:
+ * - Usage mirrors what Stripe is actually metered for, so the limit a customer sees can never
+ *   exceed the invoice they get. Stripe is metered in exactly two places: the send path, after
+ *   SES accepted the message (`email-processor.ts`), and inbound receipt (`Webhooks.ts`).
+ * - FAILED is therefore excluded: it is the one terminal state an email reaches without ever
+ *   being metered -- a disabled project flipping its PENDING backlog, a workflow email to an
+ *   unsubscribed contact, or SES rejecting the send. Counting those billed customers for mail
+ *   that never left the building.
+ * - PENDING and SENDING still count. The limit is checked before the rows exist, and a campaign
+ *   is checked once for the whole batch, so in-flight mail must hold its own quota or a second
+ *   campaign would sail past a cap the first one already consumed.
+ *
  * PERFORMANCE CONSIDERATIONS:
  * - Operates at scale with 1M+ contacts/month (potentially millions of emails)
  * - Uses Redis caching (5-min TTL) to avoid expensive DB queries on every email send
- * - Composite index on (projectId, sourceType, createdAt) enables fast filtered counts
+ * - Composite index on (projectId, sourceType, createdAt) enables fast filtered counts. The
+ *   FAILED exclusion below is not in that index, so it costs a heap fetch per row in the
+ *   range; the 5-minute cache keeps that to roughly one query per project per category per
+ *   five minutes rather than one per send. Revisit if that count ever leaves the cache.
  * - Graceful degradation: cache misses fall back to DB without blocking
  * - Non-blocking: errors are logged but don't prevent email sending
  */
@@ -47,6 +62,8 @@ export class BillingLimitService {
       const count = await prisma.email.count({
         where: {
           projectId,
+          // Never metered, so never counted -- see WHAT COUNTS AS USAGE above.
+          status: {not: EmailStatus.FAILED},
           createdAt: {
             gte: start,
             lt: end,
@@ -91,6 +108,8 @@ export class BillingLimitService {
         where: {
           projectId,
           sourceType,
+          // Never metered, so never counted -- see WHAT COUNTS AS USAGE above.
+          status: {not: EmailStatus.FAILED},
           createdAt: {
             gte: start,
             lt: end,
