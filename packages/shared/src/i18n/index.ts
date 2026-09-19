@@ -8,6 +8,7 @@ import hiTranslations from './locales/hi.json' with {type: 'json'};
 import ptTranslations from './locales/pt.json' with {type: 'json'};
 import bgTranslations from './locales/bg.json' with {type: 'json'};
 import csTranslations from './locales/cs.json' with {type: 'json'};
+import cyTranslations from './locales/cy.json' with {type: 'json'};
 import plTranslations from './locales/pl.json' with {type: 'json'};
 import esTranslations from './locales/es.json' with {type: 'json'};
 import itTranslations from './locales/it.json' with {type: 'json'};
@@ -50,6 +51,7 @@ const translationsMap: Record<string, Translations> = {
   'pt': ptTranslations,
   'bg': bgTranslations,
   'cs': csTranslations,
+  'cy': cyTranslations,
   'pl': plTranslations,
   'es': esTranslations,
   'it': itTranslations,
