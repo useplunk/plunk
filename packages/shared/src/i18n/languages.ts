@@ -22,6 +22,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
   {code: 'zh-CN', name: 'Chinese (Simplified, China)', nativeName: '简体中文', flag: '🇨🇳'},
   {code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵'},
   {code: 'sv', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪'},
+  {code: 'cy', name: 'Welsh', nativeName: 'Cymraeg', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿'},
 ];
 
 export const DEFAULT_LANGUAGE = 'en';

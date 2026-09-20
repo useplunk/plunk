@@ -1,0 +1,62 @@
+{
+  "pages": {
+    "unsubscribe": {
+      "title": "Dad-danysgrifio",
+      "description": "Wyt ti am roi'r gorau i dderbyn negeseuon e-bost gan {projectName} i gyfeiriad {email}?",
+      "button": "Dad-danysgrifio",
+      "buttonLoading": "Yn dad-danysgrifio...",
+      "managePreferences": "Rheoli dewisiadau yn lle",
+      "successTitle": "Rwyt ti wedi dad-danysgrifio",
+      "successDescription": "Ni fydd {email} yn derbyn rhagor o negeseuon e-bost gan {projectName}.",
+      "changedMind": "Wedi newid dy feddwl?",
+      "subscribeAgain": "Tanysgrifio eto"
+    },
+    "subscribe": {
+      "title": "Tanysgrifio i gael diweddariadau",
+      "description": "Wyt ti am dderbyn negeseuon e-bost gan {projectName} i gyfeiriad {email}?",
+      "button": "Tanysgrifio",
+      "buttonLoading": "Yn tanysgrifio...",
+      "successTitle": "Rwyt ti wedi tanysgrifio!",
+      "successDescription": "Bydd {email} yn derbyn negeseuon e-bost gan {projectName} o hyn ymlaen."
+    },
+    "manage": {
+      "title": "Rheoli dewisiadau",
+      "description": "Rheoli'r negeseuon e-bost y mae {projectName} yn eu hanfon i {email}.",
+      "subscriptionLabel": "Tanysgrifiad e-bost",
+      "subscribedStatus": "Rwyt ti wedi tanysgrifio i dderbyn negeseuon e-bost ar hyn o bryd",
+      "unsubscribedStatus": "Nid wyt ti wedi tanysgrifio i dderbyn negeseuon e-bost ar hyn o bryd",
+      "subscribedSuccess": "Wedi tanysgrifio'n llwyddiannus!",
+      "unsubscribedSuccess": "Wedi dad-danysgrifio'n llwyddiannus!",
+      "unsubscribeCompletely": "Dad-danysgrifio'n llwyr",
+      "subscribeToEmails": "Tanysgrifio i negeseuon e-bost",
+      "disclaimer": "Mae'r dudalen hon yn dy alluogi i reoli dy ddewisiadau e-bost. Mae statws dy danysgrifiad yn cael ei ddiweddaru ar unwaith."
+    },
+    "snooze": {
+      "cta": "Rhoi negeseuon e-bost ar saib yn lle",
+      "prompt": "Am ba hyd wyt ti am roi'r negeseuon e-bost ar saib?",
+      "duration_2_weeks": "2 wythnos",
+      "duration_1_month": "1 mis",
+      "duration_6_months": "6 mis",
+      "duration_1_year": "1 flwyddyn",
+      "buttonLoading": "Yn rhoi'r negeseuon e-bost ar saib...",
+      "cancel": "Canslo",
+      "successTitle": "Mae dy negeseuon e-bost ar saib",
+      "successDescription": "Ni fydd {email} yn derbyn negeseuon e-bost gan {projectName} tan {date}. Bydd y negeseuon e-bost yn ailddechrau'n awtomatig.",
+      "status": "Ar saib tan {date}",
+      "resume": "Ailddechrau derbyn negeseuon e-bost rwan"
+    },
+    "common": {
+      "loading": "Yn llwytho...",
+      "error": "Gwall",
+      "loadFailed": "Doedden ni ddim yn gallu llwytho dy ddewisiadau e-bost. Gwna'n siŵr bod y ddolen yn gywir a thria eto.",
+      "actionFailed": "Aeth rhywbeth o'i le. Tria eto.",
+      "sentWith": "Anfonwyd drwy {provider}"
+    }
+  },
+  "email": {
+    "footer": {
+      "unsubscribeText": "Rwyt ti wedi cael yr e-bost hwn oherwydd dy fod wedi cytuno i dderbyn negeseuon e-bost gan {projectName}. Os nad wyt ti am dderbyn negeseuon e-bost fel hyn mwyach, gelli di",
+      "updatePreferences": "ddiweddaru dy ddewisiadau"
+    }
+  }
+}
