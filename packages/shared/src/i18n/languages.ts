@@ -26,7 +26,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     code: 'cy',
     name: 'Welsh',
     nativeName: 'Cymraeg',
-    flag: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}',
+    flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
   },
 ];
 
