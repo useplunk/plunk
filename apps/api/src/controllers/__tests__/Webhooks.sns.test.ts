@@ -385,4 +385,87 @@ describe('Webhooks - SES event notifications', () => {
       expect(enforce).toHaveBeenCalledWith(projectId);
     });
   });
+
+  /**
+   * SNS delivers at least once, so the same bounce or complaint notification arrives again
+   * hours or days later. Reputation enforcement reads the rates by counting `bouncedAt` and
+   * `complainedAt` rows, so a second copy of an old event leaves every number unchanged --
+   * running the check on it could only re-disable a project over history it had already been
+   * judged against. That is what re-disabled a manually re-enabled project whose complaint
+   * count had not moved.
+   */
+  describe('duplicate SNS deliveries', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('does not re-enforce or re-alert on a redelivered complaint', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      const notify = vi.spyOn(NtfyService, 'notifyEmailComplaint').mockResolvedValue(undefined);
+      const email = await sentEmail('ses-dup-complaint');
+
+      await post(notification('Complaint', 'ses-dup-complaint'));
+      const first = await prisma.email.findUnique({where: {id: email.id}});
+
+      await post(notification('Complaint', 'ses-dup-complaint'));
+      const second = await prisma.email.findUnique({where: {id: email.id}});
+
+      expect(enforce).toHaveBeenCalledTimes(1);
+      expect(notify).toHaveBeenCalledTimes(1);
+      // The complaint happened once; the timestamp must not walk forward into a window it
+      // does not belong to, or the 24-hour and 7-day rates count it again later.
+      expect(second?.complainedAt).toEqual(first?.complainedAt);
+    });
+
+    it('does not re-enforce or re-alert on a redelivered permanent bounce', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      const notify = vi.spyOn(NtfyService, 'notifyEmailBounce').mockResolvedValue(undefined);
+      const email = await sentEmail('ses-dup-bounce');
+      const bounce = {bounce: {bounceType: 'Permanent'}};
+
+      await post(notification('Bounce', 'ses-dup-bounce', bounce));
+      const first = await prisma.email.findUnique({where: {id: email.id}});
+
+      await post(notification('Bounce', 'ses-dup-bounce', bounce));
+      const second = await prisma.email.findUnique({where: {id: email.id}});
+
+      expect(enforce).toHaveBeenCalledTimes(1);
+      expect(notify).toHaveBeenCalledTimes(1);
+      expect(second?.bouncedAt).toEqual(first?.bouncedAt);
+    });
+
+    it('enforces on a complaint for an email that had already hard bounced', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      await sentEmail('ses-bounce-then-complaint');
+
+      await post(notification('Bounce', 'ses-bounce-then-complaint', {bounce: {bounceType: 'Permanent'}}));
+      await post(notification('Complaint', 'ses-bounce-then-complaint'));
+
+      // Two distinct suppressions on one email. The complaint is new even though the bounce
+      // was not, so it has to be counted.
+      expect(enforce).toHaveBeenCalledTimes(2);
+    });
+
+    it('suppresses an unknown bounce type without enforcing on it', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      const email = await sentEmail('ses-unknown-bounce');
+
+      await post(notification('Bounce', 'ses-unknown-bounce', {bounce: {bounceType: 'Undetermined'}}));
+
+      // An unclassifiable bounce is suppressed to be safe, but it is the one case where the
+      // classification is a guess, so it must not be able to disable a project.
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.bouncedAt).not.toBeNull();
+      expect(enforce).not.toHaveBeenCalled();
+    });
+
+    it('does not enforce on a transient bounce', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      await sentEmail('ses-transient-bounce');
+
+      await post(notification('Bounce', 'ses-transient-bounce', {bounce: {bounceType: 'Transient'}}));
+
+      expect(enforce).not.toHaveBeenCalled();
+    });
+  });
 });

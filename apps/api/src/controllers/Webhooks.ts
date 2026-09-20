@@ -373,6 +373,19 @@ export class Webhooks {
       const updateData: Prisma.EmailUpdateInput = {};
       const eventName = `email.${eventType.toLowerCase()}`;
 
+      // SNS is at-least-once, so the same bounce or complaint notification arrives again
+      // hours or days later. `email` is the row as it stood before this event, so these read
+      // whether the suppression had already been recorded by an earlier delivery. Everything
+      // below that is not idempotent -- the first-seen timestamps, the operator alert, and
+      // the reputation enforcement that can disable a project -- is gated on them.
+      const alreadyBounced = !!email.bouncedAt;
+      const alreadyComplained = !!email.complainedAt;
+
+      // Set by the Bounce branch when the event counts toward the bounce rate. Only a
+      // permanent bounce does: transient bounces are not counted, and an unknown type is
+      // suppressed but deliberately left out of the rate -- see the branch for why.
+      let countsTowardBounceRate = false;
+
       // Base event data with email metadata
       const baseEventData = {
         subject: email.subject,
@@ -442,7 +455,10 @@ export class Webhooks {
             // Hard bounce - counts toward bounce rate and unsubscribes contact
             signale.warn(`[WEBHOOK] Permanent bounce received for ${email.contact.email} from ${email.project.name}`);
             updateData.status = EmailStatus.BOUNCED;
-            updateData.bouncedAt = now;
+            // The first bounce is the one that happened; a redelivery of that notification
+            // must not move the timestamp forward into a window it does not belong to.
+            updateData.bouncedAt = email.bouncedAt ?? now;
+            countsTowardBounceRate = true;
             // Unsubscribe contact on permanent bounce. Clearing `snoozedUntil` is what stops
             // the snooze sweep from resubscribing a hard-bounced address later and mailing it
             // again. See SNOOZE_CLEARED_ON_WRITE in ContactService.
@@ -453,11 +469,11 @@ export class Webhooks {
             eventData = {
               ...baseEventData,
               bounceType,
-              bouncedAt: now.toISOString(),
+              bouncedAt: (email.bouncedAt ?? now).toISOString(),
             };
 
             // Send notification about permanent bounce
-            if (!isSimulated) {
+            if (!isSimulated && !alreadyBounced) {
               await NtfyService.notifyEmailBounce(email.project.name, email.projectId, email.contact.email, bounceType);
             }
           } else if (isTransientBounce) {
@@ -478,7 +494,10 @@ export class Webhooks {
               `[WEBHOOK] Unknown bounce type (${bounceType}) received for ${email.contact.email} from ${email.project.name} - treating as permanent`,
             );
             updateData.status = EmailStatus.BOUNCED;
-            updateData.bouncedAt = now;
+            updateData.bouncedAt = email.bouncedAt ?? now;
+            // Suppressed like a permanent bounce, but deliberately not counted toward the
+            // bounce rate: an unclassifiable bounce is the one case where we are guessing,
+            // and a guess should not be able to disable a project.
             // Suppress and clear any snooze, exactly as the permanent-bounce branch does.
             await prisma.contact.update({
               where: {id: email.contactId},
@@ -487,10 +506,10 @@ export class Webhooks {
             eventData = {
               ...baseEventData,
               bounceType,
-              bouncedAt: now.toISOString(),
+              bouncedAt: (email.bouncedAt ?? now).toISOString(),
             };
 
-            if (!isSimulated) {
+            if (!isSimulated && !alreadyBounced) {
               await NtfyService.notifyEmailBounce(email.project.name, email.projectId, email.contact.email, bounceType);
             }
           }
@@ -500,7 +519,8 @@ export class Webhooks {
         case 'Complaint':
           signale.warn(`[WEBHOOK] Complaint received for ${email.contact.email} from ${email.project.name}`);
           updateData.status = EmailStatus.COMPLAINED;
-          updateData.complainedAt = now;
+          // As with bounces, keep the timestamp of the complaint that actually arrived.
+          updateData.complainedAt = email.complainedAt ?? now;
           // Unsubscribe contact on complaint. `snoozedUntil` is cleared so the snooze sweep
           // can never resubscribe someone who reported this mail as spam.
           await prisma.contact.update({
@@ -509,11 +529,11 @@ export class Webhooks {
           });
           eventData = {
             ...baseEventData,
-            complainedAt: now.toISOString(),
+            complainedAt: (email.complainedAt ?? now).toISOString(),
           };
 
           // Send notification about complaint
-          if (!isSimulated) {
+          if (!isSimulated && !alreadyComplained) {
             await NtfyService.notifyEmailComplaint(email.project.name, email.projectId, email.contact.email);
           }
           break;
@@ -550,10 +570,15 @@ export class Webhooks {
       // Track event (this will trigger workflows)
       await EventService.trackEvent(email.projectId, eventName, email.contactId, email.id, eventData);
 
-      // Check security limits only for permanent bounces and complaints
-      // Transient bounces (soft bounces) don't count toward bounce rate
-      const isPermanentBounce = eventType === 'Bounce' && body.bounce?.bounceType === 'Permanent';
-      if ((isPermanentBounce || eventType === 'Complaint') && !isSimulated) {
+      // Check security limits only when this event is a suppression the project has not been
+      // charged for yet. Transient bounces never count. Neither does a redelivered
+      // notification: the rates are computed by counting `bouncedAt`/`complainedAt` rows, so a
+      // second copy of an old event leaves every number exactly where it was. Re-running
+      // enforcement on one could only re-disable a project over history it has already been
+      // judged against -- which is what happened to projects that were manually re-enabled.
+      const isNewSuppression =
+        (countsTowardBounceRate && !alreadyBounced) || (eventType === 'Complaint' && !alreadyComplained);
+      if (isNewSuppression && !isSimulated) {
         await SecurityService.checkAndEnforceSecurityLimits(email.projectId);
       }
 
