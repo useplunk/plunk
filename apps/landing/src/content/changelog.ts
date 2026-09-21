@@ -55,6 +55,15 @@ export type ChangelogEntry =
 export const CHANGELOG: ChangelogEntry[] = [
   // September 2026
   {
+    kind: 'minor',
+    date: '2026-09-21',
+    title: 'Plain text alternative on every email',
+    description:
+      'Plunk sends a plain text version alongside the HTML of every email, generated from your content. Spam filters score HTML-only messages more harshly, so this lifts deliverability without any change to your code.',
+    href: `${WIKI_URI}/guides/list-hygiene#plain-text-alternative`,
+    tag: 'text/plain',
+  },
+  {
     kind: 'major',
     date: '2026-09-11',
     title: 'Snooze instead of unsubscribing',

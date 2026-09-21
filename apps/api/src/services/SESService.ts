@@ -10,6 +10,7 @@ import {
   SES_CONFIGURATION_SET_NO_TRACKING,
   TRACKING_TOGGLE_ENABLED,
 } from '../app/constants.js';
+import {encodeQuotedPrintable, htmlToPlainText} from '../utils/mime.js';
 
 /**
  * AWS SES Client
@@ -32,6 +33,12 @@ interface SendRawEmailParams {
   content: {
     subject: string;
     html: string;
+    /**
+     * Plain-text alternative. Derived from `html` when omitted, which is the normal
+     * path — this exists so a caller that already has a hand-written text version can
+     * supply it instead of taking the conversion.
+     */
+    text?: string;
   };
   reply?: string;
   headers?: Record<string, string> | null;
@@ -48,36 +55,18 @@ interface SendRawEmailParams {
 }
 
 /**
- * Break long lines to comply with email RFC standards
+ * Break base64 content into fixed-width lines to comply with RFC 5322's line limit.
+ *
+ * Base64 is a fixed alphabet with no significant whitespace, so it can be split at any
+ * offset. Text and HTML parts do not go through here — they are quoted-printable
+ * encoded, which breaks lines with soft breaks the recipient's client removes.
  */
-function breakLongLines(input: string, maxLineLength: number, isBase64 = false): string {
-  if (isBase64) {
-    // For base64 content, break at exact intervals without looking for spaces
-    const result = [];
-    for (let i = 0; i < input.length; i += maxLineLength) {
-      result.push(input.substring(i, i + maxLineLength));
-    }
-    return result.join('\n');
-  } else {
-    // For text content, break at spaces when possible
-    const lines = input.split('\n');
-    const result = [];
-    for (let line of lines) {
-      while (line.length > maxLineLength) {
-        let pos = maxLineLength;
-        while (pos > 0 && line[pos] !== ' ') {
-          pos--;
-        }
-        if (pos === 0) {
-          pos = maxLineLength;
-        }
-        result.push(line.substring(0, pos));
-        line = line.substring(pos).trim();
-      }
-      result.push(line);
-    }
-    return result.join('\n');
+function breakLongLines(input: string, maxLineLength: number): string {
+  const result = [];
+  for (let i = 0; i < input.length; i += maxLineLength) {
+    result.push(input.substring(i, i + maxLineLength));
   }
+  return result.join('\n');
 }
 
 /**
@@ -156,12 +145,29 @@ Content-Type: ${rootContentType}${extraHeaders}
     rawMessage += `Content-Type: multipart/alternative; boundary="${altBoundary}"\n\n`;
   }
 
+  // The plain-text alternative comes first: `multipart/alternative` is ordered
+  // least-rich to most-rich (RFC 2046 §5.1.4), and clients render the last part they
+  // can display. Emitting these the other way round would show plain text to everyone.
+  //
+  // Skipped entirely when the conversion yields nothing (an image-only email, say).
+  // An empty text part is worse than no text part: it is the exact shape of the
+  // filter-evasion message the spam rules are looking for.
+  const plainText = content.text ?? htmlToPlainText(content.html);
+  if (plainText.trim().length > 0) {
+    rawMessage += `--${altBoundary}
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+${encodeQuotedPrintable(plainText)}
+`;
+  }
+
   // The alternative part content (always contains HTML)
   rawMessage += `--${altBoundary}
 Content-Type: text/html; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: quoted-printable
 
-${breakLongLines(content.html, 500)}
+${encodeQuotedPrintable(content.html)}
 --${altBoundary}--
 `;
 
@@ -175,7 +181,7 @@ Content-Transfer-Encoding: base64
 Content-ID: <${attachment.contentId || attachment.filename}>
 Content-Disposition: inline; filename="${attachment.filename}"
 
-${breakLongLines(attachment.content, 76, true)}`;
+${breakLongLines(attachment.content, 76)}`;
     }
     rawMessage += `\n--${relatedBoundary}--`;
   }
@@ -189,7 +195,7 @@ Content-Type: ${attachment.contentType}
 Content-Transfer-Encoding: base64
 Content-Disposition: attachment; filename="${attachment.filename}"
 
-${breakLongLines(attachment.content, 76, true)}`;
+${breakLongLines(attachment.content, 76)}`;
     }
     rawMessage += `\n--${mixedBoundary}--`;
   }

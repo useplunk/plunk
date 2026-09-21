@@ -799,6 +799,145 @@ describe('SES MIME Boundary Structure', () => {
   });
 });
 
+// ========================================
+// SES PLAIN-TEXT ALTERNATIVE
+// ========================================
+// A multipart/alternative carrying only HTML is scored as filter evasion
+// (SpamAssassin MIME_HTML_ONLY +2.0, MPART_ALT_DIFF +0.7), so every message has to
+// carry a text/plain sibling.
+
+describe('SES plain-text alternative', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function sendAndCapture(content: {subject: string; html: string; text?: string}) {
+    const {sendRawEmail: realSendRawEmail, ses} = await vi.importActual<typeof import('../SESService')>('../SESService');
+
+    await realSendRawEmail({
+      from: {name: 'Sender', email: 'sender@example.com'},
+      to: ['recipient@example.com'],
+      content,
+    });
+
+    const callArgs = (ses.sendRawEmail as Mock).mock.calls[0][0];
+    return new TextDecoder().decode(callArgs.RawMessage.Data);
+  }
+
+  it('includes a text/plain part derived from the HTML', async () => {
+    const rawMessage = await sendAndCapture({
+      subject: 'Test Subject',
+      html: '<p>Hello world</p>',
+    });
+
+    expect(rawMessage).toContain('Content-Type: text/plain; charset=utf-8');
+    expect(rawMessage).toContain('Hello world');
+  });
+
+  it('places the text part before the HTML part', async () => {
+    const rawMessage = await sendAndCapture({
+      subject: 'Test Subject',
+      html: '<p>Hello world</p>',
+    });
+
+    // multipart/alternative is ordered least-rich first (RFC 2046 §5.1.4) and clients
+    // render the LAST part they understand. Reversed, every recipient sees plain text.
+    expect(rawMessage.indexOf('text/plain')).toBeLessThan(rawMessage.indexOf('text/html'));
+  });
+
+  it('carries link targets into the text part', async () => {
+    const rawMessage = await sendAndCapture({
+      subject: 'Test Subject',
+      html: '<p>Please <a href="https://example.com/reset">reset your password</a>.</p>',
+    });
+
+    // A text part that drops the URLs diverges from the HTML, which is the exact
+    // shape MPART_ALT_DIFF penalizes -- the thing this change exists to avoid.
+    expect(rawMessage).toContain('reset your password');
+    expect(rawMessage).toContain('https://example.com/reset');
+  });
+
+  it('prefers a caller-supplied text body over the conversion', async () => {
+    const rawMessage = await sendAndCapture({
+      subject: 'Test Subject',
+      html: '<p>Generated from HTML</p>',
+      text: 'Hand written plain text',
+    });
+
+    // Scoped to the text part: the HTML part still carries its own body, so asserting
+    // on the whole message would only prove the HTML survived.
+    const textPart = rawMessage.substring(
+      rawMessage.indexOf('Content-Type: text/plain'),
+      rawMessage.indexOf('Content-Type: text/html'),
+    );
+
+    expect(textPart).toContain('Hand written plain text');
+    expect(textPart).not.toContain('Generated from HTML');
+  });
+
+  it('omits the text part when the HTML has no readable content', async () => {
+    const rawMessage = await sendAndCapture({
+      subject: 'Test Subject',
+      html: '<html><body><img src="https://example.com/pixel.gif"></body></html>',
+    });
+
+    // An empty text part is worse than none: it advertises an alternative and then
+    // provides nothing, which is what the spam rules are actually looking for.
+    expect(rawMessage).not.toContain('Content-Type: text/plain');
+    expect(rawMessage).toContain('Content-Type: text/html');
+  });
+
+  it('encodes both parts as quoted-printable rather than claiming 7bit', async () => {
+    const rawMessage = await sendAndCapture({
+      subject: 'Test Subject',
+      html: '<p>Grüße aus München 🎉</p>',
+    });
+
+    // charset=utf-8 with CTE 7bit is a lie about the bytes on the wire as soon as the
+    // body contains a single non-ASCII character.
+    expect(rawMessage).not.toContain('Content-Transfer-Encoding: 7bit');
+    expect(rawMessage.match(/Content-Transfer-Encoding: quoted-printable/g)).toHaveLength(2);
+    expect(rawMessage).toContain('Gr=C3=BC=C3=9Fe');
+  });
+
+  it('keeps every body line within the RFC 5322 line limit', async () => {
+    const rawMessage = await sendAndCapture({
+      subject: 'Test Subject',
+      html: `<p>${'a very long sentence that keeps going '.repeat(80)}</p>`,
+    });
+
+    for (const line of rawMessage.split('\n')) {
+      expect(line.length).toBeLessThanOrEqual(998);
+    }
+  });
+
+  it('still nests the text part inside the alternative container when attachments are present', async () => {
+    const {sendRawEmail: realSendRawEmail, ses} = await vi.importActual<typeof import('../SESService')>('../SESService');
+
+    await realSendRawEmail({
+      from: {name: 'Sender', email: 'sender@example.com'},
+      to: ['recipient@example.com'],
+      content: {subject: 'Test Subject', html: '<p>Hello world</p>'},
+      attachments: [{filename: 'test.txt', content: 'SGVsbG8=', contentType: 'text/plain', disposition: 'attachment'}],
+    });
+
+    const callArgs = (ses.sendRawEmail as Mock).mock.calls[0][0];
+    const rawMessage = new TextDecoder().decode(callArgs.RawMessage.Data);
+
+    const altMatch = rawMessage.match(/Content-Type: multipart\/alternative; boundary="([^"]+)"/);
+    const altBoundary = altMatch ? altMatch[1] : 'NOT_FOUND_ALT';
+
+    // The text part must sit inside the alternative container, not float in the mixed
+    // container where it would render as a second visible body.
+    const altSection = rawMessage.substring(
+      rawMessage.indexOf(`--${altBoundary}`),
+      rawMessage.indexOf(`--${altBoundary}--`),
+    );
+    expect(altSection).toContain('Content-Type: text/plain; charset=utf-8');
+    expect(altSection).toContain('Content-Type: text/html; charset=utf-8');
+  });
+});
+
 describe('SES header serialization', () => {
   beforeEach(() => {
     vi.clearAllMocks();

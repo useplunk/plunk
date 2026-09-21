@@ -37,6 +37,23 @@ Complaints are taken more seriously than bounces by mail providers — even a sm
 - Include a clear, working unsubscribe link in every marketing email — Plunk injects this automatically for `MARKETING` template/campaign types.
 - Monitor your email frequency to avoid overwhelming your contacts.
 - Make sure recipients clearly opted in. Avoid scraped, purchased, or stale lists.
+## Plain text alternative
+
+Every email Plunk sends carries two versions of your content: the HTML you wrote, and a plain text version generated from it. You don't need to write or send the plain text yourself — Plunk derives it from your HTML on every send, for transactional emails, campaigns, and test sends alike.
+
+This matters for deliverability. An HTML-only message is a long-standing spam signal, because legitimate mail has historically offered a text fallback and bulk senders often didn't. SpamAssassin, for example, scores HTML-only mail on `MIME_HTML_ONLY` and `MPART_ALT_DIFF`, and those points add to whatever else a message picks up. A clean message can land in spam on the accumulation alone.
+
+The generated text keeps your content readable rather than stripping it to a blob:
+
+- Links keep both their text and their destination, as `View invoice [https://example.com/invoice]`.
+- Headings, paragraphs, and lists stay on separate lines.
+- Layout tables are flattened, so they read as prose instead of ASCII art.
+- Images and tracking pixels are dropped.
+
+That faithfulness is the point. A text version that disagreed with the HTML would trip the same filters it's meant to satisfy, so the two parts say the same thing.
+
+You can see it for yourself in most mail clients — "Show original" in Gmail, or the plain text view in Outlook. If an email has no readable text at all (a single image, say), Plunk omits the text part rather than attaching an empty one.
+
 ## Testing bounces and complaints safely
 
 To rehearse your bounce and complaint handling, send to the Amazon SES mailbox simulator instead of to a real address. Mail sent to `@simulator.amazonses.com` never leaves AWS, and the simulator replies with the outcome the address asks for:
