@@ -18,6 +18,48 @@ import {HttpException} from '../exceptions/index.js';
 import {EventService} from './EventService.js';
 import {Keys} from './keys.js';
 
+/**
+ * Drop a project's cached field list if a contact write carries a key that list does not
+ * already know about.
+ *
+ *   KEYS[1] = the cached list
+ *   KEYS[2] = the set of `Contact.data` keys behind it
+ *   ARGV    = the keys this write is about to store
+ *
+ * This runs on every contact write that carries data -- the hottest path in the product
+ * -- so it is deliberately a single round trip that both tests membership and
+ * invalidates, and it stops at the first unknown key.
+ *
+ * Guarded on the list rather than on the set: a project that has no custom fields yet
+ * has no set to test against, and its very first custom field still has to invalidate
+ * the (correct, but now contradicted) list. Testing the list means that case reads as
+ * "nothing known" and invalidates, which is right.
+ *
+ * Returns 1 when the entry was dropped.
+ */
+const CONTACT_FIELDS_INVALIDATE_SCRIPT = `
+if redis.call('EXISTS', KEYS[1]) == 0 then
+  return 0
+end
+
+for i = 1, #ARGV do
+  if redis.call('SISMEMBER', KEYS[2], ARGV[i]) == 0 then
+    redis.call('DEL', KEYS[1], KEYS[2])
+    return 1
+  end
+end
+
+return 0
+`;
+
+interface ContactFieldsCommand {
+  contactFieldsInvalidateIfNew(listKey: string, keysKey: string, ...dataKeys: string[]): Promise<number>;
+}
+
+redis.defineCommand('contactFieldsInvalidateIfNew', {numberOfKeys: 2, lua: CONTACT_FIELDS_INVALIDATE_SCRIPT});
+
+const fieldsCache = redis as unknown as ContactFieldsCommand;
+
 export class ContactService {
   /**
    * Normalize an email address for storage and lookup.
@@ -191,7 +233,7 @@ export class ContactService {
     data: {email: string; data?: Prisma.JsonValue; subscribed?: boolean},
   ): Promise<Contact> {
     try {
-      return await prisma.contact.create({
+      const contact = await prisma.contact.create({
         data: {
           projectId,
           email: this.normalizeEmail(data.email),
@@ -199,6 +241,10 @@ export class ContactService {
           subscribed: data.subscribed ?? true,
         },
       });
+
+      await this.invalidateFieldsIfNew(projectId, this.dataKeys(data.data));
+
+      return contact;
     } catch (error) {
       // Check if this is a unique constraint violation (P2002)
       if (error instanceof Error && 'code' in error && error.code === 'P2002') {
@@ -262,6 +308,10 @@ export class ContactService {
     const existing = await this.get(projectId, contactId);
 
     const updateData: Prisma.ContactUpdateInput = {};
+    // The keys this write ends up storing, for the field cache. The merged set rather
+    // than just the incoming one: it costs nothing here and it lets a write repair a
+    // cache that somehow lost a key, instead of only catching brand new ones.
+    let writtenDataKeys: string[] = [];
 
     if (data.email !== undefined) {
       updateData.email = ContactService.normalizeEmail(data.email);
@@ -272,6 +322,7 @@ export class ContactService {
       } else if (typeof data.data === 'object' && !Array.isArray(data.data)) {
         const merged = ContactService.mergeContactData(existing.data, data.data as Record<string, unknown>);
         updateData.data = Object.keys(merged).length > 0 ? toPrismaJson(merged) : Prisma.JsonNull;
+        writtenDataKeys = Object.keys(merged);
       } else {
         throw new HttpException(400, 'data must be an object');
       }
@@ -292,6 +343,8 @@ export class ContactService {
         where: {id: contactId},
         data: updateData,
       });
+
+      await this.invalidateFieldsIfNew(projectId, writtenDataKeys);
 
       // Track subscription event if status changed
       if (isSubscriptionChanging) {
@@ -356,6 +409,7 @@ export class ContactService {
     });
 
     const mergedData = ContactService.mergeContactData(existing?.data ?? null, data ?? {});
+    const writtenDataKeys = Object.keys(mergedData);
 
     if (existing) {
       // Track subscription status change
@@ -372,6 +426,8 @@ export class ContactService {
             ...(subscribed !== undefined ? {subscribed, snoozedUntil: null} : {}),
           },
         });
+
+        await ContactService.invalidateFieldsIfNew(projectId, writtenDataKeys);
 
         // Track subscription event if status changed
         if (isSubscriptionChanging) {
@@ -392,7 +448,7 @@ export class ContactService {
       }
     } else {
       try {
-        return await prisma.contact.create({
+        const created = await prisma.contact.create({
           data: {
             projectId,
             email: normalizedEmail,
@@ -400,6 +456,10 @@ export class ContactService {
             subscribed: subscribed ?? defaultSubscribed,
           },
         });
+
+        await ContactService.invalidateFieldsIfNew(projectId, writtenDataKeys);
+
+        return created;
       } catch (error) {
         // Provide helpful error message for database/validation issues
         throw new HttpException(
@@ -861,6 +921,48 @@ export class ContactService {
    */
   public static async invalidateAvailableFields(projectId: string): Promise<void> {
     await redis.del(Keys.Contact.fields(projectId), Keys.Contact.fieldKeys(projectId));
+  }
+
+  /**
+   * Keep the cached field list honest after a contact write.
+   *
+   * Called with the `Contact.data` keys the write stored. If the cached list already
+   * knows all of them it is left alone, which is the overwhelmingly common case -- an
+   * import of a million contacts writes the same handful of keys a million times. A key
+   * it does not know about means the list is now incomplete, so the entry is dropped and
+   * the next read rescans.
+   *
+   * Dropping rather than extending is the whole point. Adding the field to the cached
+   * list would mean recomputing its type and coverage across the project, which is the
+   * scan this cache exists to avoid -- tens of seconds, on a write path that must not
+   * block. Invalidating costs one Redis call, and the rescan is paid once, later, by a
+   * read that actually wants the list.
+   *
+   * Runs after the write has landed, so a failed write cannot invalidate anything, and a
+   * concurrent read either sees the old entry (harmless -- it is about to be dropped) or
+   * rescans and finds the new field. Failures are swallowed: a Redis blip must not fail
+   * a contact write, and the TTL still bounds how long a missed invalidation can hide a
+   * field.
+   */
+  public static async invalidateFieldsIfNew(projectId: string, dataKeys: string[]): Promise<void> {
+    if (dataKeys.length === 0) {
+      return;
+    }
+
+    try {
+      await fieldsCache.contactFieldsInvalidateIfNew(
+        Keys.Contact.fields(projectId),
+        Keys.Contact.fieldKeys(projectId),
+        ...dataKeys,
+      );
+    } catch (error) {
+      signale.warn('[CONTACTS] Could not reconcile the cached field list after a write:', error);
+    }
+  }
+
+  /** The `Contact.data` keys a write is about to store, if it stores an object at all. */
+  private static dataKeys(data: Prisma.JsonValue | null | undefined): string[] {
+    return data !== null && typeof data === 'object' && !Array.isArray(data) ? Object.keys(data) : [];
   }
 
   private static async readCachedFields(projectId: string): Promise<ContactField[] | null> {

@@ -188,4 +188,99 @@ describe('ContactService - available fields', () => {
       expect(fieldNames(fields)).toContain('data.kept');
     });
   });
+
+  /**
+   * The cache is only as good as its invalidation. A contact write checks its keys
+   * against the ones behind the cached list and drops the entry when it finds one that
+   * is not there -- so a genuinely new custom field shows up on the next read rather
+   * than waiting out the 4h window, while the millionth contact carrying the same
+   * familiar keys costs one Redis call and leaves the entry alone.
+   */
+  describe('invalidation on contact writes', () => {
+    /**
+     * Writes a contact behind ContactService's back, so it lands in Postgres without
+     * touching the cache. Anything that shows up in a later read therefore proves the
+     * entry was actually dropped and rescanned, not just patched.
+     */
+    const plantUncachedField = (key: string) => factories.createContact({projectId, data: {[key]: 'planted'}});
+
+    it('drops the entry when a created contact carries an unknown field', async () => {
+      await factories.createContact({projectId, data: {known: 1}});
+      await ContactService.getAvailableFields(projectId);
+
+      await ContactService.create(projectId, {email: `new-${Date.now()}@test.com`, data: {brandNew: 1}});
+
+      expect(fieldNames(await ContactService.getAvailableFields(projectId))).toContain('data.brandNew');
+    });
+
+    it('keeps the entry when a created contact only carries known fields', async () => {
+      await factories.createContact({projectId, data: {known: 1}});
+      await ContactService.getAvailableFields(projectId);
+      await plantUncachedField('planted');
+
+      await ContactService.create(projectId, {email: `known-${Date.now()}@test.com`, data: {known: 2}});
+
+      // Still serving the cached list, so the planted field is invisible.
+      expect(fieldNames(await ContactService.getAvailableFields(projectId))).not.toContain('data.planted');
+    });
+
+    it('drops the entry on the first custom field a project ever sees', async () => {
+      // The cached list is correct and has no custom fields at all, so there is no key
+      // set to test against -- the guard has to fall back to the list itself.
+      await ContactService.getAvailableFields(projectId);
+
+      await ContactService.create(projectId, {email: `first-${Date.now()}@test.com`, data: {theFirstOne: 1}});
+
+      expect(fieldNames(await ContactService.getAvailableFields(projectId))).toContain('data.theFirstOne');
+    });
+
+    it('drops the entry when an upsert introduces a field', async () => {
+      await factories.createContact({projectId, data: {known: 1}});
+      await ContactService.getAvailableFields(projectId);
+
+      await ContactService.upsert(projectId, `upsert-${Date.now()}@test.com`, {fromUpsert: 'x'});
+
+      expect(fieldNames(await ContactService.getAvailableFields(projectId))).toContain('data.fromUpsert');
+    });
+
+    it('keeps the entry when an upsert only touches known fields', async () => {
+      const contact = await factories.createContact({projectId, data: {known: 1}});
+      await ContactService.getAvailableFields(projectId);
+      await plantUncachedField('planted');
+
+      await ContactService.upsert(projectId, contact.email, {known: 2});
+
+      expect(fieldNames(await ContactService.getAvailableFields(projectId))).not.toContain('data.planted');
+    });
+
+    it('drops the entry when an update introduces a field', async () => {
+      const contact = await factories.createContact({projectId, data: {known: 1}});
+      await ContactService.getAvailableFields(projectId);
+
+      await ContactService.update(projectId, contact.id, {data: {fromUpdate: 'x'}});
+
+      expect(fieldNames(await ContactService.getAvailableFields(projectId))).toContain('data.fromUpdate');
+    });
+
+    it('keeps the entry for a write that carries no contact data', async () => {
+      await factories.createContact({projectId, data: {known: 1}});
+      await ContactService.getAvailableFields(projectId);
+      await plantUncachedField('planted');
+
+      await ContactService.create(projectId, {email: `nodata-${Date.now()}@test.com`});
+
+      expect(fieldNames(await ContactService.getAvailableFields(projectId))).not.toContain('data.planted');
+    });
+
+    it('leaves other projects alone', async () => {
+      const {project: other} = await factories.createUserWithProject();
+      await factories.createContact({projectId: other.id, data: {theirs: 1}});
+      await ContactService.getAvailableFields(other.id);
+      await factories.createContact({projectId: other.id, data: {plantedOnThem: 1}});
+
+      await ContactService.create(projectId, {email: `mine-${Date.now()}@test.com`, data: {mine: 1}});
+
+      expect(fieldNames(await ContactService.getAvailableFields(other.id))).not.toContain('data.plantedOnThem');
+    });
+  });
 });
