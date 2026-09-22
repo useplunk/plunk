@@ -11,9 +11,12 @@ import type {
 import {toPrismaJson} from '@plunk/types';
 import signale from 'signale';
 
+import {CONTACT_FIELDS_CACHE_TTL_HOURS} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
+import {redis} from '../database/redis.js';
 import {HttpException} from '../exceptions/index.js';
 import {EventService} from './EventService.js';
+import {Keys} from './keys.js';
 
 export class ContactService {
   /**
@@ -789,10 +792,122 @@ export class ContactService {
   /** ISO 8601, the shape the API writes when a date is stored in a custom field. */
   private static readonly ISO_DATE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
 
+  /** How long a computed field list is served before it is recomputed. */
+  private static get fieldsTtlSeconds(): number {
+    return CONTACT_FIELDS_CACHE_TTL_HOURS * 60 * 60;
+  }
+
+  /**
+   * Scans in flight, keyed by project, so concurrent callers share one.
+   *
+   * The dashboard asks for this list from the segment builder, the workflow condition
+   * editor and the template editor, and `WorkflowService.getAvailableFields` asks again
+   * on top. Without this, one cold page load starts several full scans of the same
+   * table. Per-process rather than a Redis lock: collapsing the requests that arrive
+   * together on one instance is most of the win, and a distributed lock would add a
+   * failure mode -- a holder that dies mid-scan -- to a path whose only job is to fill a
+   * dropdown.
+   */
+  private static readonly fieldScansInFlight = new Map<string, Promise<ContactField[]>>();
+
   /**
    * Get all available contact fields for a project: the standard `Contact` columns plus
    * every key found inside the `Contact.data` JSON, each with an inferred type and the
    * share of contacts carrying it.
+   *
+   * Served from Redis for `CONTACT_FIELDS_CACHE_TTL_HOURS` (4h), because computing it
+   * has to read every contact in the project -- seconds at a few million. The segment
+   * builder asks for it on mount, which made it the slowest thing in the dashboard
+   * (#487).
+   *
+   * Freshness comes from the write path rather than from a short window: a contact write
+   * carrying a key this list does not know about drops the entry, so the field appears
+   * on the next read. What the TTL then bounds is only the slower-moving part --
+   * coverage percentages, and a type that changed because contacts started storing
+   * something else under an existing key.
+   *
+   * @param projectId - The project ID to filter contacts
+   */
+  public static async getAvailableFields(projectId: string): Promise<ContactField[]> {
+    const cached = await this.readCachedFields(projectId);
+
+    if (cached) {
+      return cached;
+    }
+
+    const inFlight = this.fieldScansInFlight.get(projectId);
+
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const scan = this.computeAndCacheFields(projectId).finally(() => {
+      this.fieldScansInFlight.delete(projectId);
+    });
+
+    this.fieldScansInFlight.set(projectId, scan);
+
+    return scan;
+  }
+
+  /**
+   * Drop a project's cached field list, so the next read recomputes.
+   *
+   * Dropping rather than patching: rebuilding the list is the expensive scan this cache
+   * exists to avoid, and there is nothing to patch it with -- a write knows its own keys
+   * but not their type across the project or the coverage the new one has. Paying for
+   * the rescan once, on the next read that actually wants the list, is cheaper than
+   * paying for it on the write.
+   */
+  public static async invalidateAvailableFields(projectId: string): Promise<void> {
+    await redis.del(Keys.Contact.fields(projectId), Keys.Contact.fieldKeys(projectId));
+  }
+
+  private static async readCachedFields(projectId: string): Promise<ContactField[] | null> {
+    const raw = await redis.get(Keys.Contact.fields(projectId));
+
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(raw) as ContactField[];
+    } catch {
+      // An entry written by an older shape, or edited by hand, is not worth failing a
+      // request over. Treat it as a miss and recompute.
+      return null;
+    }
+  }
+
+  /**
+   * Recompute and store, alongside the bare `data` keys the write path tests against.
+   *
+   * Both keys are written in one transaction and share a TTL, so the pair is never half
+   * present for a meaningful window. Should they ever diverge, the write path keys its
+   * decision off the list rather than the set, which makes the failure "recompute
+   * sooner than necessary" rather than "serve an incomplete list".
+   */
+  private static async computeAndCacheFields(projectId: string): Promise<ContactField[]> {
+    const fields = await this.computeAvailableFields(projectId);
+    const dataKeys = fields.filter(f => f.field.startsWith('data.')).map(f => f.field.slice('data.'.length));
+
+    const ttl = this.fieldsTtlSeconds;
+    const write = redis
+      .multi()
+      .set(Keys.Contact.fields(projectId), JSON.stringify(fields), 'EX', ttl)
+      .del(Keys.Contact.fieldKeys(projectId));
+
+    if (dataKeys.length > 0) {
+      write.sadd(Keys.Contact.fieldKeys(projectId), ...dataKeys).expire(Keys.Contact.fieldKeys(projectId), ttl);
+    }
+
+    await write.exec();
+
+    return fields;
+  }
+
+  /**
+   * The scan behind the cache.
    *
    * One pass over the project's contacts. Each contact's `data` is expanded exactly once
    * with `jsonb_each`, and every key's coverage, type and sample value comes out of that
@@ -810,9 +925,8 @@ export class ContactService {
    * The count runs alongside the scan rather than before it: Prisma issues them on
    * separate connections, so the two overlap instead of adding up.
    *
-   * @param projectId - The project ID to filter contacts
    */
-  public static async getAvailableFields(projectId: string): Promise<ContactField[]> {
+  private static async computeAvailableFields(projectId: string): Promise<ContactField[]> {
     const [totalContacts, rows] = await Promise.all([
       prisma.contact.count({where: {projectId}}),
       prisma.$queryRaw<
@@ -1048,6 +1162,10 @@ export class ContactService {
         "projectId" = ${projectId}
         AND data ? ${jsonField}
     `;
+
+    // The key is gone from every contact; a cached list would keep offering it in the
+    // segment builder and the template editor for hours.
+    await this.invalidateAvailableFields(projectId);
 
     return {deletedFrom: result};
   }

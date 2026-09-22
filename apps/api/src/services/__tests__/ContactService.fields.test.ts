@@ -6,7 +6,12 @@ import {factories} from '../../../../../test/helpers';
  * Field discovery is a single pass over the project's contacts: one `jsonb_each`
  * expansion per contact yields every key's coverage, type and sample value at once.
  * These pin the result of that pass, which is what the segment builder, the workflow
- * condition editor and the template editor all pick their options from.
+ * condition editor and the template editor all pick their options from, and the caching
+ * that keeps the dashboard from paying for the pass on every mount.
+ *
+ * `factories.createContact` writes through Prisma rather than through ContactService, so
+ * it deliberately does not run the invalidation hook -- which is what makes it usable
+ * here to prove the cache is being held.
  */
 describe('ContactService - available fields', () => {
   let projectId: string;
@@ -122,6 +127,65 @@ describe('ContactService - available fields', () => {
       const fields = await ContactService.getAvailableFields(projectId);
 
       expect(find(fields, 'data.mixed')?.type).toBe('string');
+    });
+  });
+
+  describe('caching', () => {
+    it('serves a second call from the cache rather than rescanning', async () => {
+      await factories.createContact({projectId, data: {original: 1}});
+      await ContactService.getAvailableFields(projectId);
+
+      await factories.createContact({projectId, data: {added: 1}});
+      const second = await ContactService.getAvailableFields(projectId);
+
+      expect(fieldNames(second)).not.toContain('data.added');
+    });
+
+    it('rescans once the entry is invalidated', async () => {
+      await factories.createContact({projectId, data: {original: 1}});
+      await ContactService.getAvailableFields(projectId);
+
+      await factories.createContact({projectId, data: {added: 1}});
+      await ContactService.invalidateAvailableFields(projectId);
+
+      expect(fieldNames(await ContactService.getAvailableFields(projectId))).toContain('data.added');
+    });
+
+    it('caches per project rather than globally', async () => {
+      const {project: other} = await factories.createUserWithProject();
+      await factories.createContact({projectId, data: {mine: 1}});
+      await factories.createContact({projectId: other.id, data: {theirs: 1}});
+
+      await ContactService.getAvailableFields(projectId);
+      const fields = await ContactService.getAvailableFields(other.id);
+
+      expect(fieldNames(fields)).toContain('data.theirs');
+      expect(fieldNames(fields)).not.toContain('data.mine');
+    });
+
+    it('collapses concurrent scans of the same project onto one', async () => {
+      await factories.createContact({projectId, data: {plan: 'pro'}});
+
+      const [a, b, c] = await Promise.all([
+        ContactService.getAvailableFields(projectId),
+        ContactService.getAvailableFields(projectId),
+        ContactService.getAvailableFields(projectId),
+      ]);
+
+      // Same array instance: all three awaited the one in-flight scan.
+      expect(b).toBe(a);
+      expect(c).toBe(a);
+    });
+
+    it('invalidates the cache when a field is deleted', async () => {
+      await factories.createContact({projectId, data: {doomed: 'x', kept: 'y'}});
+      await ContactService.getAvailableFields(projectId);
+
+      await ContactService.deleteField(projectId, 'data.doomed');
+
+      const fields = await ContactService.getAvailableFields(projectId);
+      expect(fieldNames(fields)).not.toContain('data.doomed');
+      expect(fieldNames(fields)).toContain('data.kept');
     });
   });
 });
