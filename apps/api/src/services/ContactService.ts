@@ -988,6 +988,14 @@ export class ContactService {
    * present for a meaningful window. Should they ever diverge, the write path keys its
    * decision off the list rather than the set, which makes the failure "recompute
    * sooner than necessary" rather than "serve an incomplete list".
+   *
+   * One gap is accepted here: a field written for the first time *while* a scan is
+   * running is invisible to that scan, and the invalidation it triggers finds no entry
+   * to drop -- so the result stored a moment later is already missing it, and stays
+   * missing until the TTL. Closing it needs a per-project generation counter checked at
+   * store time, which is real cross-key protocol for a window of one scan per 4h, hit
+   * only by a brand new key arriving inside it, costing a late dropdown entry. Not worth
+   * it yet.
    */
   private static async computeAndCacheFields(projectId: string): Promise<ContactField[]> {
     const fields = await this.computeAvailableFields(projectId);
