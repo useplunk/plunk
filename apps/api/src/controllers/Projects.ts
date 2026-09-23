@@ -5,12 +5,82 @@ import {MembershipSchemas, UtilitySchemas} from '@plunk/shared';
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
+import {DomainService} from '../services/DomainService.js';
 import {MembershipService} from '../services/MembershipService.js';
+import {ProjectService} from '../services/ProjectService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
 @Controller('projects')
 export class Projects {
+  /**
+   * Get all projects for the authenticated user (JWT) or single project (API key)
+   * GET /projects
+   */
+  @Get('')
+  @Middleware([requireAuth])
+  @CatchAsync
+  private async list(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+
+    // For API key auth, return the single project
+    if (auth.type === 'apiKey' && auth.projectId) {
+      const project = await ProjectService.id(auth.projectId);
+      if (!project) {
+        throw new HttpException(404, 'Project not found');
+      }
+
+      // Get first verified domain as default sender domain
+      const verifiedDomains = await DomainService.getVerifiedDomains(auth.projectId);
+      const defaultSenderDomain = verifiedDomains.length > 0 ? verifiedDomains[0]!.domain : null;
+
+      return res.json({
+        success: true,
+        data: {
+          id: project.id,
+          name: project.name,
+          defaultSenderDomain,
+          createdAt: project.createdAt,
+        },
+      });
+    }
+
+    // For JWT auth, return all projects the user has access to
+    if (auth.type === 'jwt' && auth.userId) {
+      const memberships = await prisma.membership.findMany({
+        where: {userId: auth.userId},
+        include: {
+          project: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      // Get verified domains for all projects in parallel
+      const projectsWithDomains = await Promise.all(
+        memberships.map(async membership => {
+          const verifiedDomains = await DomainService.getVerifiedDomains(membership.projectId);
+          const defaultSenderDomain = verifiedDomains.length > 0 ? verifiedDomains[0]!.domain : null;
+
+          return {
+            id: membership.project.id,
+            name: membership.project.name,
+            defaultSenderDomain,
+            createdAt: membership.project.createdAt,
+          };
+        }),
+      );
+
+      return res.json({
+        success: true,
+        data: projectsWithDomains,
+      });
+    }
+
+    throw new HttpException(401, 'Authentication required');
+  }
+
   /**
    * Get project setup state for dashboard quick start
    * GET /projects/:id/setup-state
@@ -259,6 +329,50 @@ export class Projects {
     return res.json({
       success: true,
       data: {message: 'Member removed successfully'},
+    });
+  }
+
+  /**
+   * Get a specific project by ID
+   * GET /projects/:id
+   * Note: This must come after all specific routes like :id/setup-state, :id/security, etc.
+   */
+  @Get(':id')
+  @Middleware([requireAuth])
+  @CatchAsync
+  private async get(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+    const {id} = UtilitySchemas.id.parse(req.params);
+
+    // For API key auth, verify the project ID matches
+    if (auth.type === 'apiKey' && auth.projectId) {
+      if (auth.projectId !== id) {
+        throw new HttpException(403, 'You can only access your own project');
+      }
+    }
+
+    // For JWT auth, verify user has access
+    if (auth.type === 'jwt' && auth.userId) {
+      await MembershipService.requireAccess(auth.userId, id);
+    }
+
+    const project = await ProjectService.id(id);
+    if (!project) {
+      throw new HttpException(404, 'Project not found');
+    }
+
+    // Get first verified domain as default sender domain
+    const verifiedDomains = await DomainService.getVerifiedDomains(id);
+    const defaultSenderDomain = verifiedDomains.length > 0 ? verifiedDomains[0]!.domain : null;
+
+    return res.json({
+      success: true,
+      data: {
+        id: project.id,
+        name: project.name,
+        defaultSenderDomain,
+        createdAt: project.createdAt,
+      },
     });
   }
 }
