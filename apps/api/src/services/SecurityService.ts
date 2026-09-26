@@ -128,6 +128,11 @@ interface RateData {
   complaintRate: number;
 }
 
+/**
+ * The two things a reputation threshold can measure, and the two events that move them.
+ */
+type SecurityMetric = 'bounce' | 'complaint';
+
 interface SecurityStatus {
   projectId: string;
   isHealthy: boolean;
@@ -138,6 +143,9 @@ interface SecurityStatus {
   isNewProject: boolean;
   violations: string[];
   warnings: string[];
+  // Which metrics have at least one critical violation. Internal: enforcement uses it to
+  // act only on the metric the triggering event moved; never sent to the dashboard.
+  criticalByMetric: Record<SecurityMetric, boolean>;
 }
 
 const SNS_CERT_HOST_RE = /^sns\.[a-z0-9-]+\.amazonaws\.(com|cn)$/;
@@ -261,26 +269,34 @@ export class SecurityService {
         isNewProject: false,
         violations: [],
         warnings: [],
+        criticalByMetric: {bounce: false, complaint: false},
       };
     }
   }
 
   /**
-   * Check security status and auto-disable project if thresholds are exceeded
-   * This should be called after bounce/complaint events are processed
+   * Check security status after a new bounce or complaint, and auto-disable the project if
+   * that event pushed its own metric past a critical threshold.
+   *
+   * Only violations of the `trigger` metric can disable. The complaint rate is complaints
+   * over total sent, so a bounce cannot raise it (and every send only lowers it); the same
+   * holds the other way round. A critical violation of the other metric was therefore
+   * already there when its own last event arrived, and was judged then. Acting on it again
+   * here is what re-disabled projects on their next bounce after a manual re-enable.
    */
-  public static async checkAndEnforceSecurityLimits(projectId: string): Promise<void> {
+  public static async checkAndEnforceSecurityLimits(projectId: string, trigger: SecurityMetric): Promise<void> {
     try {
       // Invalidate cache to get fresh data
       await this.invalidateCache(projectId);
 
       // Get current security status
       const status = await this.getSecurityStatus(projectId);
+      const shouldDisable = status.criticalByMetric[trigger];
 
       // If project should be disabled, disable it (only if auto-disable is enabled)
-      if (status.shouldDisable && AUTO_PROJECT_DISABLE) {
+      if (shouldDisable && AUTO_PROJECT_DISABLE) {
         await this.disableProject(projectId, status);
-      } else if (status.shouldDisable && !AUTO_PROJECT_DISABLE) {
+      } else if (shouldDisable && !AUTO_PROJECT_DISABLE) {
         // Log critical violations but don't auto-disable (self-hosted mode)
         const project = await prisma.project.findUnique({
           where: {id: projectId},
@@ -310,6 +326,12 @@ export class SecurityService {
           // Send notification about critical security violations
           await NtfyService.notifySecurityWarning(project.name, projectId, status.violations);
         }
+      } else if (status.shouldDisable) {
+        // Critical, but only on the metric this event did not move: already judged, not re-enforced.
+        signale.warn(
+          `[SECURITY] Project ${projectId} has critical violations unrelated to this ${trigger}; not enforcing:`,
+          status.violations,
+        );
       } else if (status.warnings.length > 0) {
         // Log warnings for monitoring
         signale.warn(`[SECURITY] Project ${projectId} has security warnings:`, status.warnings);
@@ -372,7 +394,7 @@ export class SecurityService {
    * Does NOT expose internal thresholds — only computed health levels
    */
   public static async getProjectSecurityMetrics(projectId: string): Promise<{
-    status: SecurityStatus;
+    status: Omit<SecurityStatus, 'criticalByMetric'>;
     levels: {
       bounce7Day: 'healthy' | 'warning' | 'critical';
       bounceAllTime: 'healthy' | 'warning' | 'critical';
@@ -392,8 +414,10 @@ export class SecurityService {
     // Strip internal details from the client-facing response:
     // - Replace detailed violation/warning messages (they contain exact thresholds)
     // - Remove 24-hour data and new project flag (reveals enforcement windows)
-    const sanitizedStatus: SecurityStatus = {
-      ...status,
+    // - Drop the internal per-metric enforcement flags
+    const {criticalByMetric: _criticalByMetric, ...publicStatus} = status;
+    const sanitizedStatus: Omit<SecurityStatus, 'criticalByMetric'> = {
+      ...publicStatus,
       twentyFourHour: {total: 0, bounces: 0, complaints: 0, bounceRate: 0, complaintRate: 0},
       isNewProject: false,
       violations: status.violations.map(() => 'Security threshold exceeded'),
@@ -518,6 +542,7 @@ export class SecurityService {
 
     const violations: string[] = [];
     const warnings: string[] = [];
+    const criticalByMetric: Record<SecurityMetric, boolean> = {bounce: false, complaint: false};
 
     // === Absolute count ceiling checks (new projects only, rate-independent) ===
     // Catches new accounts blasting emails before their bounce rate catches up.
@@ -529,6 +554,7 @@ export class SecurityService {
         violations.push(
           `24-hour bounce count (new project) (${twentyFourHour.bounces} bounces) exceeds critical ceiling (${SECURITY_THRESHOLDS.NEW_PROJECT_BOUNCE_24H_CEILING_CRITICAL})`,
         );
+        criticalByMetric.bounce = true;
       } else if (twentyFourHour.bounces >= SECURITY_THRESHOLDS.NEW_PROJECT_BOUNCE_24H_CEILING_WARNING) {
         warnings.push(
           `24-hour bounce count (new project) (${twentyFourHour.bounces} bounces) exceeds warning ceiling (${SECURITY_THRESHOLDS.NEW_PROJECT_BOUNCE_24H_CEILING_WARNING})`,
@@ -540,6 +566,7 @@ export class SecurityService {
         violations.push(
           `7-day bounce count (new project) (${sevenDay.bounces} bounces) exceeds critical ceiling (${SECURITY_THRESHOLDS.NEW_PROJECT_BOUNCE_7DAY_CEILING_CRITICAL})`,
         );
+        criticalByMetric.bounce = true;
       } else if (sevenDay.bounces >= SECURITY_THRESHOLDS.NEW_PROJECT_BOUNCE_7DAY_CEILING_WARNING) {
         warnings.push(
           `7-day bounce count (new project) (${sevenDay.bounces} bounces) exceeds warning ceiling (${SECURITY_THRESHOLDS.NEW_PROJECT_BOUNCE_7DAY_CEILING_WARNING})`,
@@ -551,6 +578,7 @@ export class SecurityService {
         violations.push(
           `24-hour complaint count (new project) (${twentyFourHour.complaints} complaints) exceeds critical ceiling (${SECURITY_THRESHOLDS.NEW_PROJECT_COMPLAINT_24H_CEILING_CRITICAL})`,
         );
+        criticalByMetric.complaint = true;
       } else if (twentyFourHour.complaints >= SECURITY_THRESHOLDS.NEW_PROJECT_COMPLAINT_24H_CEILING_WARNING) {
         warnings.push(
           `24-hour complaint count (new project) (${twentyFourHour.complaints} complaints) exceeds warning ceiling (${SECURITY_THRESHOLDS.NEW_PROJECT_COMPLAINT_24H_CEILING_WARNING})`,
@@ -562,6 +590,7 @@ export class SecurityService {
         violations.push(
           `7-day complaint count (new project) (${sevenDay.complaints} complaints) exceeds critical ceiling (${SECURITY_THRESHOLDS.NEW_PROJECT_COMPLAINT_7DAY_CEILING_CRITICAL})`,
         );
+        criticalByMetric.complaint = true;
       } else if (sevenDay.complaints >= SECURITY_THRESHOLDS.NEW_PROJECT_COMPLAINT_7DAY_CEILING_WARNING) {
         warnings.push(
           `7-day complaint count (new project) (${sevenDay.complaints} complaints) exceeds warning ceiling (${SECURITY_THRESHOLDS.NEW_PROJECT_COMPLAINT_7DAY_CEILING_WARNING})`,
@@ -583,6 +612,7 @@ export class SecurityService {
         violations.push(
           `7-day bounce rate (${sevenDay.bounceRate.toFixed(2)}%, ${sevenDay.bounces} bounces) exceeds critical threshold (${SECURITY_THRESHOLDS.BOUNCE_7DAY_CRITICAL}%, ${SECURITY_THRESHOLDS.MIN_BOUNCES_FOR_CRITICAL} minimum)`,
         );
+        criticalByMetric.bounce = true;
       } else if (
         sevenDay.bounceRate >= SECURITY_THRESHOLDS.BOUNCE_7DAY_WARNING &&
         sevenDay.bounces >= SECURITY_THRESHOLDS.MIN_BOUNCES_FOR_WARNING
@@ -602,6 +632,7 @@ export class SecurityService {
         violations.push(
           `7-day complaint rate (${sevenDay.complaintRate.toFixed(3)}%, ${sevenDay.complaints} complaints) exceeds critical threshold (${SECURITY_THRESHOLDS.COMPLAINT_7DAY_CRITICAL}%, ${SECURITY_THRESHOLDS.MIN_COMPLAINTS_FOR_CRITICAL} minimum)`,
         );
+        criticalByMetric.complaint = true;
       } else if (
         sevenDay.complaintRate >= SECURITY_THRESHOLDS.COMPLAINT_7DAY_WARNING &&
         sevenDay.complaints >= SECURITY_THRESHOLDS.MIN_COMPLAINTS_FOR_WARNING
@@ -621,6 +652,7 @@ export class SecurityService {
         violations.push(
           `All-time bounce rate (${allTime.bounceRate.toFixed(2)}%, ${allTime.bounces} bounces) exceeds critical threshold (${SECURITY_THRESHOLDS.BOUNCE_ALLTIME_CRITICAL}%, ${SECURITY_THRESHOLDS.MIN_BOUNCES_FOR_CRITICAL} minimum)`,
         );
+        criticalByMetric.bounce = true;
       } else if (
         allTime.bounceRate >= SECURITY_THRESHOLDS.BOUNCE_ALLTIME_WARNING &&
         allTime.bounces >= SECURITY_THRESHOLDS.MIN_BOUNCES_FOR_WARNING
@@ -637,6 +669,7 @@ export class SecurityService {
         violations.push(
           `All-time complaint rate (${allTime.complaintRate.toFixed(3)}%, ${allTime.complaints} complaints) exceeds critical threshold (${SECURITY_THRESHOLDS.COMPLAINT_ALLTIME_CRITICAL}%, ${SECURITY_THRESHOLDS.MIN_COMPLAINTS_FOR_CRITICAL} minimum)`,
         );
+        criticalByMetric.complaint = true;
       } else if (
         allTime.complaintRate >= SECURITY_THRESHOLDS.COMPLAINT_ALLTIME_WARNING &&
         allTime.complaints >= SECURITY_THRESHOLDS.MIN_COMPLAINTS_FOR_WARNING
@@ -657,6 +690,7 @@ export class SecurityService {
       isNewProject,
       violations,
       warnings,
+      criticalByMetric,
     };
   }
 

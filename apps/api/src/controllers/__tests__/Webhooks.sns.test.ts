@@ -382,7 +382,7 @@ describe('Webhooks - SES event notifications', () => {
 
       await post(notification('Bounce', 'ses-real-bounce', {bounce: {bounceType: 'Permanent'}}));
 
-      expect(enforce).toHaveBeenCalledWith(projectId);
+      expect(enforce).toHaveBeenCalledWith(projectId, 'bounce');
     });
   });
 
@@ -442,8 +442,10 @@ describe('Webhooks - SES event notifications', () => {
       await post(notification('Complaint', 'ses-bounce-then-complaint'));
 
       // Two distinct suppressions on one email. The complaint is new even though the bounce
-      // was not, so it has to be counted.
+      // was not, so it has to be counted -- and judged as a complaint, not as a bounce.
       expect(enforce).toHaveBeenCalledTimes(2);
+      expect(enforce).toHaveBeenNthCalledWith(1, projectId, 'bounce');
+      expect(enforce).toHaveBeenNthCalledWith(2, projectId, 'complaint');
     });
 
     it('suppresses an unknown bounce type without enforcing on it', async () => {
