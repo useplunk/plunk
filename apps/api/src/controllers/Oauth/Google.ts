@@ -98,8 +98,6 @@ export class Google {
     }
 
     const token = jwt.sign(user.id);
-    const cookie = UserService.cookieOptions();
-
-    res.cookie(UserService.COOKIE_NAME, token, cookie).redirect(DASHBOARD_URI);
+    UserService.setAuthCookie(res, token).redirect(DASHBOARD_URI);
   }
 }
