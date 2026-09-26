@@ -579,7 +579,12 @@ export class Webhooks {
       const isNewSuppression =
         (countsTowardBounceRate && !alreadyBounced) || (eventType === 'Complaint' && !alreadyComplained);
       if (isNewSuppression && !isSimulated) {
-        await SecurityService.checkAndEnforceSecurityLimits(email.projectId);
+        // Only one metric moved, so only that metric's thresholds may disable the project.
+        // One notification is one event type, so it can never be both.
+        await SecurityService.checkAndEnforceSecurityLimits(
+          email.projectId,
+          eventType === 'Complaint' ? 'complaint' : 'bounce',
+        );
       }
 
       signale.success(`[WEBHOOK] Processed ${eventType} event for email ${email.id}`);

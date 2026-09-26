@@ -191,7 +191,7 @@ describe('SecurityService', () => {
       // New project, 20K emails with 30 bounces — exceeds new project 24h critical ceiling
       await createEmails(20000, {bouncedCount: 30});
 
-      await SecurityService.checkAndEnforceSecurityLimits(projectId);
+      await SecurityService.checkAndEnforceSecurityLimits(projectId, 'bounce');
 
       const project = await prisma.project.findUnique({
         where: {id: projectId},
@@ -209,13 +209,85 @@ describe('SecurityService', () => {
       });
       await createEmails(200, {bouncedCount: 12});
 
-      await SecurityService.checkAndEnforceSecurityLimits(projectId);
+      await SecurityService.checkAndEnforceSecurityLimits(projectId, 'bounce');
 
       const project = await prisma.project.findUnique({
         where: {id: projectId},
         select: {disabled: true},
       });
       expect(project?.disabled).toBe(false);
+    });
+  });
+
+  /**
+   * Enforcement runs on each new bounce or complaint, but only the metric that event moved
+   * may disable. A project re-enabled with an old critical all-time complaint rate was
+   * re-disabled by its next bounce, which cannot have raised the complaint rate.
+   */
+  describe('checkAndEnforceSecurityLimits gates on the triggering metric', () => {
+    beforeEach(async () => {
+      const oldDate = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+      await prisma.project.update({where: {id: projectId}, data: {createdAt: oldDate}});
+    });
+
+    async function isDisabled() {
+      const project = await prisma.project.findUnique({where: {id: projectId}, select: {disabled: true}});
+      return project?.disabled;
+    }
+
+    async function createReportedScenario() {
+      // Old enough to sit outside the 7-day window: only the all-time complaint rate trips.
+      const longAgo = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000);
+      await createEmails(4003, {bouncedCount: 19, complainedCount: 6, createdAt: longAgo});
+    }
+
+    it('does not disable on a bounce when only the complaint rate is critical', async () => {
+      await createReportedScenario();
+
+      const status = await SecurityService.getSecurityStatus(projectId);
+      expect(status.shouldDisable).toBe(true);
+      expect(status.violations.some(v => v.includes('All-time complaint rate'))).toBe(true);
+
+      await SecurityService.checkAndEnforceSecurityLimits(projectId, 'bounce');
+
+      expect(await isDisabled()).toBe(false);
+    });
+
+    it('disables on a complaint when the complaint rate is critical', async () => {
+      await createReportedScenario();
+
+      await SecurityService.checkAndEnforceSecurityLimits(projectId, 'complaint');
+
+      expect(await isDisabled()).toBe(true);
+    });
+
+    it('disables on a bounce when the bounce rate is critical', async () => {
+      // Critical 7-day bounce rate
+      await createEmails(100, {bouncedCount: 11});
+
+      await SecurityService.checkAndEnforceSecurityLimits(projectId, 'bounce');
+
+      expect(await isDisabled()).toBe(true);
+    });
+
+    it('does not disable on a complaint when only the bounce rate is critical', async () => {
+      await createEmails(100, {bouncedCount: 11});
+
+      await SecurityService.checkAndEnforceSecurityLimits(projectId, 'complaint');
+
+      expect(await isDisabled()).toBe(false);
+    });
+
+    it('gates the new-project bounce ceiling on bounces too', async () => {
+      await prisma.project.update({where: {id: projectId}, data: {createdAt: new Date()}});
+      // Trips the 24-hour new-project bounce ceiling while the bounce rate stays healthy.
+      await createEmails(20000, {bouncedCount: 30});
+
+      await SecurityService.checkAndEnforceSecurityLimits(projectId, 'complaint');
+      expect(await isDisabled()).toBe(false);
+
+      await SecurityService.checkAndEnforceSecurityLimits(projectId, 'bounce');
+      expect(await isDisabled()).toBe(true);
     });
   });
 
@@ -245,6 +317,9 @@ describe('SecurityService', () => {
 
       // New project flag should be hidden
       expect(metrics.status.isNewProject).toBe(false);
+
+      // Internal enforcement flags should not leak
+      expect(metrics.status).not.toHaveProperty('criticalByMetric');
     });
   });
   describe('SES mailbox simulator', () => {
