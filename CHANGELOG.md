@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.16.0](https://github.com/useplunk/plunk/compare/v0.15.0...v0.16.0) (2026-09-26)
+
+
+### Features
+
+* Add automatic conversion to text/plain ([17e840b](https://github.com/useplunk/plunk/commit/17e840b6d039af8b85217ed8c1de3267b75fd615))
+
+
+### Bug Fixes
+
+* Minio version in workflows ([cc77d5f](https://github.com/useplunk/plunk/commit/cc77d5f085a58c061b5a3877b77fa861f8292054))
+* Only let the metric that moved disable a project ([7b4cd32](https://github.com/useplunk/plunk/commit/7b4cd323770fd747d40a2b36897fc3f289658ee5))
+* Only let the metric that moved disable a project ([f9a8184](https://github.com/useplunk/plunk/commit/f9a818489dbc3b0f40e5336ebff09c0cc662bf6b))
+
 ## [0.15.0](https://github.com/useplunk/plunk/compare/v0.14.0...v0.15.0) (2026-09-20)
 
 
