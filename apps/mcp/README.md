@@ -74,21 +74,21 @@ Flags `--read-only` and `--api-url=<url>` do the same as their environment varia
 
 Read-only tools (the only ones registered when `PLUNK_READ_ONLY=true`):
 
-| Tool                      | Description                                             |
-| ------------------------- | ------------------------------------------------------- |
-| `plunk_list_contacts`     | Browse or search contacts, cursor-paginated             |
-| `plunk_get_contact`       | Fetch one contact by ID **or email address**            |
-| `plunk_verify_email`      | Check whether an address is deliverable                 |
-| `plunk_list_templates`    | List reusable email templates                           |
-| `plunk_list_campaigns`    | List campaigns and their status                         |
-| `plunk_get_campaign`      | Fetch one campaign in full, including its audience size |
-| `plunk_get_campaign_stats`| Opens, clicks, bounces and rates for one campaign       |
-| `plunk_list_segments`     | List audience segments                                  |
-| `plunk_list_domains`      | List sender domains and whether each is verified        |
-| `plunk_check_domain`      | Re-check a domain's DNS verification status             |
-| `plunk_list_workflows`    | List automation workflows and whether each is enabled   |
-| `plunk_get_workflow`      | Fetch one workflow with its steps and transitions       |
-| `plunk_list_workflow_executions` | List the runs of one workflow and their status   |
+| Tool                             | Description                                             |
+| -------------------------------- | ------------------------------------------------------- |
+| `plunk_list_contacts`            | Browse or search contacts, cursor-paginated             |
+| `plunk_get_contact`              | Fetch one contact by ID **or email address**            |
+| `plunk_verify_email`             | Check whether an address is deliverable                 |
+| `plunk_list_templates`           | List reusable email templates                           |
+| `plunk_list_campaigns`           | List campaigns and their status                         |
+| `plunk_get_campaign`             | Fetch one campaign in full, including its audience size |
+| `plunk_get_campaign_stats`       | Opens, clicks, bounces and rates for one campaign       |
+| `plunk_list_segments`            | List audience segments                                  |
+| `plunk_list_domains`             | List sender domains and whether each is verified        |
+| `plunk_check_domain`             | Re-check a domain's DNS verification status             |
+| `plunk_list_workflows`           | List automation workflows and whether each is enabled   |
+| `plunk_get_workflow`             | Fetch one workflow with its steps and transitions       |
+| `plunk_list_workflow_executions` | List the runs of one workflow and their status          |
 
 Writing tools:
 

@@ -197,6 +197,7 @@ describe('plunk_create_workflow', () => {
     const tool = (await client.listTools()).tools.find((t) => t.name === 'plunk_create_workflow');
     const properties = (tool?.inputSchema as {properties?: Record<string, unknown>})?.properties ?? {};
 
+    expect(Object.keys(properties)).toContain('eventName');
     expect(Object.keys(properties)).not.toContain('enabled');
 
     await close();
@@ -320,6 +321,7 @@ describe('plunk_set_workflow_enabled', () => {
       .callTool({name: 'plunk_set_workflow_enabled', arguments: {id: 'wf-1', enabled: true}})
       .catch(() => undefined);
 
+    expect(calls.filter((c) => c.method === 'GET')).toHaveLength(1);
     expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(0);
 
     await close();
