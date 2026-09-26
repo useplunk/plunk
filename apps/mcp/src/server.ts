@@ -16,6 +16,7 @@ import {registerEmailTools} from './tools/email.js';
 import {registerEventTools} from './tools/events.js';
 import {registerSegmentTools} from './tools/segments.js';
 import {registerTemplateTools} from './tools/templates.js';
+import {registerWorkflowTools} from './tools/workflows.js';
 import type {ToolContext} from './tools/shared.js';
 
 export const SERVER_NAME = 'plunk';
@@ -41,6 +42,10 @@ const INSTRUCTIONS = [
   'To act on a contact the user identified by email address, pass that address to the contact tools',
   'directly. `plunk_get_contact`, `plunk_subscribe_contact` and `plunk_unsubscribe_contact` all accept',
   '`email` as well as `id`, so there is no need to search for the ID first.',
+  '',
+  'Workflows run per contact when that contact triggers an event. `plunk_create_workflow` creates one',
+  'disabled; add steps with `plunk_add_workflow_step`, then `plunk_set_workflow_enabled` turns it on',
+  'and asks the user to confirm when it sends email.',
 ].join('\n');
 
 export function buildServer(config: PlunkMcpConfig): McpServer {
@@ -61,6 +66,7 @@ export function buildServer(config: PlunkMcpConfig): McpServer {
   registerCampaignTools(ctx, client);
   registerSegmentTools(ctx, client);
   registerDomainTools(ctx, client);
+  registerWorkflowTools(ctx, client);
 
   return server;
 }
