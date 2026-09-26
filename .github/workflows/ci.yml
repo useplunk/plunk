@@ -123,7 +123,7 @@ jobs:
           docker run -d --name minio -p 9000:9000 \
             -e MINIO_ROOT_USER=plunk \
             -e MINIO_ROOT_PASSWORD=plunkminiopass \
-            quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z server /data
+            pgsty/minio:RELEASE.2026-08-04T00-00-00Z server /data
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:9000/minio/health/live >/dev/null 2>&1; then
               echo "MinIO is ready"
@@ -138,7 +138,7 @@ jobs:
       - name: Create MinIO bucket
         run: |
           docker run --rm --network host \
-            --entrypoint /bin/sh quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z \
+            --entrypoint /bin/sh pgsty/mc:RELEASE.2026-09-16T00-00-00Z \
             -c "mc alias set local http://localhost:9000 plunk plunkminiopass && \
                 mc mb local/uploads --ignore-existing"
 
