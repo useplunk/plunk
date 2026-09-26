@@ -422,11 +422,13 @@ export class SegmentService {
       throw new HttpException(400, 'Can only remove contacts from STATIC segments');
     }
 
-    // Look up contacts by email
+    // Look up contacts by email. Stored emails are normalized, so matching on the
+    // normalized input uses the (projectId, email) btree instead of a case-insensitive
+    // scan over the whole project.
     const contacts = await prisma.contact.findMany({
       where: {
         projectId,
-        email: {in: emails, mode: 'insensitive'},
+        email: {in: [...new Set(emails.map(e => ContactService.normalizeEmail(e)))]},
       },
       select: {id: true},
     });
@@ -1028,15 +1030,22 @@ export class SegmentService {
    * Build condition for string fields
    */
   private static buildStringFieldCondition(field: 'email', operator: string, value: unknown): Prisma.ContactWhereInput {
+    // `email` is lowercase at the database level, so folding the operand is equivalent
+    // to the case-insensitive match this used to do -- and it keeps `equals` on the
+    // (projectId, email) btree and `contains` on the trigram index, neither of which
+    // an ILIKE can use. Segment evaluation runs these over every contact in a project.
+    const equalsOperand = ContactService.normalizeEmail(String(value));
+    const containsOperand = ContactService.normalizeEmailSearch(String(value));
+
     switch (operator) {
       case 'equals':
-        return {[field]: {equals: String(value), mode: 'insensitive'}};
+        return {[field]: {equals: equalsOperand}};
       case 'notEquals':
-        return {NOT: {[field]: {equals: String(value), mode: 'insensitive'}}};
+        return {NOT: {[field]: {equals: equalsOperand}}};
       case 'contains':
-        return {[field]: {contains: String(value), mode: 'insensitive'}};
+        return {[field]: {contains: containsOperand}};
       case 'notContains':
-        return {NOT: {[field]: {contains: String(value), mode: 'insensitive'}}};
+        return {NOT: {[field]: {contains: containsOperand}}};
       default:
         throw new HttpException(400, `Unsupported operator for string field: ${operator}`);
     }

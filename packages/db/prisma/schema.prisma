@@ -175,6 +175,20 @@ model Contact {
   @@index([projectId, subscribed])
   @@index([snoozedUntil]) // Drives the snooze sweep's "who is due?" query
   @@index([data(ops: JsonbOps)], type: Gin) // GIN index for fast JSON queries on Contact.data
+  /// Serves the list's `ORDER BY createdAt DESC, id DESC LIMIT n` as an ordered walk
+  /// instead of sorting every contact in the project. Note this covers the default
+  /// descending sort only: `?dir=asc` pairs an ascending createdAt with the hardcoded
+  /// descending `id` tiebreaker, and no single index satisfies a mixed direction.
+  @@index([projectId, createdAt(sort: Desc), id(sort: Desc)], map: "contacts_projectId_createdAt_id_idx")
+  /// Trigram index behind `email LIKE '%term%'` search. Emails are lowercase by database
+  /// trigger, so LIKE is sufficient and ILIKE is not needed.
+  ///
+  /// Deliberately on `email` alone rather than a composite `(projectId, email)` via
+  /// btree_gin, which measured ~10-20% better: `text_ops` is the default GIN opclass for
+  /// text, so Postgres omits it from the catalog and Prisma's required explicit
+  /// `raw("text_ops")` could never match it -- every `migrate dev` would emit a spurious
+  /// DROP/CREATE. The planner BitmapAnds this against contacts_projectId_idx instead.
+  @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "contacts_email_trgm_idx")
   @@map("contacts")
 }
 

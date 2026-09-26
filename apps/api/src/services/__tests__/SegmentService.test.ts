@@ -510,35 +510,31 @@ describe('SegmentService', () => {
       expect(result.data.map(c => c.id)).not.toContain(match.id);
     });
 
-    it('should support case-insensitive equals/contains for email strings', async () => {
-      const lower = await factories.createContact({
-        projectId,
-        email: 'user@company.com',
-      });
-      const upper = await factories.createContact({
+    it('should match email filters regardless of the operand casing', async () => {
+      // Case-variant addresses are a single contact -- the database lowercases on write
+      // and (projectId, email) is unique -- so the filter only has to fold its operand
+      // the same way to match. This is what lets the filters use LIKE rather than ILIKE.
+      const contact = await factories.createContact({
         projectId,
         email: 'USER@COMPANY.COM',
       });
+      expect(contact.email).toBe('user@company.com');
 
       const equalsSegment = await factories.createSegment(projectId, {
-        name: 'Case-insensitive equals',
+        name: 'Mixed-case equals operand',
         filters: [{field: 'email', operator: 'equals', value: 'USER@COMPANY.COM'}],
       });
 
       const equalsResult = await SegmentService.getContacts(projectId, equalsSegment.id);
-      const equalsIds = equalsResult.data.map(c => c.id);
-      expect(equalsIds).toContain(lower.id);
-      expect(equalsIds).toContain(upper.id);
+      expect(equalsResult.data.map(c => c.id)).toContain(contact.id);
 
       const containsSegment = await factories.createSegment(projectId, {
-        name: 'Case-insensitive contains',
+        name: 'Mixed-case contains operand',
         filters: [{field: 'email', operator: 'contains', value: 'COMPANY.COM'}],
       });
 
       const containsResult = await SegmentService.getContacts(projectId, containsSegment.id);
-      const containsIds = containsResult.data.map(c => c.id);
-      expect(containsIds).toContain(lower.id);
-      expect(containsIds).toContain(upper.id);
+      expect(containsResult.data.map(c => c.id)).toContain(contact.id);
     });
 
     it('should support notEquals for boolean subscribed field', async () => {
