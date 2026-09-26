@@ -122,6 +122,29 @@ export const Keys = {
       return 'campaign:stats_dirty';
     },
   },
+  Contact: {
+    /**
+     * The computed field list for a project. See ContactService.getAvailableFields --
+     * building this reads every contact in the project, so it is served from here and
+     * recomputed only on expiry, on a write that introduces an unknown field, or when a
+     * field is deleted.
+     */
+    fields(projectId: string): string {
+      return `contact:fields:${projectId}`;
+    },
+
+    /**
+     * The bare `Contact.data` keys behind that list, as a Redis set.
+     *
+     * Contact writes test their keys against this to decide whether the cached list is
+     * still complete. A set rather than re-reading the list itself because that check
+     * runs on the hottest path in the product: SISMEMBER answers it inside Redis, where
+     * a GET would ship the whole payload back per write just to look for one key.
+     */
+    fieldKeys(projectId: string): string {
+      return `contact:field_keys:${projectId}`;
+    },
+  },
   Project: {
     id(id: string): string {
       return `project:id:${id}`;

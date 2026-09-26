@@ -1,5 +1,5 @@
 import type {Contact} from '@plunk/db';
-import type {CursorPaginatedResponse, PaginatedResponse} from '@plunk/types';
+import type {ContactField, CursorPaginatedResponse, PaginatedResponse} from '@plunk/types';
 import useSWR from 'swr';
 
 interface UseContactsOptions {
@@ -10,13 +10,7 @@ interface UseContactsOptions {
 /** Stable identity so consumers' effect dependencies don't churn before the fetch lands. */
 const NO_FIELDS: ContactField[] = [];
 
-/** A contact field as reported by `GET /contacts/fields`. */
-export interface ContactField {
-  field: string;
-  type: 'string' | 'number' | 'boolean' | 'date';
-  /** Percentage of the project's contacts that carry this field. */
-  coverage: number;
-}
+export type {ContactField};
 
 /**
  * Hook to fetch contacts with optional search
