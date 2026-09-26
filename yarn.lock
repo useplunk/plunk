@@ -8198,7 +8198,7 @@ __metadata:
     concurrently: "npm:^9.2.1"
     cookie-parser: "npm:^1.4.7"
     cors: "npm:^2.8.5"
-    csv-parse: "npm:^6.1.0"
+    csv-parse: "npm:^7.0.2"
     dayjs: "npm:^1.11.19"
     dotenv: "npm:^17.2.3"
     express: "npm:^5.1.0"
@@ -9414,10 +9414,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"csv-parse@npm:^6.1.0":
-  version: 6.1.0
-  resolution: "csv-parse@npm:6.1.0"
-  checksum: 10c0/098c69e5b3b50d4bf65401dc3b2f1bd66f272fe985be99d7cb9f14ad33a7218f0f5695a03a82720cf47141d242bf44b4836ff32900751bef087057bc6e6715a2
+"csv-parse@npm:^7.0.2":
+  version: 7.0.2
+  resolution: "csv-parse@npm:7.0.2"
+  checksum: 10c0/52ffaafbf7be37201ad782ec3eda37bc24ee0ec6e8967b5a68d5ad2973f10b4154fd11a5b90a002615ef98395c4cd699a13d13509b10067297795b9d3c9320e9
   languageName: node
   linkType: hard
 
