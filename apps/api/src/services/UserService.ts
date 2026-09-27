@@ -1,5 +1,6 @@
 import type {ProjectWithRole} from '@plunk/types';
 import dayjs from 'dayjs';
+import {getDomain} from 'tldts';
 
 import {API_URI, NODE_ENV} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
@@ -8,10 +9,14 @@ import {wrapRedis} from '../database/redis.js';
 import {Keys} from './keys.js';
 
 /**
- * Extract base domain from URL for cookie sharing across subdomains
+ * Extract the registrable domain from URL for cookie sharing across subdomains.
+ * Uses the Public Suffix List: taking the last two labels would scope the cookie
+ * to a public suffix such as ".com.br" or ".co.uk", which browsers reject.
  * e.g., "http://api.example.com" -> ".example.com"
+ * e.g., "http://api.example.com.br" -> ".example.com.br"
  * e.g., "http://api.localhost" -> ".localhost"
  * e.g., "http://app.plunk.local" -> ".plunk.local"
+ * e.g., "http://localhost" or an IP address -> no domain
  */
 function getCookieDomain(): string | undefined {
   if (NODE_ENV === 'development') {
@@ -19,30 +24,16 @@ function getCookieDomain(): string | undefined {
   }
 
   try {
-    const url = new URL(API_URI);
-    const hostname = url.hostname;
+    const {hostname} = new URL(API_URI);
 
-    // For localhost or IP addresses, don't set a domain
-    if (hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
-      return undefined;
+    // *.localhost is a reserved TLD, so share the cookie across all of it
+    if (hostname.endsWith('.localhost')) {
+      return '.localhost';
     }
 
-    // Extract base domain (last two parts for most domains, or .localhost)
-    const parts = hostname.split('.');
-    if (parts.length >= 2) {
-      // For *.localhost, use .localhost (reserved TLD)
-      if (hostname.endsWith('.localhost')) {
-        return '.localhost';
-      }
-      // For *.local (mDNS TLD), use the actual base domain
-      if (hostname.endsWith('.local')) {
-        return `.${parts.slice(-2).join('.')}`;
-      }
-      // For other domains, use the last two parts (e.g., .example.com)
-      return `.${parts.slice(-2).join('.')}`;
-    }
-
-    return undefined;
+    // Private suffixes (e.g. up.railway.app) are included, since browsers reject cookies scoped to them too
+    const domain = getDomain(hostname, {allowPrivateDomains: true});
+    return domain ? `.${domain}` : undefined;
   } catch {
     return undefined;
   }
