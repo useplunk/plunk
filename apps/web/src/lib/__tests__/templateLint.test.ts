@@ -11,11 +11,15 @@ import {lintTemplateFields} from '../templateLint';
  * teaches authors to ignore the strip, which costs more than the mistakes it catches —
  * so most of what follows checks that it stays quiet.
  */
+// Shaped exactly as `GET /contacts/fields` returns them: standard fields bare, custom
+// fields under their `data.` path.
 const FIELDS: ContactField[] = [
-  {field: 'firstName', type: 'string', coverage: 96},
-  {field: 'plan', type: 'string', coverage: 88},
-  {field: 'cart', type: 'string', coverage: 71},
-  {field: 'trialEndsAt', type: 'date', coverage: 12},
+  {field: 'email', type: 'string', coverage: 100},
+  {field: 'subscribed', type: 'boolean', coverage: 100},
+  {field: 'data.firstName', type: 'string', coverage: 96},
+  {field: 'data.plan', type: 'string', coverage: 88},
+  {field: 'data.cart', type: 'string', coverage: 71},
+  {field: 'data.trialEndsAt', type: 'date', coverage: 12},
 ];
 
 describe('lintTemplateFields', () => {
@@ -80,6 +84,11 @@ describe('lintTemplateFields', () => {
 
     it('accepts data-prefixed access', () => {
       expect(lintTemplateFields('{{data.plan}}', FIELDS)).toEqual([]);
+    });
+
+    it('accepts a custom field referenced by its bare name', () => {
+      // The endpoint reports `data.plan`; authors (and the suggestion menu) write `plan`.
+      expect(lintTemplateFields('{{plan}} {% if firstName %}Hi{% endif %}', FIELDS)).toEqual([]);
     });
 
     it('accepts loop variables and forloop', () => {
