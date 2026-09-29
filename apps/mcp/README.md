@@ -2,7 +2,7 @@
 
 The official [Model Context Protocol](https://modelcontextprotocol.io) server for
 [Plunk](https://www.useplunk.com). It lets an AI agent send transactional email, manage contacts and
-segments, and draft and send campaigns in your Plunk project.
+segments, draft and send campaigns, and build automation workflows in your Plunk project.
 
 Works with the hosted product and with self-hosted instances.
 
@@ -74,18 +74,21 @@ Flags `--read-only` and `--api-url=<url>` do the same as their environment varia
 
 Read-only tools (the only ones registered when `PLUNK_READ_ONLY=true`):
 
-| Tool                      | Description                                             |
-| ------------------------- | ------------------------------------------------------- |
-| `plunk_list_contacts`     | Browse or search contacts, cursor-paginated             |
-| `plunk_get_contact`       | Fetch one contact by ID **or email address**            |
-| `plunk_verify_email`      | Check whether an address is deliverable                 |
-| `plunk_list_templates`    | List reusable email templates                           |
-| `plunk_list_campaigns`    | List campaigns and their status                         |
-| `plunk_get_campaign`      | Fetch one campaign in full, including its audience size |
-| `plunk_get_campaign_stats`| Opens, clicks, bounces and rates for one campaign       |
-| `plunk_list_segments`     | List audience segments                                  |
-| `plunk_list_domains`      | List sender domains and whether each is verified        |
-| `plunk_check_domain`      | Re-check a domain's DNS verification status             |
+| Tool                             | Description                                             |
+| -------------------------------- | ------------------------------------------------------- |
+| `plunk_list_contacts`            | Browse or search contacts, cursor-paginated             |
+| `plunk_get_contact`              | Fetch one contact by ID **or email address**            |
+| `plunk_verify_email`             | Check whether an address is deliverable                 |
+| `plunk_list_templates`           | List reusable email templates                           |
+| `plunk_list_campaigns`           | List campaigns and their status                         |
+| `plunk_get_campaign`             | Fetch one campaign in full, including its audience size |
+| `plunk_get_campaign_stats`       | Opens, clicks, bounces and rates for one campaign       |
+| `plunk_list_segments`            | List audience segments                                  |
+| `plunk_list_domains`             | List sender domains and whether each is verified        |
+| `plunk_check_domain`             | Re-check a domain's DNS verification status             |
+| `plunk_list_workflows`           | List automation workflows and whether each is enabled   |
+| `plunk_get_workflow`             | Fetch one workflow with its steps and transitions       |
+| `plunk_list_workflow_executions` | List the runs of one workflow and their status          |
 
 Writing tools:
 
@@ -104,6 +107,9 @@ Writing tools:
 | `plunk_send_campaign`        | Send or schedule a campaign *(destructive, irreversible)* |
 | `plunk_cancel_campaign`      | Stop a scheduled or in-flight campaign *(destructive)*    |
 | `plunk_create_segment`       | Create an audience segment                                |
+| `plunk_create_workflow`      | Create a workflow, disabled, triggered by an event        |
+| `plunk_add_workflow_step`    | Append a `SEND_EMAIL` or `DELAY` step to a workflow       |
+| `plunk_set_workflow_enabled` | Enable or disable a workflow                              |
 
 ### Addressing contacts by email
 
@@ -124,7 +130,8 @@ Plunk's secret key is all-or-nothing over its project, so this server adds its o
 
 - **Sends require human confirmation.** `plunk_send_campaign`, and `plunk_send_email` with more than
   one recipient, ask you to confirm before anything goes out, and the prompt tells you how many people
-  will receive it. Confirmation is not a tool argument, so the model cannot grant it to itself.
+  will receive it. Enabling a workflow that has email steps with `plunk_set_workflow_enabled` asks too,
+  and names the trigger event. Confirmation is not a tool argument, so the model cannot grant it to itself.
   Clients that cannot show a prompt cannot send — set `PLUNK_ALLOW_UNCONFIRMED_SENDS=true` if you are
   running headless and accept that.
 - **Read-only mode is enforced by registration**, not by convention. With `PLUNK_READ_ONLY=true` the
