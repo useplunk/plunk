@@ -25,6 +25,7 @@ import type {
 
 import {REDIS_URL} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
+import {parseRedisUrl} from '../utils/redis.js';
 
 /**
  * Queue Configuration
@@ -36,16 +37,6 @@ const redisConnection: RedisOptions = {
   // Parse Redis URL
   ...parseRedisUrl(REDIS_URL),
 };
-
-function parseRedisUrl(url: string): {host: string; port: number; password?: string; db?: number} {
-  const urlObj = new URL(url);
-  return {
-    host: urlObj.hostname,
-    port: parseInt(urlObj.port || '6379', 10),
-    password: urlObj.password || undefined,
-    db: parseInt(urlObj.pathname.slice(1) || '0', 10),
-  };
-}
 
 /**
  * Queue Instances
