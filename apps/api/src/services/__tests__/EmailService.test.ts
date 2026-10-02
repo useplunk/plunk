@@ -991,3 +991,54 @@ describe('SES header serialization', () => {
     expect(headerSection).toContain('Content-Type:');
   });
 });
+
+/**
+ * Regression tests for the RegExp-injection / ReDoS advisory.
+ *
+ * The /v1/send renderer used to build a `new RegExp` per contact-data key. Contact data
+ * keys are attacker-controlled on the public /v1/track endpoint, so a key like `(` threw a
+ * SyntaxError (persistent 500 on every send to that contact) and `(.+)+$` drove the event
+ * loop into catastrophic backtracking (DoS). Rendering now goes through the shared
+ * `renderTemplate` (EmailService.format), which treats names as data and never throws.
+ */
+describe('Template rendering — hostile contact data keys (no DB)', () => {
+  it('does not throw when a data key is an invalid regular expression', () => {
+    const run = () =>
+      EmailService.format({
+        subject: 'Hello {{name}}',
+        body: 'Body {{name}}',
+        // `(` would have produced `/\{\{\s*(\s*\}\}/` — an unterminated group.
+        data: {'(': 'x', name: 'Jane'},
+      });
+
+    expect(run).not.toThrow();
+    const {subject, body} = run();
+    expect(subject).toBe('Hello Jane');
+    expect(body).toBe('Body Jane');
+  });
+
+  it('renders promptly when a data key is a catastrophic-backtracking pattern', () => {
+    // A long unmatched `{{aaaa...` run is exactly the input that made `(.+)+$` hang.
+    const body = `{{${'a'.repeat(50_000)}`;
+
+    const start = Date.now();
+    const result = EmailService.format({
+      subject: 's',
+      body,
+      data: {'(.+)+$': 'x'},
+    });
+    const elapsedMs = Date.now() - start;
+
+    // The old code blocked the event loop for the full request timeout (60s+).
+    expect(elapsedMs).toBeLessThan(1_000);
+    // Unterminated placeholder is left as-is; the point is that it returns at all.
+    expect(result.body).toContain('a'.repeat(100));
+  });
+
+  it('still supports plain and fallback placeholders', () => {
+    expect(EmailService.format({subject: 'Hi {{name}}', body: 'x', data: {name: 'Jo'}}).subject).toBe('Hi Jo');
+    expect(EmailService.format({subject: 'Hi {{name ?? Guest}}', body: 'x', data: {}}).subject).toBe('Hi Guest');
+    // A missing field with no fallback renders empty rather than leaking `{{...}}`.
+    expect(EmailService.format({subject: 'Hi {{missing}}', body: 'x', data: {}}).subject).toBe('Hi ');
+  });
+});

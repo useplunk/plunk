@@ -306,32 +306,22 @@ export class Actions {
         manageUrl: `${DASHBOARD_URI}/manage/${contact.id}`,
       };
 
-      // Render template with contact data
-      // Simple template variable replacement: {{fieldname}}
-      let renderedSubject = emailSubject!;
-      let renderedBody = emailBody!;
-
-      for (const [key, value] of Object.entries(dataWithSystemVars)) {
-        const placeholder = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
-        const fallbackPlaceholder = new RegExp(`\\{\\{\\s*${key}\\s*\\?\\?\\s*([^}]+)\\}\\}`, 'g');
-
-        // Replace with value
-        const stringValue = value !== null && value !== undefined ? String(value) : '';
-        renderedSubject = renderedSubject!.replace(placeholder, stringValue);
-        renderedBody = renderedBody!.replace(placeholder, stringValue);
-
-        // Handle fallback syntax: {{field ?? default}}
-        renderedSubject = renderedSubject!.replace(fallbackPlaceholder, stringValue || '$1');
-        renderedBody = renderedBody!.replace(fallbackPlaceholder, stringValue || '$1');
-      }
-
-      // Replace any remaining placeholders with empty string or fallback value
-      renderedSubject = renderedSubject!.replace(/\{\{\s*(\w+)\s*\}\}/g, '');
-      renderedBody = renderedBody!.replace(/\{\{\s*(\w+)\s*\}\}/g, '');
-
-      // Handle fallback placeholders that weren't matched
-      renderedSubject = renderedSubject!.replace(/\{\{\s*\w+\s*\?\?\s*([^}]+)\}\}/g, '$1');
-      renderedBody = renderedBody!.replace(/\{\{\s*\w+\s*\?\?\s*([^}]+)\}\}/g, '$1');
+      // Render template placeholders against the contact/request data.
+      //
+      // This bakes in any non-persistent request data before the email is stored; the
+      // worker renders a second pass against the contact's persistent data at send time.
+      //
+      // SECURITY: variable names here originate from contact/event `data`, which on the
+      // public /v1/track endpoint is attacker-controlled free text. The shared renderer
+      // treats names as data (scope lookups) and never compiles them into a RegExp, so a
+      // hostile key such as `(` can no longer throw a SyntaxError (persistent 500 on every
+      // send to that contact) and `(.+)+$` can no longer drive catastrophic backtracking
+      // (event-loop DoS). It also never throws, and matches the worker's render pass.
+      const {subject: renderedSubject, body: renderedBody} = EmailService.format({
+        subject: emailSubject!,
+        body: emailBody!,
+        data: dataWithSystemVars,
+      });
 
       const email = await EmailService.sendTransactionalEmail({
         projectId: auth.projectId,
