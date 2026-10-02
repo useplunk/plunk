@@ -1176,6 +1176,14 @@ export class WorkflowExecutionService {
       });
     }
 
+    if (hasDataUpdates) {
+      // A workflow step is as capable of introducing a custom field as the API is, so it
+      // owes the cached field list the same check. Dynamically imported for the same
+      // reason EventService is below: ContactService reaches back into this module.
+      const {ContactService} = await import('./ContactService.js');
+      await ContactService.invalidateFieldsIfNew(execution.workflow.projectId, Object.keys(updates));
+    }
+
     if (subscriptionChanging) {
       const {EventService} = await import('./EventService.js');
       await EventService.trackEvent(

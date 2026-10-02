@@ -42,6 +42,11 @@ vi.mock('../../database/redis', () => {
         store.set(key, {...item, expiry: Date.now() + seconds * 1000});
         return 1;
       }),
+      // ContactService registers a Lua command on this client at import time (see
+      // CONTACT_FIELDS_INVALIDATE_SCRIPT), and WorkflowService imports ContactService.
+      // Nothing here exercises the field cache, so a no-op is enough -- a test that does
+      // will need `multi` and the command itself on this fake too.
+      defineCommand: vi.fn(),
       clear: () => store.clear(),
     },
   };
