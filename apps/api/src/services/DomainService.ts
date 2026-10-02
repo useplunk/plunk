@@ -1,5 +1,6 @@
 import React from 'react';
 import signale from 'signale';
+import {getDomain} from 'tldts';
 import {DomainUnverifiedEmail, DomainVerifiedEmail, sendPlatformEmail} from '@plunk/email';
 import {DASHBOARD_URI, LANDING_URI} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
@@ -389,12 +390,11 @@ export class DomainService {
   }
 
   /**
-   * Extract the registrable root domain (last two labels) from a domain name.
-   * e.g. "mail.example.com" → "example.com", "example.com" → "example.com"
+   * Extract the registrable root domain from a domain name using the Public Suffix List.
+   * e.g. "mail.example.com" → "example.com", "mail.example.com.br" → "example.com.br"
    */
   private static rootDomain(domain: string): string {
-    const parts = domain.split('.');
-    return parts.length > 2 ? parts.slice(-2).join('.') : domain;
+    return getDomain(domain, {allowPrivateDomains: true}) ?? domain;
   }
 
   /**
