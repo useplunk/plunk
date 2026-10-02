@@ -363,7 +363,7 @@ EXPOSE 80 465 587
 
 # Health check through nginx
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:80/ || exit 1
+  CMD curl -f http://localhost:${NGINX_PORT:-80}/ || exit 1
 
 # Default to running all services via entrypoint
 ENV SERVICE=all
