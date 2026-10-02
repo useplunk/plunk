@@ -15,8 +15,11 @@ import {
   S3_ENABLED,
   S3_ENDPOINT,
   S3_FORCE_PATH_STYLE,
+  S3_PREFIX,
   S3_PUBLIC_URL,
 } from '../app/constants.js';
+
+const KEY_PREFIX = S3_PREFIX ? `${S3_PREFIX}/` : '';
 
 /**
  * S3-compatible storage client for Minio
@@ -81,7 +84,7 @@ export async function initializeBucket(): Promise<void> {
     }
   }
 
-  // Set public read policy for the bucket (both for new and existing buckets)
+  // Set public read policy for the upload prefix (both for new and existing buckets)
   try {
     const bucketPolicy = {
       Version: '2012-10-17',
@@ -91,7 +94,7 @@ export async function initializeBucket(): Promise<void> {
           Effect: 'Allow',
           Principal: '*',
           Action: ['s3:GetObject'],
-          Resource: [`arn:aws:s3:::${S3_BUCKET}/*`],
+          Resource: [`arn:aws:s3:::${S3_BUCKET}/${KEY_PREFIX}*`],
         },
       ],
     };
@@ -104,7 +107,7 @@ export async function initializeBucket(): Promise<void> {
     );
 
     if (!bucketExists) {
-      signale.info(`[S3] Set public read policy for bucket: ${S3_BUCKET}`);
+      signale.info(`[S3] Set public read policy for: ${S3_BUCKET}/${KEY_PREFIX}*`);
     }
   } catch (policyError) {
     signale.error('[S3] Failed to set bucket policy:', policyError);
@@ -138,7 +141,7 @@ export async function uploadFile(params: UploadFileParams): Promise<UploadFileRe
   const timestamp = Date.now();
   const randomString = crypto.randomBytes(8).toString('hex');
   const extension = filename.split('.').pop();
-  const key = `${projectId}/${timestamp}-${randomString}.${extension}`;
+  const key = `${KEY_PREFIX}${projectId}/${timestamp}-${randomString}.${extension}`;
 
   // Upload to S3/Minio
   await s3Client.send(
