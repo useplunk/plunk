@@ -176,6 +176,25 @@ export const EMAIL_VERIFICATION_RATE_WINDOW = 3600; // 1 hour in seconds
 export const PASSWORD_CHANGE_RATE_LIMIT = 5; // Max 5 attempts per window
 export const PASSWORD_CHANGE_RATE_WINDOW = 900; // 15 minutes in seconds
 
+// Failed password logins on POST /auth/login. Set a limit to 0 to disable that counter.
+// The per-IP counter keys on req.ip. Express is not configured to trust proxy headers, so
+// behind a reverse proxy (including the nginx in the Docker image) that is the proxy's
+// address and the counter would be shared by every user. It is off by default for that reason.
+function loginRateLimitEnv(key: keyof NodeJS.ProcessEnv, defaultValue: string, min: number): number {
+  const value = Number(validateEnv(key, defaultValue));
+
+  // A window of 0 or a non-number would create counters that never expire.
+  if (!Number.isInteger(value) || value < min) {
+    throw new Error(`${key} must be an integer >= ${min}`);
+  }
+
+  return value;
+}
+
+export const LOGIN_RATE_LIMIT_PER_EMAIL = loginRateLimitEnv('LOGIN_RATE_LIMIT_PER_EMAIL', '5', 0);
+export const LOGIN_RATE_LIMIT_PER_IP = loginRateLimitEnv('LOGIN_RATE_LIMIT_PER_IP', '0', 0);
+export const LOGIN_RATE_LIMIT_WINDOW = loginRateLimitEnv('LOGIN_RATE_LIMIT_WINDOW', '900', 1); // seconds
+
 // Phishing Detection (optional)
 // OpenRouter API integration for content safety checks
 export const OPENROUTER_API_KEY = validateEnv('OPENROUTER_API_KEY', '');
