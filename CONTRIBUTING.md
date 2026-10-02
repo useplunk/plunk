@@ -45,16 +45,21 @@ For local development without Docker:
 
 ```bash
 # Clone and install
-git clone <repo-url>
-cd app
+git clone git@github.com:useplunk/plunk.git
+cd plunk
 yarn install
 
 # Start infrastructure services (PostgreSQL, Redis, MinIO)
 yarn services:up
 
 # Set up environment variables
-cp .env.example .env
-# Edit .env with your configuration
+cp apps/api/.env.example apps/api/.env
+cp packages/db/.env.example packages/db/.env
+
+# Edit apps/api/.env with your configuration
+# Important! To start the api-server, the two variables `AWS_SES_ACCESS_KEY_ID` and `AWS_SES_SECRET_ACCESS_KEY` must not be empty.
+# Dummy values are pre-set to enable local development (without the ability to send emails).
+# If you plan to send emails in your development environment, replace the dummy values in `apps/api/.env`.
 
 # Run database migrations
 yarn workspace @plunk/db migrate:dev
