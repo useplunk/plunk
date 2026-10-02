@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.16.0](https://github.com/useplunk/plunk/compare/v0.15.0...v0.16.0) (2026-10-02)
+
+
+### Features
+
+* Add automatic conversion to text/plain ([17e840b](https://github.com/useplunk/plunk/commit/17e840b6d039af8b85217ed8c1de3267b75fd615))
+* **mcp:** add workflow tools ([68a2c9b](https://github.com/useplunk/plunk/commit/68a2c9b7fdcbdca7b9aef348f1868ceca70babb9))
+* **mcp:** add workflow tools ([e509745](https://github.com/useplunk/plunk/commit/e50974557211fb57b4f56450d2bd1c3bbf51f5dd))
+
+
+### Bug Fixes
+
+* Accept both data.key and key as valid ([02ea46e](https://github.com/useplunk/plunk/commit/02ea46ed0c2d1eb82bbf1fe22f5846f2b78de059))
+* Correctly validate Regex expressions ([f3cd82c](https://github.com/useplunk/plunk/commit/f3cd82cc059ad3842bb659def033f9b61c87f1d8))
+* Minio version in workflows ([cc77d5f](https://github.com/useplunk/plunk/commit/cc77d5f085a58c061b5a3877b77fa861f8292054))
+* Only let the metric that moved disable a project ([7b4cd32](https://github.com/useplunk/plunk/commit/7b4cd323770fd747d40a2b36897fc3f289658ee5))
+* Only let the metric that moved disable a project ([f9a8184](https://github.com/useplunk/plunk/commit/f9a818489dbc3b0f40e5336ebff09c0cc662bf6b))
+
 ## [0.15.0](https://github.com/useplunk/plunk/compare/v0.14.0...v0.15.0) (2026-09-20)
 
 
