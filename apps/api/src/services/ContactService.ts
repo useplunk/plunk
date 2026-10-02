@@ -30,6 +30,21 @@ export class ContactService {
   }
 
   /**
+   * Normalize a search needle so it matches the stored form of `email`.
+   *
+   * Contact emails are lowercase at the database level (a BEFORE INSERT/UPDATE trigger
+   * added in 20260918120000_contact_email_lowercase, on top of the normalization every
+   * write path already does). That invariant is what lets search use plain `LIKE`
+   * instead of `ILIKE`: case-insensitive matching costs roughly 3x on the terms too
+   * common for the trigram index to help with, and it is pure waste against a column
+   * that cannot contain uppercase. The needle has to be folded the same way the column
+   * is, or a capitalised query would silently match nothing.
+   */
+  public static normalizeEmailSearch(search: string): string {
+    return search.trim().toLowerCase();
+  }
+
+  /**
    * Translate a subscription status into a where-clause fragment.
    *
    * `snoozed` is derived, not stored -- it is `subscribed = false` with a snooze date still
@@ -75,21 +90,23 @@ export class ContactService {
        * Ignored when `status` is given.
        */
       subscribed?: boolean;
-      /** Sortable columns. `email` is covered by the `(projectId, email)` unique index. */
+      /**
+       * Sortable columns. `email` is covered by the `(projectId, email)` unique index,
+       * `createdAt` by `(projectId, createdAt DESC, id DESC)`.
+       */
       sort?: 'email' | 'createdAt';
+      /**
+       * Sort direction, default `desc`. Only `desc` is index-covered: the `id` tiebreaker
+       * below is hardcoded descending, so `asc` asks for a mixed-direction sort that no
+       * single index satisfies and the match set has to be sorted. Making the tiebreaker
+       * follow `dir` would let one index serve both.
+       */
       dir?: 'asc' | 'desc';
     },
   ): Promise<CursorPaginatedResponse<Contact>> {
     const where: Prisma.ContactWhereInput = {
       projectId,
-      ...(search
-        ? {
-            email: {
-              contains: search,
-              mode: 'insensitive' as const,
-            },
-          }
-        : {}),
+      ...(search ? {email: {contains: this.normalizeEmailSearch(search)}} : {}),
       ...this.buildStatusWhere(options?.status, options?.subscribed),
     };
 
