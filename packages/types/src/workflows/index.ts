@@ -26,8 +26,8 @@ export interface EmailRecipientConfig {
  * Configuration for SEND_EMAIL workflow step
  */
 export interface SendEmailStepConfig {
-  /** Template ID to use for the email */
-  templateId: string;
+  /** @deprecated The WorkflowStep.template relation is authoritative. */
+  templateId?: string;
   /** Recipient configuration */
   recipient?: EmailRecipientConfig;
 }

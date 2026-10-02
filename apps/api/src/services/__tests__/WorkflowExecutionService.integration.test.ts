@@ -1,7 +1,15 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {StepExecutionStatus, WorkflowExecutionStatus, WorkflowStepType} from '@plunk/db';
+import {
+  EmailSourceType,
+  StepExecutionStatus,
+  TemplateType,
+  WorkflowExecutionStatus,
+  WorkflowStepType,
+} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
 import {WorkflowExecutionService} from '../WorkflowExecutionService';
+import {QueueService} from '../QueueService';
+import {WorkflowService} from '../WorkflowService';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
 
 vi.mock('node:dns/promises', () => ({
@@ -40,8 +48,97 @@ describe('WorkflowExecutionService - Integration Tests', () => {
   const prisma = getPrismaClient();
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     const {project} = await factories.createUserWithProject();
     projectId = project.id;
+  });
+
+  describe('Send email template binding', () => {
+    it('executes an API-created email step without a duplicate template ID in config', async () => {
+      const contact = await factories.createContact({projectId, subscribed: false});
+      const template = await factories.createTemplate({
+        projectId,
+        type: TemplateType.TRANSACTIONAL,
+        subject: 'Confirm your email',
+      });
+      const workflow = await factories.createWorkflow({projectId});
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: WorkflowStepType.TRIGGER},
+      });
+      const emailStep = await WorkflowService.addStep(projectId, workflow.id, {
+        type: WorkflowStepType.SEND_EMAIL,
+        name: 'Send confirmation',
+        position: {x: 100, y: 0},
+        config: {recipient: {type: 'CONTACT'}},
+        templateId: template.id,
+      });
+      const execution = await factories.createWorkflowExecution(workflow.id, contact.id, {
+        status: WorkflowExecutionStatus.RUNNING,
+      });
+      await prisma.workflowExecution.update({
+        where: {id: execution.id},
+        data: {currentStepId: triggerStep.id},
+      });
+
+      await WorkflowExecutionService.processStepExecution(execution.id, triggerStep.id);
+
+      const completed = await prisma.workflowExecution.findUniqueOrThrow({where: {id: execution.id}});
+      const stepExecution = await prisma.workflowStepExecution.findFirstOrThrow({
+        where: {executionId: execution.id, stepId: emailStep.id},
+      });
+      const email = await prisma.email.findFirstOrThrow({where: {workflowExecutionId: execution.id}});
+
+      expect(completed.status).toBe(WorkflowExecutionStatus.COMPLETED);
+      expect(stepExecution.status).toBe(StepExecutionStatus.COMPLETED);
+      expect(email).toMatchObject({
+        contactId: contact.id,
+        templateId: template.id,
+        subject: template.subject,
+        sourceType: EmailSourceType.TRANSACTIONAL,
+      });
+      expect(QueueService.queueEmail).toHaveBeenCalledWith(email.id, EmailSourceType.TRANSACTIONAL, undefined);
+    });
+
+    it('uses the template relation when legacy config contains a different template ID', async () => {
+      const contact = await factories.createContact({projectId, subscribed: false});
+      const relationalTemplate = await factories.createTemplate({
+        projectId,
+        type: TemplateType.TRANSACTIONAL,
+        subject: 'Relational template',
+      });
+      const staleConfigTemplate = await factories.createTemplate({
+        projectId,
+        type: TemplateType.TRANSACTIONAL,
+        subject: 'Stale config template',
+      });
+      const workflow = await factories.createWorkflow({projectId});
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: WorkflowStepType.TRIGGER},
+      });
+      await WorkflowService.addStep(projectId, workflow.id, {
+        type: WorkflowStepType.SEND_EMAIL,
+        name: 'Send confirmation',
+        position: {x: 100, y: 0},
+        config: {
+          templateId: staleConfigTemplate.id,
+          recipient: {type: 'CONTACT'},
+        },
+        templateId: relationalTemplate.id,
+      });
+      const execution = await factories.createWorkflowExecution(workflow.id, contact.id, {
+        status: WorkflowExecutionStatus.RUNNING,
+      });
+      await prisma.workflowExecution.update({
+        where: {id: execution.id},
+        data: {currentStepId: triggerStep.id},
+      });
+
+      await WorkflowExecutionService.processStepExecution(execution.id, triggerStep.id);
+
+      const email = await prisma.email.findFirstOrThrow({where: {workflowExecutionId: execution.id}});
+      expect(email.templateId).toBe(relationalTemplate.id);
+      expect(email.subject).toBe(relationalTemplate.subject);
+    });
   });
 
   // ========================================
