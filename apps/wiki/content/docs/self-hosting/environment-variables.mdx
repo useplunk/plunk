@@ -26,6 +26,7 @@ Set your subdomains here. The application automatically derives all internal and
 | `LANDING_DOMAIN`   | Yes      | Subdomain for the landing page.                                                                                      | `www.yourdomain.com`  |
 | `WIKI_DOMAIN`      | Yes      | Subdomain for the documentation site.                                                                                | `docs.yourdomain.com` |
 | `USE_HTTPS`        | No       | Set to `true` when running behind a TLS-terminating reverse proxy. Used to construct URLs with the correct protocol. | `false` (default)     |
+| `COOKIE_DOMAIN`    | No       | Domain of the auth cookie. Defaults to the base domain of the API URL (shared across subdomains). Set to `host` to scope it to the exact host only, or to a domain such as `.yourdomain.com`. | base domain of the API URL (default) |
 
 ## AWS SES
 

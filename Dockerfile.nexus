@@ -1,0 +1,119 @@
+# Slim Dockerfile for deploying Plunk on NEXUS AI.
+# Same as the main Dockerfile but without the wiki/docs app, and with as few
+# instructions as possible (NEXUS limits Dockerfiles to 100 instructions).
+# Runs API, worker, SMTP, web dashboard and landing page behind nginx (port 80).
+
+# ============================================
+# Stage 1: Collect workspace manifests (keeps the dependency layer cacheable)
+# ============================================
+FROM node:20-slim AS manifests
+WORKDIR /src
+COPY . .
+# The wiki is never built here, so drop its postinstall (fumadocs-mdx needs wiki sources)
+RUN mkdir /m && \
+    node -e "const fs=require('fs');const f='apps/wiki/package.json';const p=JSON.parse(fs.readFileSync(f,'utf8'));delete p.scripts.postinstall;fs.writeFileSync(f,JSON.stringify(p,null,2))" && \
+    cp -r .yarnrc.yml .yarn yarn.lock /m/ && \
+    find . -name package.json -not -path "*/node_modules/*" -not -path "./.yarn/*" -exec cp --parents {} /m/ \;
+
+# ============================================
+# Stage 2: Dependencies (dev + production)
+# ============================================
+FROM --platform=$BUILDPLATFORM node:20-slim AS deps
+WORKDIR /app
+RUN corepack enable && corepack prepare yarn@4.9.1 --activate
+COPY --from=manifests /m ./
+RUN --mount=type=cache,target=/root/.yarn/berry/cache,sharing=locked \
+    yarn install --immutable
+
+# Production-only dependencies for API/SMTP
+FROM deps AS prod-deps
+RUN --mount=type=cache,target=/root/.yarn/berry/cache,sharing=locked \
+    yarn workspaces focus api smtp --production
+
+# ============================================
+# Stage 3: Builder
+# ============================================
+FROM node:20-slim AS builder
+WORKDIR /app
+
+# Placeholder URLs baked into the build; replaced at container startup
+ENV API_URI=https://next-api.useplunk.com \
+    DASHBOARD_URI=https://next-app.useplunk.com \
+    LANDING_URI=https://www.useplunk.com \
+    WIKI_URI=https://docs.useplunk.com \
+    NEXT_PUBLIC_API_URI=https://next-api.useplunk.com \
+    NEXT_PUBLIC_DASHBOARD_URI=https://next-app.useplunk.com \
+    NEXT_PUBLIC_LANDING_URI=https://www.useplunk.com \
+    NEXT_PUBLIC_WIKI_URI=https://docs.useplunk.com \
+    DATABASE_URL=postgresql://build:build@localhost:5432/build \
+    DIRECT_DATABASE_URL=postgresql://build:build@localhost:5432/build
+
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/* && \
+    corepack enable && corepack prepare yarn@4.9.1 --activate
+
+# Root files only: apps/* manifests must NOT be present until the apps are copied, otherwise
+# turbo matches @plunk/mcp (apps/mcp, source not copied) with --filter="@plunk/*" and fails
+COPY .yarnrc.yml package.json yarn.lock ./
+COPY --from=deps /app/node_modules ./node_modules
+# .yarn includes install-state.gz, which yarn needs to run workspace commands
+COPY --from=deps /app/.yarn ./.yarn
+COPY turbo.json ./
+COPY docker/generate-url-manifest.sh /usr/local/bin/
+COPY packages ./packages
+RUN chmod +x /usr/local/bin/generate-url-manifest.sh
+RUN yarn workspace @plunk/db db:generate
+RUN yarn turbo build --filter="@plunk/*" --concurrency=1 --output-logs=full
+
+COPY apps ./apps
+RUN yarn turbo build --filter=api --filter=smtp --filter=web --filter=landing --concurrency=1 --output-logs=full && \
+    yarn workspace web sitemap && \
+    generate-url-manifest.sh web /app/apps/web && \
+    yarn workspace landing sitemap && \
+    generate-url-manifest.sh landing /app/apps/landing
+
+# Assemble everything the runtime image needs under /out
+RUN mkdir -p /out apps/web/public apps/landing/public && \
+    cp --parents -r \
+      apps/api/dist apps/api/package.json apps/smtp/dist apps/smtp/package.json \
+      node_modules/.prisma node_modules/@prisma package.json \
+      packages/db/dist packages/db/package.json packages/db/prisma \
+      packages/shared/dist packages/shared/package.json \
+      packages/email/dist packages/email/package.json \
+      packages/types/dist packages/types/package.json \
+      /out/ && \
+    for a in web landing; do \
+      s=apps/$a/.next/standalone; \
+      mkdir -p /out/$s/apps/$a/.next/static /out/$s/apps/$a/public && \
+      cp -r $s/. /out/$s/ && \
+      cp -r apps/$a/public/. /out/$s/apps/$a/public/ && \
+      cp -r apps/$a/.next/static/. /out/$s/apps/$a/.next/static/ && \
+      cp apps/$a/.next/url-manifest.txt apps/$a/.next/sitemap-manifest.txt /out/$s/apps/$a/.next/; \
+    done
+
+# ============================================
+# Stage 4: Runtime
+# ============================================
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+RUN apk add --no-cache openssl curl nginx gettext && \
+    npm install -g pm2@5.4.2 --no-audit && \
+    addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 plunk && \
+    mkdir -p /var/log/nginx /var/lib/nginx /run/nginx && \
+    chown -R plunk:nodejs /var/log/nginx /var/lib/nginx /run/nginx /etc/nginx
+
+# Production node_modules first, then built output (merges in Prisma client + app files)
+COPY --from=prod-deps --chown=plunk:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=plunk:nodejs /out/ ./
+# nginx templates + startup scripts (see .dockerignore for what is included)
+COPY --chown=plunk:nodejs docker/ /app/docker/
+RUN chmod +x /app/docker/*.sh /app/docker/nginx/*.sh
+
+USER plunk
+
+EXPOSE 80 465 587
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:80/ || exit 1
+
+ENTRYPOINT ["/app/docker/nexus-entrypoint.sh"]

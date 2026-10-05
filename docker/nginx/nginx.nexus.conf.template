@@ -1,0 +1,59 @@
+# Single-host nginx configuration (used by docker/nexus-entrypoint.sh)
+#   /       -> web dashboard (port 3000)
+#   /api/*  -> API server (port 8080), with the /api prefix stripped
+# Landing page and docs are not served in this mode.
+
+upstream plunk_api {
+    server 127.0.0.1:8080;
+}
+
+upstream plunk_web {
+    server 127.0.0.1:3000;
+}
+
+# Keep the scheme from the platform's TLS-terminating proxy when present
+map $http_x_forwarded_proto $plunk_proto {
+    default $http_x_forwarded_proto;
+    ''      $scheme;
+}
+
+server {
+    listen ${NGINX_PORT} default_server;
+    server_name _;
+
+    client_max_body_size 10M;
+
+    # The dashboard has its own /api/og route (Next.js); everything else under /api is the API
+    location = /api/og {
+        proxy_pass http://plunk_web;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $plunk_proto;
+    }
+
+    location /api/ {
+        proxy_pass http://plunk_api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $plunk_proto;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location / {
+        proxy_pass http://plunk_web;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $plunk_proto;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

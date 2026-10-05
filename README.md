@@ -19,6 +19,10 @@
     <a href="https://useplunk.com/discord"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"/></a>
 </p>
 
+<p align="center">
+    <a href="https://nexusai.run/deploy?repo=https://github.com/useplunk/plunk&env=PUBLIC_URL={url}"><img src="https://nexusai.run/deploy-button.svg" alt="Deploy to NEXUS AI"/></a>
+</p>
+
 ## Introduction
 
 Transactional emails, marketing campaigns, and workflow automation — in one platform. Self-hostable, $0.001 per email, no contact limits.

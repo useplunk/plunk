@@ -18,6 +18,13 @@ function getCookieDomain(): string | undefined {
     return undefined;
   }
 
+  // Explicit override. 'host' scopes the cookie to the exact host (no Domain attribute), which is
+  // required when everything is served from a single shared hostname such as app.platform.example.
+  const override = process.env.COOKIE_DOMAIN;
+  if (override) {
+    return override === 'host' ? undefined : override;
+  }
+
   try {
     const url = new URL(API_URI);
     const hostname = url.hostname;
