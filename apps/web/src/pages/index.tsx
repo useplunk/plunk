@@ -272,6 +272,11 @@ const DISABLED_COPY: Record<string, {detail: string; href: string}> = {
     detail: 'A recurring payment could not be processed. Update your payment method to re-enable the project.',
     href: '/settings?tab=billing',
   },
+  EMAIL_REPUTATION: {
+    detail:
+      'Your bounce or complaint rate got too high. Review your rates in the security settings, clean your contact list, then contact support to re-enable the project.',
+    href: '/settings?tab=security',
+  },
 };
 
 const DISABLED_COPY_FALLBACK = {

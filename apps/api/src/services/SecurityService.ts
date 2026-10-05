@@ -753,10 +753,18 @@ export class SecurityService {
         const members = await MembershipService.getMembers(projectId);
         const emails = members.map(m => m.email);
         if (emails.length > 0) {
+          const metrics = (Object.keys(status.criticalByMetric) as SecurityMetric[]).filter(
+            m => status.criticalByMetric[m],
+          );
+          // Bounce/complaint rates are visible in the dashboard, so the email names them.
+          // Thresholds and the new-project 24h window stay internal.
           const template = React.createElement(ProjectDisabledEmail, {
             projectName: project.name,
             projectId,
-            violations: status.violations,
+            reason: 'reputation',
+            metrics: metrics.length > 0 ? metrics : ['bounce', 'complaint'],
+            sevenDay: status.sevenDay,
+            allTime: status.allTime,
             dashboardUrl: DASHBOARD_URI,
             landingUrl: LANDING_URI,
           });
@@ -1042,10 +1050,11 @@ ${strippedBody.substring(0, 2000)}`,
         const members = await MembershipService.getMembers(projectId);
         const emails = members.map(m => m.email);
         if (emails.length > 0) {
+          // Deliberately vague: never tell the sender their content was flagged as phishing
           const template = React.createElement(ProjectDisabledEmail, {
             projectName: project.name,
             projectId,
-            violations: [violation],
+            reason: 'policy',
             dashboardUrl: DASHBOARD_URI,
             landingUrl: LANDING_URI,
           });
