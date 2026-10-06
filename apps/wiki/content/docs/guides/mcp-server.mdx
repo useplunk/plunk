@@ -94,15 +94,19 @@ environment, set `PLUNK_MCP_API_KEY` so the agent works on the project you inten
 `plunk_list_contacts`, `plunk_get_contact`, `plunk_verify_email`, `plunk_list_templates`,
 `plunk_list_campaigns`, `plunk_get_campaign`, `plunk_get_campaign_stats`, `plunk_list_segments`,
 `plunk_list_domains`, `plunk_check_domain`, `plunk_list_workflows`, `plunk_get_workflow`,
-`plunk_list_workflow_executions`
+`plunk_check_workflow`, `plunk_list_workflow_fields`, `plunk_list_workflow_executions`,
+`plunk_get_workflow_execution`
 
 **Writing:**
 
 `plunk_create_contact`, `plunk_update_contact`, `plunk_subscribe_contact`,
 `plunk_unsubscribe_contact`, `plunk_delete_contact`, `plunk_send_email`, `plunk_track_event`,
 `plunk_create_template`, `plunk_create_campaign`, `plunk_test_campaign`, `plunk_send_campaign`,
-`plunk_cancel_campaign`, `plunk_create_segment`, `plunk_create_workflow`, `plunk_add_workflow_step`,
-`plunk_set_workflow_enabled`
+`plunk_cancel_campaign`, `plunk_create_segment`, `plunk_create_workflow`, `plunk_update_workflow`,
+`plunk_duplicate_workflow`, `plunk_delete_workflow`, `plunk_add_workflow_step`, `plunk_add_workflow_steps`,
+`plunk_update_workflow_step`, `plunk_delete_workflow_step`, `plunk_connect_workflow_steps`,
+`plunk_disconnect_workflow_steps`, `plunk_set_workflow_enabled`, `plunk_start_workflow_execution`,
+`plunk_cancel_workflow_executions`
 
 ## Safety
 
@@ -110,7 +114,7 @@ A Plunk secret key grants full access to its project, so the server adds its own
 
 - **Sends ask for confirmation.** Sending a campaign, or an email to more than one recipient, prompts
   you first and tells you how many people will receive it. Enabling a workflow that sends email prompts
-  you too. Confirmation is not something the model can supply itself — it comes from you, through your
+  you too, as do changing the trigger of an enabled one and starting one for a contact. Confirmation is not something the model can supply itself — it comes from you, through your
   MCP client. A client that cannot show a prompt cannot send.
 - **Read-only mode is structural.** With `PLUNK_READ_ONLY=true` the mutating tools are never
   registered, so they cannot be invoked even by name.
@@ -148,8 +152,13 @@ the same result using the secret key, creating or updating the contact first and
 event. Either way the contact is created if it does not exist.
 
 **Workflows.** `plunk_create_workflow` creates a workflow that starts when a contact triggers the given
-event. It starts disabled, with only its trigger step. `plunk_add_workflow_step` appends a `SEND_EMAIL`
-step (from a template) or a `DELAY` step, linked after the current last step, so repeated calls build a
-linear sequence. Branching and wait-for-event steps stay in the dashboard builder.
+event. It starts disabled, with only its trigger step. `plunk_add_workflow_steps` then adds the steps —
+any type the dashboard builder offers, including yes/no and multi-branch conditions — in one call, and
+`plunk_add_workflow_step`, `plunk_update_workflow_step`, `plunk_delete_workflow_step`,
+`plunk_connect_workflow_steps` and `plunk_disconnect_workflow_steps` edit the graph afterwards. Step
+settings are validated before they are saved, and `plunk_check_workflow` shows the flow as a numbered
+outline with anything that would fail at run time; enabling is refused while such errors remain.
+Deleting a step reconnects the flow around it; for a condition you choose whether the steps below it
+are kept or deleted too.
 `plunk_set_workflow_enabled` turns the workflow on or off. Disabling stops new contacts from entering;
 executions already in progress continue to the end.
