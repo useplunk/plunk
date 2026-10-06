@@ -456,6 +456,24 @@ describe('DomainService', () => {
   });
 
   // ========================================
+  // CHECK SUBDOMAIN OF DISABLED ROOT
+  // ========================================
+  describe('checkSubdomainOfDisabledRoot', () => {
+    it.each([
+      ['example.com', 'mail.example.com'],
+      ['example.com.br', 'mail.example.com.br'],
+      ['example.co.uk', 'mail.example.co.uk'],
+    ])('blocks subdomains of %s when its project is disabled', async (root, subdomain) => {
+      const project = await factories.createProject({disabled: true});
+      await factories.createDomain({projectId: project.id, domain: root});
+
+      const result = await DomainService.checkSubdomainOfDisabledRoot(subdomain);
+
+      expect(result).toEqual({blocked: true, projectName: project.name, projectId: project.id});
+    });
+  });
+
+  // ========================================
   // EDGE CASES AND ERROR HANDLING
   // ========================================
   describe('Edge Cases', () => {
