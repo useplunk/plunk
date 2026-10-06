@@ -752,7 +752,7 @@ export class WorkflowExecutionService {
       const actualValue = this.resolveField(parsed.field, fieldData);
 
       for (const branch of parsed.branches) {
-        if (this.evaluateCondition(actualValue, branch.operator, branch.value)) {
+        if (this.evaluateCondition(actualValue, branch.operator, branch.value, parsed.field === 'contact.email')) {
           return {
             field: parsed.field,
             mode: 'multi',
@@ -778,7 +778,7 @@ export class WorkflowExecutionService {
     const operator = 'operator' in parsed ? parsed.operator : 'equals';
     const value = 'value' in parsed ? parsed.value : undefined;
     const actualValue = this.resolveField(field, fieldData);
-    const result = this.evaluateCondition(actualValue, operator, value);
+    const result = this.evaluateCondition(actualValue, operator, value, field === 'contact.email');
 
     return {
       field,
@@ -1314,7 +1314,17 @@ export class WorkflowExecutionService {
   /**
    * Helper: Evaluate condition
    */
-  private static evaluateCondition(actualValue: unknown, operator: string, expectedValue: unknown): boolean {
+  private static evaluateCondition(
+    actualValue: unknown,
+    operator: string,
+    expectedValue: unknown,
+    caseInsensitive = false,
+  ): boolean {
+    // Email comparisons ignore case, the same as SegmentService (see @plunk/shared operators)
+    if (caseInsensitive && typeof actualValue === 'string' && typeof expectedValue === 'string') {
+      return this.evaluateCondition(actualValue.toLowerCase(), operator, expectedValue.toLowerCase());
+    }
+
     switch (operator) {
       case 'equals':
         // equals can match null/undefined if expectedValue is also null/undefined
