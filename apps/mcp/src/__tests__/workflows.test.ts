@@ -16,8 +16,29 @@ const config: PlunkMcpConfig = {
   readOnly: false,
 };
 
-const READ_TOOLS = ['plunk_list_workflows', 'plunk_get_workflow', 'plunk_list_workflow_executions'];
-const WRITE_TOOLS = ['plunk_create_workflow', 'plunk_add_workflow_step', 'plunk_set_workflow_enabled'];
+const READ_TOOLS = [
+  'plunk_list_workflows',
+  'plunk_get_workflow',
+  'plunk_check_workflow',
+  'plunk_list_workflow_fields',
+  'plunk_list_workflow_executions',
+  'plunk_get_workflow_execution',
+];
+const WRITE_TOOLS = [
+  'plunk_create_workflow',
+  'plunk_update_workflow',
+  'plunk_duplicate_workflow',
+  'plunk_delete_workflow',
+  'plunk_add_workflow_step',
+  'plunk_add_workflow_steps',
+  'plunk_update_workflow_step',
+  'plunk_delete_workflow_step',
+  'plunk_connect_workflow_steps',
+  'plunk_disconnect_workflow_steps',
+  'plunk_set_workflow_enabled',
+  'plunk_start_workflow_execution',
+  'plunk_cancel_workflow_executions',
+];
 
 async function connect(cfg: PlunkMcpConfig = config) {
   const handler = createMcpHandler(() => buildServer(cfg));
@@ -79,10 +100,36 @@ const workflowWithEmail = {
   enabled: false,
   triggerConfig: {eventName: 'user.signup'},
   steps: [
-    {id: 'step-trigger', type: 'TRIGGER', name: 'Trigger: user.signup'},
-    {id: 'step-email', type: 'SEND_EMAIL', name: 'Send email'},
-    {id: 'step-delay', type: 'DELAY', name: 'Wait 2 days'},
-    {id: 'step-email-2', type: 'SEND_EMAIL', name: 'Send email'},
+    {
+      id: 'step-trigger',
+      type: 'TRIGGER',
+      name: 'Trigger: user.signup',
+      config: {eventName: 'user.signup'},
+      outgoingTransitions: [{id: 't-1', fromStepId: 'step-trigger', toStepId: 'step-email'}],
+    },
+    {
+      id: 'step-email',
+      type: 'SEND_EMAIL',
+      name: 'Send email',
+      config: {templateId: 'tpl-1'},
+      templateId: 'tpl-1',
+      outgoingTransitions: [{id: 't-2', fromStepId: 'step-email', toStepId: 'step-delay'}],
+    },
+    {
+      id: 'step-delay',
+      type: 'DELAY',
+      name: 'Wait 2 days',
+      config: {amount: 2, unit: 'days'},
+      outgoingTransitions: [{id: 't-3', fromStepId: 'step-delay', toStepId: 'step-email-2'}],
+    },
+    {
+      id: 'step-email-2',
+      type: 'SEND_EMAIL',
+      name: 'Send email',
+      config: {templateId: 'tpl-2'},
+      templateId: 'tpl-2',
+      outgoingTransitions: [],
+    },
   ],
 };
 
@@ -205,51 +252,6 @@ describe('plunk_create_workflow', () => {
 });
 
 describe('plunk_add_workflow_step', () => {
-  it('adds a SEND_EMAIL step with the template on the step and in its config', async () => {
-    const calls = mockApi(() => json({id: 'step-new', type: 'SEND_EMAIL'}, 201));
-    const {client, close} = await connect();
-
-    const result = await client.callTool({
-      name: 'plunk_add_workflow_step',
-      arguments: {workflowId: 'wf-1', type: 'SEND_EMAIL', templateId: 'tpl-1'},
-    });
-
-    expect(result.isError).toBeFalsy();
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.method).toBe('POST');
-    expect(calls[0]?.url).toBe('https://api.example.com/workflows/wf-1/steps');
-    expect(calls[0]?.body).toEqual({
-      type: 'SEND_EMAIL',
-      name: 'Send email',
-      position: {x: 0, y: 0},
-      config: {templateId: 'tpl-1'},
-      templateId: 'tpl-1',
-      autoConnect: true,
-    });
-
-    await close();
-  });
-
-  it('adds a DELAY step and passes autoConnect through', async () => {
-    const calls = mockApi(() => json({id: 'step-new', type: 'DELAY'}, 201));
-    const {client, close} = await connect();
-
-    await client.callTool({
-      name: 'plunk_add_workflow_step',
-      arguments: {workflowId: 'wf-1', type: 'DELAY', amount: 2, unit: 'days', autoConnect: false},
-    });
-
-    expect(calls[0]?.body).toEqual({
-      type: 'DELAY',
-      name: 'Wait 2 days',
-      position: {x: 0, y: 0},
-      config: {amount: 2, unit: 'days'},
-      autoConnect: false,
-    });
-
-    await close();
-  });
-
   it('rejects a SEND_EMAIL step without a template before calling the API', async () => {
     const calls = mockApi(() => json({}));
     const {client, close} = await connect();
@@ -387,11 +389,33 @@ describe('plunk_set_workflow_enabled', () => {
     await close();
   });
 
+  it('refuses to enable a workflow whose steps would fail at run time', async () => {
+    const broken = {
+      ...workflowWithEmail,
+      steps: workflowWithEmail.steps.map((step) =>
+        step.id === 'step-delay' ? {...step, config: {amount: 2}} : step,
+      ),
+    };
+    const calls = mockApi(() => json(broken));
+    const {client, close} = await connect();
+
+    const result = await client.callTool({
+      name: 'plunk_set_workflow_enabled',
+      arguments: {id: 'wf-1', enabled: true},
+    });
+
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain('Wait 2 days');
+    expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(0);
+
+    await close();
+  });
+
   it('enables a workflow with no email steps without prompting', async () => {
     const calls = mockApi((call) =>
       call.method === 'PATCH'
         ? json({id: 'wf-1', enabled: true})
-        : json({...workflowWithEmail, steps: [workflowWithEmail.steps[0]]}),
+        : json({...workflowWithEmail, steps: [{...workflowWithEmail.steps[0], outgoingTransitions: []}]}),
     );
     const {client, close} = await connect();
 

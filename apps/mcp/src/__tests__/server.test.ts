@@ -74,7 +74,7 @@ describe('tool registration', () => {
     expect(names).toContain('plunk_send_email');
     expect(names).toContain('plunk_send_campaign');
     expect(names).toContain('plunk_delete_contact');
-    expect(tools).toHaveLength(29);
+    expect(tools).toHaveLength(42);
 
     await close();
   });
@@ -99,7 +99,15 @@ describe('tool registration', () => {
     const {tools} = await client.listTools();
     const destructive = tools.filter((t) => t.annotations?.destructiveHint).map((t) => t.name);
 
-    expect(destructive.sort()).toEqual(['plunk_cancel_campaign', 'plunk_delete_contact', 'plunk_send_campaign']);
+    expect(destructive.sort()).toEqual([
+      'plunk_cancel_campaign',
+      'plunk_cancel_workflow_executions',
+      'plunk_delete_contact',
+      'plunk_delete_workflow',
+      'plunk_delete_workflow_step',
+      'plunk_disconnect_workflow_steps',
+      'plunk_send_campaign',
+    ]);
 
     await close();
   });

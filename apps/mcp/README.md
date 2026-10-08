@@ -88,28 +88,59 @@ Read-only tools (the only ones registered when `PLUNK_READ_ONLY=true`):
 | `plunk_check_domain`             | Re-check a domain's DNS verification status             |
 | `plunk_list_workflows`           | List automation workflows and whether each is enabled   |
 | `plunk_get_workflow`             | Fetch one workflow with its steps and transitions       |
+| `plunk_check_workflow`           | Outline a workflow and what would fail at run time      |
+| `plunk_list_workflow_fields`     | Fields a workflow condition can test                    |
 | `plunk_list_workflow_executions` | List the runs of one workflow and their status          |
+| `plunk_get_workflow_execution`   | One run step by step, with outputs and errors           |
 
 Writing tools:
 
-| Tool                         | Description                                               |
-| ---------------------------- | --------------------------------------------------------- |
-| `plunk_create_contact`       | Create or update a contact (upsert)                       |
-| `plunk_update_contact`       | Change a contact's email or custom data                   |
-| `plunk_subscribe_contact`    | Re-subscribe an existing contact, by email or ID           |
-| `plunk_unsubscribe_contact`  | Opt a contact out of marketing email, by email or ID       |
-| `plunk_delete_contact`       | Permanently delete a contact *(destructive)*              |
-| `plunk_send_email`           | Send a transactional email to specific recipients         |
-| `plunk_track_event`          | Record an event, which can trigger automation workflows   |
-| `plunk_create_template`      | Create a reusable template                                |
-| `plunk_create_campaign`      | Create a campaign as a draft                              |
-| `plunk_test_campaign`        | Send one copy of a campaign to a project member           |
-| `plunk_send_campaign`        | Send or schedule a campaign *(destructive, irreversible)* |
-| `plunk_cancel_campaign`      | Stop a scheduled or in-flight campaign *(destructive)*    |
-| `plunk_create_segment`       | Create an audience segment                                |
-| `plunk_create_workflow`      | Create a workflow, disabled, triggered by an event        |
-| `plunk_add_workflow_step`    | Append a `SEND_EMAIL` or `DELAY` step to a workflow       |
-| `plunk_set_workflow_enabled` | Enable or disable a workflow                              |
+| Tool                               | Description                                               |
+| ---------------------------------- | --------------------------------------------------------- |
+| `plunk_create_contact`             | Create or update a contact (upsert)                       |
+| `plunk_update_contact`             | Change a contact's email or custom data                   |
+| `plunk_subscribe_contact`          | Re-subscribe an existing contact, by email or ID          |
+| `plunk_unsubscribe_contact`        | Opt a contact out of marketing email, by email or ID      |
+| `plunk_delete_contact`             | Permanently delete a contact *(destructive)*              |
+| `plunk_send_email`                 | Send a transactional email to specific recipients         |
+| `plunk_track_event`                | Record an event, which can trigger automation workflows   |
+| `plunk_create_template`            | Create a reusable template                                |
+| `plunk_create_campaign`            | Create a campaign as a draft                              |
+| `plunk_test_campaign`              | Send one copy of a campaign to a project member           |
+| `plunk_send_campaign`              | Send or schedule a campaign *(destructive, irreversible)* |
+| `plunk_cancel_campaign`            | Stop a scheduled or in-flight campaign *(destructive)*    |
+| `plunk_create_segment`             | Create an audience segment                                |
+| `plunk_create_workflow`            | Create a workflow, disabled, triggered by an event        |
+| `plunk_update_workflow`            | Rename, change the trigger event, or allow re-entry       |
+| `plunk_duplicate_workflow`         | Copy a workflow, disabled, e.g. for another language      |
+| `plunk_delete_workflow`            | Delete a disabled workflow *(destructive)*                |
+| `plunk_add_workflow_step`          | Add any step type, appended, on a branch, or in between   |
+| `plunk_add_workflow_steps`         | Build a whole sequence, branches included, in one call    |
+| `plunk_update_workflow_step`       | Change a step's settings or template                      |
+| `plunk_delete_workflow_step`       | Remove a step, reconnecting around it *(destructive)*     |
+| `plunk_connect_workflow_steps`     | Connect two steps, or a condition branch to a step        |
+| `plunk_disconnect_workflow_steps`  | Remove a connection *(destructive)*                       |
+| `plunk_set_workflow_enabled`       | Enable or disable a workflow                              |
+| `plunk_start_workflow_execution`   | Run a workflow for one contact now                        |
+| `plunk_cancel_workflow_executions` | Cancel one run or all runs in progress *(destructive)*    |
+
+### Building workflows
+
+The workflow tools cover every step type the dashboard builder offers — `SEND_EMAIL`, `DELAY`,
+`WAIT_FOR_EVENT`, `CONDITION` (yes/no or multi-branch), `UPDATE_CONTACT`, `WEBHOOK` and `EXIT` — so an
+agent can build and edit a branching workflow without opening the builder.
+
+- Steps are placed with `after` (a step ID) and, after a condition, `branch`. Without `after` a step goes
+  after the one step that leads nowhere yet (a condition's unconnected branches do not count); when
+  there are several, the tool refuses and lists the open positions instead of guessing. A position
+  that already leads somewhere gets the new step inserted in between.
+- `plunk_delete_workflow_step` reconnects the flow around the step by default. Removing a condition
+  requires choosing `downstream`: `detach` keeps the steps below it, `delete` removes them too.
+- The API stores step settings without validating them, and only the executor parses them, so a bad
+  setting would surface as a failed run for a real contact. The tools validate settings against the
+  same rules first, including condition fields the executor cannot resolve.
+- `plunk_check_workflow` prints the flow as numbered lines in the order a contact walks it and lists
+  problems; `plunk_set_workflow_enabled` refuses to enable a workflow while any are errors.
 
 ### Addressing contacts by email
 
@@ -131,7 +162,8 @@ Plunk's secret key is all-or-nothing over its project, so this server adds its o
 - **Sends require human confirmation.** `plunk_send_campaign`, and `plunk_send_email` with more than
   one recipient, ask you to confirm before anything goes out, and the prompt tells you how many people
   will receive it. Enabling a workflow that has email steps with `plunk_set_workflow_enabled` asks too,
-  and names the trigger event. Confirmation is not a tool argument, so the model cannot grant it to itself.
+  and names the trigger event. So do changing the trigger of an enabled workflow that sends email and
+  starting one for a contact with `plunk_start_workflow_execution`. Confirmation is not a tool argument, so the model cannot grant it to itself.
   Clients that cannot show a prompt cannot send — set `PLUNK_ALLOW_UNCONFIRMED_SENDS=true` if you are
   running headless and accept that.
 - **Read-only mode is enforced by registration**, not by convention. With `PLUNK_READ_ONLY=true` the

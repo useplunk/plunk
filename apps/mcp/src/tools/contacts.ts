@@ -39,7 +39,7 @@ const contactRef = {
  * matches "bo@x.com.au". The exact (case-insensitive) match is therefore picked
  * out of the page rather than trusting position.
  */
-async function resolveContact(
+export async function resolveContact(
   client: PlunkClient,
   {id, email}: {id?: string; email?: string},
 ): Promise<{id: string; label: string} | {error: string}> {
