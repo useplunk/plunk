@@ -45,7 +45,7 @@
     "zod": "^4.2.0"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.2.0",
     "@plunk/typescript-config": "*",
     "@types/node": "^24.10.0",
     "tsx": "^4.20.6",
