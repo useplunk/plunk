@@ -35,7 +35,7 @@ async function processCleanup(job: Job<EmailBodyCleanupJobData>): Promise<{clear
       // and is served by the partial index emails_createdAt_unpurged_idx.
       const cleared = await prisma.$executeRaw`
         UPDATE "emails"
-        SET "body" = ''
+        SET "body" = '', "renderedBody" = NULL
         WHERE "id" IN (
           SELECT "id" FROM "emails"
           WHERE "createdAt" < ${cutoffDate}

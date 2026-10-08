@@ -188,6 +188,7 @@ export class ActivityService {
       // Aggregate email stats
       prisma.email.aggregate({
         where: {
+          status: {not: 'SUPPRESSED'},
           projectId,
           createdAt: dateFilter,
         },
