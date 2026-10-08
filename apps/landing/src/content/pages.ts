@@ -169,6 +169,8 @@ Includes:
 - Transactional emails
 - Workflow automation
 - Campaign broadcasts
+- Inbound email
+- Email validation
 - Custom domains
 - Click & open tracking
 - Unlimited contacts
@@ -200,6 +202,8 @@ No feature tiers, no add-ons, no surprises.
 | Transactional emails | API and SMTP delivery for receipts, password resets, and event-driven email. |
 | Workflow automation | Event-triggered sequences with delays, conditions, and branching logic. |
 | Campaign broadcasts | Send newsletters and announcements to your full list or a targeted segment. |
+| Inbound email | Receive email on your domain and get every message delivered to your app as a webhook. |
+| Email validation | Catch typos, disposable domains, and missing MX records before you send. |
 | Unlimited contacts | Store as many contacts as you need. Growing your list never costs more. |
 | Full API access | REST API with SDKs for Node.js, Python, and more. |
 | Custom domains | Send from your own domain with DKIM, SPF, and DMARC set up automatically. |
