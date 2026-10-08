@@ -20,7 +20,7 @@ import {registerWorkflowTools} from './tools/workflows.js';
 import type {ToolContext} from './tools/shared.js';
 
 export const SERVER_NAME = 'plunk';
-export const SERVER_VERSION = '0.14.0';
+export const SERVER_VERSION = '0.16.0';
 
 const INSTRUCTIONS = [
   'Plunk is an email platform: transactional email, contacts, segments, campaigns and automation.',

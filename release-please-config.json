@@ -6,6 +6,10 @@
     ".": {
       "release-type": "node",
       "package-name": "plunk",
+      "extra-files": [
+        {"type": "json", "path": "apps/mcp/package.json", "jsonpath": "$.version"},
+        "apps/mcp/src/server.ts"
+      ],
       "changelog-sections": [
         {"type": "feat", "section": "Features", "hidden": false},
         {"type": "fix", "section": "Bug Fixes", "hidden": false},

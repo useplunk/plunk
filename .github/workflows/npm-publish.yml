@@ -115,7 +115,8 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
 
-          # The version is pinned to the platform version, so a release that
+          # The version is kept in lockstep with the platform version by release-please
+          # (extra-files in release-please-config.json), so a release that
           # touched nothing under apps/mcp still lands here. Skipping is the
           # correct outcome, not a failure.
           if npm view "@plunk/mcp@$VERSION" version >/dev/null 2>&1; then
