@@ -1,5 +1,6 @@
 import {Button, EmptyState, IconSpinner} from '@plunk/ui';
 import type {Activity, CursorPaginatedResponse} from '@plunk/types';
+import {useActiveProject} from '../lib/contexts/ActiveProjectProvider';
 import {network} from '../lib/network';
 import {ActivityItem} from './ActivityItem';
 import {Activity as ActivityIcon} from 'lucide-react';
@@ -11,7 +12,14 @@ export interface ActivityFeedProps {
   contactId?: string;
 }
 
-export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: ActivityFeedProps) {
+export function ActivityFeed(props: ActivityFeedProps) {
+  const {activeProject} = useActiveProject();
+  if (!activeProject) return null;
+  return <ProjectActivityFeed key={`${activeProject.id}:${props.typeFilter}:${props.dateRangeDays}:${props.contactId}`}
+    {...props} projectId={activeProject.id} />;
+}
+
+function ProjectActivityFeed({typeFilter, dateRangeDays = 30, contactId, projectId}: ActivityFeedProps & {projectId: string}) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [upcomingActivities, setUpcomingActivities] = useState<Activity[]>([]);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
@@ -45,10 +53,9 @@ export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: Activi
           limit: '20', // Conservative limit to avoid overloading
         });
 
-        // Only apply startDate filter on initial load, not during pagination
-        // When cursor is present, we're paginating backwards and should not limit by startDate.
+        // Preserve the selected date range when loading subsequent pages.
         // Contact-scoped feeds show the contact's full history, so skip the date floor entirely.
-        if (!cursor && !contactId) {
+        if (!contactId) {
           params.set('startDate', startDate);
         }
 
@@ -62,7 +69,7 @@ export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: Activi
           params.set('contactId', contactId);
         }
 
-        const result = await network.fetch<CursorPaginatedResponse<Activity>>('GET', `/activity?${params.toString()}`);
+        const result = await network.fetch<CursorPaginatedResponse<Activity>>('GET', `/activity?${params.toString()}`, undefined, projectId);
 
         if (cursor) {
           // Append to existing activities (pagination)
@@ -94,7 +101,7 @@ export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: Activi
         setIsLoadingMore(false);
       }
     },
-    [typeFilter, startDate, contactId],
+    [typeFilter, startDate, contactId, projectId],
   );
 
   // Fetch upcoming activities
@@ -112,7 +119,7 @@ export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: Activi
         daysAhead: dateRangeDays.toString(),
       });
 
-      const result = await network.fetch<{activities: Activity[]}>('GET', `/activity/upcoming?${params.toString()}`);
+      const result = await network.fetch<{activities: Activity[]}>('GET', `/activity/upcoming?${params.toString()}`, undefined, projectId);
 
       // Smart merge: preserve existing activity objects by ID to maintain component state
       setUpcomingActivities(prev => {
@@ -132,14 +139,14 @@ export function ActivityFeed({typeFilter, dateRangeDays = 30, contactId}: Activi
       // Don't set error state for upcoming - just fail silently
       setUpcomingActivities([]);
     }
-  }, [dateRangeDays, contactId]);
+  }, [dateRangeDays, contactId, projectId]);
 
   // Initial fetch - only run once when filters change
   useEffect(() => {
     void fetchActivities();
     void fetchUpcomingActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeFilter, startDate, contactId]);
+  }, [typeFilter, startDate, contactId, projectId]);
 
   // Auto-refresh every 30 seconds for real-time updates
   useEffect(() => {

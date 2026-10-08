@@ -30,6 +30,10 @@ The captured record retains the original stored subject/body and the rendered su
 
 Suppressed mail is not marked sent or delivered, does not generate an `email.sent` event or provider billing event, and is excluded from delivery/reputation totals and billing usage. Existing project-disable, authentication, sender-domain, subscription, billing-admission and content-validation checks still apply. Suppression does not re-enable a disabled project or make otherwise rejected requests acceptable.
 
+## Reading captures in Activity
+
+Suppressed messages appear in the normal Activity feed with a **Suppressed** badge. Select **Suppressed emails** to filter captures, and click **Preview** to read the stored rendered content. Settings contains rule management only. Captures do not count as sent or delivered.
+
 ## Reading captures through MCP
 
 With this version of both the API and MCP package, use:

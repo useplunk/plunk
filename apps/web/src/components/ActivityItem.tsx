@@ -102,6 +102,7 @@ function getUpcomingTime(date: Date): string {
 function isEmailActivity(type: string): boolean {
   return [
     'email.sent',
+    'email.suppressed',
     'email.delivered',
     'email.received',
     'email.opened',
@@ -244,6 +245,16 @@ function getActivityConfig(activity: Activity): ActivityConfig {
           variant: 'default',
         },
         jsonData: getEventData(metadata),
+      };
+
+    case 'email.suppressed':
+      return {
+        icon: ShieldAlert, color: 'text-amber-700', bgColor: 'bg-amber-50',
+        title: typeof metadata.subject === 'string' ? metadata.subject : 'Suppressed email',
+        description: 'Captured without external delivery',
+        badge: {label: 'Suppressed', variant: 'secondary'},
+        jsonData: metadata.suppression && typeof metadata.suppression === 'object'
+          ? metadata.suppression as Record<string, unknown> : undefined,
       };
 
     case 'email.sent':
@@ -557,6 +568,7 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
       {/* Email Preview Modal */}
       {showPreviewModal && activity.metadata.subject && activity.metadata.body ? (
         <EmailPreviewModal
+          captured={activity.type === 'email.suppressed'}
           open={showPreviewModal}
           onOpenChange={setShowPreviewModal}
           subject={String(activity.metadata.subject)}

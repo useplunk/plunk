@@ -90,8 +90,8 @@ export class ActivityService {
     const fetchLimit = effectiveLimit;
 
     // Default date range to last 30 days if not specified.
-    // IMPORTANT: When cursor is provided (pagination), we should NOT apply the gte constraint
-    // to allow users to paginate back beyond the initial date range.
+    // Pagination may extend beyond the default date floor, but an explicitly selected
+    // start date must remain in force on every page.
     //
     // Contact-scoped feeds are exempt from the default 30-day floor: a single contact's
     // history is naturally bounded (not the project-wide firehose the floor guards against),
@@ -101,9 +101,8 @@ export class ActivityService {
     const defaultStartDate = new Date(now.getTime() - this.DEFAULT_DAYS_BACK * 24 * 60 * 60 * 1000);
     const initialStartDate = startDate ?? (contactId ? undefined : defaultStartDate);
     const dateFilter: Prisma.DateTimeFilter = {
-      // Only apply start date filter on initial load (no cursor)
-      // This allows pagination to go back indefinitely
-      ...(cursor || !initialStartDate ? {} : {gte: initialStartDate}),
+      // Keep explicit ranges; only the implicit default floor is initial-page-only.
+      ...(startDate ? {gte: startDate} : cursor || !initialStartDate ? {} : {gte: initialStartDate}),
       ...(endDate ? {lte: endDate} : {}),
     };
 
@@ -118,17 +117,18 @@ export class ActivityService {
 
     // Fetch activities from different sources in parallel
     // Each source fetches up to fetchLimit items
-    const [events, emails, workflows] = await Promise.all([
+    const [captures, events, emails, workflows] = await Promise.all([
+      this.fetchSuppressedActivities(projectId, fetchLimit + 1, dateFilter, cursorTimestamp, cursorId, contactId, types),
       this.fetchEvents(projectId, fetchLimit, dateFilter, cursorTimestamp, cursorId, contactId, types),
       this.fetchEmailActivities(projectId, fetchLimit, dateFilter, cursorTimestamp, cursorId, contactId, types),
       this.fetchWorkflowActivities(projectId, fetchLimit, dateFilter, cursorTimestamp, cursorId, contactId, types),
     ]);
 
     // Merge all activities
-    const allActivities = [...events, ...emails, ...workflows];
+    const allActivities = [...events, ...emails, ...workflows, ...captures];
 
     // Sort by timestamp descending (most recent first)
-    allActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    allActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime() || b.id.localeCompare(a.id));
 
     // Take only the requested limit + 1 (to check if there are more)
     const paginatedActivities = allActivities.slice(0, effectiveLimit + 1);
@@ -474,6 +474,37 @@ export class ActivityService {
   /**
    * Fetch email activities (sent, delivered, opened, clicked, bounced)
    */
+  /** Captures have no delivery timestamp: emit exactly one independent activity. */
+  private static async fetchSuppressedActivities(
+    projectId: string, limit: number, dateFilter: Prisma.DateTimeFilter,
+    cursorTimestamp?: Date, cursorId?: string, contactId?: string, types?: ActivityType[],
+  ): Promise<Activity[]> {
+    if (types && !types.includes(ActivityType.EMAIL_SUPPRESSED)) return [];
+    const emails = await prisma.email.findMany({
+      where: {
+        projectId, status: 'SUPPRESSED', ...(contactId ? {contactId} : {}),
+        createdAt: dateFilter,
+        ...(cursorTimestamp ? {OR: [
+          {createdAt: {...dateFilter, lt: cursorTimestamp}},
+          {createdAt: cursorTimestamp, id: {lt: cursorId || ''}},
+        ]} : {}),
+      },
+      orderBy: [{createdAt: 'desc'}, {id: 'desc'}], take: limit,
+      include: {contact: {select: {email: true}}},
+    });
+    return emails.map(email => ({
+      id: `${email.id}_suppressed`, type: ActivityType.EMAIL_SUPPRESSED,
+      timestamp: email.createdAt, contactId: email.contactId,
+      contactEmail: email.recipientAddress || email.contact.email,
+      metadata: {
+        emailId: email.id, subject: email.renderedSubject ?? email.subject,
+        body: email.renderedBody, originalBody: email.body,
+        from: email.from, fromName: email.fromName, replyTo: email.replyTo,
+        toName: email.toName, sourceType: email.sourceType, suppression: email.suppression,
+      },
+    }));
+  }
+
   private static async fetchEmailActivities(
     projectId: string,
     limit: number,
