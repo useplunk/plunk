@@ -191,7 +191,7 @@ export class ActivityService {
           projectId,
           createdAt: dateFilter,
         },
-        // _all rather than id: COUNT(*) can be served from emails_projectId_createdAt_idx
+        // _all rather than id: COUNT(*) can be served from emails_projectId_createdAt_stats_idx
         // alone, COUNT("id") would need every row fetched since id is not in that index
         _count: {
           _all: true,

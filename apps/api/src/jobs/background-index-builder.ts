@@ -31,6 +31,8 @@ interface BackgroundIndex {
   sql: string;
   /** Extension the index depends on, created first if missing */
   extension?: string;
+  /** An older index this one supersedes, dropped once this one is valid */
+  replaces?: string;
 }
 
 interface StatisticsTarget {
@@ -65,9 +67,12 @@ const INDEXES: BackgroundIndex[] = [
   {
     // Dashboard and analytics stats: per-project counts over a createdAt range. INCLUDE
     // lets those counts be answered from the index alone, without fetching email rows,
-    // which are wide because of the stored body.
-    name: 'emails_projectId_createdAt_idx',
-    sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "emails_projectId_createdAt_idx" ON "emails"("projectId", "createdAt") INCLUDE ("openedAt", "clickedAt", "bouncedAt", "deliveredAt")`,
+    // which are wide because of the stored body. Covers every column the analytics
+    // overview and timeseries read: each lifecycle timestamp, the stream, and the
+    // simulator flag they filter on.
+    name: 'emails_projectId_createdAt_stats_idx',
+    sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "emails_projectId_createdAt_stats_idx" ON "emails"("projectId", "createdAt") INCLUDE ("sourceType", "simulated", "sentAt", "deliveredAt", "openedAt", "clickedAt", "bouncedAt", "complainedAt")`,
+    replaces: 'emails_projectId_createdAt_idx',
   },
 ];
 
@@ -125,6 +130,31 @@ async function ensureIndex(client: PrismaClient, index: BackgroundIndex): Promis
   signale.success(`[INDEX-BUILDER] Built ${index.name} in ${secondsSince(startedAt)}s`);
 }
 
+/**
+ * Drops the index a valid replacement supersedes. Only ever runs after the replacement is
+ * valid, so queries are never left without either one.
+ */
+async function dropReplacedIndex(client: PrismaClient, index: BackgroundIndex): Promise<void> {
+  if (!index.replaces) {
+    return;
+  }
+
+  const [replacement] = await client.$queryRaw<{valid: boolean}[]>`
+    SELECT indisvalid AS valid FROM pg_index WHERE indexrelid = to_regclass(${`"${index.name}"`})
+  `;
+  const [old] = await client.$queryRaw<{exists: boolean}[]>`
+    SELECT to_regclass(${`"${index.replaces}"`}) IS NOT NULL AS exists
+  `;
+
+  if (!replacement?.valid || !old?.exists) {
+    return;
+  }
+
+  signale.info(`[INDEX-BUILDER] Dropping ${index.replaces}, superseded by ${index.name}...`);
+  await client.$executeRawUnsafe(`DROP INDEX CONCURRENTLY IF EXISTS "${index.replaces}"`);
+  signale.success(`[INDEX-BUILDER] Dropped ${index.replaces}`);
+}
+
 async function ensureStatisticsTarget(client: PrismaClient, stats: StatisticsTarget): Promise<void> {
   const [current] = await client.$queryRaw<{target: number}[]>`
     SELECT COALESCE(attstattarget, -1)::int AS target
@@ -172,6 +202,7 @@ export async function buildBackgroundIndexes(): Promise<void> {
     for (const index of INDEXES) {
       try {
         await ensureIndex(client, index);
+        await dropReplacedIndex(client, index);
       } catch (error) {
         signale.error(`[INDEX-BUILDER] Failed to build ${index.name}, will retry on next boot:`, error);
       }

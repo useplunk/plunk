@@ -1,80 +1,108 @@
+import type {AnalyticsStream} from '@plunk/types';
+import dayjs from 'dayjs';
+import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 import {useMemo} from 'react';
 import useSWR from 'swr';
 
-export interface ActivityStats {
-  totalEvents: number;
-  totalEmailsSent: number;
-  totalEmailsOpened: number;
-  totalEmailsClicked: number;
-  totalWorkflowsStarted: number;
-  openRate: number;
-  clickRate: number;
-}
+import {useActiveProject} from '../contexts/ActiveProjectProvider';
+import {network} from '../network';
 
-export interface TimeSeriesDataPoint {
-  date: string;
-  emails: number;
-  opens: number;
-  clicks: number;
-  bounces: number;
-}
+export const ANALYTICS_TABS = ['overview', 'deliverability', 'engagement', 'audience'] as const;
+export type AnalyticsTab = (typeof ANALYTICS_TABS)[number];
 
-export interface AnalyticsData {
-  stats: ActivityStats | null;
-  timeSeries: TimeSeriesDataPoint[] | null;
-  isLoading: boolean;
-  error: Error | undefined;
-}
+export const RANGE_PRESETS = [
+  {value: 'today', label: 'Today', days: 1},
+  {value: '7d', label: '7 days', days: 7},
+  {value: '30d', label: '30 days', days: 30},
+  {value: '90d', label: '90 days', days: 90},
+] as const;
+export type RangePreset = (typeof RANGE_PRESETS)[number]['value'];
+const RANGES = [...RANGE_PRESETS.map(p => p.value), 'custom'] as const;
 
-interface UseAnalyticsOptions {
-  startDate?: string;
-  endDate?: string;
-  days?: number;
-}
+/** The longest custom range the API accepts, in days, both ends included */
+export const MAX_CUSTOM_DAYS = 90;
+
+export const STREAM_OPTIONS = [
+  {value: 'all', label: 'All emails', api: 'ALL'},
+  {value: 'transactional', label: 'Transactional', api: 'TRANSACTIONAL'},
+  {value: 'campaigns', label: 'Campaigns', api: 'CAMPAIGN'},
+  {value: 'workflows', label: 'Workflows', api: 'WORKFLOW'},
+] as const satisfies readonly {value: string; label: string; api: AnalyticsStream}[];
+export type StreamOption = (typeof STREAM_OPTIONS)[number]['value'];
+
+const DATE = 'YYYY-MM-DD';
 
 /**
- * Hook to fetch analytics data including activity stats and time series data
+ * Filter state for the analytics page, kept in the URL so a view can be shared or
+ * bookmarked. `from` and `to` are calendar days in the viewer's timezone, both included,
+ * and only apply to the custom range.
  */
-export function useAnalytics(options: UseAnalyticsOptions = {}): AnalyticsData {
-  const {days = 30} = options;
+export function useAnalyticsFilters() {
+  const [state, setState] = useQueryStates(
+    {
+      tab: parseAsStringLiteral(ANALYTICS_TABS).withDefault('overview'),
+      range: parseAsStringLiteral(RANGES).withDefault('30d'),
+      from: parseAsString,
+      to: parseAsString,
+      stream: parseAsStringLiteral(STREAM_OPTIONS.map(s => s.value)).withDefault('all'),
+    },
+    {history: 'replace'},
+  );
 
-  // Calculate date range - memoized to prevent infinite re-renders
-  // Only recalculate when days or explicit dates change
-  /* eslint-disable react-hooks/purity */
-  const {startDate, endDate} = useMemo(() => {
-    const end = options.endDate || new Date().toISOString();
-    const now = Date.now();
-    const start = options.startDate || new Date(now - days * 24 * 60 * 60 * 1000).toISOString();
+  const today = dayjs().format(DATE);
 
-    return {startDate: start, endDate: end};
-  }, [days, options.startDate, options.endDate]);
-  /* eslint-enable react-hooks/purity */
+  const bounds = useMemo(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const startOfToday = dayjs(today);
+    const preset = RANGE_PRESETS.find(p => p.value === state.range);
 
-    const {
-    data: stats,
-    error: statsError,
-    isLoading: statsLoading,
-  } = useSWR<ActivityStats>(`/activity/stats?startDate=${startDate}&endDate=${endDate}`, {
+    let first = startOfToday.subtract((preset?.days ?? 30) - 1, 'day');
+    let last = startOfToday;
+
+    if (state.range === 'custom' && state.from && state.to) {
+      const from = dayjs(state.from);
+      const to = dayjs(state.to);
+      if (from.isValid() && to.isValid() && !to.isBefore(from)) {
+        first = from;
+        last = to.diff(from, 'day') >= MAX_CUSTOM_DAYS ? from.add(MAX_CUSTOM_DAYS - 1, 'day') : to;
+      }
+    }
+
+    // Day boundaries rather than "now", so the same view maps to the same cache entry
+    return {
+      first,
+      last,
+      from: first.startOf('day').toISOString(),
+      to: last.add(1, 'day').startOf('day').toISOString(),
+      days: last.diff(first, 'day') + 1,
+      tz,
+    };
+  }, [state.range, state.from, state.to, today]);
+
+  const stream = STREAM_OPTIONS.find(s => s.value === state.stream) ?? STREAM_OPTIONS[0];
+  const query = `from=${encodeURIComponent(bounds.from)}&to=${encodeURIComponent(bounds.to)}&tz=${encodeURIComponent(
+    bounds.tz,
+  )}&stream=${stream.api}`;
+
+  return {...state, setState, bounds, stream, query};
+}
+
+export type AnalyticsFilters = ReturnType<typeof useAnalyticsFilters>;
+
+/**
+ * One analytics dataset. Each tab asks only for what it draws; the overview and timeseries
+ * keys are shared between tabs, so switching tabs reuses what is already loaded.
+ *
+ * Waits for the active project: on a first visit it is not chosen yet, and a request
+ * without it fails. The project id is part of the key so each project caches separately.
+ */
+export function useAnalyticsData<T>(path: string, filters: AnalyticsFilters, params = '') {
+  const {activeProject} = useActiveProject();
+  const key = activeProject ? [`/analytics/${path}?${filters.query}${params}`, activeProject.id] : null;
+
+  return useSWR<T>(key, ([url]: [string, string]) => network.fetch<T>('GET', url), {
+    keepPreviousData: true,
     revalidateOnFocus: false,
-    refreshInterval: 300000, // Refresh every 5 minutes
-    dedupingInterval: 10000, // Prevent duplicate requests within 10 seconds
+    refreshInterval: 5 * 60 * 1000,
   });
-
-    const {
-    data: timeSeries,
-    error: timeSeriesError,
-    isLoading: timeSeriesLoading,
-  } = useSWR<TimeSeriesDataPoint[]>(`/analytics/timeseries?startDate=${startDate}&endDate=${endDate}`, {
-    revalidateOnFocus: false,
-    refreshInterval: 300000, // Refresh every 5 minutes
-    dedupingInterval: 10000, // Prevent duplicate requests within 10 seconds
-    shouldRetryOnError: false, // Don't error out if endpoint doesn't exist yet
-  });
-
-  return {
-    stats: stats || null,
-    timeSeries: timeSeries || null,
-    isLoading: statsLoading || timeSeriesLoading,
-    error: statsError || timeSeriesError,
-  };
 }
