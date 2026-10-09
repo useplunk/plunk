@@ -191,8 +191,10 @@ export class ActivityService {
           projectId,
           createdAt: dateFilter,
         },
+        // _all rather than id: COUNT(*) can be served from emails_projectId_createdAt_idx
+        // alone, COUNT("id") would need every row fetched since id is not in that index
         _count: {
-          id: true,
+          _all: true,
           openedAt: true,
           clickedAt: true,
         },
@@ -209,7 +211,7 @@ export class ActivityService {
       },
     });
 
-    const totalEmailsSent = emailStats._count.id;
+    const totalEmailsSent = emailStats._count._all;
     const totalEmailsOpened = emailStats._count.openedAt || 0;
     const totalEmailsClicked = emailStats._count.clickedAt || 0;
 
