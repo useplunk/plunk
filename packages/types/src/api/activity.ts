@@ -8,6 +8,7 @@
 export enum ActivityType {
   EVENT_TRIGGERED = 'event.triggered',
   EMAIL_SENT = 'email.sent',
+  EMAIL_SUPPRESSED = 'email.suppressed',
   EMAIL_DELIVERED = 'email.delivered',
   EMAIL_RECEIVED = 'email.received',
   EMAIL_OPENED = 'email.opened',

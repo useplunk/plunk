@@ -47,6 +47,7 @@ import {ApiKeyDisplay} from '../../components/ApiKeyDisplay';
 import {SmtpSettings} from '../../components/SmtpSettings';
 import {DataManagementSettings} from '../../components/DataManagementSettings';
 import {TeamSettings} from '../../components/TeamSettings';
+import {SuppressionSettings} from '../../components/SuppressionSettings';
 import {SecuritySettings} from '../../components/SecuritySettings';
 import {useActiveProject} from '../../lib/contexts/ActiveProjectProvider';
 import {network} from '../../lib/network';
@@ -56,7 +57,7 @@ import {useUser} from '../../lib/hooks/useUser';
 import {useProjectSecurity} from '../../lib/hooks/useProjectSecurity';
 import useSWR from 'swr';
 
-type TabId = 'general' | 'billing' | 'domains' | 'smtp' | 'data' | 'team' | 'security';
+type TabId = 'general' | 'billing' | 'domains' | 'smtp' | 'data' | 'team' | 'security' | 'suppression';
 
 interface Tab {
   id: TabId;
@@ -71,6 +72,7 @@ const buildTabs = (options: {billingEnabled: boolean; smtpEnabled: boolean}): Ta
     {id: 'general', label: 'General', icon: SettingsIcon},
     {id: 'team', label: 'Team', icon: Users},
     {id: 'security', label: 'Security', icon: Shield},
+    {id: 'suppression', label: 'Suppression', icon: Shield},
     {id: 'billing', label: 'Billing', icon: CreditCard, condition: billingEnabled},
     {id: 'domains', label: 'Domains', icon: Globe},
     {id: 'smtp', label: 'SMTP', icon: Mail, condition: smtpEnabled},
@@ -776,6 +778,9 @@ export default function Settings() {
             </TabsContent>
 
             {/* Security Tab */}
+            <TabsContent value="suppression">
+              {activeProject && <SuppressionSettings key={activeProject.id} projectId={activeProject.id}/>}
+            </TabsContent>
             <TabsContent value="security">
               {securityMetrics ? (
                 <SecuritySettings metrics={securityMetrics} isLoading={isLoadingSecurityMetrics} />

@@ -1042,3 +1042,15 @@ describe('Template rendering — hostile contact data keys (no DB)', () => {
     expect(EmailService.format({subject: 'Hi {{missing}}', body: 'x', data: {}}).subject).toBe('Hi ');
   });
 });
+
+
+describe('explicit provider recipients', () => {
+  it('does not serialize alternate recipient headers into MIME', async () => {
+    const {sendRawEmail: realSendRawEmail, ses} = await vi.importActual<typeof import('../SESService')>('../SESService');
+    await realSendRawEmail({from: {email: 'sender@example.com'}, to: ['allowed@example.net'], content: {subject: 'Test', html: 'Body'}, headers: {Cc: 'blocked@example.com', bCC: 'blocked@example.com', 'Resent-To': 'blocked@example.com'}});
+    const args = (ses.sendRawEmail as Mock).mock.calls.at(-1)![0];
+    expect(args.Destinations).toEqual(['allowed@example.net']);
+    const mime = new TextDecoder().decode(args.RawMessage.Data);
+    expect(mime).not.toContain('blocked@example.com');
+  });
+});

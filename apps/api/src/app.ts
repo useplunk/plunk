@@ -37,6 +37,7 @@ import {Events} from './controllers/Events.js';
 import {Oauth} from './controllers/Oauth/index.js';
 import {Projects} from './controllers/Projects.js';
 import {Segments} from './controllers/Segments.js';
+import {Suppressions} from './controllers/Suppressions.js';
 import {Templates} from './controllers/Templates.js';
 import {Unsubscribe} from './controllers/Unsubscribe.js';
 import {Uploads} from './controllers/Uploads.js';
@@ -173,6 +174,7 @@ const server = new (class extends Server {
       new Projects(),
       new Segments(),
       new Templates(),
+      new Suppressions(),
       new Unsubscribe(),
       new Uploads(),
       new Webhooks(),

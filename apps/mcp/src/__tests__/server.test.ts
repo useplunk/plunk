@@ -74,7 +74,9 @@ describe('tool registration', () => {
     expect(names).toContain('plunk_send_email');
     expect(names).toContain('plunk_send_campaign');
     expect(names).toContain('plunk_delete_contact');
-    expect(tools).toHaveLength(42);
+    expect(tools).toHaveLength(44);
+    expect(names).toContain('plunk_list_captured_emails');
+    expect(names).toContain('plunk_get_captured_email');
 
     await close();
   });
@@ -358,6 +360,23 @@ describe('single-campaign envelope', () => {
     // The model must see the campaign, not a {success, data} wrapper around it.
     expect(result.structuredContent).toMatchObject({id: 'camp-1', name: 'Win-back', status: 'DRAFT'});
 
+    await close();
+  });
+});
+
+
+describe('captured email reads', () => {
+  it('works in read-only mode and preserves stored content without any send request', async () => {
+    const calls: string[] = [];
+    mockApi((url, init) => {
+      calls.push(url);
+      expect(init?.method).toBe('GET');
+      return json({id: 'capture', status: 'SUPPRESSED', renderedBody: '<p>Code 123</p>', suppression: {ruleId: 'rule'}});
+    });
+    const {client, close} = await connect({...baseConfig, readOnly: true});
+    const result = await client.callTool({name: 'plunk_get_captured_email', arguments: {id: 'capture'}});
+    expect(JSON.stringify(result)).toContain('Code 123');
+    expect(calls).toEqual(['https://api.example.com/suppressions/emails/capture']);
     await close();
   });
 });

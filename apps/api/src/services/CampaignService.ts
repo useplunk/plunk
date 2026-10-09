@@ -28,6 +28,7 @@ import {QueueService} from './QueueService.js';
 import {SegmentService} from './SegmentService.js';
 import {Keys} from './keys.js';
 import {DASHBOARD_URI, STRIPE_ENABLED} from '../app/constants.js';
+import {RecipientSuppressionService} from './RecipientSuppressionService.js';
 import {sendRawEmail} from './SESService.js';
 
 const BATCH_SIZE = 500; // Number of emails to process per batch (increased for better performance)
@@ -1422,6 +1423,23 @@ export class CampaignService {
 
     if (!project) {
       throw new HttpException(404, 'Project not found');
+    }
+
+    if (project.disabled) throw new HttpException(403, 'Project is disabled');
+    const suppression = await RecipientSuppressionService.match(projectId, testEmail);
+    if (suppression) {
+      const contact = await prisma.contact.upsert({
+        where: {projectId_email: {projectId, email: testEmail.toLowerCase()}},
+        create: {projectId, email: testEmail.toLowerCase(), subscribed: false}, update: {},
+      });
+      await prisma.email.create({data: {
+        projectId, contactId: contact.id, recipientAddress: testEmail,
+        from: campaign.from, fromName: campaign.fromName, replyTo: campaign.replyTo,
+        subject: `[TEST] ${campaign.subject}`, body: campaign.body,
+        renderedSubject: `[TEST] ${campaign.subject}`, renderedBody: campaign.body,
+        status: EmailStatus.SUPPRESSED, sourceType: EmailSourceType.TRANSACTIONAL, suppression,
+      }});
+      return;
     }
 
     // Mirror the production classification so the test send carries the same

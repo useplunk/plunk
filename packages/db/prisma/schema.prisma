@@ -78,6 +78,7 @@ model Project {
   segments    Segment[]
   workflows   Workflow[]
   campaigns   Campaign[]
+  suppressionRules RecipientSuppressionRule[]
   emails      Email[]
   events      Event[]
   domains     Domain[]
@@ -570,6 +571,12 @@ model Email {
   headers     Json? // Custom email headers
   attachments Json? // Array of {filename: string, content: string (base64), contentType: string}
 
+  // Immutable recipient and suppression decision; rendered content retained for inspection.
+  recipientAddress String?
+  suppression Json?
+  renderedSubject String?
+  renderedBody String?
+
   // AWS SES Message ID (for tracking webhooks)
   messageId String? @unique
 
@@ -636,6 +643,7 @@ model Email {
   @@index([status])
   @@index([createdAt])
   @@index([projectId, sourceType, createdAt]) // For billing limit queries
+  @@index([projectId, status, createdAt, id]) // Cursor-paginated captures
   @@index([contactId, openedAt]) // For email activity segment queries
   @@index([contactId, clickedAt]) // For email activity segment queries
   @@index([contactId, bouncedAt]) // For email activity segment queries
@@ -864,6 +872,7 @@ enum EmailSourceType {
 }
 
 enum EmailStatus {
+  SUPPRESSED // Captured without external delivery
   PENDING // Queued for sending
   SENDING // Currently being sent
   SENT // Successfully sent to provider
@@ -874,4 +883,18 @@ enum EmailStatus {
   BOUNCED // Bounced (hard or soft)
   COMPLAINED // Marked as spam
   FAILED // Failed to send
+}
+
+model RecipientSuppressionRule {
+  id String @id @default(uuid())
+  projectId String
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name String
+  kind String
+  pattern String
+  enabled Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([projectId, enabled])
+  @@map("recipient_suppression_rules")
 }

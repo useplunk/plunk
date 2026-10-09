@@ -4,6 +4,7 @@ import {useState} from 'react';
 import {wrapEmailWithStyles} from '../lib/emailStyles';
 
 interface EmailPreviewModalProps {
+  captured?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subject: string;
@@ -18,6 +19,7 @@ interface EmailPreviewModalProps {
 type PreviewDevice = 'mobile' | 'tablet' | 'desktop';
 
 export function EmailPreviewModal({
+  captured = false,
   open,
   onOpenChange,
   subject,
@@ -55,13 +57,15 @@ export function EmailPreviewModal({
   const displayFrom = fromName ? `${fromName} <${from}>` : from;
 
   // Wrap the body with styles for proper rendering
-  const styledBody = wrapEmailWithStyles(body);
+  const styledBody = (captured
+    ? `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">`
+    : '') + wrapEmailWithStyles(body);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
-          <DialogTitle className="pr-8">Email preview</DialogTitle>
+          <DialogTitle className="pr-8">{captured ? 'Suppressed email — captured content' : 'Email preview'}</DialogTitle>
         </DialogHeader>
 
         {/* Device Selector */}
@@ -159,7 +163,7 @@ export function EmailPreviewModal({
                 {/* Email Body */}
                 <div className="bg-white">
                   <iframe
-                    sandbox="allow-same-origin"
+                    sandbox={captured ? '' : 'allow-same-origin'}
                     srcDoc={styledBody}
                     className="w-full border-0 block"
                     style={{minHeight: '500px'}}

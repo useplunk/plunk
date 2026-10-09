@@ -87,7 +87,8 @@ export class AnalyticsService {
 				COUNT(CASE WHEN "deliveredAt" IS NOT NULL THEN 1 END) as total_delivered
 			FROM "emails"
 			WHERE "projectId" = ${projectId}
-				AND "createdAt" >= ${limitedStartDate}
+				AND "status" <> 'SUPPRESSED'
+                AND "createdAt" >= ${limitedStartDate}
 				AND "createdAt" <= ${effectiveEndDate}
 			GROUP BY DATE_TRUNC('day', "createdAt")
 			ORDER BY date ASC

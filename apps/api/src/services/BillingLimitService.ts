@@ -63,7 +63,7 @@ export class BillingLimitService {
         where: {
           projectId,
           // Never metered, so never counted -- see WHAT COUNTS AS USAGE above.
-          status: {not: EmailStatus.FAILED},
+          status: {notIn: [EmailStatus.FAILED, EmailStatus.SUPPRESSED]},
           createdAt: {
             gte: start,
             lt: end,
@@ -109,7 +109,7 @@ export class BillingLimitService {
           projectId,
           sourceType,
           // Never metered, so never counted -- see WHAT COUNTS AS USAGE above.
-          status: {not: EmailStatus.FAILED},
+          status: {notIn: [EmailStatus.FAILED, EmailStatus.SUPPRESSED]},
           createdAt: {
             gte: start,
             lt: end,

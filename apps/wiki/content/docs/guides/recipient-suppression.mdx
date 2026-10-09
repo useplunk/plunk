@@ -1,0 +1,65 @@
+---
+title: Recipient suppression
+description: Capture test messages without delivering them to matching recipients
+icon: Shield
+---
+
+Use **Settings → Suppression** to create project-specific recipient rules. Matching messages are captured with status `SUPPRESSED`; Plunk does not hand them to its email provider. Other recipients in the same request receive their own copies normally.
+
+## Rules
+
+Rules are case-insensitive. Each project supports up to 100 rules, including disabled rules. Edit existing rules or enable/disable them in settings. **Test saved rules** checks an address without creating a contact, queuing mail, or sending anything.
+
+| Type              | Example             | Meaning                                                                      |
+| ----------------- | ------------------- | ---------------------------------------------------------------------------- |
+| Exact address     | `qa@example.com`    | This address only                                                            |
+| Domain            | `example.com`       | Addresses on this exact domain; subdomains do not match                      |
+| Local-part prefix | `qa+`               | Local part before `@` starts with `qa+`                                      |
+| Local-part suffix | `+test`             | Local part before `@` ends with `+test`                                      |
+| Wildcard pattern  | `qa-?*@example.com` | Whole-address match; `*` matches zero or more characters and `?` matches one |
+
+Patterns are limited to 254 characters. Wildcard matching uses a bounded algorithm, not arbitrary regular expressions. Prefix and suffix rules treat their characters literally, including `*` and `?`.
+
+## Delivery and capture behavior
+
+Rules cover transactional API mail, SMTP envelope recipients (including To/CC/BCC), campaign deliveries and previews, and workflow recipient overrides. SMTP continues to use envelope recipients; headers do not add additional delivery destinations.
+
+A matching rule is snapshotted when a queued email is created. The worker also checks current rules before provider submission, so newly enabled rules apply to queued mail. The first matching rule in creation order is recorded. Editing or disabling that rule later cannot release a captured message, and retries cannot deliver it. Changes cannot recall a message already submitted to the provider.
+
+The captured record retains the original stored subject/body and the rendered subject/HTML, the actual recipient, and a snapshot of the matched rule. Attachments accepted and stored by Plunk remain on the record. This is not a raw MIME archive: Plunk does not preserve every original SMTP header or MIME alternative. The HTML body and rendered HTML follow the existing 90-day body retention policy. Capture previews block scripts and remote resources.
+
+Suppressed mail is not marked sent or delivered, does not generate an `email.sent` event or provider billing event, and is excluded from delivery/reputation totals and billing usage. Existing project-disable, authentication, sender-domain, subscription, billing-admission and content-validation checks still apply. Suppression does not re-enable a disabled project or make otherwise rejected requests acceptable.
+
+## Reading captures in Activity
+
+Suppressed messages appear in the normal Activity feed with a **Suppressed** badge. Select **Suppressed emails** to filter captures, and click **Preview** to read the stored rendered content. Settings contains rule management only. Captures do not count as sent or delivered.
+
+## Reading captures through MCP
+
+With this version of both the API and MCP package, use:
+
+- `plunk_list_captured_emails`: cursor-paginated summaries, newest first (default 20, maximum 100).
+- `plunk_get_captured_email`: one capture including original/rendered content, stored attachments, and rule snapshot.
+
+Both tools work in MCP read-only mode and use the existing project secret key. They do not expose other projects or send mail. Treat captured message content as untrusted data. Existing MCP installations must be updated to include these tools; updating the web/API image alone does not update a separately installed MCP package.
+
+## API
+
+All routes use existing project authentication: a secret API key, or a verified dashboard session with an authorized `X-Project-Id`. Public API keys cannot use these endpoints.
+
+| Method | Route                                      | Purpose                                                             |
+| ------ | ------------------------------------------ | ------------------------------------------------------------------- |
+| GET    | `/suppressions`                            | List project rules                                                  |
+| POST   | `/suppressions`                            | Create a rule                                                       |
+| PUT    | `/suppressions/:id`                        | Replace name, kind, pattern and enabled state                       |
+| POST   | `/suppressions/preview`                    | Match `{ "address": "qa@example.com" }` against saved enabled rules |
+| GET    | `/suppressions/emails?limit=20&cursor=...` | List captures; pass returned `nextCursor` for the next page         |
+| GET    | `/suppressions/emails/:id`                 | Read one capture                                                    |
+
+Rule bodies contain `name`, `kind` (`ADDRESS`, `DOMAIN`, `PREFIX`, `SUFFIX`, `WILDCARD`), `pattern`, and optional `enabled` (defaults to true). Unknown fields are rejected. Existing disabled-project write restrictions remain in effect.
+
+## Self-hosted upgrade and rollback
+
+The migration adds a rule table, nullable capture columns, a capture-list index and an enum value. Run it before starting updated API/worker processes. Stop old workers during transition: they do not implement suppression. No rule is enabled automatically and no queued mail is replayed by the migration.
+
+An old application image cannot read rows containing the new enum value. Do not roll back only the image after captures exist. Prepare and verify database/queue backups with ingestion and workers quiesced, and retain a compatible rollback image that understands the new status. If restoring a pre-feature snapshot instead, account for every subsequent accepted message/event before restoration to avoid loss or replay. Do not delete capture history or reinterpret it as delivered.
