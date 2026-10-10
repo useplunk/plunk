@@ -20,6 +20,7 @@ import {useEffect, useRef, useState} from 'react';
 import {renderTemplate} from '@plunk/shared';
 import {
   Button,
+  ConfirmDialog,
   Dialog,
   DialogContent,
   DialogHeader,
@@ -213,15 +214,6 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
       setMode('visual');
     }
     setShowModeWarningDialog(false);
-  };
-
-  const stayInHtmlMode = () => {
-    // Explicitly stay in HTML mode and just close the dialog
-    setShowModeWarningDialog(false);
-    // Ensure we're in HTML mode
-    if (mode !== 'html') {
-      setMode('html');
-    }
   };
 
   const handleHtmlChange = (newHtml: string) => {
@@ -764,42 +756,25 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
         </DialogContent>
       </Dialog>
 
-      {/* Mode switch warning dialog */}
-      <Dialog
+      <ConfirmDialog
         open={showModeWarningDialog}
-        onOpenChange={open => {
-          // Only allow closing (not opening) and ensure we stay in current mode
-          if (!open) {
-            setShowModeWarningDialog(false);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Switching to visual mode will change your HTML</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-sm text-amber-800 font-medium">The visual editor may strip or rewrite:</p>
-              <ul className="text-sm text-amber-700 mt-2 ml-4 list-disc space-y-1">
-                <li>Custom HTML elements and attributes</li>
-                <li>Inline styles and CSS classes</li>
-                <li>Complex table structures</li>
-                <li>Custom formatting or layout</li>
-              </ul>
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={stayInHtmlMode}>
-                Stay in HTML mode
-              </Button>
-              <Button type="button" variant="destructive" onClick={switchToVisualMode}>
-                Switch anyway
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+        onOpenChange={setShowModeWarningDialog}
+        onConfirm={switchToVisualMode}
+        title="Switch to the visual editor?"
+        description="The visual editor may strip or rewrite parts of your HTML, such as:"
+        details={
+          <ul className="list-disc space-y-1 rounded-lg border border-neutral-200 py-2.5 pl-8 pr-3 text-sm text-neutral-600 marker:text-neutral-300">
+            <li>Custom HTML elements and attributes</li>
+            <li>Inline styles and CSS classes</li>
+            <li>Complex table structures</li>
+            <li>Custom formatting or layout</li>
+          </ul>
+        }
+        icon={AlertTriangle}
+        cancelText="Stay in HTML"
+        confirmText="Switch anyway"
+        variant="destructive"
+      />
 
       {/* Image insertion dialog */}
       <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>

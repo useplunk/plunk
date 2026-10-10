@@ -49,6 +49,7 @@ import {
   ArchiveRestore,
   Ban,
   ChevronDown,
+  CircleStop,
   Copy,
   FileText,
   Filter,
@@ -1145,6 +1146,7 @@ export default function CampaignsPage() {
               : 'Sending stops now. If nothing has gone out yet the campaign returns to draft; otherwise it is permanently cancelled and contacts who already received it keep their copy.'
           }
           cancelText="Keep sending"
+          icon={CircleStop}
           confirmText={campaignToCancel?.status === CampaignStatus.SCHEDULED ? 'Stop campaign' : 'Cancel campaign'}
           variant="destructive"
         />

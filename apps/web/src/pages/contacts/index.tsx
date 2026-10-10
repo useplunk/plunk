@@ -54,6 +54,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
+  EyeOff,
   FileUp,
   Loader2,
   Mail,
@@ -1173,7 +1174,7 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
         description="The import keeps running in the background. You just won't see the result here."
         cancelText="Keep watching"
         confirmText="Close anyway"
-        variant="destructive"
+        icon={EyeOff}
       />
     </>
   );
@@ -1461,7 +1462,7 @@ function BulkActionsDialog({open, onOpenChange, operation, selector, targetCount
         description="The job keeps running and your contacts are still updated. You just won't see the result here."
         cancelText="Keep watching"
         confirmText="Hide"
-        variant="default"
+        icon={EyeOff}
       />
     </>
   );

@@ -49,6 +49,7 @@ import {
   ArrowLeft,
   Calendar,
   ChevronDown,
+  CircleStop,
   Info,
   Save,
   Send,
@@ -1504,6 +1505,7 @@ export default function CampaignDetailsPage() {
         title={cancelCopy.title}
         description={cancelCopy.description}
         cancelText="Keep sending"
+        icon={CircleStop}
         confirmText={cancelCopy.confirmText}
         variant="destructive"
       />

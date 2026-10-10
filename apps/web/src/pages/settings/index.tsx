@@ -4,8 +4,6 @@ import {zodResolver} from '@hookform/resolvers/zod';
 import {ProjectSchemas, SUPPORTED_LANGUAGES} from '@plunk/shared';
 import {TrackingMode} from '@plunk/db';
 import {
-  Alert,
-  AlertDescription,
   Button,
   Card,
   CardContent,
@@ -34,7 +32,18 @@ import {
 } from '@plunk/ui';
 import {AnimatePresence, motion} from 'framer-motion';
 import {NextSeo} from 'next-seo';
-import {AlertTriangle, CreditCard, Database, Globe, Mail, Settings as SettingsIcon, Shield, Users} from 'lucide-react';
+import {
+  AlertTriangle,
+  CreditCard,
+  Database,
+  Globe,
+  KeyRound,
+  Mail,
+  RotateCcw,
+  Settings as SettingsIcon,
+  Shield,
+  Users,
+} from 'lucide-react';
 import type {z} from 'zod';
 import {useRouter} from 'next/router';
 import {DashboardLayout} from '../../components/DashboardLayout';
@@ -815,15 +824,8 @@ export default function Settings() {
           onOpenChange={open => !open && setDialog({type: 'none'})}
           onConfirm={handleRegenerateKeys}
           title="Regenerate API keys?"
-          description="Your current keys stop working immediately."
-          details={
-            <Alert variant="warning">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Every integration using the old keys fails until you swap in the new ones.
-              </AlertDescription>
-            </Alert>
-          }
+          description="Your current keys stop working immediately. Every integration using them fails until you swap in the new ones."
+          icon={KeyRound}
           confirmText="Regenerate keys"
           loadingText="Regenerating…"
           variant="destructive"
@@ -835,6 +837,7 @@ export default function Settings() {
           onConfirm={handleResetProject}
           title="Reset project data?"
           description="Every campaign, contact, workflow, template and event in this project is deleted. Your API keys, domains and billing stay as they are."
+          icon={RotateCcw}
           confirmPhrase="RESET"
           confirmText="Reset data"
           loadingText="Resetting…"
@@ -846,14 +849,10 @@ export default function Settings() {
           onOpenChange={open => !open && setDialog({type: 'none'})}
           onConfirm={handleDeleteProject}
           title={`Delete ${activeProject.name}?`}
-          description="This permanently deletes the project and everything in it. It cannot be undone."
-          details={
-            activeProject.subscription ? (
-              <Alert variant="warning">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Your active subscription will be canceled.</AlertDescription>
-              </Alert>
-            ) : undefined
+          description={
+            activeProject.subscription
+              ? 'This permanently deletes the project and everything in it, and cancels its subscription. It cannot be undone.'
+              : 'This permanently deletes the project and everything in it. It cannot be undone.'
           }
           confirmPhrase="DELETE"
           confirmText="Delete project"

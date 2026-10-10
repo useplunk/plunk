@@ -32,6 +32,7 @@ import {network} from '../../lib/network';
 import {
   AlertTriangle,
   ArrowLeft,
+  CircleStop,
   Info,
   Power,
   PowerOff,
@@ -671,21 +672,16 @@ export default function WorkflowEditorPage() {
               }
             }}
             title="Cancel this execution?"
+            icon={CircleStop}
             description={
               dialog.type === 'cancelOne' && executionsData?.executions ? (
-                <div className="space-y-2">
-                  <p>
-                    Stops this workflow for{' '}
-                    <strong>
-                      {executionsData.executions.find(e => e.id === dialog.executionId)?.contact.email ||
-                        'this contact'}
-                    </strong>
-                    .
-                  </p>
-                  <p className="text-sm text-neutral-600">
-                    They won&apos;t receive any remaining emails or actions from it. This can&apos;t be undone.
-                  </p>
-                </div>
+                <>
+                  Stops this workflow for{' '}
+                  <strong>
+                    {executionsData.executions.find(e => e.id === dialog.executionId)?.contact.email || 'this contact'}
+                  </strong>
+                  . They won&apos;t receive any remaining emails or actions from it. This can&apos;t be undone.
+                </>
               ) : (
                 "The contact won't receive any remaining emails or actions from this workflow. This can't be undone."
               )
@@ -702,16 +698,13 @@ export default function WorkflowEditorPage() {
             onOpenChange={open => !open && setDialog({type: 'none'})}
             onConfirm={handleCancelAllExecutions}
             title="Cancel every active execution?"
+            icon={CircleStop}
             description={
-              <div className="space-y-2">
-                <p>
-                  Stops this workflow for all <strong>{activeExecutionsCount}</strong> contact
-                  {activeExecutionsCount !== 1 ? 's' : ''} currently in it.
-                </p>
-                <p className="text-sm text-neutral-600">
-                  They won&apos;t receive any remaining emails or actions. This can&apos;t be undone.
-                </p>
-              </div>
+              <>
+                Stops this workflow for all <strong>{activeExecutionsCount}</strong> contact
+                {activeExecutionsCount !== 1 ? 's' : ''} currently in it. They won&apos;t receive any remaining emails
+                or actions. This can&apos;t be undone.
+              </>
             }
             confirmText={`Cancel ${activeExecutionsCount} execution${activeExecutionsCount !== 1 ? 's' : ''}`}
             cancelText="Keep running"
