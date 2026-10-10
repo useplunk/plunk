@@ -2,9 +2,12 @@
  * Campaign service types
  */
 
-import type {Campaign, CampaignAudienceType, TemplateType} from '@plunk/db';
+import type {Campaign, CampaignAudienceType, Segment, TemplateType} from '@plunk/db';
 import type {PaginatedResponse} from '../common/pagination.js';
 import type {FilterCondition} from '../segments/index.js';
+
+/** A campaign as the list endpoint returns it: with its segment, so the list can name the audience. */
+export type CampaignListItem = Campaign & {segment: Segment | null};
 
 /**
  * Data for creating a new campaign
@@ -48,7 +51,7 @@ export interface UpdateCampaignData {
  * what count to put on it). It rides along here rather than widening the shared
  * `PaginatedResponse`, which every other list endpoint returns unchanged.
  */
-export type CampaignListResponse = PaginatedResponse<Campaign> & {
+export type CampaignListResponse = PaginatedResponse<CampaignListItem> & {
   /** Archived campaigns in the project, independent of the current page, search or status filter. */
   archivedCount: number;
 };

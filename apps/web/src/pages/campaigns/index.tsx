@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   EmptyState,
   IconSpinner,
@@ -15,7 +16,7 @@ import {
 import type {Campaign, Template} from '@plunk/db';
 import {CampaignStatus} from '@plunk/db';
 import {CampaignSchemas} from '@plunk/shared';
-import type {CampaignListResponse} from '@plunk/types';
+import type {CampaignListItem, CampaignListResponse} from '@plunk/types';
 import {
   getCoreRowModel,
   useReactTable,
@@ -47,15 +48,16 @@ import {
   Archive,
   ArchiveRestore,
   Ban,
-  Calendar,
   ChevronDown,
   Copy,
-  Edit,
   FileText,
+  Filter,
   Mail,
+  MoreHorizontal,
   Plus,
   RefreshCw,
   Trash2,
+  Users,
 } from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
@@ -77,10 +79,16 @@ const COLUMNS_STORAGE_KEY = 'plunk:campaigns:columns';
 const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
   select: true,
   name: true,
-  subject: true,
   status: true,
-  recipients: true,
-  updatedAt: true,
+  audience: true,
+  sent: true,
+  opened: true,
+  clicked: true,
+  // Deliverability columns are opt-in from the Columns menu; the detail page already
+  // breaks them down, and most scans of the list are about engagement.
+  bounced: false,
+  complained: false,
+  when: true,
   actions: true,
 };
 
@@ -118,6 +126,123 @@ const getStatusBadge = (status: CampaignStatus) => {
     </Badge>
   );
 };
+
+const rate = (count: number, of: number) => (of > 0 ? (count / of) * 100 : 0);
+
+function Audience({campaign, className = ''}: {campaign: CampaignListItem; className?: string}) {
+  const Icon = campaign.audienceType === 'FILTERED' ? Filter : Users;
+  const label =
+    campaign.audienceType === 'SEGMENT'
+      ? (campaign.segment?.name ?? 'Deleted segment')
+      : campaign.audienceType === 'FILTERED'
+        ? 'Custom filter'
+        : 'All contacts';
+  return (
+    <span className={'inline-flex min-w-0 items-center gap-1.5 text-neutral-500 ' + className}>
+      <Icon className="h-3 w-3 shrink-0" />
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
+/**
+ * The one date that matters for the campaign's state: when it went out, when it will, or when
+ * the draft was last touched. `updatedAt` alone says little once a campaign has been sent.
+ */
+function CampaignTiming({campaign, className = ''}: {campaign: CampaignListItem; className?: string}) {
+  let label: string;
+  let date: Date | string;
+  switch (campaign.status) {
+    case 'SCHEDULED':
+      date = campaign.scheduledFor ?? campaign.updatedAt;
+      label = `Sends ${dayjs(date).format(dayjs(date).isSame(dayjs(), 'year') ? 'MMM D, HH:mm' : 'MMM D YYYY, HH:mm')}`;
+      break;
+    case 'SENDING':
+      date = campaign.sentAt ?? campaign.updatedAt;
+      label = 'Sending now';
+      break;
+    case 'SENT':
+      date = campaign.sentAt ?? campaign.updatedAt;
+      label = `Sent ${formatRelativeTime(date)}`;
+      break;
+    case 'CANCELLED':
+      date = campaign.updatedAt;
+      label = `Cancelled ${formatRelativeTime(date)}`;
+      break;
+    default:
+      date = campaign.updatedAt;
+      label = `Edited ${formatRelativeTime(date)}`;
+  }
+  return (
+    <div className={'group relative inline-block cursor-help whitespace-nowrap ' + className}>
+      {label}
+      <div className="hidden group-hover:block absolute z-10 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
+        {dayjs(date).format('DD MMMM YYYY, HH:mm')}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The card's figures, per state. Sent campaigns get the full funnel; anything not yet sent shows
+ * how many it will reach, and a campaign going out shows its progress.
+ */
+function CampaignCardStats({campaign}: {campaign: CampaignListItem}) {
+  const stat = (value: string, label: string) => (
+    <span>
+      <strong className="font-semibold text-neutral-900 tabular-nums">{value}</strong>
+      <span className="text-neutral-400 ml-1 text-xs">{label}</span>
+    </span>
+  );
+  const divider = <span className="h-3 w-px bg-neutral-200" aria-hidden="true" />;
+
+  if (campaign.status === 'SENDING') {
+    const pct = rate(campaign.sentCount, campaign.totalRecipients);
+    return (
+      <div className="mt-4 text-sm">
+        <div className="flex items-baseline justify-between">
+          {stat(`${pct.toFixed(0)}%`, 'sent')}
+          <span className="text-xs text-neutral-400 tabular-nums">
+            {campaign.sentCount.toLocaleString()} of {campaign.totalRecipients.toLocaleString()}
+          </span>
+        </div>
+        <div className="mt-1.5 h-1 rounded-full bg-neutral-100">
+          <div className="h-1 rounded-full bg-neutral-900 transition-[width]" style={{width: `${pct}%`}} />
+        </div>
+      </div>
+    );
+  }
+
+  if (campaign.status === 'SENT' || (campaign.status === 'CANCELLED' && campaign.sentCount > 0)) {
+    return (
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+        {stat(campaign.sentCount.toLocaleString(), 'sent')}
+        {divider}
+        {stat(`${rate(campaign.openedCount, campaign.sentCount).toFixed(1)}%`, 'opened')}
+        {divider}
+        {stat(`${rate(campaign.clickedCount, campaign.sentCount).toFixed(1)}%`, 'clicked')}
+      </div>
+    );
+  }
+
+  if (campaign.totalRecipients === 0) return null;
+  return (
+    <div className="mt-4 text-sm">
+      {stat(campaign.totalRecipients.toLocaleString(), campaign.status === 'CANCELLED' ? 'recipients' : 'estimated recipients')}
+    </div>
+  );
+}
+
+/** Rate over sent, with the raw count under it. Nothing to show until something has been sent. */
+function MetricCell({value, of, decimals = 1}: {value: number; of: number; decimals?: number}) {
+  if (of === 0) return <span className="text-sm text-neutral-300">—</span>;
+  return (
+    <div className="text-sm tabular-nums">
+      <span className="font-semibold text-neutral-900">{rate(value, of).toFixed(decimals)}%</span>
+      <span className="block text-xs text-neutral-400">{value.toLocaleString()}</span>
+    </div>
+  );
+}
 
 export default function CampaignsPage() {
   const router = useRouter();
@@ -401,42 +526,98 @@ export default function CampaignsPage() {
     });
   };
 
-  // Recipients/delivered summary mirroring what each card surfaces, condensed
-  // into a single cell appropriate per status.
-  const recipientSummary = (campaign: Campaign) => {
-    const deliveryPct =
-      campaign.totalRecipients > 0 ? (campaign.sentCount / campaign.totalRecipients) * 100 : 0;
-    const openRate = campaign.sentCount > 0 ? (campaign.openedCount / campaign.sentCount) * 100 : 0;
-
-    switch (campaign.status) {
-      case 'SENT':
-        return (
-          <span className="text-sm text-neutral-700">
-            <strong className="font-semibold text-neutral-900">{campaign.sentCount.toLocaleString()}</strong>
-            <span className="text-neutral-400 ml-1 text-xs">sent</span>
-            <span className="text-neutral-300 mx-1.5">·</span>
-            <strong className="font-semibold text-neutral-900">{openRate.toFixed(1)}%</strong>
-            <span className="text-neutral-400 ml-1 text-xs">opens</span>
-          </span>
-        );
-      case 'SENDING':
-        return (
-          <span className="text-sm text-neutral-700">
-            <strong className="font-semibold text-neutral-900">{deliveryPct.toFixed(0)}%</strong>
-            <span className="text-neutral-400 ml-1 text-xs">delivered</span>
-          </span>
-        );
-      default:
-        return (
-          <span className="text-sm text-neutral-700">
-            <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
-            <span className="text-neutral-400 ml-1 text-xs">recipients</span>
-          </span>
-        );
+  // Recipient figure per state: who it reached once sent, who it will reach before that.
+  const recipientsCell = (campaign: CampaignListItem) => {
+    if (campaign.status === 'SENDING') {
+      const pct = rate(campaign.sentCount, campaign.totalRecipients);
+      return (
+        <div className="ml-auto w-24 text-sm tabular-nums">
+          <span className="font-semibold text-neutral-900">{pct.toFixed(0)}%</span>
+          <span className="text-xs text-neutral-400"> sent</span>
+          <div className="mt-1 h-1 rounded-full bg-neutral-100">
+            <div className="h-1 rounded-full bg-neutral-900" style={{width: `${pct}%`}} />
+          </div>
+        </div>
+      );
     }
+    const count = campaign.status === 'SENT' ? campaign.sentCount : campaign.totalRecipients;
+    if (count === 0) return <span className="text-sm text-neutral-300">—</span>;
+    return (
+      <span
+        className={
+          'text-sm tabular-nums ' +
+          (campaign.status === 'SENT' ? 'font-semibold text-neutral-900' : 'text-neutral-500')
+        }
+        title={campaign.status === 'SENT' ? undefined : 'Estimated, counted when the campaign sends'}
+      >
+        {count.toLocaleString()}
+      </span>
+    );
   };
 
-  const columns = useMemo<Array<ColumnDef<Campaign, unknown>>>(
+  // One menu per row instead of a row of icon buttons. Which actions appear follows the same
+  // rules as before: archive scope is view + restore, delete is drafts only, cancel is for
+  // campaigns that are scheduled or going out.
+  const actionsMenu = (campaign: CampaignListItem) => {
+    const canCancel = campaign.status === 'SCHEDULED' || campaign.status === 'SENDING';
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" aria-label={`Actions for ${campaign.name}`} title="Actions">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          {showArchived ? (
+            <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => void handleUnarchive(campaign.id)}>
+              <ArchiveRestore className="h-4 w-4" />
+              Restore
+            </DropdownMenuItem>
+          ) : (
+            <>
+              <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => void handleDuplicate(campaign.id)}>
+                <Copy className="h-4 w-4" />
+                Duplicate
+              </DropdownMenuItem>
+              {ARCHIVABLE_STATUSES.includes(campaign.status) && (
+                <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => void handleArchive(campaign.id)}>
+                  <Archive className="h-4 w-4" />
+                  Archive
+                </DropdownMenuItem>
+              )}
+              {(campaign.status === 'DRAFT' || canCancel) && <DropdownMenuSeparator />}
+              {campaign.status === 'DRAFT' && (
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer text-red-600 focus:text-red-600"
+                  onClick={() => {
+                    setCampaignToDelete(campaign.id);
+                    setShowDeleteDialog(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              )}
+              {canCancel && (
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer text-red-600 focus:text-red-600"
+                  onClick={() => {
+                    setCampaignToCancel({id: campaign.id, status: campaign.status});
+                    setShowCancelDialog(true);
+                  }}
+                >
+                  <Ban className="h-4 w-4" />
+                  {campaign.status === 'SCHEDULED' ? 'Stop' : 'Cancel sending'}
+                </DropdownMenuItem>
+              )}
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
+  const columns = useMemo<Array<ColumnDef<CampaignListItem, unknown>>>(
     () => [
       {
         id: 'select',
@@ -474,27 +655,20 @@ export default function CampaignsPage() {
         id: 'name',
         accessorKey: 'name',
         enableHiding: false, // Name column is locked-visible.
-        meta: {label: 'Name'} satisfies DataTableColumnMeta,
+        meta: {label: 'Name', cellClassName: 'max-w-[18rem]'} satisfies DataTableColumnMeta,
         header: ({column}) => <DataTableColumnHeader column={column}>Name</DataTableColumnHeader>,
         cell: ({row}) => (
-          <Link
-            href={`/campaigns/${row.original.id}`}
-            className="text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
-          >
-            {row.original.name}
-          </Link>
-        ),
-      },
-      {
-        id: 'subject',
-        accessorKey: 'subject',
-        enableSorting: false, // No backend sort field for subject.
-        meta: {label: 'Subject', cellClassName: 'max-w-xs'} satisfies DataTableColumnMeta,
-        header: ({column}) => <DataTableColumnHeader column={column}>Subject</DataTableColumnHeader>,
-        cell: ({row}) => (
-          <p className="text-sm text-neutral-700 truncate" title={row.original.subject}>
-            {row.original.subject}
-          </p>
+          <div className="min-w-0">
+            <Link
+              href={`/campaigns/${row.original.id}`}
+              className="block truncate text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
+            >
+              {row.original.name}
+            </Link>
+            <p className="truncate text-xs text-neutral-500" title={row.original.subject}>
+              {row.original.subject || <span className="italic text-neutral-400">No subject</span>}
+            </p>
+          </div>
         ),
       },
       {
@@ -502,127 +676,86 @@ export default function CampaignsPage() {
         accessorKey: 'status',
         enableSorting: false, // Status is faceted-filtered, not sorted.
         meta: {label: 'Status'} satisfies DataTableColumnMeta,
-        header: ({column}) => (
-          <DataTableColumnHeader
-            column={column}
-          >
-            Status
-          </DataTableColumnHeader>
-        ),
+        header: ({column}) => <DataTableColumnHeader column={column}>Status</DataTableColumnHeader>,
         cell: ({row}) => getStatusBadge(row.original.status),
       },
       {
-        id: 'recipients',
-        enableSorting: false, // No backend sort field for computed counts.
-        meta: {label: 'Recipients'} satisfies DataTableColumnMeta,
-        header: ({column}) => <DataTableColumnHeader column={column}>Recipients</DataTableColumnHeader>,
-        cell: ({row}) => recipientSummary(row.original),
+        id: 'audience',
+        enableSorting: false,
+        meta: {label: 'Audience', cellClassName: 'max-w-[12rem]'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Audience</DataTableColumnHeader>,
+        cell: ({row}) => <Audience campaign={row.original} className="max-w-full text-sm" />,
       },
       {
-        id: 'updatedAt',
-        accessorKey: 'updatedAt',
-        // ISO-string values sort ascending on first click by default; flip so
-        // the first click on "Updated" surfaces the most recently edited rows.
-        sortDescFirst: true,
-        meta: {label: 'Updated'} satisfies DataTableColumnMeta,
-        header: ({column}) => <DataTableColumnHeader column={column}>Updated</DataTableColumnHeader>,
-        cell: ({row}) => (
-          <div className="group relative inline-block cursor-help text-sm text-neutral-500 whitespace-nowrap">
-            {formatRelativeTime(row.original.updatedAt)}
-            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-1/2 transform -translate-x-1/2 mb-1 whitespace-nowrap">
-              {dayjs(row.original.updatedAt).format('DD MMMM YYYY, hh:mm')}
-            </div>
-          </div>
+        id: 'sent',
+        enableSorting: false, // No backend sort field for counts.
+        meta: {label: 'Recipients', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader column={column} align="right">
+            Recipients
+          </DataTableColumnHeader>
         ),
+        cell: ({row}) => recipientsCell(row.original),
+      },
+      {
+        id: 'opened',
+        enableSorting: false,
+        meta: {label: 'Opened', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader column={column} align="right">
+            Opened
+          </DataTableColumnHeader>
+        ),
+        cell: ({row}) => <MetricCell value={row.original.openedCount} of={row.original.sentCount} />,
+      },
+      {
+        id: 'clicked',
+        enableSorting: false,
+        meta: {label: 'Clicked', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader column={column} align="right">
+            Clicked
+          </DataTableColumnHeader>
+        ),
+        cell: ({row}) => <MetricCell value={row.original.clickedCount} of={row.original.sentCount} />,
+      },
+      {
+        id: 'bounced',
+        enableSorting: false,
+        meta: {label: 'Bounced', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader column={column} align="right">
+            Bounced
+          </DataTableColumnHeader>
+        ),
+        cell: ({row}) => <MetricCell value={row.original.bouncedCount} of={row.original.sentCount} />,
+      },
+      {
+        id: 'complained',
+        enableSorting: false,
+        meta: {label: 'Complaints', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader column={column} align="right">
+            Complaints
+          </DataTableColumnHeader>
+        ),
+        // Two decimals: complaint thresholds sit around 0.1%, which one decimal would flatten.
+        cell: ({row}) => <MetricCell value={row.original.complainedCount} of={row.original.sentCount} decimals={2} />,
+      },
+      {
+        id: 'when',
+        enableSorting: false, // Mixes sent/scheduled/edited dates, which no single backend field sorts.
+        meta: {label: 'Date'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Date</DataTableColumnHeader>,
+        cell: ({row}) => <CampaignTiming campaign={row.original} className="text-sm text-neutral-500" />,
       },
       {
         id: 'actions',
         enableSorting: false,
         enableHiding: false, // Actions column is locked-visible.
-        meta: {label: 'Actions', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
-        header: () => <span className="flex justify-end">Actions</span>,
-        cell: ({row}) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              title={row.original.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}
-            >
-              <Link
-                href={`/campaigns/${row.original.id}`}
-                aria-label={row.original.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}
-              >
-                <Edit className="h-4 w-4" />
-              </Link>
-            </Button>
-            {/* Inside the archive the row is down to view + restore. Duplicating or deleting
-                something the user has filed away is noise, and dropping the two of them keeps
-                the row at the same action count the active list had before archive existed. */}
-            {showArchived ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                title="Restore campaign"
-                aria-label="Restore campaign"
-                onClick={() => void handleUnarchive(row.original.id)}
-              >
-                <ArchiveRestore className="h-4 w-4" />
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  title="Duplicate campaign"
-                  aria-label="Duplicate campaign"
-                  onClick={() => handleDuplicate(row.original.id)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                {ARCHIVABLE_STATUSES.includes(row.original.status) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    title="Archive campaign"
-                    aria-label="Archive campaign"
-                    onClick={() => void handleArchive(row.original.id)}
-                  >
-                    <Archive className="h-4 w-4" />
-                  </Button>
-                )}
-                {row.original.status === 'DRAFT' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    title="Delete campaign"
-                    aria-label="Delete campaign"
-                    onClick={() => {
-                      setCampaignToDelete(row.original.id);
-                      setShowDeleteDialog(true);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-                {(row.original.status === 'SCHEDULED' || row.original.status === 'SENDING') && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    title="Cancel campaign"
-                    aria-label="Cancel campaign"
-                    onClick={() => {
-                      setCampaignToCancel({id: row.original.id, status: row.original.status});
-                      setShowCancelDialog(true);
-                    }}
-                  >
-                    <Ban className="h-4 w-4" />
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        ),
+        meta: {label: 'Actions', headClassName: 'text-right w-12', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({row}) => <div className="flex justify-end">{actionsMenu(row.original)}</div>,
       },
     ],
     // Re-creating columns on every render is cheap and avoids stale-closure bugs
@@ -631,7 +764,7 @@ export default function CampaignsPage() {
     [statusFilter],
   );
 
-  const table = useReactTable<Campaign>({
+  const table = useReactTable<CampaignListItem>({
     data: data?.data ?? [],
     columns,
     state: {sorting, columnVisibility, rowSelection},
@@ -928,217 +1061,72 @@ export default function CampaignsPage() {
                   )}
                 </CardContent>
               </Card>
-            ) : view === 'card' ? (
-              <>
-                {/* Card List View — unchanged from before. */}
-                {data?.data.map(campaign => {
-                  const openRate = campaign.sentCount > 0 ? (campaign.openedCount / campaign.sentCount) * 100 : 0;
-                  const clickRate = campaign.sentCount > 0 ? (campaign.clickedCount / campaign.sentCount) * 100 : 0;
-                  const deliveryPct =
-                    campaign.totalRecipients > 0 ? (campaign.sentCount / campaign.totalRecipients) * 100 : 0;
-
-                  return (
-                    <Card key={campaign.id} className="transition-colors hover:border-neutral-300 flex flex-col [&:has([data-card-link]:focus-visible)]:ring-2 [&:has([data-card-link]:focus-visible)]:ring-ring [&:has([data-card-link]:focus-visible)]:ring-offset-2">
-                      <Link
-                        href={`/campaigns/${campaign.id}`}
-                        data-card-link=""
-                        className="flex-1 block p-6 pb-4 hover:bg-neutral-50/50 transition-colors rounded-t-xl focus-visible:outline-none"
-                        aria-label={`Open ${campaign.name}`}
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <h3 className="font-semibold text-neutral-900 leading-snug truncate">{campaign.name}</h3>
-                          {getStatusBadge(campaign.status)}
-                        </div>
-
-                        <div className="flex items-center gap-3 text-sm flex-wrap">
-                          {campaign.status === 'DRAFT' && (
-                            <>
-                              <span>
-                                <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
-                                <span className="text-neutral-400 ml-1 text-xs">estimated recipients</span>
-                              </span>
-                            </>
-                          )}
-                          {campaign.status === 'SCHEDULED' && (
-                            <>
-                              <span>
-                                <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
-                                <span className="text-neutral-400 ml-1 text-xs">recipients</span>
-                              </span>
-                              {campaign.scheduledFor && (
-                                <>
-                                  <span className="h-3 w-px bg-neutral-200" />
-                                  <span className="text-xs text-neutral-500">
-                                    Sending {dayjs(campaign.scheduledFor).format('MMM D, YYYY [at] h:mm A')}
-                                  </span>
-                                </>
-                              )}
-                            </>
-                          )}
-                          {campaign.status === 'SENDING' && (
-                            <>
-                              <span>
-                                <strong className="font-semibold text-neutral-900">{deliveryPct.toFixed(0)}%</strong>
-                                <span className="text-neutral-400 ml-1 text-xs">delivered</span>
-                              </span>
-                              <span className="h-3 w-px bg-neutral-200" />
-                              <span>
-                                <strong className="font-semibold text-neutral-900">{openRate.toFixed(1)}%</strong>
-                                <span className="text-neutral-400 ml-1 text-xs">opens</span>
-                              </span>
-                            </>
-                          )}
-                          {campaign.status === 'SENT' && (
-                            <>
-                              <span>
-                                <strong className="font-semibold text-neutral-900">{campaign.sentCount.toLocaleString()}</strong>
-                                <span className="text-neutral-400 ml-1 text-xs">sent</span>
-                              </span>
-                              <span className="h-3 w-px bg-neutral-200" />
-                              <span>
-                                <strong className="font-semibold text-neutral-900">{openRate.toFixed(1)}%</strong>
-                                <span className="text-neutral-400 ml-1 text-xs">opens</span>
-                              </span>
-                              {clickRate > 0 && (
-                                <>
-                                  <span className="h-3 w-px bg-neutral-200" />
-                                  <span>
-                                    <strong className="font-semibold text-neutral-900">{clickRate.toFixed(1)}%</strong>
-                                    <span className="text-neutral-400 ml-1 text-xs">clicks</span>
-                                  </span>
-                                </>
-                              )}
-                            </>
-                          )}
-                          {campaign.status === 'CANCELLED' && (
-                            <span>
-                              <strong className="font-semibold text-neutral-900">{campaign.totalRecipients.toLocaleString()}</strong>
-                              <span className="text-neutral-400 ml-1 text-xs">recipients</span>
-                            </span>
-                          )}
-                        </div>
-                      </Link>
-
-                      <div className="px-6 py-3 border-t border-neutral-100 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-                          <Calendar className="h-3 w-3" />
-                          <div className="group relative inline-block cursor-help">
-                            <span>Updated {formatRelativeTime(campaign.updatedAt)}</span>
-                            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
-                              {dayjs(campaign.updatedAt).format('DD MMMM YYYY, hh:mm')}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button asChild variant="ghost" size="sm" title={campaign.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}>
-                            <Link href={`/campaigns/${campaign.id}`} aria-label={campaign.status === 'DRAFT' ? 'Edit campaign' : 'View campaign'}><Edit className="h-4 w-4" /></Link>
-                          </Button>
-                          {/* Mirrors the table view's actions column: inside the archive the
-                              row is view + restore only. */}
-                          {showArchived ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Restore campaign"
-                              aria-label="Restore campaign"
-                              onClick={() => void handleUnarchive(campaign.id)}
-                            >
-                              <ArchiveRestore className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <>
-                              <Button variant="ghost" size="sm" title="Duplicate campaign" onClick={() => handleDuplicate(campaign.id)}>
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              {ARCHIVABLE_STATUSES.includes(campaign.status) && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  title="Archive campaign"
-                                  aria-label="Archive campaign"
-                                  onClick={() => void handleArchive(campaign.id)}
-                                >
-                                  <Archive className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {campaign.status === 'DRAFT' && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  title="Delete campaign"
-                                  onClick={() => {
-                                    setCampaignToDelete(campaign.id);
-                                    setShowDeleteDialog(true);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {(campaign.status === 'SCHEDULED' || campaign.status === 'SENDING') && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  title="Cancel campaign"
-                                  onClick={() => {
-                                    setCampaignToCancel({id: campaign.id, status: campaign.status});
-                                    setShowCancelDialog(true);
-                                  }}
-                                >
-                                  <Ban className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-
-                {/* Pagination */}
-                {data && data.totalPages > 1 && (
-                  <div className="flex justify-center gap-2">
-                    <Button variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-                      Previous
-                    </Button>
-                    <span className="flex items-center px-4 text-sm text-neutral-600">
-                      Page {page} of {data.totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                      disabled={page === data.totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                )}
-              </>
             ) : (
               <>
-                {/* Table View (tanstack-driven) */}
-                <Card>
-                  <CardContent className="p-0">
-                    <DataTable table={table} />
-                  </CardContent>
-                </Card>
+                {view === 'card' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {data?.data.map(campaign => (
+                      <Card
+                        key={campaign.id}
+                        className="transition-colors hover:border-neutral-300 flex flex-col [&:has([data-card-link]:focus-visible)]:ring-2 [&:has([data-card-link]:focus-visible)]:ring-ring [&:has([data-card-link]:focus-visible)]:ring-offset-2"
+                      >
+                        <Link
+                          href={`/campaigns/${campaign.id}`}
+                          data-card-link=""
+                          className="flex-1 block p-6 pb-4 hover:bg-neutral-50/50 transition-colors rounded-t-xl focus-visible:outline-none"
+                          aria-label={`Open ${campaign.name}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="font-semibold text-neutral-900 leading-snug truncate">{campaign.name}</h3>
+                            {getStatusBadge(campaign.status)}
+                          </div>
+                          <p className="mt-0.5 text-sm text-neutral-500 truncate">
+                            {campaign.subject || <span className="italic text-neutral-400">No subject</span>}
+                          </p>
+                          <CampaignCardStats campaign={campaign} />
+                        </Link>
+                        <div className="px-6 py-2 border-t border-neutral-100 flex items-center justify-between gap-3 text-xs text-neutral-400">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Audience campaign={campaign} className="text-neutral-400" />
+                            <span className="h-3 w-px shrink-0 bg-neutral-200" aria-hidden="true" />
+                            <CampaignTiming campaign={campaign} />
+                          </div>
+                          {actionsMenu(campaign)}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-0">
+                      <DataTable table={table} />
+                    </CardContent>
+                  </Card>
+                )}
 
-                {/* Pagination */}
+                {/* Pagination — shared by both views, same layout as workflows. */}
                 {data && data.totalPages > 1 && (
-                  <div className="flex justify-center gap-2">
-                    <Button variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-                      Previous
-                    </Button>
-                    <span className="flex items-center px-4 text-sm text-neutral-600">
-                      Page {page} of {data.totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                      disabled={page === data.totalPages}
-                    >
-                      Next
-                    </Button>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-neutral-500">
+                      Showing {(page - 1) * data.pageSize + 1} to {Math.min(page * data.pageSize, data.total)} of{' '}
+                      {data.total} campaigns
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 1}>
+                        Previous
+                      </Button>
+                      <span className="text-sm text-neutral-700">
+                        Page {page} of {data.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => p + 1)}
+                        disabled={page === data.totalPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
                 )}
               </>
