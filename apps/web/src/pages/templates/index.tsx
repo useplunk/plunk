@@ -5,6 +5,11 @@ import {
   CardContent,
   Checkbox,
   ConfirmDialog,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   EmptyState,
   IconSpinner,
 } from '@plunk/ui';
@@ -38,7 +43,7 @@ import {formatRelativeTime} from '../../lib/dateUtils';
 import {useColumnVisibility} from '../../lib/hooks/useColumnVisibility';
 import {usePersistentState} from '../../lib/hooks/usePersistentState';
 import {useShiftClickSelection} from '../../lib/hooks/useShiftClickSelection';
-import {Calendar, Copy, Edit, FileText, Plus, Trash2} from 'lucide-react';
+import {Copy, FileText, MoreHorizontal, Plus, Trash2} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useEffect, useMemo, useState} from 'react';
@@ -64,6 +69,52 @@ const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
 
 // Fixed-value options for the Type filter pill.
 const TYPE_OPTIONS = ['MARKETING', 'TRANSACTIONAL', 'HEADLESS'] as const;
+
+// Same wording as the type picker on the create page, shown on hover so "headless" isn't a guess.
+const TYPE_DESCRIPTIONS: Record<Template['type'], string> = {
+  MARKETING: 'Subscribed contacts, includes unsubscribe link',
+  TRANSACTIONAL: 'All contacts, no subscription check or footer',
+  HEADLESS: 'Subscribed contacts, no Plunk footer',
+};
+
+function TypeBadge({type}: {type: Template['type']}) {
+  return (
+    <Badge className="capitalize shrink-0 cursor-help" variant="neutral" title={TYPE_DESCRIPTIONS[type]}>
+      {type.toLowerCase()}
+    </Badge>
+  );
+}
+
+/** Sender and subject, laid out the way the email shows up in an inbox. */
+function InboxLine({template, className = ''}: {template: Template; className?: string}) {
+  return (
+    <div className={'min-w-0 ' + className}>
+      <p className="truncate text-sm text-neutral-900" title={template.subject}>
+        {template.subject || <span className="italic text-neutral-400">No subject</span>}
+      </p>
+      <p className="truncate text-xs text-neutral-500">
+        {template.fromName ? (
+          <>
+            <span className="text-neutral-700">{template.fromName}</span> · {template.from}
+          </>
+        ) : (
+          template.from
+        )}
+      </p>
+    </div>
+  );
+}
+
+function EditedAt({date, className = ''}: {date: Date | string; className?: string}) {
+  return (
+    <div className={'group relative inline-block cursor-help whitespace-nowrap ' + className}>
+      Edited {formatRelativeTime(date)}
+      <div className="hidden group-hover:block absolute z-10 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
+        {dayjs(date).format('DD MMMM YYYY, HH:mm')}
+      </div>
+    </div>
+  );
+}
 
 export default function TemplatesPage() {
   const [page, setPage] = useState(1);
@@ -161,6 +212,33 @@ export default function TemplatesPage() {
     }
   };
 
+  const actionsMenu = (template: Template) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" aria-label={`Actions for ${template.name}`} title="Actions">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => void handleDuplicate(template.id)}>
+          <Copy className="h-4 w-4" />
+          Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="gap-2 cursor-pointer text-red-600 focus:text-red-600"
+          onClick={() => {
+            setTemplateToDelete(template.id);
+            setShowDeleteDialog(true);
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const columns = useMemo<Array<ColumnDef<Template, unknown>>>(
     () => [
       {
@@ -199,100 +277,57 @@ export default function TemplatesPage() {
         id: 'name',
         accessorKey: 'name',
         enableHiding: false, // Name column is locked-visible.
-        meta: {label: 'Name'} satisfies DataTableColumnMeta,
+        meta: {label: 'Name', cellClassName: 'max-w-[16rem]'} satisfies DataTableColumnMeta,
         header: ({column}) => <DataTableColumnHeader column={column}>Name</DataTableColumnHeader>,
         cell: ({row}) => (
-          <Link
-            href={`/templates/${row.original.id}`}
-            className="text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
-          >
-            {row.original.name}
-          </Link>
-        ),
-      },
-      {
-        id: 'type',
-        accessorKey: 'type',
-        enableSorting: false, // Type is faceted-filtered, not sorted.
-        meta: {label: 'Type'} satisfies DataTableColumnMeta,
-        header: ({column}) => (
-          <DataTableColumnHeader
-            column={column}
-          >
-            Type
-          </DataTableColumnHeader>
-        ),
-        cell: ({row}) => (
-          <Badge className="capitalize" variant="neutral">
-            {row.original.type.toLowerCase()}
-          </Badge>
+          <div className="min-w-0">
+            <Link
+              href={`/templates/${row.original.id}`}
+              className="block truncate text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
+            >
+              {row.original.name}
+            </Link>
+            {row.original.description && (
+              <p className="truncate text-xs text-neutral-500" title={row.original.description}>
+                {row.original.description}
+              </p>
+            )}
+          </div>
         ),
       },
       {
         id: 'subject',
         accessorKey: 'subject',
         enableSorting: false, // No backend sort field for subject.
-        meta: {label: 'Subject', cellClassName: 'max-w-xs'} satisfies DataTableColumnMeta,
+        meta: {label: 'Subject & sender', cellClassName: 'max-w-xs'} satisfies DataTableColumnMeta,
         header: ({column}) => <DataTableColumnHeader column={column}>Subject</DataTableColumnHeader>,
-        cell: ({row}) => (
-          <p className="text-sm text-neutral-700 truncate" title={row.original.subject}>
-            {row.original.subject}
-          </p>
-        ),
+        cell: ({row}) => <InboxLine template={row.original} />,
+      },
+      {
+        id: 'type',
+        accessorKey: 'type',
+        enableSorting: false, // Type is faceted-filtered, not sorted.
+        meta: {label: 'Type'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Type</DataTableColumnHeader>,
+        cell: ({row}) => <TypeBadge type={row.original.type} />,
       },
       {
         id: 'updatedAt',
         accessorKey: 'updatedAt',
         // ISO-string values sort ascending on first click by default; flip so
-        // the first click on "Updated" surfaces the most recently edited rows.
+        // the first click on "Edited" surfaces the most recently edited rows.
         sortDescFirst: true,
-        meta: {label: 'Updated'} satisfies DataTableColumnMeta,
-        header: ({column}) => <DataTableColumnHeader column={column}>Updated</DataTableColumnHeader>,
-        cell: ({row}) => (
-          <div className="group relative inline-block cursor-help text-sm text-neutral-500 whitespace-nowrap">
-            {formatRelativeTime(row.original.updatedAt)}
-            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-1/2 transform -translate-x-1/2 mb-1 whitespace-nowrap">
-              {dayjs(row.original.updatedAt).format('DD MMMM YYYY, hh:mm')}
-            </div>
-          </div>
-        ),
+        meta: {label: 'Edited'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Edited</DataTableColumnHeader>,
+        cell: ({row}) => <EditedAt date={row.original.updatedAt} className="text-sm text-neutral-500" />,
       },
       {
         id: 'actions',
         enableSorting: false,
         enableHiding: false, // Actions column is locked-visible.
-        meta: {label: 'Actions', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
-        header: () => <span className="flex justify-end">Actions</span>,
-        cell: ({row}) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button asChild variant="ghost" size="sm" title="Edit template">
-              <Link href={`/templates/${row.original.id}`} aria-label="Edit template">
-                <Edit className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Duplicate template"
-              aria-label="Duplicate template"
-              onClick={() => handleDuplicate(row.original.id)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Delete template"
-              aria-label="Delete template"
-              onClick={() => {
-                setTemplateToDelete(row.original.id);
-                setShowDeleteDialog(true);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ),
+        meta: {label: 'Actions', headClassName: 'text-right w-12', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({row}) => <div className="flex justify-end">{actionsMenu(row.original)}</div>,
       },
     ],
     // Re-creating columns on every render is cheap and avoids stale-closure bugs
@@ -446,106 +481,46 @@ export default function TemplatesPage() {
                   )}
                 </CardContent>
               </Card>
-            ) : view === 'card' ? (
-              <>
-                {/* Card Grid View — unchanged from before. */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {data?.data.map(template => (
-                    <Card
-                      key={template.id}
-                      className="transition-colors hover:border-neutral-300 flex flex-col [&:has([data-card-link]:focus-visible)]:ring-2 [&:has([data-card-link]:focus-visible)]:ring-ring [&:has([data-card-link]:focus-visible)]:ring-offset-2"
-                    >
-                      <Link
-                        href={`/templates/${template.id}`}
-                        data-card-link=""
-                        className="flex-1 block p-6 pb-4 hover:bg-neutral-50/50 transition-colors rounded-t-xl focus-visible:outline-none"
-                        aria-label={`Edit ${template.name}`}
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <h3 className="font-semibold text-neutral-900 leading-snug">{template.name}</h3>
-                          <Badge className="capitalize shrink-0 mt-0.5" variant="neutral">
-                            {template.type.toLowerCase()}
-                          </Badge>
-                        </div>
-                        <p className="text-sm font-medium text-neutral-700 truncate">{template.subject}</p>
-                      </Link>
-                      <div className="px-6 py-3 border-t border-neutral-100 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-                          <Calendar className="h-3 w-3" />
-                          <div className="group relative inline-block cursor-help">
-                            <span>Updated {formatRelativeTime(template.updatedAt)}</span>
-                            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
-                              {dayjs(template.updatedAt).format('DD MMMM YYYY, hh:mm')}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button asChild variant="ghost" size="sm" title="Edit template">
-                            <Link href={`/templates/${template.id}`} aria-label="Edit template">
-                              <Edit className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Duplicate template"
-                            onClick={() => handleDuplicate(template.id)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Delete template"
-                            onClick={() => {
-                              setTemplateToDelete(template.id);
-                              setShowDeleteDialog(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Pagination */}
-                {data && data.totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-6">
-                    <p className="text-sm text-neutral-500">
-                      Showing {(page - 1) * data.pageSize + 1} to {Math.min(page * data.pageSize, data.total)} of{' '}
-                      {data.total} templates
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 1}>
-                        Previous
-                      </Button>
-                      <span className="text-sm text-neutral-700">
-                        Page {page} of {data.totalPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => p + 1)}
-                        disabled={page === data.totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
             ) : (
               <>
-                {/* Table View (tanstack-driven) */}
-                <Card>
-                  <CardContent className="p-0">
-                    <DataTable table={table} />
-                  </CardContent>
-                </Card>
+                {view === 'card' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {data?.data.map(template => (
+                      <Card
+                        key={template.id}
+                        className="transition-colors hover:border-neutral-300 flex flex-col [&:has([data-card-link]:focus-visible)]:ring-2 [&:has([data-card-link]:focus-visible)]:ring-ring [&:has([data-card-link]:focus-visible)]:ring-offset-2"
+                      >
+                        <Link
+                          href={`/templates/${template.id}`}
+                          data-card-link=""
+                          className="flex-1 block p-6 pb-4 hover:bg-neutral-50/50 transition-colors rounded-t-xl focus-visible:outline-none"
+                          aria-label={`Edit ${template.name}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="font-semibold text-neutral-900 leading-snug truncate">{template.name}</h3>
+                            <TypeBadge type={template.type} />
+                          </div>
+                          {template.description && (
+                            <p className="mt-0.5 text-sm text-neutral-500 truncate">{template.description}</p>
+                          )}
+                          <InboxLine template={template} className="mt-4" />
+                        </Link>
+                        <div className="px-6 py-2 border-t border-neutral-100 flex items-center justify-between">
+                          <EditedAt date={template.updatedAt} className="text-xs text-neutral-400" />
+                          {actionsMenu(template)}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-0">
+                      <DataTable table={table} />
+                    </CardContent>
+                  </Card>
+                )}
 
-                {/* Pagination */}
+                {/* Pagination — shared by both views. */}
                 {data && data.totalPages > 1 && (
                   <div className="flex items-center justify-between mt-6">
                     <p className="text-sm text-neutral-500">
