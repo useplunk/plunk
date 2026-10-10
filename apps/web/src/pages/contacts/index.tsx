@@ -31,11 +31,11 @@ import {
   BulkActionBar,
   DataTable,
   DataTableColumnHeader,
-  DataTableFacetedFilter,
-  DataTableFilter,
   DataTableViewOptions,
   DataTableViewSwitcher,
+  FilterPill,
   NoResultsState,
+  SearchInput,
   isDataTableView,
   type DataTableColumnMeta,
   type DataTableView,
@@ -61,10 +61,8 @@ import {
   MailX,
   Minus,
   Plus,
-  Search,
   Trash2,
   Upload,
-  X,
   XCircle,
 } from 'lucide-react';
 import {NextSeo} from 'next-seo';
@@ -79,8 +77,7 @@ type StatusFilter = 'ALL' | ContactSubscriptionStatus;
 const VIEW_STORAGE_KEY = 'plunk:contacts:view';
 const COLUMNS_STORAGE_KEY = 'plunk:contacts:columns';
 
-// Fixed-value options for the Status faceted filter (table header) and the
-// card-view toolbar dropdown. Single source of truth for both.
+// Fixed-value options for the Status filter pill.
 const STATUS_OPTIONS: FacetedFilterOption[] = [
   {value: 'subscribed', label: 'Subscribed'},
   // Snoozed contacts are `subscribed = false` and would otherwise hide inside Unsubscribed,
@@ -369,15 +366,6 @@ export default function ContactsPage() {
         header: ({column}) => (
           <DataTableColumnHeader
             column={column}
-            filter={
-              <DataTableFacetedFilter
-                title="Status"
-                multiple={false}
-                options={STATUS_OPTIONS}
-                selected={statusFilter === 'ALL' ? [] : [statusFilter]}
-                onChange={next => handleStatusChange((next[0] as StatusFilter) ?? 'ALL')}
-              />
-            }
           >
             Status
           </DataTableColumnHeader>
@@ -488,46 +476,29 @@ export default function ContactsPage() {
 
           {/* Control row. One aligned cluster of 32px-tall controls:
               - Search input: always present (both views).
-              - Status filter: CARD VIEW ONLY, as a toolbar dropdown matching the
-                Columns selector. In table view the Status filter lives in the
-                column header facet instead (same shared menu body).
+              - Status filter: a FilterPill, the same in both views.
               - Columns selector: TABLE VIEW ONLY.
               - A hairline divider separates the data controls from the view switcher. */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-              <Input
-                type="text"
-                placeholder="Search by email…"
-                value={searchInput}
-                onChange={e => setSearchInput(e.target.value)}
-                className="pl-10 pr-10 h-8 text-xs"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={() => {
-                    setSearchInput('');
-                    setSearch('');
-                    resetPagination();
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <SearchInput
+              value={searchInput}
+              onChange={setSearchInput}
+              onClear={() => {
+                setSearchInput('');
+                setSearch('');
+                resetPagination();
+              }}
+              placeholder="Search by email…"
+              className="flex-1"
+            />
             <div className="flex items-center gap-2 shrink-0">
-              {view === 'card' && (
-                <DataTableFilter
-                  title="Status"
-                  multiple={false}
-                  options={STATUS_OPTIONS}
-                  selected={statusFilter === 'ALL' ? [] : [statusFilter]}
-                  onChange={next => handleStatusChange((next[0] as StatusFilter) ?? 'ALL')}
-                />
-              )}
+              <FilterPill
+                title="Status"
+                multiple={false}
+                options={STATUS_OPTIONS}
+                selected={statusFilter === 'ALL' ? [] : [statusFilter]}
+                onChange={next => handleStatusChange((next[0] as StatusFilter) ?? 'ALL')}
+              />
               {view === 'table' && (
                 <DataTableViewOptions table={table} lockedColumnIds={['select', 'email', 'actions']} />
               )}

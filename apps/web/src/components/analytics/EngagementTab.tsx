@@ -11,7 +11,8 @@ import {useMemo, useState} from 'react';
 
 import {type AnalyticsFilters, useAnalyticsData} from '../../lib/hooks/useAnalytics';
 import {formatCount, formatRate, metric, type MetricKey, thresholdTone} from './metrics';
-import {Panel, PanelEmpty, PanelError, RowsSkeleton, Segmented} from './primitives';
+import {Segmented} from '../Segmented';
+import {Panel, PanelEmpty, PanelError, RowsSkeleton} from './primitives';
 import {type Column, RateTable} from './RateTable';
 
 const KINDS = [

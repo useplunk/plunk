@@ -7,7 +7,6 @@ import {
   ConfirmDialog,
   EmptyState,
   IconSpinner,
-  Input,
 } from '@plunk/ui';
 import type {Template} from '@plunk/db';
 import {TemplateSchemas} from '@plunk/shared';
@@ -25,11 +24,11 @@ import {
   BulkActionBar,
   DataTable,
   DataTableColumnHeader,
-  DataTableFacetedFilter,
-  DataTableFilter,
   DataTableViewOptions,
   DataTableViewSwitcher,
+  FilterPill,
   NoResultsState,
+  SearchInput,
   isDataTableView,
   type DataTableColumnMeta,
   type DataTableView,
@@ -39,7 +38,7 @@ import {formatRelativeTime} from '../../lib/dateUtils';
 import {useColumnVisibility} from '../../lib/hooks/useColumnVisibility';
 import {usePersistentState} from '../../lib/hooks/usePersistentState';
 import {useShiftClickSelection} from '../../lib/hooks/useShiftClickSelection';
-import {Calendar, Copy, Edit, FileText, Plus, Search, Trash2, X} from 'lucide-react';
+import {Calendar, Copy, Edit, FileText, Plus, Trash2} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useEffect, useMemo, useState} from 'react';
@@ -63,8 +62,7 @@ const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
   actions: true,
 };
 
-// Fixed-value options for the Type column's faceted filter (table view) and the
-// existing card-view pill row. Single source of truth for both.
+// Fixed-value options for the Type filter pill.
 const TYPE_OPTIONS = ['MARKETING', 'TRANSACTIONAL', 'HEADLESS'] as const;
 
 export default function TemplatesPage() {
@@ -220,18 +218,6 @@ export default function TemplatesPage() {
         header: ({column}) => (
           <DataTableColumnHeader
             column={column}
-            filter={
-              <DataTableFacetedFilter
-                title="Type"
-                multiple={false}
-                options={TYPE_OPTIONS.map(t => ({value: t, label: t.toLowerCase()}))}
-                selected={typeFilter === 'ALL' ? [] : [typeFilter]}
-                onChange={next => {
-                  setTypeFilter((next[0] as TypeFilter) ?? 'ALL');
-                  setPage(1);
-                }}
-              />
-            }
           >
             Type
           </DataTableColumnHeader>
@@ -372,50 +358,33 @@ export default function TemplatesPage() {
 
           {/* Control row. One aligned cluster of 32px-tall controls:
               - Search input: always present (both views).
-              - Type filter: CARD VIEW ONLY, as a toolbar dropdown matching the
-                Columns selector. In table view the Type filter lives in the
-                column header facet instead (same shared menu body).
+              - Type filter: a FilterPill, the same in both views.
               - Columns selector: TABLE VIEW ONLY.
               - A hairline divider separates the data controls (filter/columns)
                 from the layout control (view switcher). */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-              <Input
-                type="text"
-                placeholder="Search templates…"
-                value={searchInput}
-                onChange={e => setSearchInput(e.target.value)}
-                className="pl-10 pr-10 h-8 text-xs"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={() => {
-                    setSearchInput('');
-                    setSearch('');
-                    setPage(1);
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <SearchInput
+              value={searchInput}
+              onChange={setSearchInput}
+              onClear={() => {
+                setSearchInput('');
+                setSearch('');
+                setPage(1);
+              }}
+              placeholder="Search templates…"
+              className="flex-1"
+            />
             <div className="flex items-center gap-2 shrink-0">
-              {view === 'card' && (
-                <DataTableFilter
-                  title="Type"
-                  multiple={false}
-                  options={TYPE_OPTIONS.map(t => ({value: t, label: t.toLowerCase()}))}
-                  selected={typeFilter === 'ALL' ? [] : [typeFilter]}
-                  onChange={next => {
-                    setTypeFilter((next[0] as TypeFilter) ?? 'ALL');
-                    setPage(1);
-                  }}
-                />
-              )}
+              <FilterPill
+                title="Type"
+                multiple={false}
+                options={TYPE_OPTIONS.map(t => ({value: t, label: t.toLowerCase()}))}
+                selected={typeFilter === 'ALL' ? [] : [typeFilter]}
+                onChange={next => {
+                  setTypeFilter((next[0] as TypeFilter) ?? 'ALL');
+                  setPage(1);
+                }}
+              />
               {view === 'table' && (
                 <DataTableViewOptions table={table} lockedColumnIds={['select', 'name', 'actions']} />
               )}

@@ -226,7 +226,8 @@ export default function ContactDetailPage() {
                 <CardHeader>
                   <CardTitle>Activity</CardTitle>
                 </CardHeader>
-                <CardContent>
+                {/* The feed brings its own row padding and day headings */}
+                <CardContent className="border-t border-neutral-100 p-0">
                   <ActivityFeed contactId={id as string} />
                 </CardContent>
               </Card>

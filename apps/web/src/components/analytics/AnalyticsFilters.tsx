@@ -1,17 +1,4 @@
-import {
-  Button,
-  Calendar,
-  type DateRange,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  cn,
-} from '@plunk/ui';
+import {Button, Calendar, type DateRange, Popover, PopoverContent, PopoverTrigger, cn} from '@plunk/ui';
 import dayjs from 'dayjs';
 import {CalendarDays} from 'lucide-react';
 import {useState} from 'react';
@@ -23,13 +10,25 @@ import {
   STREAM_OPTIONS,
   type StreamOption,
 } from '../../lib/hooks/useAnalytics';
-import {Segmented} from './primitives';
+import {FilterPill} from '../data-table';
+import {Segmented} from '../Segmented';
 
 export function AnalyticsFilters({filters, showStream}: {filters: Filters; showStream: boolean}) {
   const {range, setState, bounds} = filters;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {/* Kept in place when it does not apply, so the controls do not shift between tabs */}
+      <FilterPill
+        title="Stream"
+        multiple={false}
+        options={STREAM_OPTIONS.filter(o => o.value !== 'all').map(({value, label}) => ({value, label}))}
+        selected={showStream && filters.stream.value !== 'all' ? [filters.stream.value] : []}
+        onChange={next => setState({stream: (next[0] as StreamOption | undefined) ?? 'all'})}
+        disabledReason={
+          showStream ? undefined : 'Contacts are not tied to a stream, so this tab always covers all of them'
+        }
+      />
       <Segmented
         label="Period"
         size="md"
@@ -38,27 +37,6 @@ export function AnalyticsFilters({filters, showStream}: {filters: Filters; showS
         onChange={value => setState({range: value, from: null, to: null})}
       />
       <CustomRange filters={filters} />
-      {/* Kept in place when it does not apply, so the controls do not shift between tabs */}
-      <Select
-        value={showStream ? filters.stream.value : 'all'}
-        onValueChange={value => setState({stream: value as StreamOption})}
-        disabled={!showStream}
-      >
-        <SelectTrigger
-          className="h-8 w-[150px] text-sm"
-          aria-label="Emails to include"
-          title={showStream ? undefined : 'Contacts are not tied to a stream, so this tab always covers all of them'}
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {STREAM_OPTIONS.map(option => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
       <span className="sr-only" aria-live="polite">
         {`Showing ${bounds.first.format('MMMM D')} to ${bounds.last.format('MMMM D, YYYY')}`}
       </span>
@@ -120,7 +98,9 @@ function CustomRange({filters}: {filters: Filters}) {
           numberOfMonths={2}
           selected={pending}
           onSelect={setPending}
-          defaultMonth={dayjs(pending?.from ?? bounds.first.toDate()).subtract(pending?.from ? 0 : 1, 'month').toDate()}
+          defaultMonth={dayjs(pending?.from ?? bounds.first.toDate())
+            .subtract(pending?.from ? 0 : 1, 'month')
+            .toDate()}
           disabled={disabled}
           weekStartsOn={1}
         />
@@ -135,7 +115,11 @@ function CustomRange({filters}: {filters: Filters}) {
             disabled={!pending?.from || !pending.to}
             onClick={() => {
               if (!pending?.from || !pending.to) return;
-              setState({range: 'custom', from: dayjs(pending.from).format('YYYY-MM-DD'), to: dayjs(pending.to).format('YYYY-MM-DD')});
+              setState({
+                range: 'custom',
+                from: dayjs(pending.from).format('YYYY-MM-DD'),
+                to: dayjs(pending.to).format('YYYY-MM-DD'),
+              });
               setOpen(false);
             }}
           >

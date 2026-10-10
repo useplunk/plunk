@@ -1,170 +1,130 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@plunk/ui';
-import {DashboardLayout} from '../../components/DashboardLayout';
-import {ActivityFeed} from '../../components/ActivityFeed';
-import {Eye, MousePointerClick, Send, Zap} from 'lucide-react';
 import {NextSeo} from 'next-seo';
-import {useQueryState, parseAsString} from 'nuqs';
-import useSWR from 'swr';
+import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-interface ActivityStats {
-  totalEvents: number;
-  totalEmailsSent: number;
-  totalEmailsOpened: number;
-  totalEmailsClicked: number;
-  totalWorkflowsStarted: number;
-  openRate: number;
-  clickRate: number;
+import {ActivityFeed} from '../../components/ActivityFeed';
+import {ContactFilter} from '../../components/ContactFilter';
+import {DashboardLayout} from '../../components/DashboardLayout';
+import {FilterPill} from '../../components/data-table';
+import {useActiveProject} from '../../lib/contexts/ActiveProjectProvider';
+
+const CATEGORIES = [
+  {value: 'emails', label: 'Emails', types: []},
+  {value: 'events', label: 'Events', types: ['event.triggered']},
+  {value: 'subscriptions', label: 'Subscriptions', types: ['contact.subscribed', 'contact.unsubscribed']},
+  {value: 'workflows', label: 'Workflows', types: ['workflow.started', 'workflow.completed']},
+] as const;
+type Category = (typeof CATEGORIES)[number]['value'];
+
+const EMAIL_STATUSES = [
+  {value: 'sent', label: 'Sent', type: 'email.sent'},
+  {value: 'delivered', label: 'Delivered', type: 'email.delivered'},
+  {value: 'opened', label: 'Opened', type: 'email.opened'},
+  {value: 'clicked', label: 'Clicked', type: 'email.clicked'},
+  {value: 'bounced', label: 'Bounced', type: 'email.bounced'},
+  {value: 'complaint', label: 'Complaints', type: 'email.complaint'},
+  {value: 'received', label: 'Received', type: 'email.received'},
+] as const;
+type EmailStatus = (typeof EMAIL_STATUSES)[number]['value'];
+
+/**
+ * The activity types the feed should ask for. Filters combine as "any of": Events plus
+ * Bounced shows events and bounced emails. Picking an email status implies emails, so it
+ * works without also picking the Emails type.
+ */
+function resolveTypes(categories: Category[], statuses: EmailStatus[]): string | undefined {
+  if (categories.length === 0 && statuses.length === 0) return undefined;
+
+  const types = new Set<string>();
+  for (const category of CATEGORIES) {
+    if (categories.includes(category.value)) category.types.forEach(t => types.add(t));
+  }
+
+  const emailTypes =
+    statuses.length > 0
+      ? EMAIL_STATUSES.filter(s => statuses.includes(s.value)).map(s => s.type)
+      : categories.includes('emails')
+        ? EMAIL_STATUSES.map(s => s.type)
+        : [];
+  emailTypes.forEach(t => types.add(t));
+
+  return [...types].join(',');
 }
 
 export default function ActivityPage() {
-  const [typeFilter, setTypeFilter] = useQueryState('type', parseAsString.withDefault('ALL'));
-  const [dateRange, setDateRange] = useQueryState('days', parseAsString.withDefault('30'));
+  const {activeProject} = useActiveProject();
+  const [filters, setFilters] = useQueryStates(
+    {
+      type: parseAsArrayOf(parseAsStringLiteral(CATEGORIES.map(c => c.value))).withDefault([]),
+      status: parseAsArrayOf(parseAsStringLiteral(EMAIL_STATUSES.map(s => s.value))).withDefault([]),
+      contact: parseAsString,
+    },
+    {history: 'replace'},
+  );
 
-  // Fetch activity stats
-  const {data: stats} = useSWR<ActivityStats>(`/activity/stats`, {
-    revalidateOnFocus: false,
-  });
+  const types = resolveTypes(filters.type, filters.status);
+  const filtered = types !== undefined || !!filters.contact;
 
-  const statsCards = [
-    {
-      name: 'Events triggered',
-      value: stats?.totalEvents?.toLocaleString() || '0',
-      icon: Zap,
-      description: 'Last 30 days',
-      color: 'text-neutral-600',
-      bgColor: 'bg-neutral-100',
-    },
-    {
-      name: 'Emails sent',
-      value: stats?.totalEmailsSent?.toLocaleString() || '0',
-      icon: Send,
-      description: 'Last 30 days',
-      color: 'text-neutral-600',
-      bgColor: 'bg-neutral-100',
-    },
-    {
-      name: 'Open rate',
-      value: stats?.openRate ? `${stats.openRate.toFixed(1)}%` : '0%',
-      icon: Eye,
-      description: `${stats?.totalEmailsOpened?.toLocaleString() || '0'} opens`,
-      color: 'text-neutral-600',
-      bgColor: 'bg-neutral-100',
-    },
-    {
-      name: 'Click rate',
-      value: stats?.clickRate ? `${stats.clickRate.toFixed(1)}%` : '0%',
-      icon: MousePointerClick,
-      description: `${stats?.totalEmailsClicked?.toLocaleString() || '0'} clicks`,
-      color: 'text-neutral-600',
-      bgColor: 'bg-neutral-100',
-    },
-  ];
+  // Scheduled sends are campaigns and workflow emails, so they belong with those filters
+  const showScheduled =
+    !filters.contact &&
+    filters.status.length === 0 &&
+    (filters.type.length === 0 || filters.type.includes('emails') || filters.type.includes('workflows'));
+
+  const emptyMessage = filters.contact
+    ? 'Nothing has happened for this contact yet. Their emails and events will show up here.'
+    : types !== undefined
+      ? 'Nothing matches these filters yet.'
+      : undefined;
 
   return (
     <>
       <NextSeo title="Activity" />
       <DashboardLayout>
         <div className="space-y-6">
-          {/* Header */}
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">Activity</h1>
-            <p className="text-neutral-500 mt-2 text-sm sm:text-base">
-              Events, emails, and workflow runs as they happen.
+            <p className="mt-2 text-sm text-neutral-500">
+              Every email, event and workflow run in this project, newest first. Open a row for the details.
             </p>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {statsCards.map(stat => {
-              const Icon = stat.icon;
-              return (
-                <Card key={stat.name}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardDescription>{stat.name}</CardDescription>
-                      <div className={`h-10 w-10 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
-                        <Icon className={`h-5 w-5 ${stat.color}`} />
-                      </div>
-                    </div>
-                    <CardTitle className="text-2xl">{stat.value}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs text-neutral-500">{stat.description}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterPill
+              title="Type"
+              options={CATEGORIES.map(({value, label}) => ({value, label}))}
+              selected={filters.type}
+              onChange={next => void setFilters({type: next as Category[]})}
+            />
+            <FilterPill
+              title="Email status"
+              options={EMAIL_STATUSES.map(({value, label}) => ({value, label}))}
+              selected={filters.status}
+              onChange={next => void setFilters({status: next as EmailStatus[]})}
+            />
+            <ContactFilter contactId={filters.contact} onChange={contact => void setFilters({contact})} />
+            {filtered && (
+              <button
+                type="button"
+                onClick={() => void setFilters({type: [], status: [], contact: null})}
+                className="ml-1 rounded text-sm text-neutral-500 underline-offset-4 hover:text-neutral-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
 
-          {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Activity Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All activity types</SelectItem>
-                      <SelectItem value="event.triggered">Events</SelectItem>
-                      <SelectItem value="email.sent,email.delivered,email.received,email.opened,email.clicked,email.bounced,email.complaint">
-                        Emails
-                      </SelectItem>
-                      <SelectItem value="email.sent">Emails sent</SelectItem>
-                      <SelectItem value="email.delivered">Emails delivered</SelectItem>
-                      <SelectItem value="email.received">Emails received</SelectItem>
-                      <SelectItem value="email.opened">Emails opened</SelectItem>
-                      <SelectItem value="email.clicked">Emails clicked</SelectItem>
-                      <SelectItem value="email.bounced">Emails bounced</SelectItem>
-                      <SelectItem value="email.complaint">Email complaints</SelectItem>
-                      <SelectItem value="contact.subscribed,contact.unsubscribed">Subscriptions</SelectItem>
-                      <SelectItem value="contact.subscribed">Subscribes</SelectItem>
-                      <SelectItem value="contact.unsubscribed">Unsubscribes</SelectItem>
-                      <SelectItem value="workflow.started,workflow.completed">Workflows</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex-1">
-                  <Select value={dateRange} onValueChange={setDateRange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Last 30 days" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Last 24 hours</SelectItem>
-                      <SelectItem value="7">Last 7 days</SelectItem>
-                      <SelectItem value="30">Last 30 days</SelectItem>
-                      <SelectItem value="90">Last 90 days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Activity Feed */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent activity</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <section className="overflow-clip rounded-lg border border-neutral-200 bg-white">
+            {activeProject && (
               <ActivityFeed
-                typeFilter={typeFilter === 'ALL' ? undefined : typeFilter}
-                dateRangeDays={parseInt(dateRange)}
+                // A different project or filter is a different feed, not an update to this one
+                key={`${activeProject.id}:${types ?? 'all'}:${filters.contact ?? ''}`}
+                typeFilter={types}
+                contactId={filters.contact ?? undefined}
+                showScheduled={showScheduled}
+                emptyMessage={emptyMessage}
               />
-            </CardContent>
-          </Card>
+            )}
+          </section>
         </div>
       </DashboardLayout>
     </>

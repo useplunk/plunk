@@ -55,9 +55,7 @@ describe('ActivityService - subscription activities', () => {
       data: {projectId, contactId, emailId: email.id, name: 'contact.unsubscribed'},
     });
 
-    const {data} = await ActivityService.getActivities(projectId, 50, undefined, [
-      ActivityType.CONTACT_UNSUBSCRIBED,
-    ]);
+    const {data} = await ActivityService.getActivities(projectId, 50, undefined, [ActivityType.CONTACT_UNSUBSCRIBED]);
 
     const attributed = data.find(activity => activity.metadata.sourceEmailId === email.id);
     expect(attributed?.metadata.sourceSubject).toBe('What we shipped');
@@ -109,5 +107,95 @@ describe('ActivityService - subscription activities', () => {
       ActivityType.CONTACT_SUBSCRIBED,
       ActivityType.CONTACT_UNSUBSCRIBED,
     ]);
+  });
+});
+
+/**
+ * Every open, click, bounce and delivery is written twice: as a timestamp on the email row
+ * and as an email.* event. The feed reads email activity from the rows, so the events must
+ * stay out of it, and the rows must still say what only the events know.
+ */
+describe('ActivityService - email activity', () => {
+  const prisma = getPrismaClient();
+  let projectId: string;
+  let contactId: string;
+
+  beforeEach(async () => {
+    const {project} = await factories.createUserWithProject();
+    projectId = project.id;
+    const contact = await factories.createContact({projectId});
+    contactId = contact.id;
+  });
+
+  async function createEmail(data: {clickedAt?: Date; bouncedAt?: Date}) {
+    const now = new Date();
+    return prisma.email.create({
+      data: {
+        projectId,
+        contactId,
+        subject: 'Your receipt',
+        body: '<p>receipt</p>',
+        from: 'hello@plunk.test',
+        sourceType: 'TRANSACTIONAL',
+        sentAt: now,
+        deliveredAt: data.bouncedAt ? null : now,
+        openedAt: data.clickedAt ?? null,
+        ...data,
+      },
+    });
+  }
+
+  it("leaves Plunk's own email events out of the feed", async () => {
+    const email = await createEmail({clickedAt: new Date()});
+    await prisma.event.createMany({
+      data: [
+        {projectId, contactId, emailId: email.id, name: 'email.open'},
+        {projectId, contactId, emailId: email.id, name: 'email.click', data: {link: 'https://plunk.test'}},
+        {projectId, contactId, name: 'user.signup'},
+      ],
+    });
+
+    const {data} = await ActivityService.getActivities(projectId);
+
+    const eventNames = data.filter(a => a.type === ActivityType.EVENT_TRIGGERED).map(a => a.metadata.eventName);
+    expect(eventNames).toEqual(['user.signup']);
+    expect(data.map(a => a.type)).toContain(ActivityType.EMAIL_CLICKED);
+  });
+
+  it('attaches the first clicked link to a clicked email', async () => {
+    const email = await createEmail({clickedAt: new Date()});
+    await prisma.event.create({
+      data: {projectId, contactId, emailId: email.id, name: 'email.click', data: {link: 'https://plunk.test/first'}},
+    });
+    await prisma.event.create({
+      data: {projectId, contactId, emailId: email.id, name: 'email.click', data: {link: 'https://plunk.test/second'}},
+    });
+
+    const {data} = await ActivityService.getActivities(projectId, 50, undefined, [ActivityType.EMAIL_CLICKED]);
+
+    expect(data).toHaveLength(1);
+    expect(data[0]?.metadata.link).toBe('https://plunk.test/first');
+    expect(data[0]?.metadata.emailId).toBe(email.id);
+  });
+
+  it('labels a bounce with the bounce that suppressed the contact, not a retry', async () => {
+    const email = await createEmail({bouncedAt: new Date()});
+    await prisma.event.create({
+      data: {
+        projectId,
+        contactId,
+        emailId: email.id,
+        name: 'email.bounce',
+        data: {bounceType: 'Transient', transientBounce: true},
+      },
+    });
+    await prisma.event.create({
+      data: {projectId, contactId, emailId: email.id, name: 'email.bounce', data: {bounceType: 'Permanent'}},
+    });
+
+    const {data} = await ActivityService.getActivities(projectId, 50, undefined, [ActivityType.EMAIL_BOUNCED]);
+
+    expect(data).toHaveLength(1);
+    expect(data[0]?.metadata.bounceType).toBe('Permanent');
   });
 });

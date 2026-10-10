@@ -7,15 +7,15 @@ import {
   CardContent,
   ConfirmDialog,
   IconSpinner,
-  Input,
 } from '@plunk/ui';
 import type {Segment} from '@plunk/db';
 import type {FilterCondition} from '@plunk/types';
 import {EmptyState} from '@plunk/ui';
+import {SearchInput} from '../../components/data-table';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {network} from '../../lib/network';
 import {formatRelativeTime} from '../../lib/dateUtils';
-import {AlertTriangle, Calendar, Edit, Filter, Plus, Search, Trash2, X} from 'lucide-react';
+import {AlertTriangle, Calendar, Edit, Filter, Plus, Trash2} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useMemo, useState} from 'react';
@@ -100,26 +100,11 @@ export default function SegmentsPage() {
           </div>
 
           {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-            <Input
-              type="text"
-              placeholder="Search segments…"
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              className="pl-10 pr-10"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => setSearchInput('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            value={searchInput}
+            onChange={setSearchInput}
+            placeholder="Search segments…"
+          />
 
           {/* Warning if too many segments */}
           {showLimitWarning && (

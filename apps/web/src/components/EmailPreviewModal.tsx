@@ -1,7 +1,8 @@
-import {Button, Dialog, DialogContent, DialogHeader, DialogTitle} from '@plunk/ui';
-import {Monitor, Smartphone, Tablet} from 'lucide-react';
-import {useState} from 'react';
+import {Dialog, DialogContent, DialogDescription, DialogTitle, cn} from '@plunk/ui';
+import {useEffect, useRef, useState} from 'react';
+
 import {wrapEmailWithStyles} from '../lib/emailStyles';
+import {Segmented} from './Segmented';
 
 interface EmailPreviewModalProps {
   open: boolean;
@@ -15,8 +16,17 @@ interface EmailPreviewModalProps {
   toEmail?: string;
 }
 
-type PreviewDevice = 'mobile' | 'tablet' | 'desktop';
+type PreviewDevice = 'desktop' | 'mobile';
 
+const DEVICES = [
+  {value: 'desktop', label: 'Desktop'},
+  {value: 'mobile', label: 'Mobile'},
+] as const;
+
+/**
+ * Shows a sent email the way a recipient's mail client would: subject, sender and
+ * recipient on top, the rendered body below at its full height.
+ */
 export function EmailPreviewModal({
   open,
   onOpenChange,
@@ -28,150 +38,129 @@ export function EmailPreviewModal({
   toName,
   toEmail,
 }: EmailPreviewModalProps) {
-  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('desktop');
+  const [device, setDevice] = useState<PreviewDevice>('desktop');
+  const mobile = device === 'mobile';
 
-  const getPreviewContainerWidth = () => {
-    switch (previewDevice) {
-      case 'mobile':
-        return '375px';
-      case 'tablet':
-        return '768px';
-      case 'desktop':
-        return '100%';
-    }
-  };
-
-  const getDeviceLabel = () => {
-    switch (previewDevice) {
-      case 'mobile':
-        return '375px';
-      case 'tablet':
-        return '768px';
-      case 'desktop':
-        return '1200px';
-    }
-  };
-
-  const displayFrom = fromName ? `${fromName} <${from}>` : from;
-
-  // Wrap the body with styles for proper rendering
-  const styledBody = wrapEmailWithStyles(body);
+  const sender = fromName || from || 'Unknown sender';
+  const recipient = toName && toEmail ? `${toName} <${toEmail}>` : toName || toEmail;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
-          <DialogTitle className="pr-8">Email preview</DialogTitle>
-        </DialogHeader>
-
-        {/* Device Selector */}
-        <div className="border-t border-b border-neutral-200 bg-neutral-100 px-6 py-3 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-medium text-neutral-600">Preview</p>
-              <span className="text-xs text-neutral-500">({getDeviceLabel()})</span>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                type="button"
-                variant={previewDevice === 'mobile' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setPreviewDevice('mobile')}
-                className="h-7 w-7 p-0"
-                title="Mobile (375px)"
-              >
-                <Smartphone className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                type="button"
-                variant={previewDevice === 'tablet' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setPreviewDevice('tablet')}
-                className="h-7 w-7 p-0"
-                title="Tablet (768px)"
-              >
-                <Tablet className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                type="button"
-                variant={previewDevice === 'desktop' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setPreviewDevice('desktop')}
-                className="h-7 w-7 p-0"
-                title="Desktop (1200px)"
-              >
-                <Monitor className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+      <DialogContent className="flex h-[90vh] max-w-5xl flex-col gap-0 overflow-hidden p-0">
+        <div className="flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-neutral-200 py-3 pl-5 pr-14">
+          <div className="min-w-0">
+            <DialogTitle className="text-sm font-medium">Email preview</DialogTitle>
+            <DialogDescription className="sr-only">
+              How this email looks to the person who received it
+            </DialogDescription>
           </div>
+          <Segmented label="Preview width" value={device} options={DEVICES} onChange={setDevice} />
         </div>
 
-        {/* Preview Area - Single scroll container */}
-        <div className="flex-1 overflow-y-auto bg-neutral-50">
-          <div className="p-6 flex justify-center items-start min-h-full">
-            <div
-              className="transition-all duration-300"
-              style={{
-                width: getPreviewContainerWidth(),
-                maxWidth: '100%',
-              }}
-            >
-              <div className="bg-white rounded-lg border border-neutral-300 shadow-lg overflow-hidden">
-                {/* Email Header Preview */}
-                <div className="bg-neutral-50 border-b border-neutral-200 p-4 space-y-2">
-                  {/* To Section */}
-                  {(toName || toEmail) && (
-                    <div>
-                      <p className="text-xs text-neutral-500 uppercase tracking-wide font-medium">To</p>
-                      <p className="text-sm text-neutral-900 mt-1">
-                        {toName && toEmail ? `${toName} <${toEmail}>` : toName || toEmail}
-                      </p>
-                    </div>
+        <div className="flex-1 overflow-y-auto bg-neutral-100 px-4 py-6 sm:px-8 sm:py-8">
+          <article
+            className={cn(
+              'mx-auto overflow-hidden border border-neutral-200 bg-white shadow-sm transition-[max-width] duration-200 ease-out motion-reduce:transition-none',
+              mobile ? 'max-w-[390px] rounded-[28px]' : 'max-w-3xl rounded-xl',
+            )}
+          >
+            <header className={cn('border-b border-neutral-100', mobile ? 'px-5 pt-6 pb-4' : 'px-8 pt-7 pb-5')}>
+              <h2
+                className={cn(
+                  'font-semibold tracking-tight text-neutral-900 [text-wrap:balance]',
+                  mobile ? 'text-lg leading-snug' : 'text-xl leading-snug',
+                )}
+              >
+                {subject}
+              </h2>
+
+              <div className="mt-4 flex items-start gap-3">
+                <span
+                  aria-hidden
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-sm font-medium text-white"
+                >
+                  {sender.trim().charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0 text-sm">
+                  <p className="truncate">
+                    <span className="font-medium text-neutral-900">{sender}</span>
+                    {fromName && from && <span className="text-neutral-500">{` <${from}>`}</span>}
+                  </p>
+                  {recipient && <p className="truncate text-xs text-neutral-500">to {recipient}</p>}
+                  {replyTo && replyTo !== from && (
+                    <p className="truncate text-xs text-neutral-500">replies go to {replyTo}</p>
                   )}
-
-                  {/* Subject Section */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-xs text-neutral-500 uppercase tracking-wide font-medium">Subject</p>
-                      <p className="text-base font-semibold text-neutral-900 mt-1">{subject}</p>
-                    </div>
-                  </div>
-
-                  {/* From and Reply-To Section */}
-                  {(from || replyTo) && (
-                    <div className="flex gap-6 pt-2 border-t border-neutral-200">
-                      {from && (
-                        <div>
-                          <p className="text-xs text-neutral-500">From</p>
-                          <p className="text-sm text-neutral-900 mt-0.5">{displayFrom}</p>
-                        </div>
-                      )}
-                      {replyTo && (
-                        <div>
-                          <p className="text-xs text-neutral-500">Reply-To</p>
-                          <p className="text-sm text-neutral-900 mt-0.5">{replyTo}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Email Body */}
-                <div className="bg-white">
-                  <iframe
-                    sandbox="allow-same-origin"
-                    srcDoc={styledBody}
-                    className="w-full border-0 block"
-                    style={{minHeight: '500px'}}
-                    title="Email preview"
-                    loading="lazy"
-                  />
                 </div>
               </div>
-            </div>
-          </div>
+            </header>
+
+            <EmailBody html={body} />
+          </article>
         </div>
       </DialogContent>
     </Dialog>
   );
+}
+
+/**
+ * The email itself, in a sandboxed frame that grows to fit its content, so the dialog has
+ * one scrollbar instead of a box scrolling inside a box. Scripts never run; links open in
+ * a new tab rather than trying to load inside the preview.
+ */
+function EmailBody({html}: {html: string}) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(320);
+  const [loaded, setLoaded] = useState(false);
+
+  const srcDoc = withNewTabLinks(wrapEmailWithStyles(html));
+
+  useEffect(() => {
+    const iframe = frame.current;
+    if (!iframe) return;
+
+    let observer: ResizeObserver | undefined;
+
+    // The frame is same-origin (no scripts), so the page can measure it. Watching for
+    // resizes catches images that load after the frame does and reflow at a new width.
+    const attach = () => {
+      const doc = iframe.contentDocument;
+      if (!doc?.documentElement) return;
+      // The rendered height of the document, not scrollHeight: scrollHeight never reports
+      // less than the frame itself, so the frame could grow but never shrink back when the
+      // email reflows shorter at a wider or narrower width.
+      const measure = () => setHeight(Math.ceil(doc.documentElement.getBoundingClientRect().height));
+      measure();
+      setLoaded(true);
+      observer?.disconnect();
+      observer = new ResizeObserver(measure);
+      observer.observe(doc.documentElement);
+      if (doc.body) observer.observe(doc.body);
+    };
+
+    iframe.addEventListener('load', attach);
+    if (iframe.contentDocument?.readyState === 'complete') attach();
+
+    return () => {
+      iframe.removeEventListener('load', attach);
+      observer?.disconnect();
+    };
+  }, [srcDoc]);
+
+  return (
+    <iframe
+      ref={frame}
+      title="Email content"
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      srcDoc={srcDoc}
+      className={cn('block w-full border-0 transition-opacity duration-150', loaded ? 'opacity-100' : 'opacity-0')}
+      style={{height}}
+    />
+  );
+}
+
+function withNewTabLinks(document: string): string {
+  const base = '<base target="_blank">';
+  return /<head[^>]*>/i.test(document)
+    ? document.replace(/<head[^>]*>/i, match => `${match}${base}`)
+    : `${base}${document}`;
 }

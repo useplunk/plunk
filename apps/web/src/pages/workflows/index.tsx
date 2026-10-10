@@ -34,11 +34,11 @@ import {
   BulkActionBar,
   DataTable,
   DataTableColumnHeader,
-  DataTableFacetedFilter,
-  DataTableFilter,
   DataTableViewOptions,
   DataTableViewSwitcher,
+  FilterPill,
   NoResultsState,
+  SearchInput,
   isDataTableView,
   type DataTableColumnMeta,
   type DataTableView,
@@ -48,7 +48,7 @@ import {formatRelativeTime} from '../../lib/dateUtils';
 import {useColumnVisibility} from '../../lib/hooks/useColumnVisibility';
 import {usePersistentState} from '../../lib/hooks/usePersistentState';
 import {useShiftClickSelection} from '../../lib/hooks/useShiftClickSelection';
-import {Calendar, Copy, Edit, Plus, Power, PowerOff, Search, Trash2, Workflow as WorkflowIcon, X, Zap} from 'lucide-react';
+import {Calendar, Copy, Edit, Plus, Power, PowerOff, Trash2, Workflow as WorkflowIcon, Zap} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useEffect, useMemo, useState} from 'react';
@@ -66,8 +66,7 @@ type StatusFilter = 'ALL' | 'active' | 'disabled';
 const VIEW_STORAGE_KEY = 'plunk:workflows:view';
 const COLUMNS_STORAGE_KEY = 'plunk:workflows:columns';
 
-// Fixed-value options for the Status column's faceted filter (table view) and
-// the card-view pill row. Single source of truth for both.
+// Fixed-value options for the Status filter pill.
 const STATUS_OPTIONS: ReadonlyArray<{value: Exclude<StatusFilter, 'ALL'>; label: string}> = [
   {value: 'active', label: 'Active'},
   {value: 'disabled', label: 'Disabled'},
@@ -272,20 +271,6 @@ export default function WorkflowsPage() {
         header: ({column}) => (
           <DataTableColumnHeader
             column={column}
-            // Single-select facet — mirrors the API's `?status=active|disabled`
-            // filter (Prisma `enabled` boolean). Matches the campaigns Status facet.
-            filter={
-              <DataTableFacetedFilter
-                title="Status"
-                multiple={false}
-                options={STATUS_OPTIONS.map(s => ({value: s.value, label: s.label}))}
-                selected={statusFilter === 'ALL' ? [] : [statusFilter]}
-                onChange={next => {
-                  setStatusFilter((next[0] as StatusFilter) ?? 'ALL');
-                  setPage(1);
-                }}
-              />
-            }
           >
             Status
           </DataTableColumnHeader>
@@ -447,50 +432,33 @@ export default function WorkflowsPage() {
 
           {/* Control row. One aligned cluster of 32px-tall controls:
               - Search input: always present (both views).
-              - Status filter: CARD VIEW ONLY, as a toolbar dropdown matching the
-                Columns selector. In table view the Status filter lives in the
-                column header facet instead (same shared menu body).
+              - Status filter: a FilterPill, the same in both views.
               - Columns selector: TABLE VIEW ONLY.
               - A hairline divider separates the data controls (filter/columns)
                 from the layout control (view switcher). */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-              <Input
-                type="text"
-                placeholder="Search workflows…"
-                value={searchInput}
-                onChange={e => setSearchInput(e.target.value)}
-                className="pl-10 pr-10 h-8 text-xs"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={() => {
-                    setSearchInput('');
-                    setSearch('');
-                    setPage(1);
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <SearchInput
+              value={searchInput}
+              onChange={setSearchInput}
+              onClear={() => {
+                setSearchInput('');
+                setSearch('');
+                setPage(1);
+              }}
+              placeholder="Search workflows…"
+              className="flex-1"
+            />
             <div className="flex items-center gap-2 shrink-0">
-              {view === 'card' && (
-                <DataTableFilter
-                  title="Status"
-                  multiple={false}
-                  options={STATUS_OPTIONS.map(s => ({value: s.value, label: s.label}))}
-                  selected={statusFilter === 'ALL' ? [] : [statusFilter]}
-                  onChange={next => {
-                    setStatusFilter((next[0] as StatusFilter) ?? 'ALL');
-                    setPage(1);
-                  }}
-                />
-              )}
+              <FilterPill
+                title="Status"
+                multiple={false}
+                options={STATUS_OPTIONS.map(s => ({value: s.value, label: s.label}))}
+                selected={statusFilter === 'ALL' ? [] : [statusFilter]}
+                onChange={next => {
+                  setStatusFilter((next[0] as StatusFilter) ?? 'ALL');
+                  setPage(1);
+                }}
+              />
               {view === 'table' && (
                 <DataTableViewOptions table={table} lockedColumnIds={['select', 'name', 'actions']} />
               )}

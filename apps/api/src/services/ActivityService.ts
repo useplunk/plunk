@@ -388,6 +388,10 @@ export class ActivityService {
     const where: Prisma.EventWhereInput = {
       projectId,
       ...(nameFilter ? {name: nameFilter} : {}),
+      // Plunk records every email open, click, bounce and delivery as an email.* event too.
+      // The feed already shows those as email activities, from the email rows, so listing the
+      // events as well would show each open twice and bury the project's own events.
+      NOT: {name: {startsWith: 'email.'}},
       createdAt: cursorTimestamp
         ? {
             ...dateFilter,
@@ -561,6 +565,7 @@ export class ActivityService {
           select: {
             workflow: {
               select: {
+                id: true,
                 name: true,
               },
             },
@@ -568,6 +573,8 @@ export class ActivityService {
         },
       },
     });
+
+    const outcomes = await this.fetchEmailOutcomes(emails, types);
 
     // Helper function to check if timestamp is within date range
     const isInDateRange = (timestamp: Date | null) => {
@@ -602,7 +609,13 @@ export class ActivityService {
         sourceType: email.sourceType,
         campaignName: email.campaign?.name,
         workflowName: email.workflowExecution?.workflow?.name,
+        // Ids so the feed can link to the email's source
+        emailId: email.id,
+        campaignId: email.campaignId,
+        templateId: email.templateId,
+        workflowId: email.workflowExecution?.workflow?.id,
       };
+      const outcome = outcomes.get(email.id);
 
       if (email.sentAt && (!types || types.includes(ActivityType.EMAIL_SENT)) && isInDateRange(email.sentAt)) {
         activities.push({
@@ -671,6 +684,7 @@ export class ActivityService {
           metadata: {
             ...baseMetadata,
             totalClicks: email.clicks,
+            link: outcome?.link,
           },
         });
       }
@@ -686,6 +700,7 @@ export class ActivityService {
           metadata: {
             ...baseMetadata,
             error: email.error,
+            bounceType: outcome?.bounceType,
           },
         });
       }
@@ -711,6 +726,59 @@ export class ActivityService {
     }
 
     return activities;
+  }
+
+  /**
+   * What the email rows on a page cannot say themselves: which link was clicked and what
+   * kind of bounce it was. Both live only on the email's events.
+   *
+   * One query per page, over at most `limit` emails, served by the events (emailId) index,
+   * and skipped when the page has no clicked or bounced email the caller asked for.
+   */
+  private static async fetchEmailOutcomes(
+    emails: {id: string; clickedAt: Date | null; bouncedAt: Date | null}[],
+    types?: ActivityType[],
+  ): Promise<Map<string, {link?: string; bounceType?: string}>> {
+    const wantClicks = !types || types.includes(ActivityType.EMAIL_CLICKED);
+    const wantBounces = !types || types.includes(ActivityType.EMAIL_BOUNCED);
+    const ids = emails
+      .filter(email => (wantClicks && email.clickedAt) || (wantBounces && email.bouncedAt))
+      .map(email => email.id);
+
+    const outcomes = new Map<string, {link?: string; bounceType?: string}>();
+    if (ids.length === 0) {
+      return outcomes;
+    }
+
+    const events = await prisma.event.findMany({
+      where: {emailId: {in: ids}, name: {in: ['email.click', 'email.bounce']}},
+      select: {emailId: true, name: true, data: true},
+      // Oldest first, so the first click and the bounce that suppressed the contact win
+      orderBy: {createdAt: 'asc'},
+    });
+
+    for (const event of events) {
+      if (!event.emailId) continue;
+      const data = event.data && typeof event.data === 'object' && !Array.isArray(event.data) ? event.data : {};
+      const outcome = outcomes.get(event.emailId) ?? {};
+
+      if (event.name === 'email.click' && !outcome.link && typeof data.link === 'string') {
+        outcome.link = data.link;
+      }
+      // Transient bounces never set bouncedAt, so they are not the bounce this row shows
+      if (
+        event.name === 'email.bounce' &&
+        !outcome.bounceType &&
+        typeof data.bounceType === 'string' &&
+        data.bounceType !== 'Transient'
+      ) {
+        outcome.bounceType = data.bounceType;
+      }
+
+      outcomes.set(event.emailId, outcome);
+    }
+
+    return outcomes;
   }
 
   /**
@@ -759,6 +827,7 @@ export class ActivityService {
         },
         workflow: {
           select: {
+            id: true,
             name: true,
           },
         },
@@ -775,6 +844,7 @@ export class ActivityService {
           contactEmail: execution.contact?.email,
           contactId: execution.contactId,
           metadata: {
+            workflowId: execution.workflow.id,
             workflowName: execution.workflow.name,
             status: execution.status,
           },
@@ -790,6 +860,7 @@ export class ActivityService {
           contactEmail: execution.contact?.email,
           contactId: execution.contactId,
           metadata: {
+            workflowId: execution.workflow.id,
             workflowName: execution.workflow.name,
             status: execution.status,
             exitReason: execution.exitReason,

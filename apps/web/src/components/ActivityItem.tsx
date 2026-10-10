@@ -1,7 +1,6 @@
-import {Badge, Button, Collapsible, CollapsibleContent, CollapsibleTrigger} from '@plunk/ui';
 import type {Activity} from '@plunk/types';
-import {memo, useState} from 'react';
-import {EmailPreviewModal} from './EmailPreviewModal';
+import {Badge, Button, cn} from '@plunk/ui';
+import dayjs from 'dayjs';
 import {
   AlertCircle,
   Calendar,
@@ -21,118 +20,23 @@ import {
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
+import {memo, type ReactNode, useState} from 'react';
 
-/**
- * Simple relative time formatter for past events
- */
-function getRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+import {EmailPreviewModal} from './EmailPreviewModal';
 
-  if (diffInSeconds < 60) {
-    return 'just now';
-  }
+type Metadata = Record<string, unknown>;
 
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
-  }
+const str = (value: unknown): string | undefined => (typeof value === 'string' && value ? value : undefined);
+const num = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
 
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
-  }
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) {
-    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
-  }
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) {
-    return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
-  }
-
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
-}
-
-/**
- * Format upcoming time (for future events)
- */
-function getUpcomingTime(date: Date): string {
-  const now = new Date();
-  const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000);
-
-  if (diffInSeconds < 60) {
-    return 'in a moment';
-  }
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `in ${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'}`;
-  }
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `in ${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'}`;
-  }
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays === 1) {
-    return `tomorrow at ${date.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', hour12: true})}`;
-  }
-
-  if (diffInDays < 7) {
-    return `in ${diffInDays} days`;
-  }
-
-  if (diffInDays < 30) {
-    const weeks = Math.floor(diffInDays / 7);
-    return `in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
-  }
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  return `in ${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'}`;
-}
-
-/**
- * Check if an activity is an email activity
- */
 function isEmailActivity(type: string): boolean {
-  return [
-    'email.sent',
-    'email.delivered',
-    'email.received',
-    'email.opened',
-    'email.clicked',
-    'email.bounced',
-    'email.complaint',
-  ].includes(type);
-}
-
-interface ActivityItemProps {
-  activity: Activity;
-  status?: 'upcoming' | 'completed';
-}
-
-interface ActivityConfig {
-  icon: React.ComponentType<{className?: string}>;
-  color: string;
-  bgColor: string;
-  title: string;
-  description?: string;
-  badge?: {
-    label: string;
-    variant: 'default' | 'secondary' | 'neutral' | 'destructive' | 'outline';
-  };
-  jsonData?: Record<string, unknown>;
+  return type.startsWith('email.');
 }
 
 /**
  * Read an event's payload, which Prisma types as JsonValue
  */
-function getEventData(metadata: Record<string, unknown>): Record<string, unknown> | undefined {
+function getEventData(metadata: Metadata): Record<string, unknown> | undefined {
   const {eventData} = metadata;
   return eventData && typeof eventData === 'object' && !Array.isArray(eventData)
     ? (eventData as Record<string, unknown>)
@@ -144,11 +48,10 @@ function getEventData(metadata: Record<string, unknown>): Record<string, unknown
  * Only the bounce and complaint paths write a reason today, so anything else
  * stays undefined rather than guessing at a source.
  */
-function getSubscriptionReason(metadata: Record<string, unknown>): string | undefined {
+function getSubscriptionReason(metadata: Metadata): string | undefined {
   const eventData = getEventData(metadata);
-  const reason = eventData?.reason;
 
-  switch (reason) {
+  switch (eventData?.reason) {
     case 'bounce':
       return 'Removed after a hard bounce';
     case 'complaint':
@@ -173,7 +76,7 @@ function getSubscriptionReason(metadata: Record<string, unknown>): string | unde
  * `contact.unsubscribed` so that workflows and counters pick it up for free -- so the row's
  * icon and badge have to be chosen from this rather than from the event name.
  */
-function getSnoozeReason(metadata: Record<string, unknown>): 'snooze' | 'snooze_expired' | undefined {
+function getSnoozeReason(metadata: Metadata): 'snooze' | 'snooze_expired' | undefined {
   const reason = getEventData(metadata)?.reason;
   return reason === 'snooze' || reason === 'snooze_expired' ? reason : undefined;
 }
@@ -194,380 +97,450 @@ function formatSnoozeDate(value: unknown): string | undefined {
 }
 
 /**
- * Subject of the email a subscription change came from, which becomes the row's
- * title — the same slot an email row uses for its subject.
- *
- * Absent for changes with no email behind them (a dashboard toggle, a CSV
- * import, an API call) and for mail sent before unsubscribe links carried their
- * source; those rows title themselves by the action instead.
+ * Where an activity came from, as a link when the source still has a page. Email rows
+ * carry the campaign, workflow or template id; subscription rows only the source names.
  */
-function getSubscriptionSubject(metadata: Record<string, unknown>): string | undefined {
-  return typeof metadata.sourceSubject === 'string' && metadata.sourceSubject ? metadata.sourceSubject : undefined;
-}
-
-/**
- * Which send the originating email belonged to, in the same `Campaign: x` /
- * `Workflow: x` form email rows use. Transactional sources have neither, and
- * name themselves through the subject in the title.
- */
-function getSubscriptionOrigin(metadata: Record<string, unknown>): string | undefined {
-  if (typeof metadata.campaignName === 'string' && metadata.campaignName) {
-    return `Campaign: ${metadata.campaignName}`;
+function getSource(activity: Activity): {label: string; href?: string} | undefined {
+  const {type, metadata} = activity;
+  // Workflow rows are titled by their workflow, which links there itself
+  if (type.startsWith('workflow.') && type !== 'workflow.email.scheduled') return undefined;
+  const campaign = str(metadata.campaignName);
+  if (campaign) {
+    return {label: `Campaign: ${campaign}`, href: str(metadata.campaignId) && `/campaigns/${str(metadata.campaignId)}`};
   }
-  if (typeof metadata.workflowName === 'string' && metadata.workflowName) {
-    return `Workflow: ${metadata.workflowName}`;
+  const workflow = str(metadata.workflowName);
+  if (workflow) {
+    return {label: `Workflow: ${workflow}`, href: str(metadata.workflowId) && `/workflows/${str(metadata.workflowId)}`};
+  }
+  if (str(metadata.templateId)) {
+    return {label: 'Transactional template', href: `/templates/${str(metadata.templateId)}`};
+  }
+  if (metadata.sourceType === 'TRANSACTIONAL') {
+    return {label: 'Transactional'};
   }
   return undefined;
 }
 
-/**
- * Describe a subscription change as cause and origin — either, both, or neither.
- */
-function getSubscriptionDescription(metadata: Record<string, unknown>): string | undefined {
-  const parts = [getSubscriptionReason(metadata), getSubscriptionOrigin(metadata)].filter(Boolean);
-  return parts.length > 0 ? parts.join(' • ') : undefined;
+const TILE = {
+  neutral: 'bg-neutral-100 text-neutral-700',
+  amber: 'bg-amber-50 text-amber-700',
+  emerald: 'bg-emerald-50 text-emerald-700',
+  sky: 'bg-sky-50 text-sky-700',
+  red: 'bg-red-50 text-red-700',
+};
+
+/** "5 minutes ago" for today; older rows sit under a day heading, so the clock time reads better there */
+function formatWhen(date: dayjs.Dayjs, upcoming: boolean): string {
+  if (upcoming) {
+    return date.isSame(dayjs(), 'day') ? `today at ${date.format('HH:mm')}` : date.format('ddd, MMM D [at] HH:mm');
+  }
+  if (!date.isSame(dayjs(), 'day')) {
+    return date.format('HH:mm');
+  }
+  const minutes = dayjs().diff(date, 'minute');
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+  const hours = dayjs().diff(date, 'hour');
+  return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+}
+
+interface ActivityConfig {
+  icon: React.ComponentType<{className?: string}>;
+  /** Tile colours: each kind of activity keeps its own, so the feed reads at a glance */
+  tile: string;
+  title: string;
+  badge: {label: string; variant: 'default' | 'neutral' | 'destructive' | 'outline'};
+  /** One line under the title, after the contact; the source link is added separately */
+  detail?: string;
 }
 
 function getActivityConfig(activity: Activity): ActivityConfig {
   const {type, metadata} = activity;
+  const subject = str(metadata.subject);
 
   switch (type) {
     case 'event.triggered':
       return {
         icon: Zap,
-        color: 'text-amber-700',
-        bgColor: 'bg-amber-50',
-        title: (typeof metadata.eventName === 'string' ? metadata.eventName : undefined) || 'Event triggered',
-        description: undefined,
-        badge: {
-          label: 'Event',
-          variant: 'default',
-        },
-        jsonData: getEventData(metadata),
+        tile: TILE.amber,
+        title: str(metadata.eventName) ?? 'Event triggered',
+        badge: {label: 'Event', variant: 'default'},
       };
 
     case 'email.sent':
       return {
         icon: Send,
-        color: 'text-neutral-700',
-        bgColor: 'bg-neutral-100',
-        title: (typeof metadata.subject === 'string' ? metadata.subject : undefined) || 'Email sent',
-        description: metadata.campaignName
-          ? `Campaign: ${String(metadata.campaignName)}`
-          : metadata.workflowName
-            ? `Workflow: ${String(metadata.workflowName)}`
-            : typeof metadata.sourceType === 'string'
-              ? metadata.sourceType
-              : undefined,
-        badge: {
-          label: 'Sent',
-          variant: 'default',
-        },
+        tile: TILE.neutral,
+        title: subject ?? 'Email sent',
+        badge: {label: 'Sent', variant: 'default'},
       };
 
     case 'email.delivered':
       return {
         icon: CheckCircle,
-        color: 'text-emerald-700',
-        bgColor: 'bg-emerald-50',
-        title: (typeof metadata.subject === 'string' ? metadata.subject : undefined) || 'Email delivered',
-        description: metadata.campaignName
-          ? `Campaign: ${String(metadata.campaignName)}`
-          : metadata.workflowName
-            ? `Workflow: ${String(metadata.workflowName)}`
-            : undefined,
-        badge: {
-          label: 'Delivered',
-          variant: 'default',
-        },
+        tile: TILE.emerald,
+        title: subject ?? 'Email delivered',
+        badge: {label: 'Delivered', variant: 'default'},
       };
 
     case 'email.received':
       return {
         icon: Inbox,
-        color: 'text-neutral-600',
-        bgColor: 'bg-neutral-100',
-        title: (typeof metadata.subject === 'string' ? metadata.subject : undefined) || 'Email received',
-        description: typeof metadata.from === 'string' ? `From: ${metadata.from}` : 'Inbound email',
-        badge: {
-          label: 'Received',
-          variant: 'default',
-        },
+        tile: TILE.neutral,
+        title: subject ?? 'Email received',
+        badge: {label: 'Received', variant: 'default'},
+        detail: str(metadata.from) ? `From ${str(metadata.from)}` : 'Inbound email',
       };
 
-    case 'email.opened':
+    case 'email.opened': {
+      const opens = num(metadata.totalOpens);
       return {
         icon: Eye,
-        color: 'text-emerald-700',
-        bgColor: 'bg-emerald-50',
-        title: (typeof metadata.subject === 'string' ? metadata.subject : undefined) || 'Email opened',
-        description:
-          typeof metadata.totalOpens === 'number' && metadata.totalOpens > 1
-            ? `Opened ${metadata.totalOpens} times`
-            : metadata.campaignName
-              ? `Campaign: ${String(metadata.campaignName)}`
-              : metadata.workflowName
-                ? `Workflow: ${String(metadata.workflowName)}`
-                : undefined,
-        badge: {
-          label: 'Opened',
-          variant: 'secondary',
-        },
+        tile: TILE.emerald,
+        title: subject ?? 'Email opened',
+        badge: {label: 'Opened', variant: 'default'},
+        detail: opens && opens > 1 ? `Opened ${opens} times` : undefined,
       };
+    }
 
-    case 'email.clicked':
+    case 'email.clicked': {
+      const clicks = num(metadata.totalClicks);
       return {
         icon: MousePointerClick,
-        color: 'text-sky-700',
-        bgColor: 'bg-sky-50',
-        title: (typeof metadata.subject === 'string' ? metadata.subject : undefined) || 'Email clicked',
-        description:
-          typeof metadata.totalClicks === 'number' && metadata.totalClicks > 1
-            ? `Clicked ${metadata.totalClicks} times`
-            : metadata.campaignName
-              ? `Campaign: ${String(metadata.campaignName)}`
-              : metadata.workflowName
-                ? `Workflow: ${String(metadata.workflowName)}`
-                : undefined,
-        badge: {
-          label: 'Clicked',
-          variant: 'default',
-        },
+        tile: TILE.sky,
+        title: subject ?? 'Email clicked',
+        badge: {label: 'Clicked', variant: 'default'},
+        detail: clicks && clicks > 1 ? `Clicked ${clicks} times` : undefined,
       };
+    }
 
     case 'email.bounced':
       return {
         icon: XCircle,
-        color: 'text-red-700',
-        bgColor: 'bg-red-50',
-        title: (typeof metadata.subject === 'string' ? metadata.subject : undefined) || 'Email bounced',
-        description: (typeof metadata.error === 'string' ? metadata.error : undefined) || 'Email failed to deliver',
-        badge: {
-          label: 'Bounced',
-          variant: 'destructive',
-        },
+        tile: TILE.red,
+        title: subject ?? 'Email bounced',
+        badge: {label: 'Bounced', variant: 'destructive'},
+        detail: str(metadata.bounceType) === 'Permanent' ? 'Hard bounce' : undefined,
       };
 
     case 'email.complaint':
       return {
         icon: ShieldAlert,
-        color: 'text-red-700',
-        bgColor: 'bg-red-50',
-        title: (typeof metadata.subject === 'string' ? metadata.subject : undefined) || 'Spam complaint',
-        description: metadata.campaignName
-          ? `Campaign: ${String(metadata.campaignName)}`
-          : metadata.workflowName
-            ? `Workflow: ${String(metadata.workflowName)}`
-            : 'Recipient marked as spam',
-        badge: {
-          label: 'Complaint',
-          variant: 'destructive',
-        },
+        tile: TILE.red,
+        title: subject ?? 'Spam complaint',
+        badge: {label: 'Complaint', variant: 'destructive'},
       };
 
     case 'workflow.started':
       return {
         icon: Workflow,
-        color: 'text-amber-700',
-        bgColor: 'bg-amber-50',
-        title: (typeof metadata.workflowName === 'string' ? metadata.workflowName : undefined) || 'Workflow started',
-        description: `Status: ${String(metadata.status || 'unknown')}`,
-        badge: {
-          label: 'Workflow',
-          variant: 'default',
-        },
+        tile: TILE.amber,
+        title: str(metadata.workflowName) ?? 'Workflow started',
+        badge: {label: 'Started', variant: 'default'},
       };
 
     case 'workflow.completed':
       return {
         icon: CheckCheck,
-        color: 'text-amber-700',
-        bgColor: 'bg-amber-50',
-        title: (typeof metadata.workflowName === 'string' ? metadata.workflowName : undefined) || 'Workflow completed',
-        description: metadata.exitReason
-          ? `Exit: ${String(metadata.exitReason)}`
-          : `Status: ${String(metadata.status || 'unknown')}`,
-        badge: {
-          label: 'Completed',
-          variant: 'default',
-        },
+        tile: TILE.amber,
+        title: str(metadata.workflowName) ?? 'Workflow completed',
+        badge: {label: 'Completed', variant: 'default'},
+        detail: str(metadata.exitReason) ? `Exited: ${str(metadata.exitReason)}` : undefined,
       };
 
     case 'contact.subscribed': {
       const resumed = getSnoozeReason(metadata) === 'snooze_expired';
-
       return {
         icon: resumed ? Clock : UserPlus,
-        color: 'text-emerald-700',
-        bgColor: 'bg-emerald-50',
-        title: getSubscriptionSubject(metadata) || (resumed ? 'Snooze ended' : 'Contact subscribed'),
-        description: getSubscriptionDescription(metadata),
-        badge: {
-          label: resumed ? 'Resumed' : 'Subscribed',
-          variant: 'default',
-        },
-        jsonData: getEventData(metadata),
+        tile: TILE.emerald,
+        title: str(metadata.sourceSubject) ?? (resumed ? 'Snooze ended' : 'Contact subscribed'),
+        badge: {label: resumed ? 'Resumed' : 'Subscribed', variant: 'default'},
+        detail: getSubscriptionReason(metadata),
       };
     }
 
     case 'contact.unsubscribed': {
       const snoozed = getSnoozeReason(metadata) === 'snooze';
-
       return {
         icon: snoozed ? Clock : UserMinus,
-        color: 'text-neutral-700',
-        bgColor: 'bg-neutral-100',
-        title: getSubscriptionSubject(metadata) || (snoozed ? 'Contact snoozed' : 'Contact unsubscribed'),
-        description: getSubscriptionDescription(metadata),
-        badge: {
-          label: snoozed ? 'Snoozed' : 'Unsubscribed',
-          // `outline` is this feed's marker for scheduled, not-yet-happened
-          // items; a past opt-out takes the muted fill instead.
-          variant: 'neutral',
-        },
-        jsonData: getEventData(metadata),
+        tile: TILE.neutral,
+        title: str(metadata.sourceSubject) ?? (snoozed ? 'Contact snoozed' : 'Contact unsubscribed'),
+        // `outline` is this feed's marker for scheduled, not-yet-happened items; a past
+        // opt-out takes the muted fill instead.
+        badge: {label: snoozed ? 'Snoozed' : 'Unsubscribed', variant: 'neutral'},
+        detail: getSubscriptionReason(metadata),
       };
     }
 
-    case 'campaign.scheduled':
+    case 'campaign.scheduled': {
+      const recipients = num(metadata.totalRecipients);
       return {
         icon: Calendar,
-        color: 'text-sky-700',
-        bgColor: 'bg-sky-50',
-        title: (typeof metadata.campaignName === 'string' ? metadata.campaignName : undefined) || 'Campaign scheduled',
-        description: metadata.subject
-          ? `${String(metadata.subject)}${metadata.totalRecipients ? ` • ${metadata.totalRecipients} recipients` : ''}`
-          : metadata.totalRecipients
-            ? `${metadata.totalRecipients} recipients`
-            : undefined,
-        badge: {
-          label: 'Scheduled',
-          variant: 'outline',
-        },
+        tile: TILE.sky,
+        title: str(metadata.campaignName) ?? 'Campaign scheduled',
+        badge: {label: 'Scheduled', variant: 'outline'},
+        detail: recipients ? `${recipients.toLocaleString()} recipients` : undefined,
       };
+    }
 
     case 'workflow.email.scheduled':
       return {
         icon: Calendar,
-        color: 'text-amber-700',
-        bgColor: 'bg-amber-50',
-        title: (typeof metadata.stepName === 'string' ? metadata.stepName : undefined) || 'Workflow email scheduled',
-        description: metadata.workflowName
-          ? `Workflow: ${String(metadata.workflowName)}${metadata.subject ? ` • ${String(metadata.subject)}` : ''}`
-          : typeof metadata.subject === 'string'
-            ? metadata.subject
-            : undefined,
-        badge: {
-          label: 'Scheduled',
-          variant: 'outline',
-        },
+        tile: TILE.amber,
+        title: str(metadata.stepName) ?? 'Workflow email scheduled',
+        badge: {label: 'Scheduled', variant: 'outline'},
+        detail: subject,
       };
 
     default:
       return {
         icon: AlertCircle,
-        color: 'text-neutral-600',
-        bgColor: 'bg-neutral-100',
+        tile: TILE.neutral,
         title: 'Unknown activity',
-        badge: {
-          label: 'Unknown',
-          variant: 'outline',
-        },
+        badge: {label: 'Unknown', variant: 'outline'},
       };
   }
 }
 
+/**
+ * The details revealed when a row is opened: everything the row had no room for, and in
+ * particular the "why" behind it (the link clicked, the bounce type, the event payload).
+ */
+function getDetails(activity: Activity): {label: string; value: ReactNode}[] {
+  const {type, metadata} = activity;
+  const rows: {label: string; value: ReactNode}[] = [];
+  const add = (label: string, value: ReactNode | undefined) => {
+    if (value !== undefined && value !== null && value !== '') rows.push({label, value});
+  };
+
+  if (isEmailActivity(type)) {
+    add('Subject', str(metadata.subject));
+    const fromName = str(metadata.fromName);
+    const from = str(metadata.from);
+    add('From', from && (fromName ? `${fromName} <${from}>` : from));
+    add('To', activity.contactEmail);
+    add('Reply-to', str(metadata.replyTo));
+  }
+
+  if (type === 'email.clicked') {
+    const link = str(metadata.link);
+    add(
+      'Link',
+      link && (
+        <a
+          href={link}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="break-all underline-offset-4 hover:underline"
+        >
+          {link}
+        </a>
+      ),
+    );
+  }
+
+  if (type === 'email.bounced') {
+    const bounceType = str(metadata.bounceType);
+    add(
+      'Bounce',
+      bounceType === 'Permanent'
+        ? 'Hard bounce: the address does not exist or refuses mail. The contact was unsubscribed.'
+        : bounceType
+          ? `${bounceType} bounce. The contact was unsubscribed to be safe.`
+          : undefined,
+    );
+    add('Error', str(metadata.error));
+  }
+
+  if (type === 'email.complaint') {
+    add('Complaint', 'The recipient marked this email as spam. The contact was unsubscribed.');
+  }
+
+  if (type === 'workflow.started' || type === 'workflow.completed') {
+    add('Status', str(metadata.status)?.toLowerCase());
+    add('Exit reason', str(metadata.exitReason));
+  }
+
+  if (type === 'contact.subscribed' || type === 'contact.unsubscribed') {
+    add('Reason', getSubscriptionReason(metadata));
+    add('From email', str(metadata.sourceSubject));
+  }
+
+  if (type === 'campaign.scheduled' || type === 'workflow.email.scheduled') {
+    add('Sends', dayjs(activity.timestamp).format('ddd, MMM D, YYYY [at] HH:mm'));
+    add('Subject', str(metadata.subject));
+  }
+
+  return rows;
+}
+
+interface ActivityItemProps {
+  activity: Activity;
+  status?: 'upcoming' | 'completed';
+}
+
 export const ActivityItem = memo(function ActivityItem({activity, status = 'completed'}: ActivityItemProps) {
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
   const config = getActivityConfig(activity);
   const Icon = config.icon;
-  const timestamp = new Date(activity.timestamp);
+  const timestamp = dayjs(activity.timestamp);
   const isUpcoming = status === 'upcoming';
-  const relativeTime = isUpcoming ? getUpcomingTime(timestamp) : getRelativeTime(timestamp);
+  const source = getSource(activity);
+  const titleHref =
+    (activity.type === 'workflow.started' || activity.type === 'workflow.completed') &&
+    str(activity.metadata.workflowId)
+      ? `/workflows/${str(activity.metadata.workflowId)}`
+      : undefined;
+  const details = getDetails(activity);
+  const eventData = getEventData(activity.metadata);
+  const canPreview =
+    isEmailActivity(activity.type) && !!str(activity.metadata.subject) && !!str(activity.metadata.body);
+  const detailsId = `activity-${activity.id}`;
 
   return (
-    <div className={`flex items-start gap-4 ${isUpcoming ? 'opacity-80' : ''}`}>
-      {/* Icon */}
+    <li className={cn(open && 'bg-neutral-50/60')}>
       <div
-        className={`h-10 w-10 rounded-lg ${config.bgColor} flex items-center justify-center flex-shrink-0 ${isUpcoming ? 'border-2 border-dashed border-neutral-300' : ''}`}
+        // The whole row toggles, but links and buttons inside it keep their own behaviour
+        onClick={e => {
+          if ((e.target as HTMLElement).closest('a, button')) return;
+          setOpen(o => !o);
+        }}
+        className={cn(
+          'grid cursor-pointer grid-cols-[2.5rem_minmax(0,1fr)_auto] items-start gap-x-4 px-4 py-4 transition-colors hover:bg-neutral-50 sm:px-6',
+          isUpcoming && 'opacity-80',
+        )}
       >
-        <Icon className={`h-5 w-5 ${config.color}`} />
-      </div>
+        <span
+          aria-hidden
+          className={cn(
+            'flex h-10 w-10 items-center justify-center rounded-lg',
+            config.tile,
+            isUpcoming && 'border-2 border-dashed border-neutral-300',
+          )}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <p className={`text-sm font-medium truncate ${isUpcoming ? 'text-neutral-700' : 'text-neutral-900'}`}>
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            {titleHref ? (
+              <Link
+                href={titleHref}
+                className="truncate text-sm font-medium text-neutral-900 underline-offset-4 hover:underline"
+              >
                 {config.title}
-              </p>
-              {config.badge && <Badge variant={config.badge.variant}>{config.badge.label}</Badge>}
-              {isEmailActivity(activity.type) && activity.metadata.subject && activity.metadata.body ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPreviewModal(true)}
-                  className="h-6 px-2 text-xs"
-                >
-                  <Eye className="h-3 w-3 mr-1" />
-                  Preview
-                </Button>
-              ) : null}
-            </div>
-            {config.description && <p className="text-sm text-neutral-500 line-clamp-2">{config.description}</p>}
-            {activity.contactEmail && (
-              <div className="flex items-center gap-2 mt-2">
-                {activity.contactId ? (
-                  <Link
-                    href={`/contacts/${activity.contactId}`}
-                    className="text-xs text-neutral-600 hover:text-neutral-900 hover:underline"
-                  >
-                    {activity.contactEmail}
-                  </Link>
-                ) : (
-                  <span className="text-xs text-neutral-600">{activity.contactEmail}</span>
-                )}
-              </div>
+              </Link>
+            ) : (
+              <span className="truncate text-sm font-medium text-neutral-900">{config.title}</span>
             )}
-            {/* Collapsible JSON Data */}
-            {config.jsonData && (
-              <Collapsible className="mt-2">
-                <CollapsibleTrigger className="flex items-center gap-1 text-xs text-neutral-600 hover:text-neutral-900 transition-colors group">
-                  <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-                  <span className="font-medium">Event data</span>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <pre className="mt-2 p-3 bg-neutral-50 rounded-md border border-neutral-200 text-xs overflow-x-auto">
-                    <code className="text-neutral-700">{JSON.stringify(config.jsonData, null, 2)}</code>
-                  </pre>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
+            <Badge variant={config.badge.variant} className="shrink-0">
+              {config.badge.label}
+            </Badge>
           </div>
-          <span
-            className={`text-xs flex-shrink-0 whitespace-nowrap ${isUpcoming ? 'text-neutral-700 font-medium' : 'text-neutral-400'}`}
-            title={timestamp.toLocaleString()}
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-neutral-500">
+            {activity.contactEmail &&
+              (activity.contactId ? (
+                <Link
+                  href={`/contacts/${activity.contactId}`}
+                  className="truncate text-neutral-600 underline-offset-4 hover:text-neutral-900 hover:underline"
+                >
+                  {activity.contactEmail}
+                </Link>
+              ) : (
+                <span className="truncate text-neutral-600">{activity.contactEmail}</span>
+              ))}
+            {source &&
+              (source.href ? (
+                <Link href={source.href} className="truncate underline-offset-4 hover:text-neutral-900 hover:underline">
+                  {source.label}
+                </Link>
+              ) : (
+                <span className="truncate">{source.label}</span>
+              ))}
+            {config.detail && <span className="truncate">{config.detail}</span>}
+            <span className={cn('sm:hidden', isUpcoming ? 'font-medium text-neutral-700' : 'text-neutral-400')}>
+              {formatWhen(timestamp, isUpcoming)}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 pt-0.5">
+          <time
+            dateTime={timestamp.toISOString()}
+            title={timestamp.format('ddd, MMM D, YYYY [at] HH:mm:ss')}
+            className={cn(
+              // On phones the time moves under the title, where it does not squeeze it
+              'hidden whitespace-nowrap text-xs sm:block',
+              isUpcoming ? 'font-medium text-neutral-700' : 'text-neutral-400',
+            )}
           >
-            {relativeTime}
-          </span>
+            {formatWhen(timestamp, isUpcoming)}
+          </time>
+          <button
+            type="button"
+            onClick={() => setOpen(o => !o)}
+            aria-expanded={open}
+            aria-controls={detailsId}
+            aria-label={open ? 'Hide details' : 'Show details'}
+            className="flex h-6 w-6 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
+          >
+            <ChevronRight
+              className={cn(
+                'h-3.5 w-3.5 transition-transform duration-150 motion-reduce:transition-none',
+                open && 'rotate-90',
+              )}
+            />
+          </button>
         </div>
       </div>
 
-      {/* Email Preview Modal */}
-      {showPreviewModal && activity.metadata.subject && activity.metadata.body ? (
+      {open && (
+        <div id={detailsId} className="pb-5 pl-[calc(1rem+2.5rem+1rem)] pr-4 sm:pl-[calc(1.5rem+2.5rem+1rem)] sm:pr-6">
+          {details.length > 0 && (
+            <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-xs">
+              {details.map(row => (
+                <div key={row.label} className="contents">
+                  <dt className="text-neutral-500">{row.label}</dt>
+                  <dd className="min-w-0 text-neutral-900">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          {eventData && Object.keys(eventData).length > 0 && (
+            <pre className="mt-3 max-h-64 overflow-auto rounded-md border border-neutral-200 bg-white p-3 text-xs leading-5 text-neutral-700">
+              <code>{JSON.stringify(eventData, null, 2)}</code>
+            </pre>
+          )}
+
+          {canPreview && (
+            <Button variant="outline" size="sm" className="mt-3 h-7 text-xs" onClick={() => setShowPreview(true)}>
+              <Eye className="h-3 w-3" />
+              Preview email
+            </Button>
+          )}
+
+          {details.length === 0 && !eventData && !canPreview && (
+            <p className="text-xs text-neutral-500">Nothing more was recorded for this activity.</p>
+          )}
+        </div>
+      )}
+
+      {showPreview && canPreview && (
         <EmailPreviewModal
-          open={showPreviewModal}
-          onOpenChange={setShowPreviewModal}
+          open={showPreview}
+          onOpenChange={setShowPreview}
           subject={String(activity.metadata.subject)}
           body={String(activity.metadata.body)}
-          from={activity.metadata.from ? String(activity.metadata.from) : undefined}
-          fromName={activity.metadata.fromName ? String(activity.metadata.fromName) : undefined}
-          replyTo={activity.metadata.replyTo ? String(activity.metadata.replyTo) : undefined}
-          toName={activity.metadata.toName ? String(activity.metadata.toName) : undefined}
+          from={str(activity.metadata.from)}
+          fromName={str(activity.metadata.fromName)}
+          replyTo={str(activity.metadata.replyTo)}
+          toName={str(activity.metadata.toName)}
           toEmail={activity.contactEmail}
         />
-      ) : null}
-    </div>
+      )}
+    </li>
   );
 });
