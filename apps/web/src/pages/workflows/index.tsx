@@ -14,6 +14,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   IconSpinner,
   Input,
   Label,
@@ -48,7 +53,7 @@ import {formatRelativeTime} from '../../lib/dateUtils';
 import {useColumnVisibility} from '../../lib/hooks/useColumnVisibility';
 import {usePersistentState} from '../../lib/hooks/usePersistentState';
 import {useShiftClickSelection} from '../../lib/hooks/useShiftClickSelection';
-import {Calendar, Copy, Edit, Plus, Power, PowerOff, Trash2, Workflow as WorkflowIcon, Zap} from 'lucide-react';
+import {Clock, Copy, MoreHorizontal, Plus, Power, PowerOff, Trash2, Webhook, Workflow as WorkflowIcon, Zap} from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import {useEffect, useMemo, useState} from 'react';
@@ -80,9 +85,61 @@ const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
   trigger: true,
   status: true,
   steps: true,
+  executions: true,
   updatedAt: true,
   actions: true,
 };
+
+/**
+ * What starts the workflow, for every trigger type. Event triggers name the event; the others
+ * are rare but used to render as an empty "—", which read as a broken workflow.
+ */
+function Trigger({workflow}: {workflow: WorkflowRow}) {
+  const config = workflow.triggerConfig && typeof workflow.triggerConfig === 'object' ? workflow.triggerConfig : {};
+  let Icon = Zap;
+  let label: string;
+  let code: string | null = null;
+  if (workflow.triggerType === 'SCHEDULE') {
+    Icon = Clock;
+    label = 'On schedule';
+    code = 'schedule' in config ? String(config.schedule) : null;
+  } else if (workflow.triggerType === 'MANUAL') {
+    Icon = Webhook;
+    label = 'Started via API';
+  } else {
+    label = 'On';
+    code = 'eventName' in config ? String(config.eventName) : null;
+    if (!code) label = 'No trigger event set';
+  }
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-neutral-500">
+      <Icon className="h-3 w-3 shrink-0" />
+      <span className="shrink-0">{label}</span>
+      {code && (
+        <code className="truncate font-mono bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-700">{code}</code>
+      )}
+    </span>
+  );
+}
+
+function EditedAt({date, className = ''}: {date: Date | string; className?: string}) {
+  return (
+    <div className={'group relative inline-block cursor-help whitespace-nowrap ' + className}>
+      Edited {formatRelativeTime(date)}
+      <div className="hidden group-hover:block absolute z-10 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
+        {dayjs(date).format('DD MMMM YYYY, HH:mm')}
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({enabled}: {enabled: boolean}) {
+  return (
+    <Badge variant={enabled ? 'success' : 'neutral'} className="shrink-0">
+      {enabled ? 'Active' : 'Disabled'}
+    </Badge>
+  );
+}
 
 export default function WorkflowsPage() {
   const [page, setPage] = useState(1);
@@ -193,10 +250,41 @@ export default function WorkflowsPage() {
     }
   };
 
-  const triggerEventName = (workflow: WorkflowRow): string | null =>
-    workflow.triggerConfig && typeof workflow.triggerConfig === 'object' && 'eventName' in workflow.triggerConfig
-      ? String(workflow.triggerConfig.eventName)
-      : null;
+  // One menu per row instead of four icon buttons. Enable/disable lives here rather than as an
+  // inline toggle: switching on a workflow that sends email deserves a deliberate click.
+  const actionsMenu = (workflow: WorkflowRow) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" aria-label={`Actions for ${workflow.name}`} title="Actions">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem
+          className="gap-2 cursor-pointer"
+          onClick={() => void handleToggleEnabled(workflow.id, workflow.enabled)}
+        >
+          {workflow.enabled ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+          {workflow.enabled ? 'Disable' : 'Enable'}
+        </DropdownMenuItem>
+        <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => void handleDuplicate(workflow.id)}>
+          <Copy className="h-4 w-4" />
+          Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="gap-2 cursor-pointer text-red-600 focus:text-red-600"
+          onClick={() => {
+            setWorkflowToDelete(workflow.id);
+            setShowDeleteDialog(true);
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   const columns = useMemo<Array<ColumnDef<WorkflowRow, unknown>>>(
     () => [
@@ -236,60 +324,37 @@ export default function WorkflowsPage() {
         id: 'name',
         accessorKey: 'name',
         enableHiding: false, // Name column is locked-visible.
-        meta: {label: 'Name'} satisfies DataTableColumnMeta,
+        meta: {label: 'Name', cellClassName: 'max-w-[18rem]'} satisfies DataTableColumnMeta,
         header: ({column}) => <DataTableColumnHeader column={column}>Name</DataTableColumnHeader>,
         cell: ({row}) => (
-          <Link
-            href={`/workflows/${row.original.id}`}
-            className="text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
-          >
-            {row.original.name}
-          </Link>
+          <div className="min-w-0">
+            <Link
+              href={`/workflows/${row.original.id}`}
+              className="block truncate text-sm font-medium text-neutral-900 hover:text-neutral-700 focus-visible:outline-none focus-visible:underline"
+            >
+              {row.original.name}
+            </Link>
+            {row.original.description && (
+              <p className="truncate text-xs text-neutral-500" title={row.original.description}>
+                {row.original.description}
+              </p>
+            )}
+          </div>
         ),
       },
       {
         id: 'trigger',
         enableSorting: false, // No backend sort field for trigger.
-        meta: {label: 'Trigger'} satisfies DataTableColumnMeta,
+        meta: {label: 'Trigger', cellClassName: 'max-w-[16rem]'} satisfies DataTableColumnMeta,
         header: ({column}) => <DataTableColumnHeader column={column}>Trigger</DataTableColumnHeader>,
-        cell: ({row}) => {
-          const eventName = triggerEventName(row.original);
-          return eventName ? (
-            <span className="inline-flex items-center gap-1.5 text-xs text-neutral-500">
-              <Zap className="h-3 w-3 shrink-0" />
-              <code className="font-mono bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-700">{eventName}</code>
-            </span>
-          ) : (
-            <span className="text-sm text-neutral-400">—</span>
-          );
-        },
+        cell: ({row}) => <Trigger workflow={row.original} />,
       },
       {
         id: 'status',
         enableSorting: false, // Status is faceted-filtered, not sorted.
         meta: {label: 'Status'} satisfies DataTableColumnMeta,
-        header: ({column}) => (
-          <DataTableColumnHeader
-            column={column}
-          >
-            Status
-          </DataTableColumnHeader>
-        ),
-        cell: ({row}) => (
-          <Badge variant={row.original.enabled ? 'success' : 'neutral'} className="shrink-0">
-            {row.original.enabled ? (
-              <>
-                <Power className="h-3 w-3 mr-1" />
-                Active
-              </>
-            ) : (
-              <>
-                <PowerOff className="h-3 w-3 mr-1" />
-                Disabled
-              </>
-            )}
-          </Badge>
-        ),
+        header: ({column}) => <DataTableColumnHeader column={column}>Status</DataTableColumnHeader>,
+        cell: ({row}) => <StatusBadge enabled={row.original.enabled} />,
       },
       {
         id: 'steps',
@@ -298,12 +363,28 @@ export default function WorkflowsPage() {
         // on the first click, so flip to descending first.
         enableSorting: true,
         sortDescFirst: true,
-        meta: {label: 'Steps'} satisfies DataTableColumnMeta,
-        header: ({column}) => <DataTableColumnHeader column={column}>Steps</DataTableColumnHeader>,
+        meta: {label: 'Steps', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader column={column} align="right">
+            Steps
+          </DataTableColumnHeader>
+        ),
         cell: ({row}) => (
-          <span className="text-sm text-neutral-700">
-            <strong className="font-semibold text-neutral-900">{row.original._count?.steps ?? 0}</strong>
-            <span className="text-neutral-400 ml-1 text-xs">steps</span>
+          <span className="text-sm font-semibold tabular-nums text-neutral-900">{row.original._count?.steps ?? 0}</span>
+        ),
+      },
+      {
+        id: 'executions',
+        enableSorting: false, // The API only sorts on steps among the counts.
+        meta: {label: 'Executions', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: ({column}) => (
+          <DataTableColumnHeader column={column} align="right">
+            Executions
+          </DataTableColumnHeader>
+        ),
+        cell: ({row}) => (
+          <span className="text-sm font-semibold tabular-nums text-neutral-900">
+            {(row.original._count?.executions ?? 0).toLocaleString()}
           </span>
         ),
       },
@@ -311,64 +392,19 @@ export default function WorkflowsPage() {
         id: 'updatedAt',
         accessorKey: 'updatedAt',
         // ISO-string values sort ascending on first click by default; flip so
-        // the first click on "Updated" surfaces the most recently edited rows.
+        // the first click on "Edited" surfaces the most recently edited rows.
         sortDescFirst: true,
-        meta: {label: 'Updated'} satisfies DataTableColumnMeta,
-        header: ({column}) => <DataTableColumnHeader column={column}>Updated</DataTableColumnHeader>,
-        cell: ({row}) => (
-          <div className="group relative inline-block cursor-help text-sm text-neutral-500 whitespace-nowrap">
-            {formatRelativeTime(row.original.updatedAt)}
-            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-1/2 transform -translate-x-1/2 mb-1 whitespace-nowrap">
-              {dayjs(row.original.updatedAt).format('DD MMMM YYYY, hh:mm')}
-            </div>
-          </div>
-        ),
+        meta: {label: 'Edited'} satisfies DataTableColumnMeta,
+        header: ({column}) => <DataTableColumnHeader column={column}>Edited</DataTableColumnHeader>,
+        cell: ({row}) => <EditedAt date={row.original.updatedAt} className="text-sm text-neutral-500" />,
       },
       {
         id: 'actions',
         enableSorting: false,
         enableHiding: false, // Actions column is locked-visible.
-        meta: {label: 'Actions', headClassName: 'text-right', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
-        header: () => <span className="flex justify-end">Actions</span>,
-        cell: ({row}) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              title={row.original.enabled ? 'Disable workflow' : 'Enable workflow'}
-              aria-label={row.original.enabled ? 'Disable workflow' : 'Enable workflow'}
-              onClick={() => handleToggleEnabled(row.original.id, row.original.enabled)}
-            >
-              {row.original.enabled ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
-            </Button>
-            <Button asChild variant="ghost" size="sm" title="Edit workflow">
-              <Link href={`/workflows/${row.original.id}`} aria-label="Edit workflow">
-                <Edit className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Duplicate workflow"
-              aria-label="Duplicate workflow"
-              onClick={() => handleDuplicate(row.original.id)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Delete workflow"
-              aria-label="Delete workflow"
-              onClick={() => {
-                setWorkflowToDelete(row.original.id);
-                setShowDeleteDialog(true);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ),
+        meta: {label: 'Actions', headClassName: 'text-right w-12', cellClassName: 'text-right'} satisfies DataTableColumnMeta,
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({row}) => <div className="flex justify-end">{actionsMenu(row.original)}</div>,
       },
     ],
     // Re-creating columns on every render is cheap and avoids stale-closure bugs
@@ -518,134 +554,63 @@ export default function WorkflowsPage() {
                   )}
                 </CardContent>
               </Card>
-            ) : view === 'card' ? (
-              <>
-                {/* Card Grid View — unchanged from before. */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {data?.data.map(workflow => (
-                    <Card key={workflow.id} className="transition-colors hover:border-neutral-300 flex flex-col [&:has([data-card-link]:focus-visible)]:ring-2 [&:has([data-card-link]:focus-visible)]:ring-ring [&:has([data-card-link]:focus-visible)]:ring-offset-2">
-                      <Link
-                        href={`/workflows/${workflow.id}`}
-                        data-card-link=""
-                        className="flex-1 block p-6 pb-4 hover:bg-neutral-50/50 transition-colors rounded-t-xl focus-visible:outline-none"
-                        aria-label={`Open ${workflow.name}`}
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <h3 className="font-semibold text-neutral-900 leading-snug">{workflow.name}</h3>
-                          <Badge variant={workflow.enabled ? 'success' : 'neutral'} className="shrink-0 mt-0.5">
-                            {workflow.enabled ? (
-                              <><Power className="h-3 w-3 mr-1" />Active</>
-                            ) : (
-                              <><PowerOff className="h-3 w-3 mr-1" />Disabled</>
-                            )}
-                          </Badge>
-                        </div>
-                        {workflow.triggerConfig &&
-                          typeof workflow.triggerConfig === 'object' &&
-                          'eventName' in workflow.triggerConfig && (
-                            <div className="flex items-center gap-1.5 text-xs text-neutral-500 mb-3">
-                              <Zap className="h-3 w-3 shrink-0" />
-                              <span>Triggers on</span>
-                              <code className="font-mono bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-700">
-                                {String(workflow.triggerConfig.eventName)}
-                              </code>
-                            </div>
-                          )}
-                        <div className="flex items-center gap-4 text-sm">
-                          <span>
-                            <strong className="font-semibold text-neutral-900">{workflow._count?.steps ?? 0}</strong>
-                            <span className="text-neutral-400 ml-1 text-xs">steps</span>
-                          </span>
-                          <span className="h-3 w-px bg-neutral-200" />
-                          <span>
-                            <strong className="font-semibold text-neutral-900">{workflow._count?.executions ?? 0}</strong>
-                            <span className="text-neutral-400 ml-1 text-xs">executions</span>
-                          </span>
-                        </div>
-                      </Link>
-                      <div className="px-6 py-3 border-t border-neutral-100 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-                          <Calendar className="h-3 w-3" />
-                          <div className="group relative inline-block cursor-help">
-                            <span>Updated {formatRelativeTime(workflow.updatedAt)}</span>
-                            <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-neutral-900 text-white text-xs rounded shadow-md bottom-full left-0 mb-1 whitespace-nowrap">
-                              {dayjs(workflow.updatedAt).format('DD MMMM YYYY, hh:mm')}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title={workflow.enabled ? 'Disable workflow' : 'Enable workflow'}
-                            onClick={() => handleToggleEnabled(workflow.id, workflow.enabled)}
-                          >
-                            {workflow.enabled ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
-                          </Button>
-                          <Button asChild variant="ghost" size="sm" title="Edit workflow">
-                            <Link href={`/workflows/${workflow.id}`} aria-label="Edit workflow"><Edit className="h-4 w-4" /></Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Duplicate workflow"
-                            onClick={() => handleDuplicate(workflow.id)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Delete workflow"
-                            onClick={() => {
-                              setWorkflowToDelete(workflow.id);
-                              setShowDeleteDialog(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Pagination */}
-                {data && data.totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-6">
-                    <p className="text-sm text-neutral-500">
-                      Showing {(page - 1) * data.pageSize + 1} to {Math.min(page * data.pageSize, data.total)} of{' '}
-                      {data.total} workflows
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 1}>
-                        Previous
-                      </Button>
-                      <span className="text-sm text-neutral-700">
-                        Page {page} of {data.totalPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => p + 1)}
-                        disabled={page === data.totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
             ) : (
               <>
-                {/* Table View (tanstack-driven) */}
-                <Card>
-                  <CardContent className="p-0">
-                    <DataTable table={table} />
-                  </CardContent>
-                </Card>
+                {view === 'card' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {data?.data.map(workflow => (
+                      <Card
+                        key={workflow.id}
+                        className="transition-colors hover:border-neutral-300 flex flex-col [&:has([data-card-link]:focus-visible)]:ring-2 [&:has([data-card-link]:focus-visible)]:ring-ring [&:has([data-card-link]:focus-visible)]:ring-offset-2"
+                      >
+                        <Link
+                          href={`/workflows/${workflow.id}`}
+                          data-card-link=""
+                          className="flex-1 block p-6 pb-4 hover:bg-neutral-50/50 transition-colors rounded-t-xl focus-visible:outline-none"
+                          aria-label={`Open ${workflow.name}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="font-semibold text-neutral-900 leading-snug truncate">{workflow.name}</h3>
+                            <StatusBadge enabled={workflow.enabled} />
+                          </div>
+                          {workflow.description && (
+                            <p className="mt-0.5 text-sm text-neutral-500 truncate">{workflow.description}</p>
+                          )}
+                          <div className="mt-3">
+                            <Trigger workflow={workflow} />
+                          </div>
+                          <div className="mt-4 flex items-center gap-3 text-sm">
+                            <span>
+                              <strong className="font-semibold text-neutral-900 tabular-nums">
+                                {workflow._count?.steps ?? 0}
+                              </strong>
+                              <span className="text-neutral-400 ml-1 text-xs">steps</span>
+                            </span>
+                            <span className="h-3 w-px bg-neutral-200" aria-hidden="true" />
+                            <span>
+                              <strong className="font-semibold text-neutral-900 tabular-nums">
+                                {(workflow._count?.executions ?? 0).toLocaleString()}
+                              </strong>
+                              <span className="text-neutral-400 ml-1 text-xs">executions</span>
+                            </span>
+                          </div>
+                        </Link>
+                        <div className="px-6 py-2 border-t border-neutral-100 flex items-center justify-between">
+                          <EditedAt date={workflow.updatedAt} className="text-xs text-neutral-400" />
+                          {actionsMenu(workflow)}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-0">
+                      <DataTable table={table} />
+                    </CardContent>
+                  </Card>
+                )}
 
-                {/* Pagination */}
+                {/* Pagination — shared by both views. */}
                 {data && data.totalPages > 1 && (
                   <div className="flex items-center justify-between mt-6">
                     <p className="text-sm text-neutral-500">
