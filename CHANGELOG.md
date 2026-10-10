@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.17.0](https://github.com/useplunk/plunk/compare/v0.16.0...v0.17.0) (2026-10-10)
+
+
+### Features
+
+* Add upgrade analytics dashboard ([f9ba5e5](https://github.com/useplunk/plunk/commit/f9ba5e5e597e125a2c4e55f940f76b3d49dae71d))
+* Enhanced campaign display ([44b4b10](https://github.com/useplunk/plunk/commit/44b4b108fbfb7c7f83f16213ffeafd7fb06a301e))
+* Enhanced segment display ([4774e38](https://github.com/useplunk/plunk/commit/4774e38ec87d254fb943e874242b9633ff39302f))
+* Enhanced templates display ([c70cacf](https://github.com/useplunk/plunk/commit/c70cacf1e9b4f02b93c466a3d68e1597917d9927))
+* Enhanced workflow display ([3d5bcb6](https://github.com/useplunk/plunk/commit/3d5bcb6e924e0e93e9f17e5c3f67c69a0f67906a))
+* Show maximum 1 banner on home with additional details ([209baee](https://github.com/useplunk/plunk/commit/209baeea5516528e56a5746d6ac0144bf6371bca))
+
+
+### Bug Fixes
+
+* Add additional indexes to speed up analytics and search ([ded0e3b](https://github.com/useplunk/plunk/commit/ded0e3b2f831318848b14dd0075936fa8f3e605c))
+* Harmonize deletion and confirmation modals ([12f9f20](https://github.com/useplunk/plunk/commit/12f9f20f7c991b94063c51b7ad03c875e08d90c9))
+* Harmonize UI across various pages ([8c8cbda](https://github.com/useplunk/plunk/commit/8c8cbdafc1df4c74fd68fab289eb4a3202918744))
+* release please configuration for MCP server ([71969bd](https://github.com/useplunk/plunk/commit/71969bd0e59fbfae20cc657aee0598f01adfc2c6))
+
 ## [0.16.0](https://github.com/useplunk/plunk/compare/v0.15.0...v0.16.0) (2026-10-08)
 
 
