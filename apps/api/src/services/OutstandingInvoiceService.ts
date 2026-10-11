@@ -26,7 +26,11 @@ export class OutstandingInvoiceService {
       stripe.invoices.list({customer: customerId, status: 'uncollectible', limit: PAGE_SIZE}),
     ]);
 
-    return [...open.data, ...uncollectible.data].filter(invoice => invoice.amount_remaining > 0);
+    return [...open.data, ...uncollectible.data].filter(
+      // A verification invoice is already paid by the time it is open for more than an
+      // instant; one left behind by a failed attach is our bookkeeping, not the customer's debt.
+      invoice => invoice.amount_remaining > 0 && invoice.metadata?.plunk_purpose !== 'card_verification',
+    );
   }
 
   /**

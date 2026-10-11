@@ -4,12 +4,20 @@ import {CardVerificationService, VERIFICATION_AMOUNT} from '../CardVerificationS
 import {factories, getPrismaClient} from '../../../../../test/helpers';
 
 const stripeMock = vi.hoisted(() => ({
-  paymentIntents: {create: vi.fn()},
+  paymentIntents: {create: vi.fn(), update: vi.fn()},
   paymentMethods: {retrieve: vi.fn()},
   subscriptions: {retrieve: vi.fn(), update: vi.fn(), cancel: vi.fn()},
   customers: {retrieve: vi.fn(), createBalanceTransaction: vi.fn()},
   charges: {retrieve: vi.fn()},
-  invoices: {list: vi.fn(), pay: vi.fn()},
+  invoices: {
+    list: vi.fn(),
+    pay: vi.fn(),
+    create: vi.fn(),
+    finalizeInvoice: vi.fn(),
+    attachPayment: vi.fn(),
+    voidInvoice: vi.fn(),
+  },
+  invoiceItems: {create: vi.fn()},
 }));
 
 const queueMock = vi.hoisted(() => ({queueCardVerification: vi.fn()}));
@@ -99,6 +107,9 @@ describe('CardVerificationService', () => {
     stripeMock.paymentIntents.create.mockResolvedValue({id: 'pi_ok', status: 'succeeded'});
     stripeMock.subscriptions.update.mockResolvedValue({id: SUBSCRIPTION, currency: 'eur'});
     stripeMock.invoices.list.mockResolvedValue({data: []});
+    stripeMock.customers.retrieve.mockResolvedValue({id: CUSTOMER, balance: 0, email: 'billing@example.com'});
+    stripeMock.invoices.create.mockResolvedValue({id: 'in_verification'});
+    stripeMock.invoices.voidInvoice.mockResolvedValue({});
   });
 
   describe('verify', () => {
@@ -218,6 +229,58 @@ describe('CardVerificationService', () => {
     });
   });
 
+  describe('verification invoice', () => {
+    it('invoices the charge and attaches the payment for a customer without credit', async () => {
+      await CardVerificationService.verify(job());
+
+      expect(stripeMock.invoices.create).toHaveBeenCalledWith(
+        expect.objectContaining({customer: CUSTOMER, currency: 'eur', auto_advance: false}),
+        {idempotencyKey: 'card-verification-invoice-cs_test'},
+      );
+      expect(stripeMock.invoiceItems.create).toHaveBeenCalledWith(
+        expect.objectContaining({invoice: 'in_verification', amount: VERIFICATION_AMOUNT}),
+        expect.anything(),
+      );
+      expect(stripeMock.invoices.attachPayment).toHaveBeenCalledWith(
+        'in_verification',
+        {payment_intent: 'pi_ok'},
+        expect.anything(),
+      );
+      // Invoiced before the credit lands, so the credit cannot be applied to it.
+      expect(stripeMock.invoices.finalizeInvoice.mock.invocationCallOrder[0]).toBeLessThan(
+        stripeMock.customers.createBalanceTransaction.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('sends a receipt instead when the customer already holds credit', async () => {
+      stripeMock.customers.retrieve.mockResolvedValue({id: CUSTOMER, balance: -200, email: 'billing@example.com'});
+
+      await CardVerificationService.verify(job());
+
+      expect(stripeMock.invoices.create).not.toHaveBeenCalled();
+      expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith('pi_ok', {receipt_email: 'billing@example.com'});
+      expect((await getProject()).cardVerification).toBe('VERIFIED');
+    });
+
+    it('voids a half-made invoice and still records the verdict', async () => {
+      stripeMock.invoices.attachPayment.mockRejectedValue(new Error('attach failed'));
+
+      const outcome = await CardVerificationService.verify(job());
+
+      expect(outcome.status).toBe('verified');
+      expect(stripeMock.invoices.voidInvoice).toHaveBeenCalledWith('in_verification');
+      expect(stripeMock.customers.createBalanceTransaction).toHaveBeenCalled();
+    });
+
+    it('does not invoice a declined charge', async () => {
+      stripeMock.paymentIntents.create.mockRejectedValue(cardError({decline_code: 'do_not_honor'}));
+
+      await CardVerificationService.verify(job());
+
+      expect(stripeMock.invoices.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('handlePaymentMethodChange', () => {
     beforeEach(async () => {
       await setProject({
@@ -259,12 +322,20 @@ describe('CardVerificationService', () => {
     it('pays outstanding invoices on the new card for a project paused for a failed payment', async () => {
       await setProject({disabled: true, disabledReason: 'PAYMENT_FAILED'});
       stripeMock.invoices.list.mockImplementation(async ({status}: {status: string}) => ({
-        data: status === 'open' ? [{id: 'in_1', amount_remaining: 1234}] : [],
+        data:
+          status === 'open'
+            ? [
+                {id: 'in_1', amount_remaining: 1234, metadata: {}},
+                {id: 'in_leftover', amount_remaining: 200, metadata: {plunk_purpose: 'card_verification'}},
+              ]
+            : [],
       }));
 
       await CardVerificationService.handlePaymentMethodChange(CUSTOMER, 'pm_other');
 
       expect(stripeMock.invoices.pay).toHaveBeenCalledWith('in_1', {payment_method: 'pm_other', off_session: true});
+      // A verification invoice left behind is not debt and is never charged.
+      expect(stripeMock.invoices.pay).toHaveBeenCalledOnce();
       expect(queueMock.queueCardVerification).not.toHaveBeenCalled();
     });
 

@@ -709,6 +709,12 @@ export class Webhooks {
             break;
           }
 
+          // Verification invoices are bookkeeping for a charge the verification job already
+          // handled; they neither settle debt nor deserve an alert.
+          if (invoice.metadata?.plunk_purpose === 'card_verification') {
+            break;
+          }
+
           signale.success(`[WEBHOOK] Invoice paid for project ${project.name} (${project.id})`);
 
           // Re-enable the project only if it was previously disabled for a failed payment.

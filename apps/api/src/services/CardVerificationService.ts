@@ -339,6 +339,9 @@ export class CardVerificationService {
           },
         });
 
+        // Invoice before crediting: the credit would otherwise sit on the balance at the moment
+        // the invoice finalises and be applied to it.
+        await this.issueInvoice(project.customer, data, outcome.paymentIntentId);
         await this.applyCredit(project.customer, data.currency, attemptKey, VERIFICATION_AMOUNT, promoCode);
 
         if (ownsPause) {
@@ -402,6 +405,84 @@ export class CardVerificationService {
     }
 
     return outcome;
+  }
+
+  /**
+   * Give the verification charge an invoice, so the customer has a document for it and it is
+   * booked like every other payment. The charge itself stays a plain PaymentIntent — the
+   * verdict must come from the card, never from an invoice — and is attached afterwards.
+   *
+   * Stripe applies a customer's credit balance to every invoice it finalises, with no way to
+   * opt one out. A customer already holding credit (a re-verification after a card change,
+   * typically) would have this invoice paid from that credit rather than by the charge, so
+   * they get a Stripe receipt instead. Never throws: the verdict is already decided.
+   */
+  private static async issueInvoice(
+    customerId: string | null,
+    data: CardVerificationJobData,
+    paymentIntentId: string,
+  ): Promise<void> {
+    if (!stripe || !customerId) {
+      return;
+    }
+
+    const {attemptKey, currency, projectId} = data;
+    let invoiceId: string | undefined;
+
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+
+      if (customer.deleted) {
+        return;
+      }
+
+      if ((customer.balance ?? 0) < 0) {
+        if (customer.email) {
+          await stripe.paymentIntents.update(paymentIntentId, {receipt_email: customer.email});
+        }
+        signale.info(`[CARD-VERIFICATION] Customer ${customerId} holds credit, sent a receipt instead of an invoice`);
+        return;
+      }
+
+      const invoice = await stripe.invoices.create(
+        {
+          customer: customerId,
+          currency,
+          collection_method: 'charge_automatically',
+          auto_advance: false,
+          pending_invoice_items_behavior: 'exclude',
+          description: 'Card verification. Credited in full to your account balance and applied to your usage.',
+          metadata: {plunk_project_id: projectId, plunk_purpose: 'card_verification'},
+        },
+        {idempotencyKey: `card-verification-invoice-${attemptKey}`},
+      );
+      invoiceId = invoice.id;
+
+      await stripe.invoiceItems.create(
+        {customer: customerId, invoice: invoiceId, amount: VERIFICATION_AMOUNT, currency, description: 'Card verification'},
+        {idempotencyKey: `card-verification-invoice-item-${attemptKey}`},
+      );
+
+      await stripe.invoices.finalizeInvoice(
+        invoiceId,
+        {auto_advance: false},
+        {idempotencyKey: `card-verification-invoice-finalize-${attemptKey}`},
+      );
+
+      // Attaching a succeeded PaymentIntent marks the invoice paid on the spot.
+      await stripe.invoices.attachPayment(
+        invoiceId,
+        {payment_intent: paymentIntentId},
+        {idempotencyKey: `card-verification-invoice-attach-${attemptKey}`},
+      );
+    } catch (error) {
+      signale.error(`[CARD-VERIFICATION] Failed to invoice verification charge ${paymentIntentId}:`, error);
+
+      // An open verification invoice is not debt, and must not linger looking like it.
+      if (invoiceId) {
+        await stripe.invoices.voidInvoice(invoiceId).catch(() => undefined);
+      }
+    }
   }
 
   /**
