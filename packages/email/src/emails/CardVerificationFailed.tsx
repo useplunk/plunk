@@ -28,15 +28,13 @@ export function CardVerificationFailedEmail({
 
         <Text className="mb-8 mt-0 text-base leading-relaxed text-gray-600">
           Your project <strong className="font-medium text-gray-900">{projectName}</strong> has been disabled. Your card
-          completed the initial payment, but declined the follow-up charge we use to confirm it can be billed
-          automatically each month.
+          declined the charge we use to confirm it can be billed automatically each month.
         </Text>
 
         <Section className="mb-8 rounded-lg bg-red-50 px-6 py-4" style={{border: '1px solid #fca5a5'}}>
           <Text className="mb-0 mt-0 text-sm leading-relaxed text-red-900">
-            Email sending is currently blocked and your subscription has been cancelled. Your onboarding fee has been
-            refunded in full, and no further charges will be made. Refunds usually appear on your statement within 5 to
-            10 business days.
+            Email sending is currently blocked and your subscription has been cancelled. The charge was declined, so
+            nothing was collected, and no further charges will be made.
           </Text>
         </Section>
 

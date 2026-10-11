@@ -1,12 +1,12 @@
 /**
  * Card Verification Service
  *
- * The onboarding charge collected at Checkout is customer-initiated and on-session, so it
- * proves only that the card can pay while the cardholder is sitting there. The renewal a
- * month later is merchant-initiated and off-session, which a prepaid or MIT-hostile card
- * will refuse with `transaction_not_allowed`. That gap is worth a month of unbilled sending
- * per account, and it is what this service closes: a second, off-session charge run at
- * onboarding, testing the exact thing that fails later.
+ * Checkout saves and authenticates the card while the cardholder is sitting there, which
+ * proves nothing about the renewal a month later. That renewal is merchant-initiated and
+ * off-session, which a prepaid or MIT-hostile card will refuse with `transaction_not_allowed`.
+ * That gap is worth a month of unbilled sending per account, and it is what this service
+ * closes: a single off-session charge run at onboarding, testing the exact thing that fails
+ * later. Checkout itself collects nothing, so this is the only activation charge.
  *
  * The off-session charge qualifies as a merchant-initiated transaction because Checkout
  * authenticates the card when it is saved, so it falls outside SCA and the issuer raises no
@@ -27,11 +27,12 @@ import {prisma} from '../database/prisma.js';
 import {MembershipService} from './MembershipService.js';
 import {NtfyService} from './NtfyService.js';
 
-/** Matches the onboarding fee, so the customer sees two identical lines rather than a surprise. */
-const VERIFICATION_AMOUNT = 100;
-
-/** Each €1 charge that actually landed is credited back, so verification costs the customer nothing. */
-const CREDIT_PER_CHARGE = 100;
+/**
+ * One charge rather than two: Stripe's fee is mostly fixed per charge, so a single 2.00 costs
+ * half the fees of two 1.00s. Credited back in full once it lands. Disclosed on the Checkout
+ * page, the billing settings and the terms — keep those in step if this changes.
+ */
+export const VERIFICATION_AMOUNT = 200;
 
 /** Extra credit for the switching offer, carried over from the Checkout custom field. */
 const SWITCH_PROMO_CREDIT = 200;
@@ -186,7 +187,7 @@ export class CardVerificationService {
     data: CardVerificationJobData,
     outcome: CardVerificationOutcome,
   ): Promise<CardVerificationOutcome> {
-    const {projectId, sessionId, promoCode} = data;
+    const {projectId, promoCode} = data;
     const project = await prisma.project.findUnique({where: {id: projectId}});
 
     if (!project) {
@@ -203,8 +204,7 @@ export class CardVerificationService {
             cardVerificationAt: new Date(),
           },
         });
-        // Both charges landed, so both are credited back.
-        await this.applyCredit(project.customer, 2, promoCode);
+        await this.applyCredit(project.customer, VERIFICATION_AMOUNT, promoCode);
         signale.success(`[CARD-VERIFICATION] Project ${project.name} (${projectId}) verified`);
         break;
       }
@@ -218,8 +218,8 @@ export class CardVerificationService {
             cardVerificationAt: new Date(),
           },
         });
-        // Only the on-session onboarding fee was actually collected.
-        await this.applyCredit(project.customer, 1, promoCode);
+        // Nothing was collected, so only the promo credit (if any) applies.
+        await this.applyCredit(project.customer, 0, promoCode);
         signale.warn(
           `[CARD-VERIFICATION] Project ${project.name} (${projectId}) needs attention: ${outcome.reason}`,
         );
@@ -239,13 +239,9 @@ export class CardVerificationService {
           },
         });
 
+        // Checkout collects nothing and the verification charge was declined, so no money was
+        // taken and there is nothing to refund.
         await this.cancelSubscription(project.subscription, projectId);
-
-        // The verification charge never completed, so the onboarding fee is the only money
-        // taken — for an account that now has nothing. Refunded rather than credited, because
-        // credit on a cancelled subscription is unspendable. Costs the Stripe processing fee,
-        // which is cheap next to a chargeback from someone we declined wrongly.
-        await this.refundOnboardingCharge(sessionId);
 
         signale.warn(
           `[CARD-VERIFICATION] Project ${project.name} (${projectId}) disabled: ${outcome.declineCode}`,
@@ -265,8 +261,8 @@ export class CardVerificationService {
           where: {id: projectId},
           data: {cardVerification: 'REQUIRES_ACTION', cardVerificationAt: new Date()},
         });
-        // Only the on-session onboarding fee was actually collected.
-        await this.applyCredit(project.customer, 1, promoCode);
+        // Nothing was collected, so only the promo credit (if any) applies.
+        await this.applyCredit(project.customer, 0, promoCode);
         signale.warn(`[CARD-VERIFICATION] Skipped for project ${projectId}: ${outcome.reason}`);
         await NtfyService.notifyCardVerificationRequiresAction(project.name, projectId, outcome.reason);
         break;
@@ -277,24 +273,28 @@ export class CardVerificationService {
   }
 
   /**
-   * Credit back the verification charges the customer actually paid.
+   * Credit back the verification charge, if it landed, plus any promo credit.
    *
    * Stripe's customer balance is absolute, not incremental — safe here because this runs once
    * per project, right after onboarding, on a customer with no other balance activity.
    */
   private static async applyCredit(
     customerId: string | null,
-    chargesCollected: number,
+    amountCollected: number,
     promoCode?: string,
   ): Promise<void> {
     if (!stripe || !customerId) {
       return;
     }
 
-    let credit = chargesCollected * CREDIT_PER_CHARGE;
+    let credit = amountCollected;
 
     if (promoCode?.trim().toUpperCase() === 'SWITCH') {
       credit += SWITCH_PROMO_CREDIT;
+    }
+
+    if (credit === 0) {
+      return;
     }
 
     try {
@@ -302,53 +302,6 @@ export class CardVerificationService {
     } catch (error) {
       // The credit is a courtesy; losing it must not strand the verification verdict.
       signale.error(`[CARD-VERIFICATION] Failed to apply credit to customer ${customerId}:`, error);
-    }
-  }
-
-  /**
-   * Refund the onboarding fee collected during Checkout.
-   *
-   * Reached only from the hard-decline path, where the account is being shut down before it
-   * ever sent anything. Failure here is logged rather than thrown: the project is already
-   * disabled and the verdict already recorded, and re-running the job to retry a refund would
-   * re-attempt the whole verification.
-   */
-  private static async refundOnboardingCharge(sessionId: string): Promise<void> {
-    if (!stripe) {
-      return;
-    }
-
-    try {
-      const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['invoice.payments'],
-      });
-
-      const invoice = session.invoice;
-
-      if (!invoice || typeof invoice === 'string') {
-        signale.info(`[CARD-VERIFICATION] No invoice on session ${sessionId}, nothing to refund`);
-        return;
-      }
-
-      // Self-hosters can leave STRIPE_PRICE_ONBOARDING unset, in which case the invoice is
-      // zero and carries no settled payment.
-      const settled = invoice.payments?.data.find(payment => payment.status === 'paid');
-      const intent = settled?.payment.payment_intent;
-      const paymentIntentId = typeof intent === 'string' ? intent : intent?.id;
-
-      if (!paymentIntentId) {
-        signale.info(`[CARD-VERIFICATION] No settled payment on session ${sessionId}, nothing to refund`);
-        return;
-      }
-
-      await stripe.refunds.create(
-        {payment_intent: paymentIntentId},
-        {idempotencyKey: `card-verification-refund-${sessionId}`},
-      );
-
-      signale.success(`[CARD-VERIFICATION] Refunded onboarding fee for session ${sessionId}`);
-    } catch (error) {
-      signale.error(`[CARD-VERIFICATION] Failed to refund onboarding fee for session ${sessionId}:`, error);
     }
   }
 

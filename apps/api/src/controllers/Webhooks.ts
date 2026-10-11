@@ -666,7 +666,7 @@ export class Webhooks {
           // Verify the card accepts a merchant-initiated charge before trusting it with a
           // month of usage. Queued rather than inline: confirming a PaymentIntent can outlast
           // Stripe's webhook timeout, and a timeout means a redelivery — and a second charge.
-          // Credit for the onboarding fee is applied by the job, once the outcome is known.
+          // Credit for the verification charge is applied by the job, once the outcome is known.
           await QueueService.queueCardVerification({
             projectId,
             customerId,

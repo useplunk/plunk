@@ -687,18 +687,16 @@ export default function Settings() {
                               <span className="font-medium">No active subscription</span>
                             </div>
                             <p className="text-sm text-neutral-600">
-                              Activation places two charges of 1.00 on your card, both credited back in full. It costs
-                              you nothing.
+                              Activation places one charge of 2.00 on your card, credited back in full to your usage.
                             </p>
                             <details className="group mt-2">
                               <summary className="cursor-pointer text-xs text-neutral-500 hover:text-neutral-700 transition-colors list-none">
-                                Why two charges?
+                                Why the charge?
                               </summary>
                               <p className="mt-2 text-xs text-neutral-500">
-                                The first is a one-time onboarding fee. The second runs straight afterwards to confirm
-                                your card accepts automatic monthly billing. Prepaid, virtual, and single-use cards
-                                often accept a payment you approve yourself but refuse recurring charges later, so we
-                                check now rather than a month in.
+                                It runs right after checkout to confirm your card accepts automatic monthly billing.
+                                Prepaid, virtual, and single-use cards often accept a payment you approve yourself but
+                                refuse recurring charges later, so we check now rather than a month in.
                               </p>
                             </details>
                           </div>

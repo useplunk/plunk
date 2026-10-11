@@ -1,7 +1,7 @@
 /**
  * Background Job: Card Verification Processor
  *
- * Runs the off-session onboarding charge that proves a card will accept the merchant-initiated
+ * Runs the off-session activation charge that proves a card will accept the merchant-initiated
  * renewal a month later. Off the webhook thread because confirming a PaymentIntent can outlast
  * Stripe's webhook timeout, and a timeout would mean a redelivery — and a second charge.
  */

@@ -143,7 +143,7 @@ Required for builds and deployment (see turbo.json and .env.example):
 - AWS SES: `AWS_SES_REGION`, `AWS_SES_ACCESS_KEY_ID`, `AWS_SES_SECRET_ACCESS_KEY`, `SES_CONFIGURATION_SET`,
   `SES_CONFIGURATION_SET_NO_TRACKING`
 - OAuth (optional): `GITHUB_OAUTH_CLIENT`, `GITHUB_OAUTH_SECRET`, `GOOGLE_OAUTH_CLIENT`, `GOOGLE_OAUTH_SECRET`
-- Stripe (optional): `STRIPE_SK`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ONBOARDING`, `STRIPE_PRICE_EMAIL_USAGE`,
+- Stripe (optional): `STRIPE_SK`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_EMAIL_USAGE`,
   `STRIPE_METER_EVENT_NAME`
 - Notifications (optional): `NTFY_URL` (ntfy.sh topic URL or self-hosted server for system notifications)
 - Platform Email Notifications (optional): `PLUNK_API_KEY` (enables email notifications to users for critical events like

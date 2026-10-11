@@ -92,7 +92,6 @@ export const STRIPE_WEBHOOK_SECRET = validateEnv('STRIPE_WEBHOOK_SECRET', '');
 export const STRIPE_ENABLED = STRIPE_SK !== '' && STRIPE_WEBHOOK_SECRET !== '';
 
 // Stripe Pricing Configuration
-export const STRIPE_PRICE_ONBOARDING = validateEnv('STRIPE_PRICE_ONBOARDING', ''); // One-time onboarding fee
 export const STRIPE_PRICE_EMAIL_USAGE = validateEnv('STRIPE_PRICE_EMAIL_USAGE', ''); // Metered usage price for pay-per-email
 export const STRIPE_METER_EVENT_NAME = validateEnv('STRIPE_METER_EVENT_NAME', 'emails'); // Meter event name (API key in Stripe)
 

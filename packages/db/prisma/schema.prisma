@@ -50,9 +50,9 @@ model Project {
   customer     String? @unique
   subscription String? @unique
 
-  // Card verification: the onboarding charge is customer-initiated and on-session, which
-  // proves nothing about whether the card accepts the merchant-initiated renewal a month
-  // later. A second, off-session charge tests that directly. See CardVerificationService.
+  // Card verification: Checkout saves the card while the customer is present, which proves
+  // nothing about whether it accepts the merchant-initiated renewal a month later. A single
+  // off-session charge at activation tests that directly. See CardVerificationService.
   cardVerification       CardVerificationStatus?
   cardVerificationIntent String? // PaymentIntent of the last attempt, for support/debugging
   cardVerificationAt     DateTime? // When the current status was set; drives the reconciliation sweep
