@@ -32,7 +32,7 @@ function buildQueryWhere(projectId: string, selector: Extract<BulkContactActionS
   const excludeIds = selector.excludeIds ?? [];
   return {
     projectId,
-    ...(search ? {email: {contains: search, mode: 'insensitive' as const}} : {}),
+    ...(search ? {email: {contains: ContactService.normalizeEmailSearch(search)}} : {}),
     ...(subscribed !== undefined ? {subscribed} : {}),
     ...(excludeIds.length > 0 ? {id: {notIn: excludeIds}} : {}),
   };

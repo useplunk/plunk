@@ -112,6 +112,36 @@ describe('ContactService - Duplicate Prevention & Data Merging', () => {
       expect(result.found).toEqual(['KNOWN@example.com']);
       expect(result.notFound).toEqual(['missing@example.com']);
     });
+
+    // The cases above cover the service layer. These cover the database trigger, which is
+    // the invariant search actually depends on: contact search folds the needle and uses
+    // plain LIKE, so a raw write that stored uppercase would be silently unsearchable.
+    it('should lowercase on insert even when the service layer is bypassed', async () => {
+      const contact = await prisma.contact.create({
+        data: {projectId, email: '  RAW@Example.COM '},
+      });
+
+      expect(contact.email).toBe('raw@example.com');
+    });
+
+    it('should lowercase on update even when the service layer is bypassed', async () => {
+      const contact = await prisma.contact.create({data: {projectId, email: 'before@example.com'}});
+
+      const updated = await prisma.contact.update({
+        where: {id: contact.id},
+        data: {email: 'AFTER@Example.COM'},
+      });
+
+      expect(updated.email).toBe('after@example.com');
+    });
+
+    it('should collapse a case-variant raw insert onto the unique constraint', async () => {
+      await prisma.contact.create({data: {projectId, email: 'collide@example.com'}});
+
+      await expect(prisma.contact.create({data: {projectId, email: 'COLLIDE@Example.COM'}})).rejects.toThrow(
+        /unique constraint/i,
+      );
+    });
   });
 
   describe('Upsert Data Merging Logic', () => {
