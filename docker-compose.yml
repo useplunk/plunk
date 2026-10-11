@@ -178,6 +178,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-uploads}
       S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/uploads}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      S3_PREFIX: ${S3_PREFIX:-}
 
       # Notifications (ntfy.sh)
       NTFY_URL: ${NTFY_URL:-http://ntfy/plunk-notifications}
