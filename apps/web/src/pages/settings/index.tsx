@@ -74,6 +74,16 @@ interface Tab {
   condition?: boolean;
 }
 
+/** Why sending is paused, for the pauses the customer clears by updating their card. */
+const BILLING_PAUSE_COPY: Record<string, string> = {
+  PAYMENT_FAILED:
+    'Your last payment didn’t go through. Add a working card and we’ll retry the payment straight away. Sending resumes once it’s paid.',
+  CARD_VERIFICATION_FAILED:
+    'Your card declined the charge we use to confirm it supports monthly billing. Add a standard credit or debit card (prepaid cards aren’t supported) and we’ll verify it straight away.',
+  CARD_VERIFICATION_REQUIRED:
+    'Your bank didn’t approve the charge we use to confirm your card supports monthly billing. Add your card again, or a different one, and we’ll verify it straight away.',
+};
+
 const buildTabs = (options: {billingEnabled: boolean; smtpEnabled: boolean}): Tab[] => {
   const {billingEnabled, smtpEnabled} = options;
   const allTabs: Tab[] = [
@@ -115,6 +125,7 @@ export default function Settings() {
   const {securityMetrics, isLoading: isLoadingSecurityMetrics} = useProjectSecurity(activeProject?.id);
 
   const billingEnabled = config?.features.billing.enabled ?? false;
+  const billingPause = activeProject?.disabled ? BILLING_PAUSE_COPY[activeProject.disabledReason ?? ''] : undefined;
   const smtpEnabled = config?.features.smtp.enabled ?? false;
   const trackingToggleEnabled = config?.features.email.trackingToggleEnabled ?? false;
   const smtpConfig = smtpEnabled
@@ -661,20 +672,30 @@ export default function Settings() {
                       {activeProject.subscription ? (
                         // Has subscription - show billing portal button
                         <div className="space-y-4">
-                          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex items-center gap-2 text-green-800 mb-2">
-                              <CreditCard className="h-5 w-5" />
-                              <span className="font-medium">Active subscription</span>
+                          {billingPause ? (
+                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                              <div className="flex items-center gap-2 text-amber-900 mb-2">
+                                <CreditCard className="h-5 w-5" />
+                                <span className="font-medium">Sending paused: update your card</span>
+                              </div>
+                              <p className="text-sm text-amber-800">{billingPause}</p>
                             </div>
-                            <p className="text-sm text-green-700">
-                              Your subscription is active. Manage your billing details, update payment methods, or
-                              cancel your subscription through the billing portal.
-                            </p>
-                          </div>
+                          ) : (
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                              <div className="flex items-center gap-2 text-green-800 mb-2">
+                                <CreditCard className="h-5 w-5" />
+                                <span className="font-medium">Active subscription</span>
+                              </div>
+                              <p className="text-sm text-green-700">
+                                Your subscription is active. Manage your billing details, update payment methods, or
+                                cancel your subscription through the billing portal.
+                              </p>
+                            </div>
+                          )}
 
                           <div className="flex justify-start">
                             <Button onClick={handleManageBilling} disabled={isLoadingBilling}>
-                              {isLoadingBilling ? 'Loading…' : 'Manage Billing'}
+                              {isLoadingBilling ? 'Loading…' : billingPause ? 'Update card' : 'Manage Billing'}
                             </Button>
                           </div>
                         </div>

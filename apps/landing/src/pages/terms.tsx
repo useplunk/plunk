@@ -344,8 +344,10 @@ export default function TermsOfService() {
                 <p className="mb-4 leading-relaxed text-neutral-700">
                   Activating a subscription places a single card verification charge of 2.00, in your billing
                   currency, on your card immediately after checkout, to confirm your card accepts automatic recurring
-                  billing. The amount is credited in full to your account balance and applied against your usage. If
-                  the verification charge is declined, no amount is collected and your subscription is cancelled.
+                  billing. The amount is credited in full to your account balance and applied against your usage. The
+                  same verification runs when you change your card. If the verification charge is declined, no amount
+                  is collected and sending is paused until you add a card that passes verification. Prepaid cards are
+                  not accepted. Subscriptions that remain paused for 30 days are cancelled.
                 </p>
 
                 <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">No Refunds</h3>

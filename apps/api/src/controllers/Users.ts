@@ -22,6 +22,7 @@ import {BillingLimitService} from '../services/BillingLimitService.js';
 import {VERIFICATION_AMOUNT} from '../services/CardVerificationService.js';
 import {MembershipService} from '../services/MembershipService.js';
 import {NtfyService} from '../services/NtfyService.js';
+import {OutstandingInvoiceService} from '../services/OutstandingInvoiceService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {UserService} from '../services/UserService.js';
 import {Keys} from '../services/keys.js';
@@ -325,6 +326,15 @@ export class Users {
     // If project already has a subscription, return error
     if (project.subscription) {
       return res.status(400).json({error: 'Project already has a subscription'});
+    }
+
+    // A fresh subscription must not be a way around old debt. Send the customer to pay it
+    // instead; `invoice.paid` lifts a payment pause once nothing is left outstanding.
+    if (project.customer) {
+      const [outstanding] = await OutstandingInvoiceService.list(project.customer);
+      if (outstanding?.hosted_invoice_url) {
+        return res.status(200).json({url: outstanding.hosted_invoice_url, outstandingInvoice: true});
+      }
     }
 
     // Metered pay-per-email is the only line item. Nothing is due at Checkout; the single

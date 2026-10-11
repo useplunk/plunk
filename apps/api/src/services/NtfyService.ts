@@ -182,7 +182,7 @@ export class NtfyService {
   }
 
   /**
-   * Notify that a card refused a merchant-initiated charge at onboarding - URGENT
+   * Notify that a card refused the off-session verification charge - URGENT
    */
   public static async notifyCardVerificationFailed(
     projectName: string,
@@ -191,17 +191,17 @@ export class NtfyService {
   ): Promise<void> {
     await this.sendUrgent(
       'Project Disabled - Card Verification Failed',
-      `Project "${projectName}" (${projectId}) was disabled: the card refused an off-session charge (${declineCode}). Subscription cancelled.`,
+      `Project "${projectName}" (${projectId}) was paused: the card refused an off-session charge (${declineCode}). Sending resumes if the customer adds a card that passes.`,
       [NtfyTag.SHIELD, NtfyTag.MONEY, NtfyTag.ERROR],
     );
   }
 
   /**
-   * Notify that card verification needs a human - LOW priority.
+   * Notify that card verification needs the customer - LOW priority.
    *
-   * Not a fraud signal: an SCA challenge or a soft decline on an otherwise good card. The
-   * project stays enabled. Watch the volume here — if it stops being rare, the hosted
-   * re-authentication flow is worth building.
+   * Not a fraud signal on its own: an SCA challenge or a soft decline on an otherwise good
+   * card. Sending is paused until the customer updates the card. Watch the volume here — if it
+   * stops being rare, a hosted re-authentication flow is worth building.
    */
   public static async notifyCardVerificationRequiresAction(
     projectName: string,
@@ -210,9 +210,21 @@ export class NtfyService {
   ): Promise<void> {
     await this.send({
       title: 'Card Verification Needs Attention',
-      message: `Project "${projectName}" (${projectId}) could not complete card verification: ${reason}. Project left enabled.`,
+      message: `Project "${projectName}" (${projectId}) could not complete card verification: ${reason}. Sending paused until the customer updates the card.`,
       priority: NtfyPriority.LOW,
       tags: [NtfyTag.WARNING, NtfyTag.MONEY],
+    });
+  }
+
+  /**
+   * Notify that a project paused for its card passed verification on a new one - LOW priority.
+   */
+  public static async notifyCardVerificationRecovered(projectName: string, projectId: string): Promise<void> {
+    await this.send({
+      title: 'Card Verification Recovered',
+      message: `Project "${projectName}" (${projectId}) passed card verification on a new card. Sending resumed.`,
+      priority: NtfyPriority.LOW,
+      tags: [NtfyTag.MONEY],
     });
   }
 

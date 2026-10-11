@@ -49,12 +49,17 @@ const TONE_STYLES: Record<Tone, {container: string; icon: string; body: string; 
  */
 const DISABLED_COPY: Record<string, {body: string; action: string; href: string}> = {
   CARD_VERIFICATION_FAILED: {
-    body: 'Your card took the first payment but declined the recurring charge. This is common with prepaid, virtual and single-use cards. Add a card that supports monthly billing to resume.',
+    body: 'Your card declined the charge we use to confirm it supports monthly billing. This is common with prepaid, virtual and single-use cards. Update your card and sending resumes as soon as it passes.',
+    action: 'Update card',
+    href: '/settings?tab=billing',
+  },
+  CARD_VERIFICATION_REQUIRED: {
+    body: 'We couldn’t confirm your card supports monthly billing. Update your card and sending resumes as soon as it passes.',
     action: 'Update card',
     href: '/settings?tab=billing',
   },
   PAYMENT_FAILED: {
-    body: 'Your last payment didn’t go through. Update your payment method to resume sending.',
+    body: 'Your last payment didn’t go through. Update your payment method and we’ll retry it straight away.',
     action: 'Update payment method',
     href: '/settings?tab=billing',
   },

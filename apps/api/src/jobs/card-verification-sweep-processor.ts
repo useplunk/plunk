@@ -15,6 +15,10 @@
  * consistent with a Stripe or Redis outage, so auto-disabling would take out paying customers
  * during exactly the incidents that produce the backlog. Recovery is automatic; judgment is
  * escalated.
+ *
+ * It also tidies up after customers who never fix their card. A failed verification pauses
+ * sending but keeps the subscription, so the customer can recover in the billing portal; past
+ * the grace period the subscription is cancelled rather than left open indefinitely.
  */
 
 import type {CardVerificationSweepJobData} from '@plunk/types';
@@ -24,6 +28,7 @@ import signale from 'signale';
 import {STRIPE_ENABLED} from '../app/constants.js';
 import {stripe} from '../app/stripe.js';
 import {prisma} from '../database/prisma.js';
+import {CardVerificationService} from '../services/CardVerificationService.js';
 import {NtfyService} from '../services/NtfyService.js';
 import {cardVerificationSweepQueue, QueueService} from '../services/QueueService.js';
 
@@ -44,19 +49,26 @@ const MAX_RETRIES = 5;
 /** Bounded so one sweep cannot fan out into hundreds of Stripe calls. */
 const BATCH_SIZE = 100;
 
-async function processSweep(_job: Job<CardVerificationSweepJobData>): Promise<{retried: number; escalated: number}> {
+/** How long a project may stay paused for its card before its subscription is cancelled. */
+const ABANDON_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+
+async function processSweep(
+  _job: Job<CardVerificationSweepJobData>,
+): Promise<{retried: number; escalated: number; cancelled: number}> {
   if (!STRIPE_ENABLED || !stripe) {
-    return {retried: 0, escalated: 0};
+    return {retried: 0, escalated: 0, cancelled: 0};
   }
 
   const now = Date.now();
+  const cancelled = await cancelAbandoned(now);
 
   const stale = await prisma.project.findMany({
     where: {
-      // PENDING covers the stalled and skipped paths; REQUIRES_ACTION covers a verdict that
-      // asked for a human and never got one. NULL is excluded on purpose — that is how every
-      // project predating this feature looks, and they must not be swept.
-      cardVerification: {in: ['PENDING', 'REQUIRES_ACTION']},
+      // PENDING covers the stalled paths; an unpaused REQUIRES_ACTION is one this sweep parked
+      // earlier. A REQUIRES_ACTION verdict from the job pauses sending and waits on the
+      // customer, so it is not stale. NULL is excluded on purpose — that is how every project
+      // predating this feature looks, and they must not be swept.
+      OR: [{cardVerification: 'PENDING'}, {cardVerification: 'REQUIRES_ACTION', disabled: false}],
       cardVerificationAt: {lt: new Date(now - STALE_AFTER_MS)},
       // Past the retry budget means escalation already fired. The project stays visible in
       // this state for a support query, but must not alert on every sweep forever.
@@ -69,14 +81,16 @@ async function processSweep(_job: Job<CardVerificationSweepJobData>): Promise<{r
       cardVerification: true,
       cardVerificationAt: true,
       cardVerificationSession: true,
+      cardVerificationPaymentMethod: true,
       cardVerificationAttempts: true,
+      subscription: true,
     },
     orderBy: {cardVerificationAt: 'asc'},
     take: BATCH_SIZE,
   });
 
   if (stale.length === 0) {
-    return {retried: 0, escalated: 0};
+    return {retried: 0, escalated: 0, cancelled};
   }
 
   signale.warn(`[CARD-VERIFICATION-SWEEP] ${stale.length} project(s) without a verification verdict`);
@@ -99,7 +113,9 @@ async function processSweep(_job: Job<CardVerificationSweepJobData>): Promise<{r
       const requeued = await requeueVerification(
         project.id,
         project.customer as string,
+        project.subscription,
         project.cardVerificationSession as string,
+        project.cardVerificationPaymentMethod,
         project.cardVerificationAttempts,
       );
 
@@ -131,24 +147,51 @@ async function processSweep(_job: Job<CardVerificationSweepJobData>): Promise<{r
     escalated += 1;
   }
 
-  signale.info(`[CARD-VERIFICATION-SWEEP] Retried ${retried}, escalated ${escalated}`);
+  signale.info(`[CARD-VERIFICATION-SWEEP] Retried ${retried}, escalated ${escalated}, cancelled ${cancelled}`);
 
-  return {retried, escalated};
+  return {retried, escalated, cancelled};
 }
 
 /**
- * Re-enqueue verification from the original checkout session.
+ * Cancel subscriptions on projects that have stayed paused for their card past the grace
+ * period. Clearing `subscription` takes the project out of this query on the next run.
+ */
+async function cancelAbandoned(now: number): Promise<number> {
+  const abandoned = await prisma.project.findMany({
+    where: {
+      cardVerification: {in: ['FAILED', 'REQUIRES_ACTION']},
+      cardVerificationAt: {lt: new Date(now - ABANDON_AFTER_MS)},
+      disabled: true,
+      disabledReason: {in: ['CARD_VERIFICATION_FAILED', 'CARD_VERIFICATION_REQUIRED']},
+      subscription: {not: null},
+    },
+    select: {id: true, subscription: true},
+    take: BATCH_SIZE,
+  });
+
+  for (const project of abandoned) {
+    await CardVerificationService.cancelAbandonedSubscription(project.subscription as string, project.id);
+  }
+
+  return abandoned.length;
+}
+
+/**
+ * Re-enqueue verification under the original attempt key.
  *
- * The session is re-read rather than reconstructed so the retry carries the same currency and
- * promo code the customer actually saw. Critically, it also reuses the same session id, which
- * is what the Stripe idempotency key is derived from — a retry with a fresh key could charge a
- * second time in the very case this sweep exists for, where the charge succeeded but we failed
- * to record it.
+ * An activation attempt re-reads its checkout session rather than reconstructing it, so the
+ * retry carries the same currency and promo code the customer actually saw; a card-change
+ * attempt takes its currency from the subscription. Critically, both reuse the same attempt
+ * key, which is what the Stripe idempotency key is derived from — a retry with a fresh key
+ * could charge a second time in the very case this sweep exists for, where the charge
+ * succeeded but we failed to record it.
  */
 async function requeueVerification(
   projectId: string,
   customerId: string,
-  sessionId: string,
+  subscriptionId: string | null,
+  attemptKey: string,
+  paymentMethodId: string | null,
   attemptsSoFar: number,
 ): Promise<boolean> {
   if (!stripe) {
@@ -156,24 +199,36 @@ async function requeueVerification(
   }
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    let currency: string;
+    let promoCode: string | undefined;
 
-    const promoField = session.custom_fields?.find(field => field.key === 'promo_code');
-    const promoCode = promoField?.text?.value?.trim().toUpperCase();
+    if (attemptKey.startsWith('cs_')) {
+      const session = await stripe.checkout.sessions.retrieve(attemptKey);
+      const promoField = session.custom_fields?.find(field => field.key === 'promo_code');
+      currency = session.currency ?? 'eur';
+      promoCode = promoField?.text?.value?.trim().toUpperCase();
+    } else if (subscriptionId) {
+      currency = (await stripe.subscriptions.retrieve(subscriptionId)).currency;
+    } else {
+      // A card-change attempt on a project whose subscription has since gone has nothing
+      // left to verify; escalating it is the right outcome.
+      return false;
+    }
 
     await QueueService.queueCardVerification(
       {
         projectId,
         customerId,
-        currency: session.currency ?? 'eur',
-        sessionId,
+        currency,
+        attemptKey,
+        ...(paymentMethodId && {paymentMethodId}),
         ...(promoCode && {promoCode}),
       },
       // The original job id is still in Redis for completed/failed jobs, which would make a
       // plain re-add a silent no-op. Keyed by attempt rather than by clock time so two sweeps
       // racing cannot enqueue the same retry twice. Stripe-side idempotency remains the
       // guarantee against a double charge.
-      `card-verification-sweep-${sessionId}-${attemptsSoFar}`,
+      `card-verification-sweep-${attemptKey}-${attemptsSoFar}`,
     );
 
     // Spend the attempt and reset the clock, giving this try room to finish before the next
