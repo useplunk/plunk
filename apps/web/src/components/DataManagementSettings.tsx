@@ -1,6 +1,5 @@
 import {useState} from 'react';
 import {
-  Alert,
   Badge,
   Button,
   Card,
@@ -8,12 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  ConfirmDialog,
   EmptyState,
   Table,
   TableBody,
@@ -23,7 +17,7 @@ import {
   TableRow,
   IconSpinner,
 } from '@plunk/ui';
-import {AlertCircle, Database, Trash2, Zap} from 'lucide-react';
+import {Database, Trash2, Zap} from 'lucide-react';
 import {toast} from 'sonner';
 import useSWR from 'swr';
 import {useActiveProject} from '../lib/contexts/ActiveProjectProvider';
@@ -231,128 +225,112 @@ export function DataManagementSettings() {
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {selectedField ? `Delete "${selectedField.replace('data.', '')}"?` : `Delete "${selectedEvent}"?`}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedField
-                ? 'The field is removed from every contact that has it. This can’t be undone.'
-                : 'Every recorded instance of this event is deleted. This can’t be undone.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedField && fieldUsage && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm">
-                  <strong>Contacts with this field:</strong> {fieldUsage.contactCount}
-                </p>
-                <p className="text-sm">
-                  <strong>Used in segments:</strong> {fieldUsage.usedInSegments.length}
-                </p>
-                <p className="text-sm">
-                  <strong>Used in campaigns:</strong> {fieldUsage.usedInCampaigns.length}
-                </p>
-              </div>
-
-              {!fieldUsage.canDelete && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <div className="ml-2">
-                    <p className="text-sm font-medium">Cannot delete this field</p>
-                    <p className="text-sm">This field is currently used in:</p>
-                    {fieldUsage.usedInSegments.length > 0 && (
-                      <ul className="mt-2 list-disc list-inside text-sm">
-                        {fieldUsage.usedInSegments.map(segment => (
-                          <li key={segment.id}>Segment: {segment.name}</li>
-                        ))}
-                      </ul>
-                    )}
-                    {fieldUsage.usedInCampaigns.length > 0 && (
-                      <ul className="mt-2 list-disc list-inside text-sm">
-                        {fieldUsage.usedInCampaigns.map(campaign => (
-                          <li key={campaign.id}>Campaign: {campaign.name}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </Alert>
-              )}
-            </div>
-          )}
-
-          {selectedEvent && eventUsage && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm">
-                  <strong>Total events:</strong> {eventUsage.totalCount}
-                </p>
-                <p className="text-sm">
-                  <strong>Unique contacts:</strong> {eventUsage.uniqueContacts}
-                </p>
-                <p className="text-sm">
-                  <strong>Used in segments:</strong> {eventUsage.usedInSegments.length}
-                </p>
-                <p className="text-sm">
-                  <strong>Used in workflows:</strong> {eventUsage.usedInWorkflows.length}
-                </p>
-              </div>
-
-              {!eventUsage.canDelete && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <div className="ml-2">
-                    <p className="text-sm font-medium">Cannot delete this event</p>
-                    <p className="text-sm">This event is currently used in:</p>
-                    {eventUsage.usedInSegments.length > 0 && (
-                      <ul className="mt-2 list-disc list-inside text-sm">
-                        {eventUsage.usedInSegments.map(segment => (
-                          <li key={segment.id}>Segment: {segment.name}</li>
-                        ))}
-                      </ul>
-                    )}
-                    {eventUsage.usedInWorkflows.length > 0 && (
-                      <ul className="mt-2 list-disc list-inside text-sm">
-                        {eventUsage.usedInWorkflows.map(workflow => (
-                          <li key={workflow.id}>Workflow: {workflow.name}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </Alert>
-              )}
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteDialogOpen(false);
-                setSelectedField(null);
-                setSelectedEvent(null);
-              }}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={selectedField ? handleDeleteField : handleDeleteEvent}
-              disabled={
-                isDeleting || (!!selectedField && !fieldUsage?.canDelete) || (!!selectedEvent && !eventUsage?.canDelete)
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={selectedField ? handleDeleteField : handleDeleteEvent}
+        title={selectedField ? `Delete ${selectedField.replace('data.', '')}?` : `Delete ${selectedEvent}?`}
+        description={
+          selectedField
+            ? 'The field is removed from every contact that has it. This can’t be undone.'
+            : 'Every recorded instance of this event is deleted. This can’t be undone.'
+        }
+        details={
+          selectedField ? (
+            <UsageDetails
+              loading={!fieldUsage}
+              rows={
+                fieldUsage && [
+                  ['Contacts with this field', fieldUsage.contactCount],
+                  ['Used in segments', fieldUsage.usedInSegments.length],
+                  ['Used in campaigns', fieldUsage.usedInCampaigns.length],
+                ]
               }
-            >
-              {isDeleting && <IconSpinner size="sm" className="mr-2" />}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              blockers={
+                fieldUsage && !fieldUsage.canDelete
+                  ? [
+                      ...fieldUsage.usedInSegments.map(s => ({id: s.id, kind: 'Segment', name: s.name})),
+                      ...fieldUsage.usedInCampaigns.map(c => ({id: c.id, kind: 'Campaign', name: c.name})),
+                    ]
+                  : undefined
+              }
+              subject="field"
+            />
+          ) : (
+            <UsageDetails
+              loading={!eventUsage}
+              rows={
+                eventUsage && [
+                  ['Recorded events', eventUsage.totalCount],
+                  ['Unique contacts', eventUsage.uniqueContacts],
+                  ['Used in segments', eventUsage.usedInSegments.length],
+                  ['Used in workflows', eventUsage.usedInWorkflows.length],
+                ]
+              }
+              blockers={
+                eventUsage && !eventUsage.canDelete
+                  ? [
+                      ...eventUsage.usedInSegments.map(s => ({id: s.id, kind: 'Segment', name: s.name})),
+                      ...eventUsage.usedInWorkflows.map(w => ({id: w.id, kind: 'Workflow', name: w.name})),
+                    ]
+                  : undefined
+              }
+              subject="event"
+            />
+          )
+        }
+        confirmDisabled={selectedField ? !fieldUsage?.canDelete : !eventUsage?.canDelete}
+        confirmText={selectedField ? 'Delete field' : 'Delete event'}
+        loadingText="Deleting…"
+        variant="destructive"
+        status={isDeleting ? 'loading' : 'idle'}
+      />
+    </div>
+  );
+}
+
+interface UsageDetailsProps {
+  loading: boolean;
+  rows: Array<[label: string, value: number]> | undefined;
+  /** What still references the field or event. Present only when that blocks deleting it. */
+  blockers: Array<{id: string; kind: string; name: string}> | undefined;
+  subject: 'field' | 'event';
+}
+
+function UsageDetails({loading, rows, blockers, subject}: UsageDetailsProps) {
+  if (loading || !rows) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2.5 text-sm text-neutral-500">
+        <IconSpinner size="sm" />
+        Checking where this {subject} is used…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <dl className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 text-sm">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between px-3 py-2">
+            <dt className="text-neutral-500">{label}</dt>
+            <dd className="font-medium tabular-nums text-neutral-900">{value.toLocaleString()}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {blockers && (
+        <div className="rounded-lg bg-red-50 px-3 py-2.5 text-sm">
+          <p className="font-medium text-red-700">Remove it from these first</p>
+          <ul className="mt-1.5 space-y-0.5 text-red-700/80">
+            {blockers.map(blocker => (
+              <li key={`${blocker.kind}-${blocker.id}`} className="truncate">
+                <span className="text-red-700/60">{blocker.kind} · </span>
+                {blocker.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

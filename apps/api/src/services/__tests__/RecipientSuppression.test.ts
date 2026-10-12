@@ -11,6 +11,7 @@ import {Actions} from '../../controllers/Actions';
 import {Suppressions} from '../../controllers/Suppressions';
 import {jwt} from '../../middleware/auth';
 import {processEmail} from '../../jobs/email-processor';
+import {AnalyticsService} from '../AnalyticsService';
 import {CampaignService} from '../CampaignService';
 import {EmailService} from '../EmailService';
 import {matchesRecipient, RecipientSuppressionService, suppressionRuleSchema} from '../RecipientSuppressionService';
@@ -271,5 +272,36 @@ describe('recipient suppression', () => {
           .set('Authorization', `Bearer ${other.secret}`)
       ).status,
     ).toBe(400);
+  });
+});
+
+describe('suppressed capture analytics', () => {
+  it('keeps captures out of the new overview, series, providers and template leaderboard', async () => {
+    const {project} = await factories.createUserWithProject();
+    const contact = await factories.createContact({projectId: project.id, email: 'qa@example.com'});
+    const now = new Date();
+    await prisma.email.create({
+      data: {
+        projectId: project.id,
+        contactId: contact.id,
+        from: 'sender@example.test',
+        subject: 'Captured',
+        body: '<p>Captured</p>',
+        sourceType: 'TRANSACTIONAL',
+        status: 'SUPPRESSED',
+        createdAt: now,
+      },
+    });
+    const query = {
+      projectId: project.id,
+      from: new Date(now.getTime() - 3600000),
+      to: new Date(now.getTime() + 1000),
+      tz: 'UTC',
+      stream: 'ALL' as const,
+    };
+    expect((await AnalyticsService.getOverview(query)).current.sent).toBe(0);
+    expect((await AnalyticsService.getTimeseries(query)).current.every(row => row.sent === 0)).toBe(true);
+    expect((await AnalyticsService.getDeliverability(query)).providers).toEqual([]);
+    expect((await AnalyticsService.getLeaderboard(query, 'templates')).rows).toEqual([]);
   });
 });

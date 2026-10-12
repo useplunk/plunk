@@ -10,6 +10,7 @@ import {Worker} from 'bullmq';
 import signale from 'signale';
 
 import {createApiRequestCleanupWorker} from './api-request-cleanup-processor.js';
+import {buildBackgroundIndexes} from './background-index-builder.js';
 import {createIdempotencyKeyCleanupWorker} from './idempotency-key-cleanup-processor.js';
 import {createBulkContactWorker} from './bulk-contact-processor.js';
 import {createCampaignCancelCleanupWorker} from './campaign-cancel-cleanup-processor.js';
@@ -119,6 +120,9 @@ async function startWorkers() {
     signale.success('[WORKER] Card verification sweep worker started');
 
     signale.success('[WORKER] All workers started successfully');
+
+    // Not awaited: index builds can take a long time and must not hold up job processing
+    void buildBackgroundIndexes();
   } catch (error) {
     signale.error('[WORKER] Failed to start workers:', error);
     process.exit(1);

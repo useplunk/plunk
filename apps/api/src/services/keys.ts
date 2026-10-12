@@ -67,14 +67,8 @@ export const Keys = {
     },
   },
   Analytics: {
-    timeseries(projectId: string, startDate: string, endDate: string): string {
-      return `analytics:timeseries:${projectId}:${startDate}:${endDate}`;
-    },
-    campaignStats(projectId: string, startDate: string, endDate: string): string {
-      return `analytics:campaignStats:${projectId}:${startDate}:${endDate}`;
-    },
-    topEvents(projectId: string, limit: number, startDate: string, endDate: string): string {
-      return `analytics:topEvents:${projectId}:${limit}:${startDate}:${endDate}`;
+    query(projectId: string, kind: string, params: string): string {
+      return `analytics:${kind}:${projectId}:${params}`;
     },
   },
   Workflow: {

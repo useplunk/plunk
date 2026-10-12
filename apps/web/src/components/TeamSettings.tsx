@@ -7,6 +7,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  ConfirmDialog,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -39,7 +40,7 @@ import {
   IconSpinner,
 } from '@plunk/ui';
 import {MembershipSchemas} from '@plunk/shared';
-import {MoreVertical, Trash2, UserPlus} from 'lucide-react';
+import {MoreVertical, Trash2, UserMinus, UserPlus} from 'lucide-react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
@@ -384,25 +385,17 @@ export function TeamSettings({projectId, currentUserRole, currentUserId}: TeamSe
         </DialogContent>
       </Dialog>
 
-      {/* Remove Member Dialog */}
-      <Dialog open={!!memberToRemove} onOpenChange={() => setMemberToRemove(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Remove {memberToRemove?.email}?</DialogTitle>
-            <DialogDescription>
-              They lose access to this project immediately. Their Plunk account is not affected.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMemberToRemove(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleRemoveMember} disabled={isSubmitting}>
-              {isSubmitting ? 'Removing…' : 'Remove member'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={!!memberToRemove}
+        onOpenChange={open => !open && setMemberToRemove(null)}
+        onConfirm={handleRemoveMember}
+        title={`Remove ${memberToRemove?.email}?`}
+        description="They lose access to this project immediately. Their Plunk account is not affected."
+        icon={UserMinus}
+        confirmText="Remove member"
+        loadingText="Removing…"
+        variant="destructive"
+      />
     </div>
   );
 }

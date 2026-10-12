@@ -15,11 +15,13 @@ import {stripe} from '../app/stripe.js';
 import {prisma} from '../database/prisma.js';
 import {BillingLimitService} from '../services/BillingLimitService.js';
 import {CampaignService} from '../services/CampaignService.js';
+import {CardVerificationService} from '../services/CardVerificationService.js';
 import {ContactService} from '../services/ContactService.js';
 import {EventService} from '../services/EventService.js';
 import {MembershipService} from '../services/MembershipService.js';
 import {MeterService} from '../services/MeterService.js';
 import {NtfyService} from '../services/NtfyService.js';
+import {OutstandingInvoiceService} from '../services/OutstandingInvoiceService.js';
 import {QueueService} from '../services/QueueService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
@@ -641,6 +643,14 @@ export class Webhooks {
             break;
           }
 
+          // The card Checkout saved. Recorded before anything else so that the card-change
+          // webhooks Checkout may also fire recognise it as already in hand, not a new card.
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const paymentMethodId =
+            typeof subscription.default_payment_method === 'string'
+              ? subscription.default_payment_method
+              : (subscription.default_payment_method?.id ?? null);
+
           // Update project with customer and subscription IDs. PENDING until the off-session
           // charge returns a verdict; the project is usable in the meantime, which is a few
           // seconds of exposure against a signal that otherwise takes a month to arrive.
@@ -652,6 +662,8 @@ export class Webhooks {
               cardVerification: 'PENDING',
               cardVerificationAt: new Date(),
               cardVerificationSession: session.id,
+              cardVerificationPaymentMethod: paymentMethodId,
+              cardVerificationAttempts: 0,
             },
           });
 
@@ -666,12 +678,13 @@ export class Webhooks {
           // Verify the card accepts a merchant-initiated charge before trusting it with a
           // month of usage. Queued rather than inline: confirming a PaymentIntent can outlast
           // Stripe's webhook timeout, and a timeout means a redelivery — and a second charge.
-          // Credit for the onboarding fee is applied by the job, once the outcome is known.
+          // Credit for the verification charge is applied by the job, once the outcome is known.
           await QueueService.queueCardVerification({
             projectId,
             customerId,
             currency: session.currency ?? 'eur',
-            sessionId: session.id,
+            attemptKey: session.id,
+            ...(paymentMethodId && {paymentMethodId}),
             ...(promoCode && {promoCode}),
           });
 
@@ -696,16 +709,32 @@ export class Webhooks {
             break;
           }
 
+          // Verification invoices are bookkeeping for a charge the verification job already
+          // handled; they neither settle debt nor deserve an alert.
+          if (invoice.metadata?.plunk_purpose === 'card_verification') {
+            break;
+          }
+
           signale.success(`[WEBHOOK] Invoice paid for project ${project.name} (${project.id})`);
 
           // Re-enable the project only if it was previously disabled for a failed payment.
           // Projects disabled for other reasons (reputation, phishing, manual) must stay disabled.
           if (project.disabled && project.disabledReason === 'PAYMENT_FAILED') {
-            await prisma.project.update({
-              where: {id: project.id},
-              data: {disabled: false, disabledReason: null},
-            });
-            signale.success(`[WEBHOOK] Project ${project.name} (${project.id}) re-enabled after payment`);
+            // Only once nothing is owed. Any paid invoice used to count, including the 0.00
+            // first invoice of a brand-new subscription — a way to walk away from the debt.
+            const outstanding = await OutstandingInvoiceService.list(customerId);
+
+            if (outstanding.length === 0) {
+              await prisma.project.update({
+                where: {id: project.id},
+                data: {disabled: false, disabledReason: null},
+              });
+              signale.success(`[WEBHOOK] Project ${project.name} (${project.id}) re-enabled after payment`);
+            } else {
+              signale.info(
+                `[WEBHOOK] Project ${project.name} (${project.id}) still has ${outstanding.length} outstanding invoice(s), staying paused`,
+              );
+            }
           }
 
           // Send notification about invoice payment
@@ -796,9 +825,31 @@ export class Webhooks {
           break;
         }
 
+        case 'customer.updated': {
+          const customer = event.data.object;
+          const previous = event.data.previous_attributes as Partial<Stripe.Customer> | undefined;
+          const paymentMethod = customer.invoice_settings?.default_payment_method;
+          const paymentMethodId = typeof paymentMethod === 'string' ? paymentMethod : paymentMethod?.id;
+
+          // Only a newly chosen default card matters here; a cleared one leaves nothing to test.
+          if (previous?.invoice_settings?.default_payment_method !== undefined && paymentMethodId) {
+            await CardVerificationService.handlePaymentMethodChange(customer.id, paymentMethodId);
+          }
+          break;
+        }
+
         case 'customer.subscription.updated': {
           const subscription = event.data.object;
           const subscriptionId = subscription.id;
+          const previous = event.data.previous_attributes as Partial<Stripe.Subscription> | undefined;
+          const newPaymentMethod = subscription.default_payment_method;
+          const newPaymentMethodId = typeof newPaymentMethod === 'string' ? newPaymentMethod : newPaymentMethod?.id;
+
+          // The portal may set the card on the subscription rather than the customer. Same
+          // handling either way; the handler ignores the change it makes itself.
+          if (previous?.default_payment_method !== undefined && newPaymentMethodId) {
+            await CardVerificationService.handlePaymentMethodChange(subscription.customer as string, newPaymentMethodId);
+          }
 
           // Find project by subscription ID
           const project = await prisma.project.findUnique({

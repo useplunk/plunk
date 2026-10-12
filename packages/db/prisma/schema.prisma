@@ -50,13 +50,15 @@ model Project {
   customer     String? @unique
   subscription String? @unique
 
-  // Card verification: the onboarding charge is customer-initiated and on-session, which
-  // proves nothing about whether the card accepts the merchant-initiated renewal a month
-  // later. A second, off-session charge tests that directly. See CardVerificationService.
+  // Card verification: Checkout saves the card while the customer is present, which proves
+  // nothing about whether it accepts the merchant-initiated renewal a month later. A single
+  // off-session charge at activation tests that directly. See CardVerificationService.
   cardVerification       CardVerificationStatus?
   cardVerificationIntent String? // PaymentIntent of the last attempt, for support/debugging
   cardVerificationAt     DateTime? // When the current status was set; drives the reconciliation sweep
-  cardVerificationSession String? // Checkout session, so a retry reuses the same Stripe idempotency key
+  cardVerificationSession String? // Attempt key (checkout session, or payment method on a card change); a retry reuses its Stripe idempotency key
+  cardVerificationPaymentMethod String? // Card the current attempt tests; dedupes the webhooks a single card change fires
+  cardVerificationFingerprint String? // Fingerprint of the last verified card, so re-adding the same card skips a charge
   cardVerificationAttempts Int @default(0) // Sweep retries spent; bounds them and marks escalation
 
   // Billing Limits (per calendar month, null = unlimited)
@@ -725,16 +727,17 @@ enum ProjectDisabledReason {
   PAYMENT_FAILED // Subscription renewal payment failed
   EMAIL_REPUTATION // Bounce or complaint rate thresholds exceeded
   PHISHING_DETECTED // Phishing content detected by LLM scan
-  CARD_VERIFICATION_FAILED // Card hard-declined the off-session onboarding charge
+  CARD_VERIFICATION_FAILED // Card hard-declined the off-session verification charge
+  CARD_VERIFICATION_REQUIRED // Verification needs the customer (SCA, soft decline); paused until they update the card
   MANUAL // Disabled by support/admin (e.g. directly in DB)
 }
 
 enum CardVerificationStatus {
   PENDING // Off-session charge queued or in flight
   VERIFIED // Card accepted a merchant-initiated charge
-  REQUIRES_ACTION // Issuer demanded SCA. Recoverable, NOT a fraud signal -- the project
-  // stays enabled and the owner is asked to re-authenticate the card.
-  FAILED // Hard decline. Project disabled, subscription cancelled.
+  REQUIRES_ACTION // SCA demanded or soft decline. Sending paused until the owner updates the card.
+  // The sweep also parks stalled verifications here, without pausing them.
+  FAILED // Hard decline. Sending paused until the owner updates the card.
 }
 
 enum AuthMethod {

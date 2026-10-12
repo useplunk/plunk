@@ -27,11 +27,8 @@ interface FacetedFilterMenuProps {
 }
 
 /**
- * Shared option list for the faceted filters. Both the in-header trigger
- * (`DataTableFacetedFilter`) and the toolbar trigger (`DataTableFilter`) render
- * this exact body inside their own Popover so the two filter affordances stay
- * pixel-identical — one source of truth for the checkbox rows, selection logic,
- * and the "Clear filter" recovery.
+ * The option list inside every `FilterPill`: checkbox rows, selection logic and the
+ * "Clear filter" recovery, defined once so every filter in the app behaves the same.
  */
 export function FacetedFilterMenu({title, options, selected, onChange, multiple = true}: FacetedFilterMenuProps) {
   const selectedSet = new Set(selected);

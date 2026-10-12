@@ -123,11 +123,14 @@ Required if you want to enable billing features. All Stripe variables must be se
 | -------------------------- | -------- | --------------------------------------------------- | ------------------ |
 | `STRIPE_SK`                | No       | Stripe secret key.                                  |
 | `STRIPE_WEBHOOK_SECRET`    | No       | Stripe webhook signing secret for verifying events. |
-| `STRIPE_PRICE_ONBOARDING`  | No       | Stripe price ID for the one-time onboarding fee.    |
 | `STRIPE_PRICE_EMAIL_USAGE` | No       | Stripe price ID for metered pay-per-email usage.    |
 | `STRIPE_METER_EVENT_NAME`  | No       | Stripe meter event name.                            | `emails` (default) |
 
-On top of the onboarding fee, activating a subscription places a second charge of 1.00 (in the customer's billing currency) to confirm the card accepts off-session, merchant-initiated payments. This charge is created directly rather than from a price ID, so there's no variable for it. Both charges are credited back to the customer's Stripe balance once verification succeeds. See [Billing](/concepts/billing) for the customer-facing description.
+Checkout collects nothing upfront. Right after it completes, Plunk places a single charge of 2.00 (in the customer's billing currency) to confirm the card accepts off-session, merchant-initiated payments. This charge is created directly rather than from a price ID, so there's no variable for it. It's credited back to the customer's Stripe balance once verification succeeds. The same check runs whenever the customer changes their default card, which requires the `customer.updated` and `customer.subscription.updated` events on your Stripe webhook endpoint. See [Billing](/concepts/billing) for the customer-facing description.
+
+<Callout type="info">
+  `STRIPE_PRICE_ONBOARDING` has been removed. The separate one-time onboarding fee no longer exists, so you can delete the variable from your environment; it's ignored if still set.
+</Callout>
 
 <Callout type="warn">
   If you use a Stripe Radar rule to request 3D Secure, exclude off-session payments from it

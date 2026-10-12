@@ -1,6 +1,7 @@
 export * from './Alert';
 export * from './Badge';
 export * from './Button';
+export * from './Calendar';
 export * from './Card';
 export * from './Chart';
 export * from './Checkbox';

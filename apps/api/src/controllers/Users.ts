@@ -11,7 +11,6 @@ import {
   PLUNK_ENABLED,
   STRIPE_ENABLED,
   STRIPE_PRICE_EMAIL_USAGE,
-  STRIPE_PRICE_ONBOARDING,
 } from '../app/constants.js';
 import {stripe} from '../app/stripe.js';
 import {prisma} from '../database/prisma.js';
@@ -20,8 +19,10 @@ import {BadRequest, ErrorCode, HttpException, NotAuthenticated, NotFound, RateLi
 import {isAuthenticated, requireEmailVerified} from '../middleware/auth.js';
 import {AuthService} from '../services/AuthService.js';
 import {BillingLimitService} from '../services/BillingLimitService.js';
+import {VERIFICATION_AMOUNT} from '../services/CardVerificationService.js';
 import {MembershipService} from '../services/MembershipService.js';
 import {NtfyService} from '../services/NtfyService.js';
+import {OutstandingInvoiceService} from '../services/OutstandingInvoiceService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {UserService} from '../services/UserService.js';
 import {Keys} from '../services/keys.js';
@@ -327,19 +328,21 @@ export class Users {
       return res.status(400).json({error: 'Project already has a subscription'});
     }
 
-    // Build line items for subscription
-    const lineItems = [];
-
-    // Add one-time onboarding fee if configured
-    if (STRIPE_PRICE_ONBOARDING) {
-      lineItems.push({price: STRIPE_PRICE_ONBOARDING, quantity: 1});
+    // A fresh subscription must not be a way around old debt. Send the customer to pay it
+    // instead; `invoice.paid` lifts a payment pause once nothing is left outstanding.
+    if (project.customer) {
+      const [outstanding] = await OutstandingInvoiceService.list(project.customer);
+      if (outstanding?.hosted_invoice_url) {
+        return res.status(200).json({url: outstanding.hosted_invoice_url, outstandingInvoice: true});
+      }
     }
 
-    // Add metered pricing for pay-per-email (required)
+    // Metered pay-per-email is the only line item. Nothing is due at Checkout; the single
+    // activation charge runs off-session afterwards (see CardVerificationService).
     if (!STRIPE_PRICE_EMAIL_USAGE) {
       return res.status(500).json({error: 'Usage-based pricing not configured. Set STRIPE_PRICE_EMAIL_USAGE.'});
     }
-    lineItems.push({price: STRIPE_PRICE_EMAIL_USAGE}); // No quantity for metered items
+    const lineItems = [{price: STRIPE_PRICE_EMAIL_USAGE}]; // No quantity for metered items
 
     // Calculate billing cycle anchor to first day of next month
     // This ensures all subscriptions renew on the 1st of each month
@@ -359,13 +362,15 @@ export class Users {
     }
 
     // Create checkout session
-    // Note: proration_behavior cannot be set when one-time prices are included
-    // The billing_cycle_anchor alone ensures the subscription is anchored to the 1st of the month
+    // The billing_cycle_anchor ensures the subscription is anchored to the 1st of the month
+    const verificationAmount = (VERIFICATION_AMOUNT / 100).toFixed(2);
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: project.customer ?? undefined, // Use existing customer if available
       client_reference_id: project.id, // Store project ID for webhook
       line_items: lineItems,
+      // Nothing is due today, but the off-session verification charge needs a saved card.
+      payment_method_collection: 'always',
       ...(checkoutCurrency && {currency: checkoutCurrency}),
       custom_fields: [
         {
@@ -377,6 +382,13 @@ export class Users {
       ],
       subscription_data: {
         billing_cycle_anchor: billingCycleAnchor,
+      },
+      // Checkout shows nothing due today, so name the charge that follows here rather than
+      // let it arrive unannounced on the statement.
+      custom_text: {
+        submit: {
+          message: `Right after checkout, we'll make one ${verificationAmount} charge in your billing currency to confirm your card supports monthly billing. It's credited to your account in full and applied to your usage.`,
+        },
       },
       success_url: `${DASHBOARD_URI}/settings?tab=billing&success=true`,
       cancel_url: `${DASHBOARD_URI}/settings?tab=billing&canceled=true`,

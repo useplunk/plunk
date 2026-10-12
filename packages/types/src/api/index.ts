@@ -4,6 +4,7 @@
  */
 
 export * from './activity.js';
+export * from './analytics.js';
 export * from './billing.js';
 export * from './campaign.js';
 export * from './contact.js';

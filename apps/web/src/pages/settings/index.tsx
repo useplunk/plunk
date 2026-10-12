@@ -4,8 +4,6 @@ import {zodResolver} from '@hookform/resolvers/zod';
 import {ProjectSchemas, SUPPORTED_LANGUAGES} from '@plunk/shared';
 import {TrackingMode} from '@plunk/db';
 import {
-  Alert,
-  AlertDescription,
   Button,
   Card,
   CardContent,
@@ -34,7 +32,18 @@ import {
 } from '@plunk/ui';
 import {AnimatePresence, motion} from 'framer-motion';
 import {NextSeo} from 'next-seo';
-import {AlertTriangle, CreditCard, Database, Globe, Mail, Settings as SettingsIcon, Shield, Users} from 'lucide-react';
+import {
+  AlertTriangle,
+  CreditCard,
+  Database,
+  Globe,
+  KeyRound,
+  Mail,
+  RotateCcw,
+  Settings as SettingsIcon,
+  Shield,
+  Users,
+} from 'lucide-react';
 import type {z} from 'zod';
 import {useRouter} from 'next/router';
 import {DashboardLayout} from '../../components/DashboardLayout';
@@ -65,6 +74,16 @@ interface Tab {
   icon: typeof SettingsIcon;
   condition?: boolean;
 }
+
+/** Why sending is paused, for the pauses the customer clears by updating their card. */
+const BILLING_PAUSE_COPY: Record<string, string> = {
+  PAYMENT_FAILED:
+    'Your last payment didn’t go through. Add a working card and we’ll retry the payment straight away. Sending resumes once it’s paid.',
+  CARD_VERIFICATION_FAILED:
+    'Your card declined the charge we use to confirm it supports monthly billing. Add a standard credit or debit card (prepaid cards aren’t supported) and we’ll verify it straight away.',
+  CARD_VERIFICATION_REQUIRED:
+    'Your bank didn’t approve the charge we use to confirm your card supports monthly billing. Add your card again, or a different one, and we’ll verify it straight away.',
+};
 
 const buildTabs = (options: {billingEnabled: boolean; smtpEnabled: boolean}): Tab[] => {
   const {billingEnabled, smtpEnabled} = options;
@@ -108,6 +127,7 @@ export default function Settings() {
   const {securityMetrics, isLoading: isLoadingSecurityMetrics} = useProjectSecurity(activeProject?.id);
 
   const billingEnabled = config?.features.billing.enabled ?? false;
+  const billingPause = activeProject?.disabled ? BILLING_PAUSE_COPY[activeProject.disabledReason ?? ''] : undefined;
   const smtpEnabled = config?.features.smtp.enabled ?? false;
   const trackingToggleEnabled = config?.features.email.trackingToggleEnabled ?? false;
   const smtpConfig = smtpEnabled
@@ -654,20 +674,30 @@ export default function Settings() {
                       {activeProject.subscription ? (
                         // Has subscription - show billing portal button
                         <div className="space-y-4">
-                          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex items-center gap-2 text-green-800 mb-2">
-                              <CreditCard className="h-5 w-5" />
-                              <span className="font-medium">Active subscription</span>
+                          {billingPause ? (
+                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                              <div className="flex items-center gap-2 text-amber-900 mb-2">
+                                <CreditCard className="h-5 w-5" />
+                                <span className="font-medium">Sending paused: update your card</span>
+                              </div>
+                              <p className="text-sm text-amber-800">{billingPause}</p>
                             </div>
-                            <p className="text-sm text-green-700">
-                              Your subscription is active. Manage your billing details, update payment methods, or
-                              cancel your subscription through the billing portal.
-                            </p>
-                          </div>
+                          ) : (
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                              <div className="flex items-center gap-2 text-green-800 mb-2">
+                                <CreditCard className="h-5 w-5" />
+                                <span className="font-medium">Active subscription</span>
+                              </div>
+                              <p className="text-sm text-green-700">
+                                Your subscription is active. Manage your billing details, update payment methods, or
+                                cancel your subscription through the billing portal.
+                              </p>
+                            </div>
+                          )}
 
                           <div className="flex justify-start">
                             <Button onClick={handleManageBilling} disabled={isLoadingBilling}>
-                              {isLoadingBilling ? 'Loading…' : 'Manage Billing'}
+                              {isLoadingBilling ? 'Loading…' : billingPause ? 'Update card' : 'Manage Billing'}
                             </Button>
                           </div>
                         </div>
@@ -680,18 +710,16 @@ export default function Settings() {
                               <span className="font-medium">No active subscription</span>
                             </div>
                             <p className="text-sm text-neutral-600">
-                              Activation places two charges of 1.00 on your card, both credited back in full. It costs
-                              you nothing.
+                              Activation places one charge of 2.00 on your card, credited back in full to your usage.
                             </p>
                             <details className="group mt-2">
                               <summary className="cursor-pointer text-xs text-neutral-500 hover:text-neutral-700 transition-colors list-none">
-                                Why two charges?
+                                Why the charge?
                               </summary>
                               <p className="mt-2 text-xs text-neutral-500">
-                                The first is a one-time onboarding fee. The second runs straight afterwards to confirm
-                                your card accepts automatic monthly billing. Prepaid, virtual, and single-use cards
-                                often accept a payment you approve yourself but refuse recurring charges later, so we
-                                check now rather than a month in.
+                                It runs right after checkout to confirm your card accepts automatic monthly billing.
+                                Prepaid, virtual, and single-use cards often accept a payment you approve yourself but
+                                refuse recurring charges later, so we check now rather than a month in.
                               </p>
                             </details>
                           </div>
@@ -820,15 +848,8 @@ export default function Settings() {
           onOpenChange={open => !open && setDialog({type: 'none'})}
           onConfirm={handleRegenerateKeys}
           title="Regenerate API keys?"
-          description="Your current keys stop working immediately."
-          details={
-            <Alert variant="warning">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Every integration using the old keys fails until you swap in the new ones.
-              </AlertDescription>
-            </Alert>
-          }
+          description="Your current keys stop working immediately. Every integration using them fails until you swap in the new ones."
+          icon={KeyRound}
           confirmText="Regenerate keys"
           loadingText="Regenerating…"
           variant="destructive"
@@ -840,6 +861,7 @@ export default function Settings() {
           onConfirm={handleResetProject}
           title="Reset project data?"
           description="Every campaign, contact, workflow, template and event in this project is deleted. Your API keys, domains and billing stay as they are."
+          icon={RotateCcw}
           confirmPhrase="RESET"
           confirmText="Reset data"
           loadingText="Resetting…"
@@ -851,14 +873,10 @@ export default function Settings() {
           onOpenChange={open => !open && setDialog({type: 'none'})}
           onConfirm={handleDeleteProject}
           title={`Delete ${activeProject.name}?`}
-          description="This permanently deletes the project and everything in it. It cannot be undone."
-          details={
-            activeProject.subscription ? (
-              <Alert variant="warning">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Your active subscription will be canceled.</AlertDescription>
-              </Alert>
-            ) : undefined
+          description={
+            activeProject.subscription
+              ? 'This permanently deletes the project and everything in it, and cancels its subscription. It cannot be undone.'
+              : 'This permanently deletes the project and everything in it. It cannot be undone.'
           }
           confirmPhrase="DELETE"
           confirmText="Delete project"

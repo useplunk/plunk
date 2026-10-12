@@ -1,7 +1,4 @@
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Button,
   Card,
   CardContent,
@@ -35,13 +32,13 @@ import {
 } from 'lucide-react';
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo} from 'react';
 import useSWR from 'swr';
 import {AnimatedNumber} from '../components/AnimatedNumber';
 import {ApiKeyDisplay} from '../components/ApiKeyDisplay';
 import {DashboardLayout} from '../components/DashboardLayout';
+import {HomeNotice} from '../components/HomeNotice';
 import {QuickStart} from '../components/QuickStart';
-import {SecurityWarningBanner} from '../components/SecurityWarningBanner';
 import {useActiveProject} from '../lib/contexts/ActiveProjectProvider';
 import {useDashboardStats} from '../lib/hooks/useDashboardStats';
 import {useOnboardingPath} from '../lib/hooks/useOnboardingPath';
@@ -50,7 +47,6 @@ import {useProjectSetupState} from '../lib/hooks/useProjectSetupState';
 import {useProjectSecurity} from '../lib/hooks/useProjectSecurity';
 import {useConfig} from '../lib/hooks/useConfig';
 import {useUser} from '../lib/hooks/useUser';
-import {network} from '../lib/network';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -258,32 +254,6 @@ function CompactActivityRow({activity}: {activity: Activity}) {
   );
 }
 
-/**
- * Reason-specific copy for the disabled banner. A card that refused recurring billing is
- * something the owner can act on themselves, so saying so beats sending them to support.
- */
-const DISABLED_COPY: Record<string, {detail: string; href: string}> = {
-  CARD_VERIFICATION_FAILED: {
-    detail:
-      'Add a card that supports recurring payments to continue. Yours took the first payment but declined the follow-up charge that confirms monthly billing works, which is common with prepaid, virtual, and single-use cards.',
-    href: '/settings?tab=billing',
-  },
-  PAYMENT_FAILED: {
-    detail: 'A recurring payment could not be processed. Update your payment method to re-enable the project.',
-    href: '/settings?tab=billing',
-  },
-  EMAIL_REPUTATION: {
-    detail:
-      'Your bounce or complaint rate got too high. Review your rates in the security settings, clean your contact list, then contact support to re-enable the project.',
-    href: '/settings?tab=security',
-  },
-};
-
-const DISABLED_COPY_FALLBACK = {
-  detail: 'Please contact support for more details and to get your project re-enabled.',
-  href: '/settings?tab=security',
-};
-
 export default function Index() {
   const {activeProject} = useActiveProject();
   const {totalContacts, totalEmailsSent, totalCampaigns, openRate, isLoading} = useDashboardStats();
@@ -294,8 +264,6 @@ export default function Index() {
   const onboardingStatus = useOnboardingStatus();
   const {path: onboardingPath} = useOnboardingPath(activeProject?.id);
   const bannerActive = onboardingStatus === 'show' && Boolean(onboardingPath);
-  const [isResending, setIsResending] = useState(false);
-  const [resendMessage, setResendMessage] = useState<string>('');
 
   // Previous-period stats (60d ago to 30d ago) for trend comparison.
   // Round to UTC day boundary so the URL — and therefore the Redis cache key —
@@ -344,18 +312,19 @@ export default function Index() {
 
   const greeting = useMemo(() => getGreeting(), []);
 
+  const projectName = activeProject?.name;
   const subtitle = useMemo(() => {
     if (isLoading) return 'Catching up on the last 30 days.';
     if (totalEmailsSent === 0) {
-      if (totalContacts === 0) return `${activeProject?.name ?? 'Your project'} is fresh. Time to send the first email.`;
+      if (totalContacts === 0) return `${projectName ?? 'Your project'} is fresh. Time to send the first email.`;
       return `${totalContacts.toLocaleString()} ${totalContacts === 1 ? 'contact' : 'contacts'} ready. Time to send something.`;
     }
-    const projectLabel = activeProject?.name ? `${activeProject.name} sent` : 'You sent';
+    const projectLabel = projectName ? `${projectName} sent` : 'You sent';
     const base = `${projectLabel} ${totalEmailsSent.toLocaleString()} ${totalEmailsSent === 1 ? 'email' : 'emails'} in the last 30 days.`;
     if (openRate >= 40) return `${base} Open rate is well above average.`;
     if (openRate >= 25) return `${base} Open rate is healthy.`;
     return base;
-  }, [isLoading, totalEmailsSent, totalContacts, openRate, activeProject?.name]);
+  }, [isLoading, totalEmailsSent, totalContacts, openRate, projectName]);
 
   // Friendly console message for the developer audience. Once per session.
   useEffect(() => {
@@ -420,24 +389,6 @@ export default function Index() {
   const healthText =
     !hasDelivData ? 'text-neutral-500' : worstLevel === 'healthy' ? 'text-emerald-700' : worstLevel === 'warning' ? 'text-amber-700' : 'text-red-700';
 
-  async function handleResendVerification() {
-    setIsResending(true);
-    setResendMessage('');
-    try {
-      const response = await network.fetch<{success: boolean}>('POST', '/auth/request-verification');
-
-      if (response.success) {
-        setResendMessage('Verification email sent! Please check your inbox.');
-      } else {
-        setResendMessage('Couldn’t send the verification email. Try again in a moment.');
-      }
-    } catch {
-      setResendMessage('Couldn’t send the verification email. Try again in a moment.');
-    } finally {
-      setIsResending(false);
-    }
-  }
-
   const recentItems = recentActivity?.data ?? [];
   const liveCount = recentCount?.count ?? 0;
 
@@ -446,87 +397,12 @@ export default function Index() {
       <NextSeo title="Dashboard" />
       <DashboardLayout>
         <div className="space-y-8">
-          {/* Project Disabled Banner */}
-          {activeProject && activeProject.disabled && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Project Disabled - Read-Only Mode</AlertTitle>
-              <AlertDescription className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div className="space-y-2 flex-1">
-                  <p className="text-sm font-medium">
-                    This project has been disabled and is now in read-only mode. You can view your data but cannot
-                    create, update, or delete anything.
-                  </p>
-                  <p className="text-xs text-red-800 mt-2">
-                    {(activeProject.disabledReason && DISABLED_COPY[activeProject.disabledReason]?.detail) ??
-                      DISABLED_COPY_FALLBACK.detail}
-                  </p>
-                </div>
-                <Button asChild size="sm" variant="outline" className="w-full sm:w-auto flex-shrink-0">
-                  <Link
-                    href={
-                      (activeProject.disabledReason && DISABLED_COPY[activeProject.disabledReason]?.href) ??
-                      DISABLED_COPY_FALLBACK.href
-                    }
-                  >
-                    View details
-                  </Link>
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Email Verification Banner */}
-          {user?.emailVerificationRequired && (
-            <Alert variant="warning">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Verify your email address</AlertTitle>
-              <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <span className="text-sm">
-                  Please verify your email address to unlock all features. Check your inbox for the verification link.
-                </span>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    onClick={handleResendVerification}
-                    disabled={isResending}
-                  >
-                    {isResending ? 'Sending…' : 'Resend verification email'}
-                  </Button>
-                  {resendMessage && (
-                    <p className={`text-xs ${resendMessage.includes('sent') ? 'text-green-600' : 'text-red-500'}`}>
-                      {resendMessage}
-                    </p>
-                  )}
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Security Warning Banner */}
-          {activeProject && !activeProject.disabled && securityMetrics && (
-            <SecurityWarningBanner status={securityMetrics.status} />
-          )}
-
-          {/* Subscription Warning Banner */}
-          {activeProject &&
-            !activeProject.disabled &&
-            !activeProject.subscription &&
-            config?.features.billing.enabled && (
-              <Alert variant="warning">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Upgrade to remove Plunk branding</AlertTitle>
-                <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <span className="text-sm">
-                    Your emails currently include Plunk branding. Upgrade to a subscription to remove it.
-                  </span>
-                  <Button asChild size="sm" className="w-full sm:w-auto">
-                    <Link href="/settings?tab=billing">Upgrade now</Link>
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
+          <HomeNotice
+            project={activeProject}
+            securityMetrics={securityMetrics}
+            emailVerificationRequired={Boolean(user?.emailVerificationRequired)}
+            billingEnabled={Boolean(config?.features.billing.enabled)}
+          />
 
           {/* Header */}
           <motion.div

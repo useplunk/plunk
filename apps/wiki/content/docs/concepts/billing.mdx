@@ -20,18 +20,19 @@ You can monitor consumption and set per-category caps under **Settings → Billi
 
 ## Activation charges
 
-Activating a subscription places two charges of 1.00 on your card, in your billing currency:
+Nothing is charged while you complete checkout. Immediately afterwards, Plunk places a single card verification charge of 2.00 on your card, in your billing currency.
 
-| Charge | When | Why |
-| ------ | ---- | --- |
-| Onboarding fee | As you complete checkout | One-time fee that supports Plunk's development |
-| Card verification | Immediately after checkout | Confirms your card accepts automatic monthly billing |
+**It's credited back to your account balance in full**, and that credit is applied against your usage before any invoice is charged.
 
-**Both are credited back to your account balance in full**, and that credit is applied against your usage before any invoice is charged. Activation costs you nothing.
+The charge confirms your card accepts automatic monthly billing. Your monthly invoice is charged on your behalf, without you there, and some cards that accept a payment you approve yourself refuse those. This is most common with prepaid, virtual, and single-use cards. Verifying at activation means an incompatible card surfaces immediately rather than a month later, when it would interrupt your sending.
 
-The second charge exists because the two payments test different things. The checkout payment happens while you're present and can approve it. Your monthly invoice is charged later, on your behalf, without you there — and some cards accept the first while refusing the second. This is most common with prepaid, virtual, and single-use cards. Verifying at activation means an incompatible card surfaces immediately rather than a month later, when it would interrupt your sending.
+The same verification runs whenever you change your card, so the card your invoices will actually be charged to is always one that passed. Adding back a card that already passed doesn't charge it again. Prepaid cards aren't supported.
 
-If the verification charge is declined, the second charge never completes, the onboarding fee is refunded in full, and your subscription is cancelled. You'll be emailed when this happens, and you can start again with a card that supports recurring payments.
+If the verification charge is declined, nothing is collected and sending is paused. You'll be emailed when this happens. Update your card under **Settings → Billing** and the new card is verified straight away; sending resumes as soon as it passes. If a project stays paused for 30 days, its subscription is cancelled.
+
+### Failed payments
+
+If a monthly invoice can't be charged, sending is paused until it's paid. Updating your card retries the payment on the new card immediately, and sending resumes once nothing is outstanding. Starting a new subscription doesn't clear an unpaid invoice — you'll be taken to the invoice to pay it first.
 
 ## What counts as an email
 

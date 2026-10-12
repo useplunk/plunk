@@ -500,17 +500,17 @@ export class QueueService {
   }
 
   /**
-   * Queue an off-session card verification charge for a freshly onboarded project.
+   * Queue an off-session card verification charge, at activation or after a card change.
    *
-   * jobId is derived from the checkout session so a redelivered webhook cannot enqueue a
-   * second charge, backing up the Stripe-side idempotency key in the processor.
+   * jobId is derived from the attempt key so a redelivered webhook cannot enqueue a second
+   * charge, backing up the Stripe-side idempotency key in the processor.
    */
   public static async queueCardVerification(
     data: CardVerificationJobData,
     jobId?: string,
   ): Promise<Job<CardVerificationJobData>> {
     return cardVerificationQueue.add('verify-card', data, {
-      jobId: jobId ?? `card-verification-${data.sessionId}`,
+      jobId: jobId ?? `card-verification-${data.attemptKey}`,
     });
   }
 

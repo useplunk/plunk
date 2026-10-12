@@ -32,6 +32,7 @@ import {
   Settings,
   Timer,
   Trash2,
+  Unlink,
   UserCog,
   Webhook,
 } from 'lucide-react';
@@ -40,7 +41,7 @@ import dagre from 'dagre';
 import {WorkflowEdge} from './WorkflowEdge';
 import {network} from '../lib/network';
 import {toast} from 'sonner';
-import {Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@plunk/ui';
+import {Button, ConfirmDialog, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@plunk/ui';
 import {WorkflowSchemas} from '@plunk/shared';
 
 interface WorkflowBuilderProps {
@@ -1281,31 +1282,28 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           const orphaned = found.toStep ? getAffectedSteps(found.toStep.id) : [];
 
           return (
-            <Dialog open onOpenChange={open => !open && setTransitionToDisconnect(null)}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Disconnect steps</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-3 py-1">
-                  <p className="text-sm text-neutral-600">
-                    Remove the connection from &quot;{found.fromStep.name}&quot; to &quot;{found.toStep?.name}&quot;?
-                  </p>
+            <ConfirmDialog
+              open
+              onOpenChange={open => !open && setTransitionToDisconnect(null)}
+              onConfirm={handleDisconnect}
+              title="Disconnect these steps?"
+              description={
+                <>
+                  Removes the connection from <strong>{found.fromStep.name}</strong> to{' '}
+                  <strong>{found.toStep?.name}</strong>.
                   {orphaned.length > 0 && (
-                    <p className="text-sm text-neutral-600">
-                      {orphaned.length === 1 ? 'This step' : `These ${orphaned.length} steps`} will no longer be
-                      reachable. Nothing is deleted — reconnect{orphaned.length === 1 ? ' it' : ' them'} from any{' '}
-                      <span className="font-medium">+</span> button.
-                    </p>
+                    <>
+                      {' '}
+                      {orphaned.length === 1 ? 'That step' : `Those ${orphaned.length} steps`} will no longer be
+                      reachable. Nothing is deleted — reconnect {orphaned.length === 1 ? 'it' : 'them'} from any{' '}
+                      <strong>+</strong> button.
+                    </>
                   )}
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setTransitionToDisconnect(null)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleDisconnect}>Disconnect</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </>
+              }
+              icon={Unlink}
+              confirmText="Disconnect"
+            />
           );
         })()}
 
@@ -1317,88 +1315,97 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           const isCondition = stepToDeleteData?.type === 'CONDITION';
           const hasChildren = downstreamSteps.length > 0;
           const canSplice = !isCondition && hasChildren;
+          const isSplice = canSplice && deleteMode === 'splice';
+          const stepCount = `${downstreamSteps.length} downstream ${downstreamSteps.length === 1 ? 'step' : 'steps'}`;
 
           return (
-            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Remove &quot;{stepToDeleteData?.name}&quot;</DialogTitle>
-                </DialogHeader>
-
-                {canSplice ? (
-                  <div className="space-y-3 py-1">
-                    <p className="text-sm text-neutral-600">How would you like to remove this step?</p>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => setDeleteMode('splice')}
-                        className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
-                          deleteMode === 'splice'
-                            ? 'border-neutral-900 bg-neutral-50'
-                            : 'border-neutral-200 hover:border-neutral-300'
-                        }`}
-                      >
-                        <p className="text-sm font-medium text-neutral-900">Remove from flow</p>
-                        <p className="text-xs text-neutral-500 mt-0.5">
-                          Delete this step and connect its parent directly to its child. The rest of the workflow is
-                          preserved.
-                        </p>
-                      </button>
-                      <button
-                        onClick={() => setDeleteMode('cascade')}
-                        className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
-                          deleteMode === 'cascade'
-                            ? 'border-red-500 bg-red-50'
-                            : 'border-neutral-200 hover:border-neutral-300'
-                        }`}
-                      >
-                        <p className="text-sm font-medium text-neutral-900">
-                          Delete with {downstreamSteps.length} downstream {downstreamSteps.length === 1 ? 'step' : 'steps'}
-                        </p>
-                        <p className="text-xs text-neutral-500 mt-0.5">
-                          Permanently removes this step and everything below it. This cannot be undone.
-                        </p>
-                      </button>
-                    </div>
+            <ConfirmDialog
+              open={showDeleteDialog}
+              onOpenChange={setShowDeleteDialog}
+              onConfirm={handleDeleteStep}
+              title={`Remove ${stepToDeleteData?.name ?? 'this step'}?`}
+              description={
+                canSplice
+                  ? 'Choose what happens to the steps after it.'
+                  : isCondition && hasChildren
+                    ? `A condition can't be lifted out of the flow, so its ${stepCount} across every branch are deleted with it. This can't be undone.`
+                    : "This step is removed from the workflow. This can't be undone."
+              }
+              details={
+                canSplice ? (
+                  <div role="radiogroup" className="space-y-2">
+                    <DeleteModeOption
+                      selected={deleteMode === 'splice'}
+                      onSelect={() => setDeleteMode('splice')}
+                      title="Remove from flow"
+                      description="Connects the step before it straight to the step after it. The rest of the workflow is kept."
+                    />
+                    <DeleteModeOption
+                      selected={deleteMode === 'cascade'}
+                      onSelect={() => setDeleteMode('cascade')}
+                      title={`Delete with ${stepCount}`}
+                      description="Removes this step and everything below it. This can't be undone."
+                      destructive
+                    />
                   </div>
                 ) : isCondition && hasChildren ? (
-                  <div className="space-y-3 py-1">
-                    <p className="text-sm text-neutral-600">
-                      Removing a condition step will also delete all {downstreamSteps.length} downstream{' '}
-                      {downstreamSteps.length === 1 ? 'step' : 'steps'} across its branches:
-                    </p>
-                    <ul className="list-disc list-inside text-sm text-neutral-600 max-h-32 overflow-y-auto bg-neutral-50 p-3 rounded border border-neutral-200">
-                      {downstreamSteps.map(step => (
-                        <li key={step.id}>
-                          {step.name} ({STEP_TYPE_LABELS[step.type] ?? step.type})
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="text-sm font-medium text-red-600">This action cannot be undone.</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-neutral-600 py-1">This step is removed from the workflow. This can&apos;t be undone.</p>
-                )}
-
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    variant={deleteMode === 'cascade' || !canSplice ? 'destructive' : 'default'}
-                    onClick={() => {
-                      setShowDeleteDialog(false);
-                      handleDeleteStep();
-                    }}
-                  >
-                    {canSplice && deleteMode === 'splice'
-                      ? 'Remove from flow'
-                      : `Delete ${hasChildren ? `${affectedSteps.length} steps` : 'step'}`}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                  <ul className="max-h-36 divide-y divide-neutral-100 overflow-y-auto rounded-lg border border-neutral-200 text-sm">
+                    {downstreamSteps.map(step => (
+                      <li key={step.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                        <span className="truncate text-neutral-900">{step.name}</span>
+                        <span className="shrink-0 text-xs text-neutral-500">
+                          {STEP_TYPE_LABELS[step.type] ?? step.type}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : undefined
+              }
+              confirmText={
+                isSplice ? 'Remove from flow' : `Delete ${hasChildren ? `${affectedSteps.length} steps` : 'step'}`
+              }
+              loadingText={isSplice ? 'Removing…' : 'Deleting…'}
+              variant={isSplice ? 'default' : 'destructive'}
+            />
           );
         })()}
     </>
+  );
+}
+
+interface DeleteModeOptionProps {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  description: string;
+  destructive?: boolean;
+}
+
+function DeleteModeOption({selected, onSelect, title, description, destructive = false}: DeleteModeOptionProps) {
+  const selectedStyles = destructive ? 'border-red-300 bg-red-50/60' : 'border-neutral-900 bg-neutral-50';
+  const dotStyles = destructive ? 'border-red-600 bg-red-600' : 'border-neutral-900 bg-neutral-900';
+
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+        selected ? selectedStyles : 'border-neutral-200 hover:border-neutral-300'
+      }`}
+    >
+      <span
+        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+          selected ? dotStyles : 'border-neutral-300 bg-white'
+        }`}
+      >
+        {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-neutral-900">{title}</span>
+        <span className="mt-0.5 block text-xs leading-relaxed text-neutral-500">{description}</span>
+      </span>
+    </button>
   );
 }

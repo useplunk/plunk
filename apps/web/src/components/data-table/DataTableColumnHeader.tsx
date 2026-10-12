@@ -7,11 +7,6 @@ interface DataTableColumnHeaderProps<TData, TValue> {
   children: ReactNode;
   /** Align the header content (defaults to `left`). */
   align?: 'left' | 'right' | 'center';
-  /**
-   * Optional slot rendered next to the sort control — used for the per-column
-   * faceted filter (`DataTableFacetedFilter`). Table-view-only.
-   */
-  filter?: ReactNode;
 }
 
 const alignClass = (align: 'left' | 'right' | 'center') =>
@@ -22,15 +17,12 @@ const alignClass = (align: 'left' | 'right' | 'center') =>
  * shadcn data-table convention but adapted to Plunk's primitives. Clicking the
  * label cycles asc → desc → unsorted with chevron indicators; the surrounding
  * `<th>` is responsible for the `aria-sort` attribute (see `DataTable`).
- *
- * An optional `filter` slot lets fixed-value columns (e.g. Type) render a
- * faceted dropdown right in the header — the table-view-only Excel-style filter.
+ * Filtering lives in the toolbar (`FilterPill`), not in headers.
  */
 export function DataTableColumnHeader<TData, TValue>({
   column,
   children,
   align = 'left',
-  filter,
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const canSort = column.getCanSort();
   const sorted = column.getIsSorted();
@@ -69,10 +61,5 @@ export function DataTableColumnHeader<TData, TValue>({
     <span className={labelTypeClass}>{children}</span>
   );
 
-  return (
-    <span className={`inline-flex items-center gap-1.5 ${alignClass(align)}`}>
-      {label}
-      {filter}
-    </span>
-  );
+  return <span className={`inline-flex items-center gap-1.5 ${alignClass(align)}`}>{label}</span>;
 }

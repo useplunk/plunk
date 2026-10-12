@@ -14,9 +14,9 @@ interface NoResultsStateProps {
 /**
  * Distinct "no results match your filters" state for the list pages. Separate
  * from the first-run "No X yet" empty state: this one only shows when the user
- * HAS items but the current search/facet/tag filters match none, and it always
+ * HAS items but the current search and filters match none, and it always
  * offers a one-click "Clear filters" recovery so the user is never stuck behind
- * a filter that vanished the table (and, in table view, its header facets).
+ * a filter that emptied the list.
  */
 export function NoResultsState({icon = FilterX, itemNoun, onClear}: NoResultsStateProps) {
   return (

@@ -30,7 +30,7 @@ export default function TermsOfService() {
             {/* Hero */}
             <div className="mb-12">
               <h1 className="text-4xl font-bold text-neutral-900">Terms of Service</h1>
-              <p className="mt-2 text-ui text-neutral-600">Last Updated: February 18, 2026</p>
+              <p className="mt-2 text-ui text-neutral-600">Last Updated: October 11, 2026</p>
               <p className="mt-4 text-base leading-relaxed text-neutral-700">
                 Welcome to Plunk, the open-source email automation platform. These Terms of Service govern your use of
                 Plunk's hosted service and self-hosted software.
@@ -342,20 +342,18 @@ export default function TermsOfService() {
 
                 <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Activation Charges</h3>
                 <p className="mb-4 leading-relaxed text-neutral-700">
-                  Activating a subscription places two charges of 1.00, in your billing currency, on your card: a
-                  one-time onboarding fee, and a card verification charge made immediately afterwards to confirm your
-                  card accepts automatic recurring billing. Both amounts are credited in full to your account balance
-                  and applied against your usage, so activation carries no net cost. If the verification charge is
-                  declined, the second charge is not completed, the onboarding fee is refunded in full, and your
-                  subscription is cancelled.
+                  Activating a subscription places a single card verification charge of 2.00, in your billing
+                  currency, on your card immediately after checkout, to confirm your card accepts automatic recurring
+                  billing. The amount is credited in full to your account balance and applied against your usage. The
+                  same verification runs when you change your card. If the verification charge is declined, no amount
+                  is collected and sending is paused until you add a card that passes verification. Prepaid cards are
+                  not accepted. Subscriptions that remain paused for 30 days are cancelled.
                 </p>
 
                 <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">No Refunds</h3>
                 <p className="mb-4 leading-relaxed text-neutral-700">
                   Due to the pay-as-you-go nature of our service, refunds are not offered on usage charges. Usage is
-                  calculated and billed after emails are sent. Disputes must be raised within 30 days of charge. The
-                  sole exception is the onboarding fee, which is refunded in full if card verification fails during
-                  activation, as described above.
+                  calculated and billed after emails are sent. Disputes must be raised within 30 days of charge.
                 </p>
 
                 <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Usage Limits</h3>
