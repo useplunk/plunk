@@ -21,8 +21,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import {memo, type ReactNode, useState} from 'react';
+import useSWR from 'swr';
 
-import {EmailPreviewModal} from './EmailPreviewModal';
+import {EmailPreviewModal, type EmailPreviewModalProps} from './EmailPreviewModal';
 
 type Metadata = Record<string, unknown>;
 
@@ -396,7 +397,7 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
   const details = getDetails(activity);
   const eventData = getEventData(activity.metadata);
   const canPreview =
-    isEmailActivity(activity.type) && !!str(activity.metadata.subject) && !!str(activity.metadata.body);
+    isEmailActivity(activity.type) && !!str(activity.metadata.subject) && !!str(activity.metadata.emailId);
   const detailsId = `activity-${activity.id}`;
 
   return (
@@ -529,11 +530,11 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
       )}
 
       {showPreview && canPreview && (
-        <EmailPreviewModal
+        <FeedEmailPreview
+          emailId={String(activity.metadata.emailId)}
           open={showPreview}
           onOpenChange={setShowPreview}
           subject={String(activity.metadata.subject)}
-          body={String(activity.metadata.body)}
           from={str(activity.metadata.from)}
           fromName={str(activity.metadata.fromName)}
           replyTo={str(activity.metadata.replyTo)}
@@ -544,3 +545,13 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
     </li>
   );
 });
+
+/**
+ * The feed leaves email bodies out, since they are full HTML documents repeated once per
+ * lifecycle step on every poll. The preview fetches the one it shows when it opens.
+ */
+function FeedEmailPreview({emailId, ...props}: {emailId: string} & Omit<EmailPreviewModalProps, 'body' | 'failed'>) {
+  const {data, error} = useSWR<{body: string}>(`/activity/emails/${emailId}`, {revalidateOnFocus: false});
+
+  return <EmailPreviewModal {...props} body={data?.body} failed={!!error} />;
+}

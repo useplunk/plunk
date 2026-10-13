@@ -199,3 +199,67 @@ describe('ActivityService - email activity', () => {
     expect(data[0]?.metadata.bounceType).toBe('Permanent');
   });
 });
+
+/**
+ * Executions carry no projectId: the feed finds a project's through its workflows, taking
+ * the newest of each and merging them, so ordering and paging must hold across workflows.
+ */
+describe('ActivityService - workflow activity', () => {
+  const prisma = getPrismaClient();
+  const DAY = 24 * 60 * 60 * 1000;
+  let projectId: string;
+  let contactId: string;
+
+  beforeEach(async () => {
+    const {project} = await factories.createUserWithProject();
+    projectId = project.id;
+    contactId = (await factories.createContact({projectId})).id;
+  });
+
+  async function startExecution(workflowId: string, daysAgo: number) {
+    return prisma.workflowExecution.create({
+      data: {workflowId, contactId, startedAt: new Date(Date.now() - daysAgo * DAY)},
+    });
+  }
+
+  it("merges the newest executions of every workflow, without other projects' or older ones", async () => {
+    const onboarding = await factories.createWorkflow({projectId});
+    const winback = await factories.createWorkflow({projectId});
+    const a = await startExecution(onboarding.id, 1);
+    const b = await startExecution(winback.id, 2);
+    const c = await startExecution(onboarding.id, 3);
+    await startExecution(winback.id, 45);
+
+    const other = await factories.createUserWithProject();
+    const otherContact = await factories.createContact({projectId: other.project.id});
+    const otherWorkflow = await factories.createWorkflow({projectId: other.project.id});
+    await prisma.workflowExecution.create({data: {workflowId: otherWorkflow.id, contactId: otherContact.id}});
+
+    const {data} = await ActivityService.getActivities(projectId, 50, undefined, [ActivityType.WORKFLOW_STARTED]);
+
+    expect(data.map(activity => activity.id)).toEqual([`${a.id}_started`, `${b.id}_started`, `${c.id}_started`]);
+    expect(data[0]?.metadata.workflowId).toBe(onboarding.id);
+  });
+
+  it('pages through executions across workflows in start order', async () => {
+    const onboarding = await factories.createWorkflow({projectId});
+    const winback = await factories.createWorkflow({projectId});
+    const started = [
+      await startExecution(onboarding.id, 1),
+      await startExecution(onboarding.id, 2),
+      await startExecution(winback.id, 3),
+      await startExecution(onboarding.id, 4),
+      await startExecution(winback.id, 5),
+    ];
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await ActivityService.getActivities(projectId, 2, cursor, [ActivityType.WORKFLOW_STARTED]);
+      seen.push(...page.data.map(activity => activity.id));
+      cursor = page.cursor;
+    } while (cursor);
+
+    expect(seen).toEqual(started.map(execution => `${execution.id}_started`));
+  });
+});

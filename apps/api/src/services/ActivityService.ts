@@ -1,11 +1,30 @@
-import type {Prisma} from '@plunk/db';
+import {Prisma} from '@plunk/db';
 import type {Activity, ActivityStats, CursorPaginatedResponse} from '@plunk/types';
 import {ActivityType} from '@plunk/types';
 import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
 import {redis} from '../database/redis.js';
+import {HttpException} from '../exceptions/index.js';
 import {Keys} from './keys.js';
+
+/**
+ * Timestamp columns are `timestamp` holding UTC. Bounds are passed as UTC timestamps of the
+ * same type so the comparison is a plain index range, independent of session timezone.
+ */
+function utc(value: Prisma.DateTimeFilter['gte']): Prisma.Sql {
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Prisma.sql`(${date.toISOString()}::timestamptz AT TIME ZONE 'UTC')`;
+}
+
+/** `AND` conditions for the bounds of a date filter, for raw queries; empty when unbounded */
+function timeRange(column: Prisma.Sql, filter: Prisma.DateTimeFilter): Prisma.Sql {
+  const bounds: Prisma.Sql[] = [];
+  if (filter.gte) bounds.push(Prisma.sql`AND ${column} >= ${utc(filter.gte)}`);
+  if (filter.lte) bounds.push(Prisma.sql`AND ${column} <= ${utc(filter.lte)}`);
+  if (filter.lt) bounds.push(Prisma.sql`AND ${column} < ${utc(filter.lt)}`);
+  return bounds.length > 0 ? Prisma.join(bounds, ' ') : Prisma.empty;
+}
 
 /**
  * Activity Service
@@ -85,9 +104,9 @@ export class ActivityService {
     // Cap limit to prevent abuse
     const effectiveLimit = Math.min(limit, this.MAX_LIMIT);
 
-    // Fetch extra items from each source to ensure we have enough after merging
-    // We fetch limit items from each, then take top limit after sorting
-    const fetchLimit = effectiveLimit;
+    // One more than the page from each source: when only one source has activity, that
+    // extra row is the only way to tell a full last page from one with more behind it
+    const fetchLimit = effectiveLimit + 1;
 
     // Default date range to last 30 days if not specified.
     // IMPORTANT: When cursor is provided (pagination), we should NOT apply the gte constraint
@@ -146,6 +165,25 @@ export class ActivityService {
       cursor: nextCursor,
       hasMore,
     };
+  }
+
+  /**
+   * The body of one email in the feed, for its preview.
+   *
+   * Kept out of the feed itself: bodies are full HTML documents, the feed repeats each
+   * email once per lifecycle step, and it is polled. Only the preview reads a body.
+   */
+  public static async getEmailBody(projectId: string, emailId: string): Promise<{body: string}> {
+    const email = await prisma.email.findFirst({
+      where: {id: emailId, projectId},
+      select: {body: true},
+    });
+
+    if (!email) {
+      throw new HttpException(404, 'Email not found');
+    }
+
+    return email;
   }
 
   /**
@@ -401,8 +439,24 @@ export class ActivityService {
       ...(contactId ? {contactId} : {}),
     };
 
+    // A project's own events, unfiltered by name, go through the partial index instead. A
+    // contact's events and a filter on subscription names are served by ordinary indexes.
+    const ids =
+      includeTriggered && !contactId
+        ? await this.fetchRecentCustomEventIds(
+            projectId,
+            limit,
+            where.createdAt as Prisma.DateTimeFilter,
+            excludedSubscriptionNames,
+          )
+        : undefined;
+
+    if (ids?.length === 0) {
+      return [];
+    }
+
     const events = await prisma.event.findMany({
-      where,
+      where: ids ? {id: {in: ids}} : where,
       orderBy: {createdAt: 'desc'},
       take: limit,
       include: {
@@ -440,6 +494,36 @@ export class ActivityService {
         },
       };
     });
+  }
+
+  /**
+   * Ids of a project's most recent events, leaving out Plunk's own email.* events.
+   *
+   * Those make up nearly all of a sending project's events, so walking the
+   * (projectId, createdAt) index and filtering them out can read a month of email events
+   * to find a page of the project's own, or none at all on a transactional-only project.
+   * The partial index events_projectId_createdAt_custom_idx holds only the rows this feed
+   * shows. Raw SQL because Postgres only matches a partial index against a literal
+   * predicate, and Prisma would send the LIKE pattern as a parameter.
+   */
+  private static async fetchRecentCustomEventIds(
+    projectId: string,
+    limit: number,
+    createdAt: Prisma.DateTimeFilter,
+    excludedNames: string[],
+  ): Promise<string[]> {
+    const rows = await prisma.$queryRaw<{id: string}[]>`
+      SELECT id
+      FROM "events"
+      WHERE "projectId" = ${projectId}
+        AND "name" NOT LIKE 'email.%'
+        ${excludedNames.length > 0 ? Prisma.sql`AND "name" NOT IN (${Prisma.join(excludedNames)})` : Prisma.empty}
+        ${timeRange(Prisma.raw('"createdAt"'), createdAt)}
+      ORDER BY "createdAt" DESC
+      LIMIT ${limit}
+    `;
+
+    return rows.map(row => row.id);
   }
 
   /**
@@ -550,7 +634,28 @@ export class ActivityService {
       },
       orderBy: {createdAt: 'desc'},
       take: limit,
-      include: {
+      // An explicit select, so the stored body is never read: it is the widest column by far
+      // and only the preview needs it (see getEmailBody)
+      select: {
+        id: true,
+        contactId: true,
+        campaignId: true,
+        templateId: true,
+        subject: true,
+        from: true,
+        fromName: true,
+        replyTo: true,
+        toName: true,
+        sourceType: true,
+        error: true,
+        opens: true,
+        clicks: true,
+        sentAt: true,
+        deliveredAt: true,
+        openedAt: true,
+        clickedAt: true,
+        bouncedAt: true,
+        complainedAt: true,
         contact: {
           select: {
             email: true,
@@ -601,7 +706,6 @@ export class ActivityService {
     for (const email of emails) {
       const baseMetadata = {
         subject: email.subject,
-        body: email.body,
         from: email.from,
         fromName: email.fromName,
         replyTo: email.replyTo,
@@ -800,23 +904,19 @@ export class ActivityService {
 
     const activities: Activity[] = [];
 
-    const where: Prisma.WorkflowExecutionWhereInput = {
-      workflow: {
-        projectId,
-      },
-      ...(contactId ? {contactId} : {}),
-    };
+    const startedAt: Prisma.DateTimeFilter = cursorTimestamp ? {...dateFilter, lt: cursorTimestamp} : dateFilter;
+
+    // A contact's executions are few and served by the (contactId, status) index. A whole
+    // project's are not: they are found through its workflows, so they go through the
+    // per-workflow lookup below rather than Prisma's relation filter.
+    const ids = contactId ? undefined : await this.fetchRecentWorkflowExecutionIds(projectId, limit, startedAt);
+
+    if (ids?.length === 0) {
+      return [];
+    }
 
     const executions = await prisma.workflowExecution.findMany({
-      where: {
-        ...where,
-        startedAt: cursorTimestamp
-          ? {
-              ...dateFilter,
-              lt: cursorTimestamp,
-            }
-          : dateFilter,
-      },
+      where: ids ? {id: {in: ids}} : {workflow: {projectId}, contactId, startedAt},
       orderBy: {startedAt: 'desc'},
       take: limit,
       include: {
@@ -870,6 +970,39 @@ export class ActivityService {
     }
 
     return activities;
+  }
+
+  /**
+   * Ids of a project's most recently started workflow executions.
+   *
+   * Executions carry no projectId, so Prisma's `workflow: {projectId}` filter becomes
+   * `workflowId IN (...)`, which Postgres answers by loading every execution of every
+   * workflow in the project and sorting them: hundreds of milliseconds on a project with a
+   * long history. Here each workflow contributes only its newest `limit` executions, read
+   * in order from the (workflowId, startedAt) index, and those are merged. The cost is
+   * bounded by workflows × limit, however many executions the project has.
+   */
+  private static async fetchRecentWorkflowExecutionIds(
+    projectId: string,
+    limit: number,
+    startedAt: Prisma.DateTimeFilter,
+  ): Promise<string[]> {
+    const rows = await prisma.$queryRaw<{id: string}[]>`
+      SELECT recent.id
+      FROM "workflows" w
+      CROSS JOIN LATERAL (
+        SELECT we.id, we."startedAt"
+        FROM "workflow_executions" we
+        WHERE we."workflowId" = w.id ${timeRange(Prisma.raw('we."startedAt"'), startedAt)}
+        ORDER BY we."startedAt" DESC
+        LIMIT ${limit}
+      ) recent
+      WHERE w."projectId" = ${projectId}
+      ORDER BY recent."startedAt" DESC
+      LIMIT ${limit}
+    `;
+
+    return rows.map(row => row.id);
   }
 
   /**
