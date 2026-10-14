@@ -106,6 +106,8 @@ volumes:
 
 If no certificates are mounted, SMTP runs without TLS.
 
+Renewed certificates are picked up automatically within a minute of the mounted files changing, without restarting the container. Mount files that your ACME client updates in place, or mount the containing directory: a single-file bind mount of a file that gets replaced (such as certbot's `live/` symlinks) keeps pointing at the old certificate.
+
 ## Building from Source
 
 ```bash

@@ -12,6 +12,7 @@ import {
 } from 'smtp-server';
 import fs from 'fs';
 import path from 'path';
+import tls from 'tls';
 
 import {prisma} from './database/prisma.js';
 
@@ -24,6 +25,7 @@ const PORT_SECURE = parseInt(process.env.PORT_SECURE ?? '465', 10);
 const PORT_SUBMISSION = parseInt(process.env.PORT_SUBMISSION ?? '587', 10);
 const CERT_PATH = process.env.CERT_PATH ?? '/certs';
 const ACME_JSON_PATH = process.env.ACME_JSON_PATH ?? path.join(CERT_PATH, 'acme.json');
+const CERT_WATCH_INTERVAL_MS = 60 * 1000;
 
 // Extended session interface to store authenticated project
 interface ExtendedSession extends SMTPServerSession {
@@ -140,6 +142,41 @@ async function getCertificates(): Promise<{key: Buffer; cert: Buffer} | null> {
   } catch (error) {
     signale.error('Failed to load certificates:', error);
     return null;
+  }
+}
+
+/**
+ * Watch the mounted certificate files and hot-swap renewed certificates into the running servers,
+ * so renewals by Traefik/certbot take effect without restarting the relay
+ */
+function watchCertificates(servers: SMTPServer[], initialCert: Buffer): void {
+  let currentCert = initialCert;
+
+  const reload = () => {
+    const certs = loadFromTraefikAcme() ?? loadFromPemFiles();
+    if (!certs || certs.cert.equals(currentCert)) {
+      return;
+    }
+
+    try {
+      // updateSecureContext() drops the live context before building the new one, so an invalid pair
+      // (e.g. key rewritten but cert not yet) would leave the servers without TLS - validate it first
+      tls.createSecureContext({key: certs.key, cert: certs.cert});
+    } catch (error) {
+      signale.warn('Skipping certificate reload, new key/certificate pair is invalid:', error);
+      return;
+    }
+
+    for (const server of servers) {
+      server.updateSecureContext({key: certs.key, cert: certs.cert});
+    }
+
+    currentCert = certs.cert;
+    signale.success('Reloaded renewed TLS certificate');
+  };
+
+  for (const file of [ACME_JSON_PATH, path.join(CERT_PATH, 'privkey.pem'), path.join(CERT_PATH, 'fullchain.pem')]) {
+    fs.watchFile(file, {interval: CERT_WATCH_INTERVAL_MS, persistent: false}, reload);
   }
 }
 
@@ -440,7 +477,7 @@ function handleData(
 /**
  * Create and start an SMTP server
  */
-function createSMTPServer(options: {secure: boolean; port: number; key?: Buffer; cert?: Buffer}): void {
+function createSMTPServer(options: {secure: boolean; port: number; key?: Buffer; cert?: Buffer}): SMTPServer | null {
   const {secure, port, key, cert} = options;
 
   const serverOptions: SMTPServerOptions = {
@@ -460,7 +497,7 @@ function createSMTPServer(options: {secure: boolean; port: number; key?: Buffer;
     serverOptions.secure = secure;
   } else if (secure) {
     signale.warn(`Cannot start secure server on port ${port} without TLS certificates`);
-    return;
+    return null;
   }
 
   const server = new SMTPServer(serverOptions);
@@ -472,6 +509,8 @@ function createSMTPServer(options: {secure: boolean; port: number; key?: Buffer;
   server.listen(port, '0.0.0.0', () => {
     signale.success(`SMTP server listening on port ${port} (secure=${secure})`);
   });
+
+  return server;
 }
 
 /**
@@ -530,8 +569,9 @@ async function main(): Promise<void> {
   const certs = await getCertificates();
 
   // Start secure SMTP (port 465) - only if TLS is available
+  let secureServer: SMTPServer | null = null;
   if (certs) {
-    createSMTPServer({
+    secureServer = createSMTPServer({
       secure: true,
       port: PORT_SECURE,
       key: certs.key,
@@ -540,12 +580,18 @@ async function main(): Promise<void> {
   }
 
   // Start submission SMTP (port 587) - STARTTLS if certs available, plaintext otherwise
-  createSMTPServer({
+  const submissionServer = createSMTPServer({
     secure: false,
     port: PORT_SUBMISSION,
     key: certs?.key,
     cert: certs?.cert,
   });
+
+  // Pick up certificate renewals without a restart
+  if (certs) {
+    const servers = [secureServer, submissionServer].filter((server): server is SMTPServer => server !== null);
+    watchCertificates(servers, certs.cert);
+  }
 
   signale.success('SMTP relay started successfully');
 
