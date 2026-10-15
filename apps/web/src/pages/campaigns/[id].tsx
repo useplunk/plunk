@@ -91,8 +91,8 @@ interface SupportingFigure {
   rate: (s: CampaignStats) => number;
   /**
    * Set where the contacts behind the figure are reachable by index, which makes the
-   * figure a button that opens them. Bounces and complaints are stamped on the email
-   * row; unsubscribes are not, so there is no list to open for that one.
+   * figure a button that opens them. Bounces, complaints and opt-outs are each stamped
+   * on the email row, so all three can be opened.
    */
   drillDown?: CampaignRecipientType;
   /**
@@ -132,7 +132,12 @@ const SUPPORTING_FIGURES: SupportingFigure[] = [
   },
   // No enforcement threshold applies to unsubscribes, so this one never turns red: it is
   // a cost to read, not a fault to fix.
-  {label: 'Unsubscribed', count: s => s.unsubscribedCount, rate: s => s.unsubscribeRate},
+  {
+    label: 'Unsubscribed',
+    count: s => s.unsubscribedCount,
+    rate: s => s.unsubscribeRate,
+    drillDown: 'unsubscribed',
+  },
 ];
 
 function figureTone(figure: SupportingFigure, s: CampaignStats): string {

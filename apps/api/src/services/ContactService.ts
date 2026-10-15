@@ -524,21 +524,36 @@ export class ContactService {
   }
 
   /**
-   * Add one to a campaign's unsubscribe count.
+   * Record an opt-out against the campaign email it came from: stamp the email's
+   * `unsubscribedAt` and add one to the campaign's unsubscribe count.
    *
-   * Never allowed to fail the opt-out that triggered it: a stats counter is not
-   * worth a 5xx on a public unsubscribe endpoint, which would leave a mailbox
-   * provider retrying a request that already took effect. Campaign stats
-   * recompute from the events on read, so a dropped increment self-heals.
+   * The two move together, in one transaction, and the count only moves when the stamp
+   * lands. That keeps the stamped rows -- the list the campaign page drills into --
+   * identical to the figure it is opened from, and makes a repeat opt-out from the same
+   * email (a second click on the hosted page, a re-snooze) count once.
+   *
+   * Never allowed to fail the opt-out that triggered it: a stats write is not worth a
+   * 5xx on a public unsubscribe endpoint, which would leave a mailbox provider retrying
+   * a request that already took effect. A failure is logged and the opt-out stands
+   * uncounted.
    */
-  private static async countCampaignUnsubscribe(campaignId: string): Promise<void> {
+  private static async recordCampaignUnsubscribe(emailId: string, campaignId: string): Promise<void> {
     try {
-      await prisma.campaign.update({
-        where: {id: campaignId},
-        data: {unsubscribedCount: {increment: 1}},
+      await prisma.$transaction(async tx => {
+        const {count} = await tx.email.updateMany({
+          where: {id: emailId, unsubscribedAt: null},
+          data: {unsubscribedAt: new Date()},
+        });
+
+        if (count === 1) {
+          await tx.campaign.update({
+            where: {id: campaignId},
+            data: {unsubscribedCount: {increment: 1}},
+          });
+        }
       });
     } catch (error) {
-      signale.warn(`[CONTACT] Failed to increment unsubscribe count for campaign ${campaignId}:`, error);
+      signale.warn(`[CONTACT] Failed to record unsubscribe for campaign ${campaignId}:`, error);
     }
   }
 
@@ -587,7 +602,7 @@ export class ContactService {
     // emails are skipped: a bounce or complaint unsubscribes the contact too,
     // and `bouncedCount` already reports those.
     if (sourceEmail?.campaignId && !sourceEmail.suppressed) {
-      await this.countCampaignUnsubscribe(sourceEmail.campaignId);
+      await this.recordCampaignUnsubscribe(sourceEmail.id, sourceEmail.campaignId);
     }
 
     return contact;
@@ -693,7 +708,7 @@ export class ContactService {
     // of leave. Only on the first opt-out: re-snoozing an already-unsubscribed contact must
     // not count twice. Suppressed emails are skipped, as in `unsubscribe`.
     if (existing.subscribed && sourceEmail?.campaignId && !sourceEmail.suppressed) {
-      await this.countCampaignUnsubscribe(sourceEmail.campaignId);
+      await this.recordCampaignUnsubscribe(sourceEmail.id, sourceEmail.campaignId);
     }
 
     return contact;

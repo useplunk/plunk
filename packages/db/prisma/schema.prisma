@@ -602,6 +602,12 @@ model Email {
   bouncedAt    DateTime?
   complainedAt DateTime?
 
+  /// When the recipient opted out from this email (unsubscribe or snooze). Only set for
+  /// opt-outs attributed to a campaign email and counted in `Campaign.unsubscribedCount`,
+  /// in the same transaction, so the stamped rows are the list behind that figure. Indexed
+  /// by a partial index built in the background (see background-index-builder.ts).
+  unsubscribedAt DateTime?
+
   // Event counts
   opens  Int @default(0)
   clicks Int @default(0)

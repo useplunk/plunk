@@ -1,6 +1,7 @@
 import {Controller, Delete, Get, Middleware, Post, Put} from '@overnightjs/core';
 import {CampaignAudienceType, CampaignStatus, TemplateType} from '@plunk/db';
 import {CampaignSchemas, UtilitySchemas} from '@plunk/shared';
+import type {CampaignRecipientType} from '@plunk/types';
 import type {NextFunction, Request, Response} from 'express';
 
 import {HttpException} from '../exceptions/index.js';
@@ -365,8 +366,8 @@ export class Campaigns {
   }
 
   /**
-   * List the recipients a campaign lost to a bounce or a spam complaint.
-   * GET /campaigns/:id/recipients?type=bounced|complained&cursor=&limit=
+   * List the recipients a campaign lost to a bounce, a spam complaint or an opt-out.
+   * GET /campaigns/:id/recipients?type=bounced|complained|unsubscribed&cursor=&limit=
    *
    * Cursor-paginated rather than offset-paginated: a campaign can carry tens of
    * thousands of bounces, and OFFSET would make each page cost more than the last.
@@ -380,7 +381,8 @@ export class Campaigns {
     const auth = res.locals.auth;
     const {id} = UtilitySchemas.id.parse(req.params);
 
-    const type = req.query.type === 'complained' ? 'complained' : 'bounced';
+    const type: CampaignRecipientType =
+      req.query.type === 'complained' || req.query.type === 'unsubscribed' ? req.query.type : 'bounced';
     // Capped at 100 for the same reason every other list here is: one page is what a
     // reader can look at, and an uncapped limit turns a cheap range scan into a way to
     // pull a campaign's whole bounce list in one request.

@@ -857,10 +857,10 @@ export class CampaignService {
    * stats endpoint slow enough to notice.
    *
    * One grouped pass over the campaign's emails, so the cost is O(campaign size)
-   * and paid once. `unsubscribedCount` is deliberately absent: it is not derivable
-   * from the emails table, and the events that do carry it are not reachable by any
-   * index that does not scan the whole table. Its increment in
-   * ContactService.unsubscribe stands on its own.
+   * and paid once. `unsubscribedCount` is deliberately absent: it is written together
+   * with `Email.unsubscribedAt`, in one transaction, by
+   * ContactService.recordCampaignUnsubscribe, so it is already exact, and recounting it
+   * here would also count rows the backfill stamped for opt-outs older than that write.
    *
    * `foldSentProgress` folds `sentCount` in as well and drops the Redis delta that
    * tracked it. Only the finalization caller may ask for that: while the send is
@@ -1287,9 +1287,9 @@ export class CampaignService {
   }
 
   /**
-   * List the recipients a campaign lost to a bounce or a spam complaint.
+   * List the recipients a campaign lost to a bounce, a spam complaint or an opt-out.
    *
-   * Selects on `status`, which is served by the existing (campaignId, status) index, so
+   * Bounces and complaints select on `status`, which is served by the existing (campaignId, status) index, so
    * finding a campaign's few thousand bounces never reads its million sent rows. That is
    * only correct because `nextStatus` in the SES webhook makes BOUNCED and COMPLAINED
    * terminal: before that guard, an Open arriving after a complaint -- the usual order,
@@ -1297,7 +1297,12 @@ export class CampaignService {
    * five from exactly this query. Weakening that guard silently under-reports this list, so
    * it is covered by its own test.
    *
-   * The sort is on the timestamp, which the index does not carry, so each page sorts the
+   * Opt-outs have no status of their own -- an unsubscribed email is still DELIVERED or
+   * OPENED -- so they select on `unsubscribedAt IS NOT NULL` instead, served by the partial
+   * index `emails_campaignId_unsubscribedAt_idx` (background-index-builder.ts). That index
+   * carries the sort too, so an unsubscribe page is an ordered walk with no sort at all.
+   *
+   * For bounces and complaints, the sort is on the timestamp, which the index does not carry, so each page sorts the
    * campaign's matching rows. That cost scales with how many recipients a campaign lost,
    * not with how many it was sent to -- thousands, not millions -- and paging is keyset so
    * the sorted set shrinks as the reader goes deeper.
@@ -1316,10 +1321,25 @@ export class CampaignService {
     // below can key on campaignId alone.
     const campaign = await this.get(projectId, campaignId);
 
-    const isComplaint = type === 'complained';
-    const column = Prisma.raw(isComplaint ? '"complainedAt"' : '"bouncedAt"');
-    const status = isComplaint ? EmailStatus.COMPLAINED : EmailStatus.BOUNCED;
-    const total = isComplaint ? campaign.complainedCount : campaign.bouncedCount;
+    const {column, filter, total} = {
+      bounced: {
+        column: Prisma.raw('"bouncedAt"'),
+        filter: Prisma.sql`e."status" = ${EmailStatus.BOUNCED}::"EmailStatus"`,
+        total: campaign.bouncedCount,
+      },
+      complained: {
+        column: Prisma.raw('"complainedAt"'),
+        filter: Prisma.sql`e."status" = ${EmailStatus.COMPLAINED}::"EmailStatus"`,
+        total: campaign.complainedCount,
+      },
+      unsubscribed: {
+        column: Prisma.raw('"unsubscribedAt"'),
+        // Must stay character-for-character the partial index's predicate, or the planner
+        // will not use it.
+        filter: Prisma.sql`e."unsubscribedAt" IS NOT NULL`,
+        total: campaign.unsubscribedCount,
+      },
+    }[type];
 
     const decoded = this.decodeRecipientCursor(cursor);
 
@@ -1330,7 +1350,7 @@ export class CampaignService {
       FROM "emails" e
       JOIN "contacts" c ON c."id" = e."contactId"
       WHERE e."campaignId" = ${campaignId}::text
-        AND e."status" = ${status}::"EmailStatus"
+        AND ${filter}
         ${
           decoded
             ? Prisma.sql`AND (e.${column}, e."id") < (${decoded.occurredAt}::timestamptz, ${decoded.id}::text)`

@@ -80,6 +80,15 @@ const INDEXES: BackgroundIndex[] = [
     sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "workflow_executions_workflowId_startedAt_idx" ON "workflow_executions"("workflowId", "startedAt" DESC)`,
   },
   {
+    // Campaign unsubscribe drill-down (CampaignService.listRecipients, type=unsubscribed).
+    // Partial, so it holds only the opted-out rows and each page is a short ordered walk.
+    // The predicate must match the list query's `"unsubscribedAt" IS NOT NULL`, or the
+    // planner will not use it. Still a full scan of "emails" to build, but it writes almost
+    // nothing, so it goes ahead of the stats index below.
+    name: 'emails_campaignId_unsubscribedAt_idx',
+    sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "emails_campaignId_unsubscribedAt_idx" ON "emails"("campaignId", "unsubscribedAt" DESC, "id" DESC) WHERE "unsubscribedAt" IS NOT NULL`,
+  },
+  {
     // Dashboard and analytics stats: per-project counts over a createdAt range. INCLUDE
     // lets those counts be answered from the index alone, without fetching email rows,
     // which are wide because of the stored body. Covers every column the analytics
