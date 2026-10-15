@@ -105,6 +105,20 @@ export class Activity {
   }
 
   /**
+   * GET /activity/emails/:id
+   * Get the body of an email in the feed, for its preview
+   */
+  @Get('emails/:id')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async getEmailBody(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+    const email = await ActivityService.getEmailBody(auth.projectId, req.params.id as string);
+
+    return res.status(200).json(email);
+  }
+
+  /**
    * GET /activity/upcoming
    * Get upcoming scheduled activities (campaigns and workflow emails)
    *

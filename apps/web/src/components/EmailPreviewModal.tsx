@@ -1,15 +1,18 @@
-import {Dialog, DialogContent, DialogDescription, DialogTitle, cn} from '@plunk/ui';
+import {Dialog, DialogContent, DialogDescription, DialogTitle, IconSpinner, cn} from '@plunk/ui';
 import {useEffect, useRef, useState} from 'react';
 
 import {wrapEmailWithStyles} from '../lib/emailStyles';
 import {Segmented} from './Segmented';
 
-interface EmailPreviewModalProps {
+export interface EmailPreviewModalProps {
   captured?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subject: string;
-  body: string;
+  /** Undefined while the body is still loading */
+  body: string | undefined;
+  /** The body could not be loaded */
+  failed?: boolean;
   from?: string;
   fromName?: string;
   replyTo?: string;
@@ -34,6 +37,7 @@ export function EmailPreviewModal({
   onOpenChange,
   subject,
   body,
+  failed,
   from,
   fromName,
   replyTo,
@@ -100,15 +104,23 @@ export function EmailPreviewModal({
               </div>
             </header>
 
-            {captured ? (
-              <iframe
-                title="Captured email content"
-                sandbox=""
-                className="block w-full min-h-[500px] border-0"
-                srcDoc={`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">${wrapEmailWithStyles(body)}`}
-              />
+            {body !== undefined ? (
+              captured ? (
+                <iframe
+                  title="Captured email content"
+                  sandbox=""
+                  className="block w-full min-h-[500px] border-0"
+                  srcDoc={`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">${wrapEmailWithStyles(body)}`}
+                />
+              ) : (
+                <EmailBody html={body} />
+              )
+            ) : failed ? (
+              <p className="px-8 py-16 text-center text-sm text-neutral-500">This email didn&apos;t load.</p>
             ) : (
-              <EmailBody html={body} />
+              <div className="flex justify-center px-8 py-16 text-neutral-400" aria-label="Loading email">
+                <IconSpinner />
+              </div>
             )}
           </article>
         </div>

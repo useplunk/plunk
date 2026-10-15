@@ -200,6 +200,70 @@ describe('ActivityService - email activity', () => {
   });
 });
 
+/**
+ * Executions carry no projectId: the feed finds a project's through its workflows, taking
+ * the newest of each and merging them, so ordering and paging must hold across workflows.
+ */
+describe('ActivityService - workflow activity', () => {
+  const prisma = getPrismaClient();
+  const DAY = 24 * 60 * 60 * 1000;
+  let projectId: string;
+  let contactId: string;
+
+  beforeEach(async () => {
+    const {project} = await factories.createUserWithProject();
+    projectId = project.id;
+    contactId = (await factories.createContact({projectId})).id;
+  });
+
+  async function startExecution(workflowId: string, daysAgo: number) {
+    return prisma.workflowExecution.create({
+      data: {workflowId, contactId, startedAt: new Date(Date.now() - daysAgo * DAY)},
+    });
+  }
+
+  it("merges the newest executions of every workflow, without other projects' or older ones", async () => {
+    const onboarding = await factories.createWorkflow({projectId});
+    const winback = await factories.createWorkflow({projectId});
+    const a = await startExecution(onboarding.id, 1);
+    const b = await startExecution(winback.id, 2);
+    const c = await startExecution(onboarding.id, 3);
+    await startExecution(winback.id, 45);
+
+    const other = await factories.createUserWithProject();
+    const otherContact = await factories.createContact({projectId: other.project.id});
+    const otherWorkflow = await factories.createWorkflow({projectId: other.project.id});
+    await prisma.workflowExecution.create({data: {workflowId: otherWorkflow.id, contactId: otherContact.id}});
+
+    const {data} = await ActivityService.getActivities(projectId, 50, undefined, [ActivityType.WORKFLOW_STARTED]);
+
+    expect(data.map(activity => activity.id)).toEqual([`${a.id}_started`, `${b.id}_started`, `${c.id}_started`]);
+    expect(data[0]?.metadata.workflowId).toBe(onboarding.id);
+  });
+
+  it('pages through executions across workflows in start order', async () => {
+    const onboarding = await factories.createWorkflow({projectId});
+    const winback = await factories.createWorkflow({projectId});
+    const started = [
+      await startExecution(onboarding.id, 1),
+      await startExecution(onboarding.id, 2),
+      await startExecution(winback.id, 3),
+      await startExecution(onboarding.id, 4),
+      await startExecution(winback.id, 5),
+    ];
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await ActivityService.getActivities(projectId, 2, cursor, [ActivityType.WORKFLOW_STARTED]);
+      seen.push(...page.data.map(activity => activity.id));
+      cursor = page.cursor;
+    } while (cursor);
+
+    expect(seen).toEqual(started.map(execution => `${execution.id}_started`));
+  });
+});
+
 describe('ActivityService - suppressed captures', () => {
   const prisma = getPrismaClient();
   it('lists captures once, paginates timestamp ties, filters and isolates projects', async () => {
@@ -261,7 +325,11 @@ describe('ActivityService - suppressed captures', () => {
     for (let i = 0; i < 3; i++) {
       const page = await ActivityService.getActivities(project.id, 1, cursor, [ActivityType.EMAIL_SUPPRESSED]);
       expect(page.data).toHaveLength(1);
-      expect(page.data[0]?.metadata.body).toBe('<p>123456</p>');
+      expect(page.data[0]?.metadata).not.toHaveProperty('body');
+      expect(page.data[0]?.metadata).not.toHaveProperty('originalBody');
+      expect(await ActivityService.getEmailBody(project.id, String(page.data[0]?.metadata.emailId))).toEqual({
+        body: '<p>123456</p>',
+      });
       expect(page.data[0]?.contactEmail).toBe('override@example.com');
       expect(page.hasMore).toBe(i < 2);
       seen.push(page.data[0]?.id);
@@ -274,6 +342,9 @@ describe('ActivityService - suppressed captures', () => {
         .sort()
         .reverse(),
     );
+    await expect(ActivityService.getEmailBody(other.id, captures[0]!.id)).rejects.toThrow('Email not found');
+    await prisma.email.update({where: {id: captures[0]!.id}, data: {renderedBody: null}});
+    expect(await ActivityService.getEmailBody(project.id, captures[0]!.id)).toEqual({body: ''});
     const sentOnly = await ActivityService.getActivities(project.id, 50, undefined, [ActivityType.EMAIL_SENT]);
     expect(sentOnly.data.map(a => a.id)).toEqual([`${sent.id}_sent`]);
     expect(

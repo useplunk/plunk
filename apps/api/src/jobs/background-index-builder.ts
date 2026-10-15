@@ -65,6 +65,21 @@ const INDEXES: BackgroundIndex[] = [
     sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "events_projectId_createdAt_idx" ON "events"("projectId", "createdAt")`,
   },
   {
+    // Activity feed: a project's own events, newest first. Plunk writes an email.* event for
+    // every delivery, open and click, so on a sending project those are nearly every row,
+    // and the plain (projectId, createdAt) walk reads through all of them to fill a page.
+    // The predicate must match ActivityService.fetchRecentCustomEventIds character for
+    // character, or the planner will not use this index.
+    name: 'events_projectId_createdAt_custom_idx',
+    sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "events_projectId_createdAt_custom_idx" ON "events"("projectId", "createdAt" DESC) WHERE "name" NOT LIKE 'email.%'`,
+  },
+  {
+    // Activity feed: each workflow's newest executions as an ordered walk, merged across a
+    // project's workflows. Without it the feed loads every execution the project ever had.
+    name: 'workflow_executions_workflowId_startedAt_idx',
+    sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "workflow_executions_workflowId_startedAt_idx" ON "workflow_executions"("workflowId", "startedAt" DESC)`,
+  },
+  {
     // Dashboard and analytics stats: per-project counts over a createdAt range. INCLUDE
     // lets those counts be answered from the index alone, without fetching email rows,
     // which are wide because of the stored body. Covers every column the analytics
