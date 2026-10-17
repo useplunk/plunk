@@ -110,6 +110,11 @@
     --text-h2--line-height: 1.05;
     --text-display: clamp(2.5rem, 6vw, 6rem);
     --text-display--line-height: 0.94;
+    /* Page titles that share the fold with a graphic or run long, like the
+       feature, comparison and SEO pages. Display size there broke the
+       authored lines into one word per line. */
+    --text-hero: clamp(2.25rem, 4.25vw, 4rem);
+    --text-hero--line-height: 1;
 
     /* One card radius everywhere. Buttons and tags stay full-pill. */
     --radius-card: 1rem;

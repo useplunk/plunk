@@ -76,6 +76,11 @@ const comparison: Comparison = {
         'Resend has separate plans: transactional email by monthly volume, and marketing email by the number of contacts you store. Plunk charges $0.001 for every email, whatever kind, with unlimited contacts and no monthly plan. Pricing checked against resend.com in October 2026.',
     },
     {
+      question: 'Is Resend open source? Can I self-host it?',
+      answer:
+        'No. Resend’s platform is closed source and only available as a hosted service; React Email, the template library Resend maintains, is the open-source part. Plunk is open source under AGPL-3.0, so you can use Plunk Cloud or run the same code on your own servers with Docker.',
+    },
+    {
       question: 'Is migration from Resend to Plunk complex?',
       answer:
         'You verify your domain in Plunk, change your send calls to Plunk’s endpoint, and import your contacts from a CSV. Both use a recipient, subject and HTML body or a template, so the concepts carry over. Most teams finish in an afternoon.',

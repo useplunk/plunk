@@ -4,7 +4,7 @@
  * guide's short title and category are written once.
  */
 
-export type GuideCategory = 'Authentication' | 'Deliverability' | 'Engagement' | 'Fundamentals';
+export type GuideCategory = 'Authentication' | 'Deliverability' | 'Engagement' | 'Fundamentals' | 'Migration';
 
 export interface GuideInfo {
   slug: string;
@@ -21,6 +21,7 @@ export const GUIDE_CATEGORIES: {name: GuideCategory; description: string}[] = [
   {name: 'Deliverability', description: 'What decides whether mail lands in the inbox.'},
   {name: 'Engagement', description: 'Opens, clicks and the habits behind them.'},
   {name: 'Fundamentals', description: 'How email for products is sent and classified.'},
+  {name: 'Migration', description: 'Moving to Plunk from another email tool, step by step.'},
 ];
 
 export const GUIDES: GuideInfo[] = [
@@ -97,6 +98,33 @@ export const GUIDES: GuideInfo[] = [
     description: 'How email APIs work, with examples, features and what to look for.',
     category: 'Fundamentals',
     tool: {slug: 'email-headers', name: 'Email headers analyzer', pitch: 'Trace a message’s route and authentication results.'},
+  },  {
+    slug: 'migrate-from-resend',
+    name: 'Migrate from Resend',
+    description: 'Move domains, contacts, templates and sending code from Resend.',
+    category: 'Migration',
+    tool: {slug: 'dkim-checker', name: 'DKIM checker', pitch: 'Confirm your new DKIM records are live before you switch.'},
+  },
+  {
+    slug: 'migrate-from-sendgrid',
+    name: 'Migrate from SendGrid',
+    description: 'Move domains, contacts, suppressions and sending code from SendGrid.',
+    category: 'Migration',
+    tool: {slug: 'dkim-checker', name: 'DKIM checker', pitch: 'Confirm your new DKIM records are live before you switch.'},
+  },
+  {
+    slug: 'migrate-from-mailchimp',
+    name: 'Migrate from Mailchimp',
+    description: 'Move your audience, unsubscribes and templates from Mailchimp.',
+    category: 'Migration',
+    tool: {slug: 'dkim-checker', name: 'DKIM checker', pitch: 'Confirm your new DKIM records are live before you switch.'},
+  },
+  {
+    slug: 'migrate-from-loops',
+    name: 'Migrate from Loops',
+    description: 'Move contacts, events, loops and transactional emails from Loops.',
+    category: 'Migration',
+    tool: {slug: 'dkim-checker', name: 'DKIM checker', pitch: 'Confirm your new DKIM records are live before you switch.'},
   },
 ];
 

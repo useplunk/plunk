@@ -235,6 +235,35 @@ export const ALTERNATIVES: AlternativesPage[] = [
     ],
   },
   {
+    slug: 'mailgun',
+    name: 'Mailgun',
+    intro:
+      'Mailgun is a long-standing email API built for volume. Teams look elsewhere when they also need campaigns and automation, or want to stop paying for a monthly tier they do not fill.',
+    reasons: [
+      {title: 'Tiered monthly plans', copy: 'You pay for a volume tier each month, used or not, and move up as you grow.'},
+      {title: 'Sending only', copy: 'Campaigns, workflows and segments need a second tool alongside it.'},
+      {title: 'Closed source', copy: 'You cannot read the code or run it on your own servers.'},
+    ],
+    picks: ['plunk', 'postmark', 'resend', 'sendgrid', 'amazon-ses', 'usesend'],
+    faqs: [
+      {
+        question: 'What is the best alternative to Mailgun?',
+        answer:
+          'For transactional and marketing email together at $0.001 per email, Plunk. For transactional email only, Postmark or Resend. For a similar volume-focused API, SendGrid. For the lowest raw price, Amazon SES.',
+      },
+      {
+        question: 'Is there a free alternative to Mailgun?',
+        answer:
+          'Plunk includes 1,000 free emails a month and is open source, so you can also self-host it for the cost of your server and Amazon SES. Resend also has a free tier.',
+      },
+      {
+        question: 'Is there a European alternative to Mailgun?',
+        answer:
+          'Plunk Cloud stores contacts and email history in Germany and includes a DPA. Mailgun itself offers an EU region; Brevo and Mailjet are EU companies focused more on marketing.',
+      },
+    ],
+  },
+  {
     slug: 'mailchimp',
     name: 'Mailchimp',
     intro:

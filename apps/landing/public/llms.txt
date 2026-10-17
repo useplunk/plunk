@@ -14,6 +14,7 @@ For full product documentation, see the docs site: https://docs.useplunk.com/llm
 - [Pricing](https://www.useplunk.com/pricing.md): Plans, included volume, and overage pricing
 - [Made by humans](https://www.useplunk.com/made-by-humans): The team and story behind Plunk
 - [EU hosting and GDPR](https://www.useplunk.com/eu): Where data is stored, sub-processors, and the DPA
+- [Open-source email platform](https://www.useplunk.com/open-source-email-platform): License, self-hosting with Docker, and how Plunk compares to other open-source email tools
 - [Amazon SES dashboard](https://www.useplunk.com/aws-ses): Plunk as the dashboard and platform on top of Amazon SES
 
 ## Features
@@ -48,6 +49,7 @@ For full product documentation, see the docs site: https://docs.useplunk.com/llm
 - [Plunk alternatives](https://www.useplunk.com/alternatives/plunk): When another tool is the better choice
 - [Resend alternatives](https://www.useplunk.com/alternatives/resend)
 - [SendGrid alternatives](https://www.useplunk.com/alternatives/sendgrid)
+- [Mailgun alternatives](https://www.useplunk.com/alternatives/mailgun)
 - [Mailchimp alternatives](https://www.useplunk.com/alternatives/mailchimp)
 - [Loops alternatives](https://www.useplunk.com/alternatives/loops)
 - [Postmark alternatives](https://www.useplunk.com/alternatives/postmark)

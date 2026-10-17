@@ -8,7 +8,9 @@ Plunk supports bulk-importing contacts from a CSV file — useful for migrating 
 
 ## CSV format
 
-The CSV must have a header row. The only required column is `email`. Every other column becomes a custom field on the contact under `data.<columnName>`.
+The CSV must have a header row. The only required column is `email`. Every other column becomes a custom field on the contact under `data.<columnname>`.
+
+Headers are lowercased on import, so a `firstName` column becomes the field `firstname`. Use lowercase names in your templates and segment filters, like `{{firstname}}`, or name the columns in lowercase to begin with.
 
 A minimal file:
 
@@ -22,20 +24,21 @@ linus@example.com
 A richer file with custom fields:
 
 ```csv
-email,firstName,plan,signupDate
+email,firstname,plan,signupdate
 ada@example.com,Ada,pro,2026-01-15T00:00:00Z
 grace@example.com,Grace,enterprise,2025-11-02T00:00:00Z
 linus@example.com,Linus,free,2026-04-21T00:00:00Z
 ```
 
-In this example, every imported contact ends up with `data.firstName`, `data.plan`, and `data.signupDate` set.
+In this example, every imported contact ends up with `data.firstname`, `data.plan`, and `data.signupdate` set.
 
 ### Rules and limits
 
 - **File size**: up to 5 MB per upload. For larger lists, split the file and run multiple imports.
 - **Encoding**: UTF-8. Non-UTF-8 files may produce garbled custom field values.
 - **Email column**: must be present and valid. Rows with missing or invalid emails are reported back as errors.
-- **Reserved column names**: `id`, `subscribed`, `createdAt`, `updatedAt`, and the auto-generated URL variables (`unsubscribeUrl`, etc.) are silently filtered out. Don't include them as columns.
+- **Reserved column names**: `id`, `createdAt`, `updatedAt`, and the auto-generated URL variables (`unsubscribeUrl`, etc.) are silently filtered out. Don't include them as columns.
+- **Subscription status**: an optional `subscribed` column sets whether each contact can receive marketing email. `true`, `1` and `yes` subscribe the contact; any other value, such as `false` or `no`, unsubscribes it. Leave the cell empty, or omit the column, to keep an existing contact's status unchanged. New contacts without a value are created subscribed.
 - **Date columns**: use ISO 8601 (`2026-05-06T12:00:00Z`) so they're typed as dates and become usable with `within` / `olderThan` segment operators.
 - **Boolean columns**: `true`, `false`, `yes`, `no` (case-insensitive) are stored as booleans and get the boolean toggle in segment filters.
 - **Numeric columns**: plain integers and decimals (`42`, `3.14`) are stored as numbers and become usable with `gt` / `lt` segment operators. Leading-zero values (`01234`), `+`-prefixed numbers, and scientific notation stay strings so IDs, zip codes, and phone numbers aren't corrupted.
@@ -106,7 +109,7 @@ Poll every few seconds until `status` is `completed` or `failed`. The response i
 
 ## Tips
 
-- **Unsubscribed contacts**: imported contacts are created subscribed by default. If your CSV represents users who never opted in, set up a workflow that filters out anyone you shouldn't email — or import them and then bulk-unsubscribe them with `POST /contacts/bulk-unsubscribe` to keep them on file but unmailed.
+- **Migrating unsubscribes**: when moving from another platform, export unsubscribed, bounced and complained contacts too, and import them with `subscribed` set to `false`. They stay on file for their history but are never sent marketing email.
 - **Custom fields appear in segments immediately**: as soon as the import finishes, you can build dynamic segments on any of the imported columns.
 - **Idempotent reruns**: re-running the same CSV updates contacts in place rather than creating duplicates. If you fix a column and re-upload, all matching rows get the corrected value.
 

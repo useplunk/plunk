@@ -83,6 +83,11 @@ export default function Footer() {
                     </Link>
                   </li>
                   <li>
+                    <Link href={'/open-source-email-platform'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
+                      Open source
+                    </Link>
+                  </li>
+                  <li>
                     <Link href={'/changelog'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Changelog
                     </Link>

@@ -118,7 +118,7 @@ export default function CampaignsFeature() {
             <>
               One email.
               <br />
-              Everyone who should get it.
+              Everyone it’s for.
             </>
           }
           subtitle={

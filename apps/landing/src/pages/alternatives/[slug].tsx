@@ -15,7 +15,7 @@ import type {AlternativesPage} from '../../content/alternatives';
  */
 export default function Alternatives({page}: {page: AlternativesPage}) {
   const url = `https://www.useplunk.com/alternatives/${page.slug}`;
-  const title = `${page.name} Alternatives: ${page.picks.length} Options Compared | Plunk`;
+  const title = `${page.picks.length} Best ${page.name} Alternatives (${ALTERNATIVES_UPDATED.split(' ')[1]}), Compared | Plunk`;
   const description = `The best ${page.name} alternatives for developers and SaaS teams, with what each is best for and how it is priced. Updated ${ALTERNATIVES_UPDATED}.`;
   const picks = page.picks.map(key => ({key, ...TOOLS[key]}));
 

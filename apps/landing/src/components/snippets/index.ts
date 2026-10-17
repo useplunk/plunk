@@ -14,3 +14,4 @@ export * from './SmtpSnippet';
 export * from './SnippetTile';
 export * from './TransactionalSnippets';
 export * from './WorkflowSnippets';
+export * from './OpenSourceSnippets';

@@ -19,6 +19,11 @@ import {DASHBOARD_URI} from '../../lib/constants';
  * beside the headline (workflows, segments) read as products, and the ones that
  * do not read as documentation. When it is omitted the headline column runs
  * full width rather than leaving half the fold empty.
+ *
+ * The title uses --text-hero, not --text-display: beside a graphic the column
+ * is about 600px wide, and display size broke two-line titles into one word
+ * per line. The graphic only sits beside the title from xl up; below that the
+ * column is too narrow for both and they stack.
  */
 export function FeatureHero({
   title,
@@ -37,9 +42,9 @@ export function FeatureHero({
   return (
     <section className={'relative overflow-hidden'}>
       <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-28'}>
-        <div className={`grid items-center gap-16 ${artifact ? 'lg:grid-cols-12' : ''}`}>
-          <div className={`hero-enter ${artifact ? 'lg:col-span-6' : 'max-w-4xl'}`}>
-            <h1 className={'font-display text-display font-extrabold tracking-[-0.035em] text-neutral-900'}>{title}</h1>
+        <div className={`grid items-center gap-16 ${artifact ? 'xl:grid-cols-12' : ''}`}>
+          <div className={`hero-enter max-w-4xl ${artifact ? 'xl:col-span-7 xl:max-w-none' : ''}`}>
+            <h1 className={'font-display text-hero font-extrabold tracking-[-0.035em] text-neutral-900'}>{title}</h1>
             <p className={'mt-6 max-w-[55ch] text-lead text-neutral-600'}>{subtitle}</p>
 
             <div className={'mt-10 flex flex-wrap gap-3'}>
@@ -68,7 +73,7 @@ export function FeatureHero({
           </div>
 
           {artifact && (
-            <div className={'hero-enter min-w-0 lg:col-span-6'} style={{animationDelay: '0.15s'}}>
+            <div className={'hero-enter min-w-0 xl:col-span-5'} style={{animationDelay: '0.15s'}}>
               {artifact}
             </div>
           )}
