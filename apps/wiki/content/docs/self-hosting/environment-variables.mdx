@@ -84,6 +84,16 @@ Rate limiting is **off by default** — upgrading Plunk will never start refusin
 
 Contact writes share one budget because a sync integration drives create, update and delete from the same upstream change feed — separate budgets would let a single runaway sync spend three times the intended allowance.
 
+## Contact Fields Cache
+
+`GET /contacts/fields` lists the fields a segment filter, workflow condition or template variable can be built from. Discovering the custom ones means reading every contact in the project — no index can enumerate the distinct keys of a JSON column — so the result is cached per project.
+
+| Variable                          | Required | Description                                                                                                                                                                                     | Default |
+| --------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `CONTACT_FIELDS_CACHE_TTL_HOURS`  | No       | How long a computed field list is served before it is recomputed.                                                                                                                                | `4`     |
+
+You rarely need to lower this. A contact write carrying a field the cached list does not know about drops the entry, so a genuinely new custom field shows up on the next read regardless of the window. What the window bounds is the slower-moving part: the coverage percentage shown next to each field, and a type that changed because contacts started storing something else under an existing key.
+
 ## Idempotency
 
 Callers can pass an `Idempotency-Key` header to `POST /v1/track` and `POST /v1/send` to guarantee the request runs at most once. See [Idempotency](/guides/idempotency).
