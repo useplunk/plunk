@@ -4,9 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {DASHBOARD_URI, WIKI_URI} from '../../lib/constants';
 import Image from 'next/image';
 import logo from '../../../public/assets/logo.svg';
-import {Bot, ChevronDown, GitBranch, Inbox, Mail, Server, Users} from 'lucide-react';
-
-import {Label} from '../Mono';
+import {ArrowRight, Bot, ChevronDown, GitBranch, Inbox, Mail, Server, Users} from 'lucide-react';
 
 interface FeatureLink {
   title: string;
@@ -15,93 +13,56 @@ interface FeatureLink {
   icon: React.ReactNode;
 }
 
-interface FeatureGroup {
-  name: string;
-  items: FeatureLink[];
-}
-
 /**
- * The features menu, grouped.
+ * The features menu, flat.
  *
- * Six flat rows in a 320px column left every description wrapping to two or
- * three lines, which is what made the panel feel cramped: the height came from
- * wrapping, not from the number of items. Grouping gives the reader a level to
- * scan before they read any names, and the wider panel lets each description
- * sit on one line.
- *
- * Inbound Email sits under Audience rather than with the sending plumbing
- * because its first job is capturing contacts, which is how its own feature
- * page opens.
- *
- * Order matters: the grid is row-major over two columns, so this list fills
- * column one with Sending + Automation and column two with Audience +
- * Developers, which keeps three items under each.
+ * It used to group six items under four mono headings with rules under each,
+ * two of which held a single item, so the panel was mostly scaffolding. Six
+ * links read fine on their own in two columns; order is row-major, so the
+ * automation and audience features lead.
  */
-const featureGroups: FeatureGroup[] = [
+const features: FeatureLink[] = [
   {
-    name: 'Sending',
-    items: [
-      {
-        title: 'Email Editor',
-        description: 'Visual and code editing',
-        href: '/features/email-editor',
-        icon: <Mail className="h-4 w-4" strokeWidth={1.75} />,
-      },
-      {
-        title: 'SMTP',
-        description: 'Send from any client',
-        href: '/features/smtp',
-        icon: <Server className="h-4 w-4" strokeWidth={1.75} />,
-      },
-    ],
+    title: 'Workflows',
+    description: 'Automate email from product events',
+    href: '/features/workflows',
+    icon: <GitBranch className="h-4 w-4" strokeWidth={1.75} />,
   },
   {
-    name: 'Audience',
-    items: [
-      {
-        title: 'Segments',
-        description: 'Filter contacts by behaviour',
-        href: '/features/segments',
-        icon: <Users className="h-4 w-4" strokeWidth={1.75} />,
-      },
-      {
-        title: 'Inbound Email',
-        description: 'Receive at your domain',
-        href: '/features/inbound-email',
-        icon: <Inbox className="h-4 w-4" strokeWidth={1.75} />,
-      },
-    ],
+    title: 'Segments',
+    description: 'Audiences that stay up to date',
+    href: '/features/segments',
+    icon: <Users className="h-4 w-4" strokeWidth={1.75} />,
   },
   {
-    name: 'Automation',
-    items: [
-      {
-        title: 'Workflows',
-        description: 'Triggers, delays, conditions',
-        href: '/features/workflows',
-        icon: <GitBranch className="h-4 w-4" strokeWidth={1.75} />,
-      },
-    ],
+    title: 'Email editor',
+    description: 'Visual and HTML in one editor',
+    href: '/features/email-editor',
+    icon: <Mail className="h-4 w-4" strokeWidth={1.75} />,
   },
   {
-    name: 'Developers',
-    items: [
-      {
-        title: 'MCP Server',
-        description: 'Claude, Cursor and agents',
-        href: '/features/mcp',
-        icon: <Bot className="h-4 w-4" strokeWidth={1.75} />,
-      },
-    ],
+    title: 'Inbound email',
+    description: 'Receive email at your domain',
+    href: '/features/inbound-email',
+    icon: <Inbox className="h-4 w-4" strokeWidth={1.75} />,
+  },
+  {
+    title: 'SMTP',
+    description: 'Send from any existing client',
+    href: '/features/smtp',
+    icon: <Server className="h-4 w-4" strokeWidth={1.75} />,
+  },
+  {
+    title: 'MCP server',
+    description: 'Let your agent run your email',
+    href: '/features/mcp',
+    icon: <Bot className="h-4 w-4" strokeWidth={1.75} />,
   },
 ];
 
-const groupId = (name: string) => `features-group-${name.toLowerCase()}`;
-
 /**
- * One row in the features menu. The icon tile inverts on hover and on
- * keyboard focus, so pointer and keyboard users get the same feedback —
- * hover-only affordances leave keyboard users with nothing.
+ * One row in the features menu. Hover and keyboard focus get the same quiet
+ * feedback: a pale row and an icon tile that turns white against it.
  */
 function FeatureRow({item, onNavigate}: {item: FeatureLink; onNavigate: () => void}) {
   return (
@@ -109,25 +70,39 @@ function FeatureRow({item, onNavigate}: {item: FeatureLink; onNavigate: () => vo
       href={item.href}
       onClick={onNavigate}
       className={
-        'group/row flex items-start gap-3 rounded-[10px] p-2.5 transition-colors hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900'
+        'group/row flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-tile focus-visible:bg-tile focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900'
       }
     >
       <span
         aria-hidden
         className={
-          'mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700 transition-colors group-hover/row:bg-neutral-900 group-hover/row:text-white group-focus-visible/row:bg-neutral-900 group-focus-visible/row:text-white'
+          'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700 transition-colors group-hover/row:bg-white group-hover/row:shadow-fragment group-focus-visible/row:bg-white'
         }
       >
         {item.icon}
       </span>
       <span className={'min-w-0'}>
-        <span className={'block font-semibold text-neutral-900'}>{item.title}</span>
-        <span className={'mt-0.5 block text-ui text-neutral-600'}>{item.description}</span>
+        <span className={'block text-ui font-semibold text-neutral-900'}>{item.title}</span>
+        <span className={'block text-label text-neutral-500'}>{item.description}</span>
       </span>
     </Link>
   );
 }
 
+/** GitHub's mark; lucide no longer ships brand icons. */
+function GitHubMark({className}: {className?: string}) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+const REPO_URL = 'https://github.com/useplunk/plunk';
 
 /**
  *
@@ -262,32 +237,32 @@ export default function Navbar() {
                       >
                         <div
                           className={
-                            'w-[36rem] max-w-[calc(100vw-3rem)] rounded-card border border-neutral-200 bg-white p-6 shadow-[0_8px_24px_-12px_rgba(23,23,23,0.18)]'
+                            'w-[38rem] max-w-[calc(100vw-3rem)] rounded-card border border-neutral-200 bg-white p-2 shadow-[0_12px_32px_-16px_rgba(23,23,23,0.22)]'
                           }
                         >
-                        {/* Two columns, row-major: Sending + Automation on the
-                            left, Audience + Developers on the right. Tight
-                            inside a group, generous between them — the gap is
-                            what does the grouping work, not a border. */}
-                        <div className={'grid grid-cols-2 gap-x-8 gap-y-7'}>
-                          {featureGroups.map(group => (
-                            <div key={group.name}>
-                              <div
-                                id={groupId(group.name)}
-                                className={'mb-2 border-b border-neutral-200 px-2.5 pb-2'}
-                              >
-                                <Label>{group.name}</Label>
-                              </div>
-                              <ul aria-labelledby={groupId(group.name)}>
-                                {group.items.map(item => (
-                                  <li key={item.href}>
-                                    <FeatureRow item={item} onNavigate={closeFeatures} />
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ))}
-                          </div>
+                          <ul className={'grid grid-cols-2 gap-1'}>
+                            {features.map(item => (
+                              <li key={item.href}>
+                                <FeatureRow item={item} onNavigate={closeFeatures} />
+                              </li>
+                            ))}
+                          </ul>
+                          <Link
+                            href={'/changelog'}
+                            onClick={closeFeatures}
+                            className={
+                              'group/foot mt-1 flex items-center justify-between gap-4 rounded-xl bg-tile px-4 py-3 text-ui transition-colors hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900'
+                            }
+                          >
+                            <span className={'text-neutral-600'}>See what shipped recently</span>
+                            <span className={'inline-flex items-center gap-1.5 font-semibold text-neutral-900'}>
+                              Changelog
+                              <ArrowRight
+                                aria-hidden
+                                className={'h-3.5 w-3.5 transition-transform group-hover/foot:translate-x-0.5'}
+                              />
+                            </span>
+                          </Link>
                         </div>
                       </motion.div>
                     )}
@@ -306,13 +281,6 @@ export default function Navbar() {
                   className={'text-ui font-medium text-neutral-600 transition hover:text-neutral-900'}
                 >
                   Pricing
-                </Link>
-
-                <Link
-                  href={'/guides'}
-                  className={'text-ui font-medium text-neutral-600 transition hover:text-neutral-900'}
-                >
-                  Guides
                 </Link>
 
                 <Link
@@ -339,6 +307,20 @@ export default function Navbar() {
             </div>
 
             <div className="hidden items-center gap-6 md:flex">
+              {/* The star count is the one stat from the old hero strip worth
+                  keeping, and it belongs next to the repository it counts. */}
+              <a
+                href={REPO_URL}
+                target={'_blank'}
+                rel={'noopener noreferrer'}
+                aria-label={'Plunk on GitHub, 5,000+ stars'}
+                className={
+                  'inline-flex items-center gap-2 text-ui font-medium text-neutral-600 transition hover:text-neutral-900'
+                }
+              >
+                <GitHubMark className={'h-4 w-4'} />
+                <span className={'tabular-nums'}>5k</span>
+              </a>
               <a
                 href={`${DASHBOARD_URI}/auth/login`}
                 className={'text-ui font-medium text-neutral-600 transition hover:text-neutral-900'}
@@ -414,28 +396,14 @@ export default function Navbar() {
                 transition={{duration: 0.2}}
                 className="space-y-1 p-4"
               >
-                {/* One column on a phone, so the groups stack rather than sit
-                    side by side, but the same headings keep the two menus
-                    telling the same story. */}
-                <div className="mb-2 space-y-5">
-                  {featureGroups.map(group => (
-                    <div key={group.name}>
-                      <div
-                        id={`mobile-${groupId(group.name)}`}
-                        className={'mb-1 border-b border-neutral-200 px-2.5 pb-2'}
-                      >
-                        <Label>{group.name}</Label>
-                      </div>
-                      <ul aria-labelledby={`mobile-${groupId(group.name)}`}>
-                        {group.items.map(item => (
-                          <li key={item.href}>
-                            <FeatureRow item={item} onNavigate={() => setMobileOpen(false)} />
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                <p className={'px-3 pb-1 pt-1 text-label font-semibold text-neutral-500'}>Features</p>
+                <ul className={'mb-3'}>
+                  {features.map(item => (
+                    <li key={item.href}>
+                      <FeatureRow item={item} onNavigate={() => setMobileOpen(false)} />
+                    </li>
                   ))}
-                </div>
+                </ul>
 
                 <Link
                   href={'/made-by-humans'}
@@ -453,14 +421,6 @@ export default function Navbar() {
                   Pricing
                 </Link>
 
-                <Link
-                  href={'/guides'}
-                  onClick={() => setMobileOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-ui font-medium text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
-                >
-                  Guides
-                </Link>
-
                 <a
                   href={WIKI_URI}
                   target={'_blank'}
@@ -468,6 +428,17 @@ export default function Navbar() {
                   className="block rounded-lg px-4 py-3 text-ui font-medium text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
                 >
                   Docs
+                </a>
+
+                <a
+                  href={REPO_URL}
+                  target={'_blank'}
+                  rel={'noopener noreferrer'}
+                  className="flex items-center gap-2 rounded-lg px-4 py-3 text-ui font-medium text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
+                >
+                  <GitHubMark className={'h-4 w-4'} />
+                  GitHub
+                  <span className={'text-neutral-500 tabular-nums'}>5,000+ stars</span>
                 </a>
 
                 <div className="border-t border-neutral-200 pt-4">

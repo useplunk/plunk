@@ -32,10 +32,7 @@ export function FilterBuilder({total, conditions}: {total: number; conditions: C
         className={'flex items-baseline justify-between gap-4'}
       >
         <span className={'text-neutral-500'}>All contacts</span>
-        <span
-          style={{fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums'}}
-          className={'text-h3 font-bold tracking-[-0.02em] text-neutral-400'}
-        >
+        <span className={'font-display text-h3 font-bold tracking-[-0.02em] text-neutral-400 tabular-nums'}>
           {fmt(total)}
         </span>
       </motion.div>
@@ -63,14 +60,9 @@ export function FilterBuilder({total, conditions}: {total: number; conditions: C
             className={'mt-4'}
           >
             <div className={'flex items-baseline justify-between gap-4'}>
+              <span className={'text-ui text-neutral-700'}>{condition.label}</span>
               <span
-                className={'font-code text-label text-neutral-700'}
-              >
-                {condition.label}
-              </span>
-              <span
-                style={{fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums'}}
-                className={`text-h3 font-bold tracking-[-0.02em] ${last ? 'text-neutral-900' : 'text-neutral-400'}`}
+                className={`font-display text-h3 font-bold tracking-[-0.02em] tabular-nums ${last ? 'text-neutral-900' : 'text-neutral-400'}`}
               >
                 {fmt(condition.remaining)}
               </span>

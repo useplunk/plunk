@@ -334,14 +334,14 @@ export function MarkdownEmailToolbar({editor}: ToolbarProps) {
           >
             {/* Custom color input */}
             <div className="mb-3 pb-3 border-b border-neutral-200">
-              <label className="text-xs font-medium text-neutral-600 mb-1 block">Custom Color</label>
+              <label className="text-xs font-medium text-neutral-600 mb-1 block">Custom color</label>
               <div className="flex gap-2">
                 <Input
                   type="text"
                   value={customColor}
                   onChange={e => setCustomColor(e.target.value.toUpperCase())}
                   placeholder="#000000"
-                  className="h-8 text-xs font-mono"
+                  className="h-8 font-code text-xs"
                   maxLength={7}
                   onKeyDown={e => {
                     if (e.key === 'Enter') {
@@ -441,7 +441,7 @@ export function MarkdownEmailToolbar({editor}: ToolbarProps) {
                   onMouseDown={e => e.preventDefault()}
                   onClick={removeLink}
                 >
-                  Remove Link
+                  Remove link
                 </Button>
               </div>
             )}

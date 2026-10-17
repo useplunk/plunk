@@ -33,12 +33,6 @@ export default function Index() {
 
         {/* Hero */}
         <section className={'relative overflow-hidden'}>
-          <div
-            aria-hidden
-            className={
-              'absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#eeeeee_1px,transparent_1px),linear-gradient(to_bottom,#eeeeee_1px,transparent_1px)] bg-[size:6rem_6rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_95%)]'
-            }
-          />
           <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pt-28 sm:pb-28'}>
             <motion.div
               initial={{opacity: 0, y: 16}}

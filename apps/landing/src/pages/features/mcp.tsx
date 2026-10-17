@@ -1,82 +1,107 @@
 import {
-  AgentExchange,
-  Chip,
+  AgentSnippet,
   CodeBlock,
   FAQSection,
   FeatureCTA,
   FeatureHero,
+  FeatureHighlights,
   FeatureSection,
   Footer,
+  McpCheckFragment,
+  McpConfirmFragment,
+  McpTestFragment,
   Navbar,
-  SpecList,
-  Surface,
+  ToolGroups,
 } from '../../components';
-import type {Exchange, FAQ, Spec} from '../../components';
+import type {AgentExchangeCopy, ChecklistItem, Claim, FAQ, ToolGroup} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
 
 /**
- * Was a six-item icon-card grid, identical to the one on three other feature
- * pages. Six equally sized bordered boxes make six things look equally
- * important and equally forgettable; a divided list lets the eye run the column
- * and gives each title somewhere to sit.
+ * Every tool @plunk/mcp registers, grouped the way the dashboard is. Names drop
+ * the plunk_ prefix; the intro says so once rather than the chips repeating it
+ * forty-two times. Read and write are kept apart because read-only mode
+ * registers the read tools and nothing else.
  */
-const capabilities: Spec[] = [
+const toolGroups: ToolGroup[] = [
   {
-    title: 'One command to connect',
+    title: 'Email',
     description:
-      'Install the official @plunk/mcp server, drop in a secret key, and your agent has your whole Plunk project. No SDK, no glue code, no bespoke tool definitions.',
-    machine: 'claude mcp add plunk -- npx -y @plunk/mcp',
+      'Send one-off messages from any verified domain, and fire the events that start workflows. The contact is created if it does not exist.',
+    read: ['verify_email'],
+    write: ['send_email', 'track_event'],
   },
   {
-    title: 'Send transactional email',
-    description: 'One-off messages to specific people, from any verified sending domain on your project.',
-    machine: 'plunk_send_email',
-  },
-  {
-    title: 'Manage contacts by email',
+    title: 'Contacts and segments',
     description:
-      'Create, look up, update and delete contacts. Subscribing and unsubscribing take an email address directly, so no ID lookup first.',
-    machine: 'plunk_get_contact, plunk_unsubscribe_contact, plunk_update_contact',
+      'Look up, create, update and delete contacts. Subscribe and unsubscribe take an email address, so there is no ID lookup first.',
+    read: ['list_contacts', 'get_contact', 'list_segments'],
+    write: [
+      'create_contact',
+      'update_contact',
+      'subscribe_contact',
+      'unsubscribe_contact',
+      'delete_contact',
+      'create_segment',
+    ],
   },
   {
-    title: 'Draft, test and send campaigns',
+    title: 'Campaigns and templates',
     description:
-      'Have your agent write a campaign, send yourself a test copy, then release it to a list or segment — and cancel it if you change your mind.',
-    machine: 'plunk_create_campaign, plunk_test_campaign, plunk_send_campaign',
+      'Write a campaign, send yourself a test copy, release it to a segment and read the stats. Cancelling stops whatever has not gone out.',
+    read: ['list_templates', 'list_campaigns', 'get_campaign', 'get_campaign_stats'],
+    write: ['create_template', 'create_campaign', 'test_campaign', 'send_campaign', 'cancel_campaign'],
   },
   {
-    title: 'Check before it sends',
+    title: 'Workflows',
     description:
-      'Your agent can see which domains are verified and how a campaign performed, so it stops guessing at what will be accepted.',
-    machine: 'plunk_list_domains, plunk_get_campaign_stats',
+      'Describe a flow and the agent builds it: trigger, emails, delays, yes/no and multi-branch conditions. It checks for errors before you can switch it on, then shows where each contact is.',
+    read: [
+      'list_workflows',
+      'get_workflow',
+      'check_workflow',
+      'list_workflow_fields',
+      'list_workflow_executions',
+      'get_workflow_execution',
+    ],
+    write: [
+      'create_workflow',
+      'update_workflow',
+      'duplicate_workflow',
+      'delete_workflow',
+      'add_workflow_step',
+      'add_workflow_steps',
+      'update_workflow_step',
+      'delete_workflow_step',
+      'connect_workflow_steps',
+      'disconnect_workflow_steps',
+      'set_workflow_enabled',
+      'start_workflow_execution',
+      'cancel_workflow_executions',
+    ],
   },
   {
-    title: 'Track events',
-    description: 'Fire the events that trigger your workflows, creating the contact on the fly if it does not exist.',
-    machine: 'plunk_track_event',
-  },
-  {
-    title: 'Works self-hosted',
-    description: 'Point PLUNK_API_URL at your own instance and the same server talks to your infrastructure.',
-    machine: 'PLUNK_API_URL=https://api.your-domain.com',
+    title: 'Domains',
+    description:
+      'See which sending domains are verified, and re-run the DNS check after you add records.',
+    read: ['list_domains', 'check_domain'],
+    write: [],
+    writeElsewhere: 'Adding and removing domains stays in the dashboard.',
   },
 ];
 
-/** The hero demo. Same exchange shape the homepage uses. */
-const exchange: Exchange = {
-  prompt: 'Draft a win-back email for pro users who have gone quiet.',
-  calls: [
-    {tool: 'plunk_list_segments', result: '4 segments'},
-    {tool: 'plunk_list_contacts', args: 'segment: "pro-inactive"', result: '2,431 contacts'},
-    {tool: 'plunk_create_campaign', args: '"Win-back, August"', result: 'draft created'},
-  ],
-  confirm: {
-    question: 'Send this campaign to 2,431 people?',
-    accept: '1. Yes, send it',
-    reject: '2. No, keep it as a draft',
-  },
+/**
+ * The hero: a workflow built by an agent, then held until you enable it. The
+ * homepage shows a campaign send; this shows the other half of the server, and
+ * the same approval gate.
+ */
+const exchange: AgentExchangeCopy = {
+  prompt: 'Welcome new signups, then send tips three days later.',
+  result: 'Built “Onboarding”: email, wait 3 days, email. No errors.',
+  question: 'Enable “Onboarding”? It emails everyone who signs up.',
+  accept: 'Enable',
+  reject: 'Keep disabled',
 };
 
 const faqs: FAQ[] = [
@@ -88,12 +113,12 @@ const faqs: FAQ[] = [
   {
     question: 'Can an agent send email without asking me?',
     answer:
-      'No. Sending a campaign, or an email to more than one recipient, prompts you through your MCP client and reports how many people it would reach. The model cannot supply that confirmation itself.',
+      'No. Sending a campaign, or an email to more than one recipient, prompts you through your MCP client and reports how many people it would reach. Enabling a workflow that sends email, or starting one for a contact, asks too. The model cannot supply that confirmation itself.',
   },
   {
     question: 'How do I stop an agent writing to my project at all?',
     answer:
-      'Set PLUNK_READ_ONLY=true. The thirteen mutating tools are then never registered with the client, so they cannot be invoked even by name. The agent is left with ten read tools.',
+      'Set PLUNK_READ_ONLY=true. The twenty-six mutating tools are then never registered with the client, so they cannot be invoked even by name. The agent is left with sixteen read tools.',
   },
   {
     question: 'Does it work with a self-hosted Plunk instance?',
@@ -147,54 +172,31 @@ const clients = [
   },
 ];
 
-const readTools = [
-  'plunk_list_contacts',
-  'plunk_get_contact',
-  'plunk_verify_email',
-  'plunk_list_templates',
-  'plunk_list_campaigns',
-  'plunk_get_campaign',
-  'plunk_get_campaign_stats',
-  'plunk_list_segments',
-  'plunk_list_domains',
-  'plunk_check_domain',
-];
-
-const writeTools = [
-  'plunk_create_contact',
-  'plunk_update_contact',
-  'plunk_subscribe_contact',
-  'plunk_unsubscribe_contact',
-  'plunk_delete_contact',
-  'plunk_send_email',
-  'plunk_track_event',
-  'plunk_create_template',
-  'plunk_create_campaign',
-  'plunk_test_campaign',
-  'plunk_send_campaign',
-  'plunk_cancel_campaign',
-  'plunk_create_segment',
-];
-
-const safety = [
+/**
+ * Only limits the server actually enforces, each shown as the moment it bites.
+ */
+const guardrails: Claim[] = [
   {
     title: 'Sends ask you first',
-    description:
-      'Sending a campaign, or an email to more than one recipient, prompts you and tells you how many people will receive it. The confirmation comes from you through your MCP client; the model cannot supply it itself.',
-    benefit: 'No surprise sends',
+    copy: 'Campaigns, multi-recipient emails and workflows that send all prompt you with the number of people affected. The model cannot answer for you.',
+    fragment: <McpConfirmFragment />,
   },
   {
-    title: 'Read-only mode is structural',
-    description:
-      'Set PLUNK_READ_ONLY=true and the mutating tools are never registered with the client. They cannot be invoked, even by name. The agent simply has no way to write.',
-    benefit: 'Ten read tools, nothing else',
+    title: 'Broken workflows stay off',
+    copy: 'Steps are checked before they are saved, and a workflow that would fail cannot be switched on.',
+    fragment: <McpCheckFragment />,
   },
   {
-    title: 'Account actions stay out of reach',
-    description:
-      'Billing, project deletion, and key rotation all require a dashboard session rather than an API key, so no tool can touch them. Use a separate project for anything an agent should never change.',
-    benefit: 'Blast radius is one project',
+    title: 'Test copies go to your team',
+    copy: 'A campaign test can only be sent to members of the project. Any other address is refused.',
+    fragment: <McpTestFragment />,
   },
+];
+
+const guardrailExtras: ChecklistItem[] = [
+  {title: 'Read-only mode', description: 'PLUNK_READ_ONLY=true registers only the sixteen read tools.'},
+  {title: 'The account stays put', description: 'Billing, keys and domains need a dashboard session.'},
+  {title: 'Self-hosted too', description: 'Point PLUNK_API_URL at your own instance.'},
 ];
 
 export default function MCPFeature() {
@@ -204,12 +206,12 @@ export default function MCPFeature() {
     <>
       <NextSeo
         title="MCP Server - Connect Plunk to Claude, Cursor & AI Agents | Plunk"
-        description="The official Plunk MCP server lets Claude, Cursor, and any Model Context Protocol client send email, manage contacts, and run campaigns in your Plunk project. Read-only mode and send confirmations built in."
+        description="The official Plunk MCP server lets Claude, Cursor, and any Model Context Protocol client send email, manage contacts, run campaigns, and build workflows in your Plunk project. Read-only mode and send confirmations built in."
         canonical="https://www.useplunk.com/features/mcp"
         openGraph={{
           title: 'MCP Server - Plunk for AI Agents | Plunk',
           description:
-            'Connect Plunk to Claude, Cursor, and any MCP client. 23 tools for email, contacts, campaigns, and segments, with read-only mode and send confirmations built in.',
+            'Connect Plunk to Claude, Cursor, and any MCP client. 42 tools for email, contacts, campaigns, segments, and workflows, with read-only mode and send confirmations built in.',
           url: 'https://www.useplunk.com/features/mcp',
           images: [
             {
@@ -233,21 +235,21 @@ export default function MCPFeature() {
               an email platform.
             </>
           }
-          subtitle={'Twenty-three tools for email, contacts, segments and campaigns. Sends still ask you first.'}
+          subtitle={'Forty-two tools for email, contacts, segments, campaigns and workflows. Sends still ask you first.'}
           docsHref={`${WIKI_URI}/guides/mcp-server`}
           docsLabel={'MCP docs'}
-          artifact={<AgentExchange exchange={exchange} />}
+          artifact={<AgentSnippet copy={exchange} />}
         />
 
-        {/* Capabilities. Was a six-item icon-card grid identical to three other
-            feature pages; now the same divided list the segments and workflows
-            pages already use. */}
+        {/* Capabilities and the read/write split, as one table. These were two
+            sections that listed the same tools twice. */}
         <FeatureSection
-          tone={'muted'}
           title={'What your agent can do'}
-          intro={'The same ground the dashboard covers, exposed as tools an MCP client can call.'}
+          intro={
+            'Forty-two tools, grouped the way the dashboard is. Each is prefixed plunk_ in your client. Read-only mode registers the read column and nothing else.'
+          }
         >
-          <SpecList specs={capabilities} />
+          <ToolGroups groups={toolGroups} writeNote={'off in read-only mode'} />
         </FeatureSection>
 
         <FeatureSection
@@ -280,57 +282,12 @@ export default function MCPFeature() {
           </div>
         </FeatureSection>
 
-        {/* The permission split. Two columns rather than the six-card grid,
-            because the whole point is that the tools fall into exactly two
-            groups and one of them can be switched off. */}
-        <FeatureSection
-          tone={'muted'}
-          title={'Twenty-three tools, two halves'}
-          intro={'Read-only mode registers the first ten and nothing else, so an agent can look without touching.'}
-        >
-          <div className={'grid gap-5 lg:grid-cols-2'}>
-            <Surface label={'read'} meta={<Chip>always on</Chip>} bodyClassName={'flex flex-wrap gap-2 p-5'}>
-              {readTools.map(tool => (
-                <span
-                  key={tool}
-                  className={
-                    'rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 font-code text-[0.6875rem] text-neutral-700'
-                  }
-                >
-                  {tool}
-                </span>
-              ))}
-            </Surface>
-
-            <Surface
-              label={'write'}
-              meta={<Chip>off in read-only mode</Chip>}
-              bodyClassName={'flex flex-wrap gap-2 p-5'}
-            >
-              {writeTools.map(tool => (
-                <span
-                  key={tool}
-                  className={
-                    'rounded-full border border-neutral-200 bg-white px-3 py-1.5 font-code text-[0.6875rem] text-neutral-700'
-                  }
-                >
-                  {tool}
-                </span>
-              ))}
-            </Surface>
-          </div>
-        </FeatureSection>
-
-        {/* Safety. Was a hand-rolled divided list duplicating SpecList. */}
-        <FeatureSection title={'What an agent cannot do'}>
-          <SpecList
-            specs={safety.map(item => ({
-              title: item.title,
-              description: item.description,
-              machine: item.benefit,
-            }))}
-          />
-        </FeatureSection>
+        <FeatureHighlights
+          title={'Guardrails'}
+          intro={'A secret key opens the whole project, so the server adds its own limits on top.'}
+          claims={guardrails}
+          extras={guardrailExtras}
+        />
 
         <FAQSection faqs={faqs} schemaId={'faq-mcp'} />
 

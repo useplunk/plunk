@@ -1,82 +1,104 @@
+import {Inbox, Megaphone, Reply, UserPlus, Webhook, Zap} from 'lucide-react';
+
 import {
+  ClaimTiles,
   FAQSection,
   FeatureCTA,
   FeatureHero,
+  FeatureHighlights,
   FeatureSection,
+  FlowFragment,
   Footer,
-  InboundMessage,
+  InboundAutoReplyFragment,
+  InboundChecksFragment,
+  InboundSnippets,
+  InboundWebhookFragment,
   Navbar,
-  SpecList,
   StepSequence,
 } from '../../components';
-import type {FAQ, Spec, Step} from '../../components';
+import type {ChecklistItem, Claim, FAQ, Step} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React from 'react';
 import {NextSeo} from 'next-seo';
 
-const capabilities: Spec[] = [
+/**
+ * The hero shows a message arriving and becoming a contact. These show what
+ * else happens to it.
+ */
+const claims: Claim[] = [
   {
-    title: 'Every address, one MX record',
-    description:
-      'Point your domain at Plunk once and every address on it starts receiving. You do not create mailboxes one at a time.',
-    machine: 'support@, billing@, hello@',
+    title: 'Forwarded to your systems',
+    copy: 'Sender, subject, body and attachments arrive on your webhook in real time, ready for a help desk or CRM.',
+    fragment: <InboundWebhookFragment />,
   },
   {
-    title: 'Senders become contacts',
-    description:
-      'Anyone who writes in is created as a contact if they do not already exist, so a reply is the start of a record rather than a dead end in someone inbox.',
+    title: 'Checked before it reaches you',
+    copy: 'Spam, virus, SPF, DKIM and DMARC checks run on every message first.',
+    fragment: <InboundChecksFragment />,
   },
   {
-    title: 'Parsed onto your webhook',
-    description:
-      'Headers, body, and attachments arrive as JSON on your endpoint, in real time, ready to route into a help desk or a CRM.',
-    machine: 'POST /hooks/plunk',
-  },
-  {
-    title: 'Filtered before it reaches you',
-    description: 'Spam, virus, SPF, DKIM and DMARC checks run on every message first.',
-  },
-  {
-    title: 'Triggers workflows',
-    description:
-      'An inbound message is an event like any other, so it can start a sequence, tag a contact, or send an auto-reply.',
+    title: 'Answered straight away',
+    copy: 'A message is an event like any other, so it can send an auto-reply or start a workflow.',
+    fragment: <InboundAutoReplyFragment />,
   },
 ];
 
-const useCases: Spec[] = [
+const extras: ChecklistItem[] = [
+  {title: 'Every address at once', description: 'One MX record covers the whole domain.'},
+  {title: 'Senders become contacts', description: 'New senders are added to your contacts.'},
+  {title: 'Starts workflows', description: 'Any inbound message can trigger a sequence.'},
+  {title: 'Attachments included', description: 'Files arrive with the message on your webhook.'},
+  {title: 'Replies on the record', description: 'Answers to campaigns land on the same contact.'},
+  {title: 'Your own routing', description: 'Route each address however you like.'},
+];
+
+/** What teams build with it, drawn as the flows they are. */
+const recipes: Claim[] = [
   {
     title: 'Support inbox',
-    description:
-      'Mail to support@ creates a ticket in your help desk over a webhook and sends an acknowledgement back automatically, so nothing sits unanswered.',
-    machine: 'Instant acknowledgement, automatic ticket, nothing missed',
+    copy: 'Every message becomes a ticket and gets an instant reply.',
+    fragment: (
+      <FlowFragment
+        steps={[
+          {icon: Inbox, label: 'Email to', title: 'support@acme.com'},
+          {icon: Webhook, label: 'Webhook', title: 'Create a help desk ticket'},
+          {icon: Reply, label: 'Auto-reply', title: 'We got your message'},
+        ]}
+      />
+    ),
   },
   {
     title: 'Lead capture',
-    description:
-      'Mail to info@ or sales@ adds the sender to your contacts and starts a nurture sequence timed from when they actually reached out.',
-    machine: 'Zero-friction capture, auto-segmentation, instant follow-up',
+    copy: 'People who write in start a nurture sequence on their own.',
+    fragment: (
+      <FlowFragment
+        steps={[
+          {icon: Inbox, label: 'Email to', title: 'sales@acme.com'},
+          {icon: UserPlus, label: 'New contact', title: 'Ana Ruiz'},
+          {icon: Zap, label: 'Workflow started', title: 'Nurture'},
+        ]}
+      />
+    ),
   },
   {
     title: 'Two-way campaigns',
-    description:
-      'Let people reply to your campaigns. The reply lands on the same contact record and can tag them as engaged.',
-    machine: 'Conversation history, engagement tracking',
+    copy: 'Let people reply to campaigns and see who is engaged.',
+    fragment: (
+      <FlowFragment
+        steps={[
+          {icon: Megaphone, label: 'Campaign', title: 'August update'},
+          {icon: Reply, label: 'Reply from', title: 'Ana Ruiz'},
+          {icon: UserPlus, label: 'Contact updated', title: 'Tagged as engaged'},
+        ]}
+      />
+    ),
   },
 ];
 
 const steps: Step[] = [
-  {
-    title: 'Verify your domain',
-    body: 'Add your domain in Plunk and configure the DKIM and SPF records in your DNS settings.',
-  },
-  {
-    title: 'Add one MX record',
-    body: 'Copy the MX record from your dashboard into your DNS. That routes incoming mail to Plunk.',
-  },
-  {
-    title: 'Start receiving',
-    body: 'Mail to any address at your domain now arrives, saves the sender, and can trigger workflows or webhooks.',
-  },
+  {title: 'Verify your domain', body: 'Add it in Plunk and set the DKIM and SPF records.'},
+  {title: 'Add one MX record', body: 'Copy it from your dashboard into your DNS.'},
+  {title: 'Start receiving', body: 'Mail to any address at your domain now arrives.'},
 ];
 
 const faqs: FAQ[] = [
@@ -138,23 +160,17 @@ export default function InboundEmailFeature() {
           subtitle={'Receive at your own domain, save the sender as a contact, and trigger a workflow from the reply.'}
           docsHref={`${WIKI_URI}/guides/receiving-emails`}
           docsLabel={'Inbound docs'}
-          artifact={<InboundMessage />}
+          artifact={<InboundSnippets />}
         />
 
-        <FeatureSection
-          tone={'muted'}
-          title={'What arrives, and what happens next'}
-          intro={'Receiving is the easy half. What Plunk does with the message afterwards is the point.'}
-        >
-          <SpecList specs={capabilities} />
+        <FeatureHighlights title={'What happens to a message'} claims={claims} extras={extras} />
+
+        <FeatureSection title={'What teams use it for'}>
+          <ClaimTiles items={recipes} tileClassName={'min-h-96'} />
         </FeatureSection>
 
         <FeatureSection title={'Setting it up'}>
           <StepSequence steps={steps} />
-        </FeatureSection>
-
-        <FeatureSection tone={'muted'} title={'What teams use it for'}>
-          <SpecList specs={useCases} />
         </FeatureSection>
 
         <FAQSection faqs={faqs} schemaId={'faq-inbound-email'} />

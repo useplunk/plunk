@@ -1,95 +1,99 @@
+import {Clock, Mail, Split, Zap} from 'lucide-react';
+
 import {
+  ClaimTiles,
   FAQSection,
   FeatureCTA,
   FeatureHero,
+  FeatureHighlights,
   FeatureSection,
+  FlowFragment,
   Footer,
   Navbar,
-  SpecList,
-  StepSequence,
-  WorkflowCanvas,
+  WorkflowEventFragment,
+  WorkflowRunsFragment,
+  WorkflowSnippets,
+  WorkflowWebhookFragment,
 } from '../../components';
-import type {FAQ} from '../../components';
-import type {CanvasFlow, Spec, Step} from '../../components';
+import type {ChecklistItem, Claim, FAQ} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React from 'react';
 import {NextSeo} from 'next-seo';
 
-/** The onboarding flow, as the builder would compose it. */
-const onboarding: CanvasFlow = {
-  steps: [
-    {kind: 'trigger', label: 'Signs up', value: 'user.signed-up'},
-    {kind: 'action', label: 'Welcome email'},
-    {kind: 'wait', label: 'Wait', value: '2 days'},
-    {kind: 'branch', label: 'Opened it?'},
-  ],
-  branches: [
-    {answer: 'yes', label: 'Getting started'},
-    {answer: 'no', label: 'Nudge'},
-  ],
-};
-
-const steps: Step[] = [
+/**
+ * The three things a workflow does that a single email cannot, each shown.
+ * The hero already shows the steps themselves (trigger, send, wait, branch),
+ * so these show what happens around them.
+ */
+const claims: Claim[] = [
   {
-    title: 'Pick the trigger',
-    body: 'Any event you already track starts a workflow: a signup, a purchase, a plan change. Contacts enter the moment the event fires.',
+    title: 'Starts from what people do',
+    copy: 'Send one event from your app when something happens. The workflow starts for that contact on its own.',
+    fragment: <WorkflowEventFragment />,
   },
   {
-    title: 'Compose the flow',
-    body: 'Drag in emails, delays, conditions and webhooks. Branches split on contact data or on how someone responded to an earlier step.',
+    title: 'See where everyone is',
+    copy: 'Every run is visible while it happens: which step each contact is on and what comes next.',
+    fragment: <WorkflowRunsFragment />,
   },
   {
-    title: 'Turn it on',
-    body: 'Every run is visible while it happens, so you can see where a contact is in the flow and what the next step will be.',
+    title: 'Talks to your other tools',
+    copy: 'A step can call a webhook, so a sequence can update your CRM or start work elsewhere.',
+    fragment: <WorkflowWebhookFragment />,
   },
 ];
 
-const useCases: Spec[] = [
+const extras: ChecklistItem[] = [
+  {title: 'Delays on the clock', description: 'Wait an hour, a day or until a set date.'},
+  {title: 'Branches on real data', description: 'Split on contact fields, custom data or an earlier open.'},
+  {title: 'Exit when it worked', description: 'Stop the sequence once the contact does the thing.'},
+  {title: 'Re-entry, your call', description: 'Run once per contact, or every time the event fires.'},
+  {title: 'Visual builder', description: 'Drag in emails, delays, conditions and webhooks.'},
+  {title: 'Same templates', description: 'Use the templates you already send from campaigns.'},
+];
+
+/** The flows people build first, drawn as the builder stacks them. */
+const recipes: Claim[] = [
   {
     title: 'Onboarding',
-    description:
-      'Walk a new signup through the product over their first week, and stop sending the rest of the sequence once they have done the thing it was nudging them toward.',
-    machine: 'user.signed-up → Welcome → Wait 2 days → Getting started',
+    copy: 'Walk new signups through their first week.',
+    fragment: (
+      <FlowFragment
+        steps={[
+          {icon: Zap, label: 'Trigger', title: 'Contact signs up'},
+          {icon: Mail, label: 'Send email', title: 'Welcome'},
+          {icon: Clock, label: 'Delay', title: 'Wait 2 days'},
+          {icon: Mail, label: 'Send email', title: 'Getting started'},
+        ]}
+      />
+    ),
   },
   {
     title: 'Cart recovery',
-    description:
-      'Follow up on an abandoned checkout while it is still live, then follow up again with an incentive if the first message goes unanswered.',
-    machine: 'cart.abandoned → Wait 1 hour → Reminder → Wait 1 day → Discount',
+    copy: 'Follow up while the checkout is still fresh.',
+    fragment: (
+      <FlowFragment
+        steps={[
+          {icon: Zap, label: 'Trigger', title: 'Checkout abandoned'},
+          {icon: Clock, label: 'Delay', title: 'Wait 1 hour'},
+          {icon: Mail, label: 'Send email', title: 'Still thinking it over?'},
+          {icon: Mail, label: 'Send email', title: '10% off, today only'},
+        ]}
+      />
+    ),
   },
   {
-    title: 'Re-engagement',
-    description:
-      'Catch contacts as they go quiet and branch on whether they opened the last thing you sent, so the dormant and the merely busy get different messages.',
-    machine: 'contact.inactive → If opened last email → Update / Offer',
-  },
-];
-
-const capabilities: Spec[] = [
-  {
-    title: 'Events, not schedules',
-    description:
-      'Workflows start from something a contact did. Send the event from your app with one API call and the flow takes over from there.',
-  },
-  {
-    title: 'Delays that respect the clock',
-    description:
-      'Wait an hour, a day, or until a specific point in the future. Contacts sit in the delay without holding a connection open.',
-  },
-  {
-    title: 'Branching on real data',
-    description:
-      'Split a flow on contact fields, on custom data you have attached, or on whether an earlier email in the same flow was opened.',
-  },
-  {
-    title: 'Webhooks out',
-    description:
-      'A workflow step can call your own systems, so an email sequence can also update a CRM or kick off work elsewhere.',
-  },
-  {
-    title: 'Re-entry, decided by you',
-    description:
-      'Choose whether a contact who triggers the same event twice runs the flow twice or is ignored the second time.',
+    title: 'Win-back',
+    copy: 'Treat the quiet and the merely busy differently.',
+    fragment: (
+      <FlowFragment
+        steps={[
+          {icon: Zap, label: 'Trigger', title: 'Inactive for 30 days'},
+          {icon: Split, label: 'Condition', title: 'Opened the last email?'},
+          {icon: Mail, label: 'If no', title: 'We miss you'},
+        ]}
+      />
+    ),
   },
 ];
 
@@ -154,25 +158,13 @@ export default function WorkflowsFeature() {
           }
           docsHref={`${WIKI_URI}/concepts/workflows`}
           docsLabel={'Workflow docs'}
-          artifact={<WorkflowCanvas flow={onboarding} meta={'Onboarding'} />}
+          artifact={<WorkflowSnippets />}
         />
 
-        {/* Capabilities — a divided list rather than a card grid. Six bordered
-            boxes made six items look equally important and equally skippable. */}
-        <FeatureSection tone={'muted'} title={'What a step can do'}>
-          <SpecList specs={capabilities} />
-        </FeatureSection>
+        <FeatureHighlights title={'What a workflow can do'} claims={claims} extras={extras} />
 
-        {/* Build sequence — the one place on this page where numbers mean
-            something, because the order is the instruction. */}
-        <FeatureSection title={'Building one'}>
-          <StepSequence steps={steps} />
-        </FeatureSection>
-
-        {/* Use cases — the flow strings are machine text, so they are set as
-            Code: still monospace, no longer shouted in tracked capitals. */}
-        <FeatureSection tone={'muted'} title={'Three that people build first'}>
-          <SpecList specs={useCases} />
+        <FeatureSection title={'Three that people build first'}>
+          <ClaimTiles items={recipes} tileClassName={'min-h-96'} />
         </FeatureSection>
 
         <FAQSection faqs={faqs} schemaId={'faq-workflows'} />

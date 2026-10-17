@@ -1,5 +1,4 @@
-import {Check, X} from 'lucide-react';
-import {motion} from 'framer-motion';
+import {Check, Minus} from 'lucide-react';
 import React from 'react';
 
 export interface ComparisonRow {
@@ -11,65 +10,81 @@ export interface ComparisonRow {
 interface ComparisonTableProps {
   competitorName: string;
   rows: ComparisonRow[];
+  /** The highlighted column's heading. Feature pages compare two Plunk options. */
+  plunkLabel?: string;
 }
 
-export function ComparisonTable({competitorName, rows}: ComparisonTableProps) {
-  return (
-    <div className={'overflow-hidden rounded-card border border-neutral-200'}>
-      <div className={'grid grid-cols-3 gap-px bg-neutral-200'}>
-        <div className={'bg-neutral-50 p-6'}>
-          <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>Feature</span>
-        </div>
-        <div className={'bg-neutral-900 p-6 text-center'}>
-          <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-white'}>Plunk</span>
-        </div>
-        <div className={'bg-neutral-50 p-6 text-center'}>
-          <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>{competitorName}</span>
-        </div>
-      </div>
+/**
+ * Feature by feature, as a plain table.
+ *
+ * Both value columns have the same fixed width and centre their contents, so
+ * a tick and a phrase like "1,000 emails/month" sit on one axis down the
+ * column, and every cell is vertically centred so icons and text share a
+ * line. The Plunk column is marked by a pale band running its full height
+ * rather than by a black header cell; a missing feature is a quiet dash.
+ */
+export function ComparisonTable({competitorName, rows, plunkLabel = 'Plunk'}: ComparisonTableProps) {
+  const cell = (value: boolean | string, strong: boolean) => {
+    if (typeof value !== 'boolean') {
+      return <span className={strong ? 'font-semibold text-neutral-900' : 'text-neutral-600'}>{value}</span>;
+    }
+    return value ? (
+      <Check aria-label={'Yes'} className={'mx-auto h-5 w-5 text-neutral-900'} strokeWidth={2} />
+    ) : (
+      <Minus aria-label={'No'} className={'mx-auto h-5 w-5 text-neutral-300'} strokeWidth={2} />
+    );
+  };
 
-      <div className={'grid gap-px bg-neutral-200'}>
-        {rows.map((row, index) => (
-          <motion.div
-            key={row.feature}
-            initial={{opacity: 0, y: 10}}
-            whileInView={{opacity: 1, y: 0}}
-            viewport={{once: true}}
-            transition={{duration: 0.4, delay: index * 0.04, ease: [0.22, 1, 0.36, 1]}}
-            className={'grid grid-cols-3 gap-px bg-neutral-200'}
-          >
-            <div className={'bg-white p-6'}>
-              <span className={'text-ui text-neutral-700'}>{row.feature}</span>
-            </div>
-            <div className={'bg-neutral-50/70 p-6'}>
-              <div className={'flex justify-center'}>
-                {typeof row.plunk === 'boolean' ? (
-                  row.plunk ? (
-                    <Check className="h-5 w-5 text-neutral-900" strokeWidth={2} />
-                  ) : (
-                    <X className="h-5 w-5 text-neutral-300" strokeWidth={2} />
-                  )
-                ) : (
-                  <span className={'text-ui font-medium text-neutral-900'}>{row.plunk}</span>
-                )}
-              </div>
-            </div>
-            <div className={'bg-white p-6'}>
-              <div className={'flex justify-center'}>
-                {typeof row.competitor === 'boolean' ? (
-                  row.competitor ? (
-                    <Check className="h-5 w-5 text-neutral-900" strokeWidth={2} />
-                  ) : (
-                    <X className="h-5 w-5 text-neutral-300" strokeWidth={2} />
-                  )
-                ) : (
-                  <span className={'text-ui text-neutral-600'}>{row.competitor}</span>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+  return (
+    <div className={'overflow-x-auto'}>
+      <table className={'w-full min-w-[34rem] table-fixed border-separate border-spacing-0 text-ui'}>
+        <colgroup>
+          <col className={'w-2/5'} />
+          <col />
+          <col />
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope={'col'} className={'pb-4 pr-4 pt-5 text-left'}>
+              <span className={'sr-only'}>Feature</span>
+            </th>
+            <th
+              scope={'col'}
+              className={'rounded-t-card bg-tile px-4 pb-4 pt-5 text-center font-semibold text-neutral-900'}
+            >
+              {plunkLabel}
+            </th>
+            <th scope={'col'} className={'px-4 pb-4 pt-5 text-center font-semibold text-neutral-500'}>
+              {competitorName}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => {
+            const last = i === rows.length - 1;
+            return (
+              <tr key={row.feature}>
+                <th
+                  scope={'row'}
+                  className={
+                    'border-t border-neutral-200 py-4 pr-4 text-left align-middle font-normal text-neutral-700'
+                  }
+                >
+                  {row.feature}
+                </th>
+                <td
+                  className={`border-t border-neutral-200 bg-tile px-4 py-4 text-center align-middle ${last ? 'rounded-b-card' : ''}`}
+                >
+                  {cell(row.plunk, true)}
+                </td>
+                <td className={'border-t border-neutral-200 px-4 py-4 text-center align-middle'}>
+                  {cell(row.competitor, false)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

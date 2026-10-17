@@ -1,381 +1,328 @@
-import React from 'react';
-import {GuideLayout, InfoBox} from '../../components/guides';
-import {CodeBlock} from '../../components/CodeBlock';
 import Link from 'next/link';
+import React from 'react';
+
 import type {FAQ} from '../../components/FAQSection';
+import {
+  AuthResultsFragment,
+  DnsRecordFragment,
+  GuideCode,
+  GuideFigure,
+  GuideLayout,
+  GuidePoints,
+  GuideSection,
+  GuideSteps,
+  GuideTable,
+  InfoBox,
+} from '../../components/guides';
+import {SnippetTile, StatusPill, UICard} from '../../components/snippets';
 
 const faqs: FAQ[] = [
   {
     question: 'What is DMARC?',
     answer:
-      'DMARC (Domain-based Message Authentication, Reporting, and Conformance) is an email authentication protocol that builds on SPF and DKIM to protect your domain from spoofing and phishing. It tells receiving mail servers what to do when an email fails authentication checks—none (monitor), quarantine (spam), or reject (block)—and provides detailed reports about who is sending email using your domain.',
+      'DMARC (Domain-based Message Authentication, Reporting, and Conformance) is an email authentication protocol that builds on SPF and DKIM to protect your domain from spoofing and phishing. It tells receiving servers what to do when a message fails those checks (none to monitor, quarantine to send to spam, reject to block) and sends you reports on who is sending email as your domain.',
   },
   {
     question: 'What is a DMARC policy?',
     answer:
-      'A DMARC policy (the "p=" tag) determines how receiving mail servers handle emails that fail authentication. p=none means monitor only and take no action; p=quarantine sends failed emails to spam; p=reject completely blocks failed emails. Start with p=none to gather data, then progressively tighten to quarantine and reject as you confirm all your legitimate senders are properly authenticated.',
+      'The DMARC policy (the p= tag) sets how receiving servers handle email that fails authentication. p=none monitors and takes no action, p=quarantine sends failing email to spam, and p=reject blocks it. Start with p=none to gather data, then tighten to quarantine and reject once every legitimate sender is authenticated.',
   },
   {
     question: 'What does p=reject mean in DMARC?',
     answer:
-      'p=reject is the strictest DMARC policy. Emails that fail DMARC authentication are completely rejected and not delivered to the recipient. This provides maximum protection against phishing and spoofing, but requires that all your legitimate email sources (newsletters, CRMs, transactional tools) are properly configured with SPF and DKIM before enabling it.',
+      'p=reject is the strictest policy: email that fails DMARC is refused and never delivered. It gives the most protection against phishing and spoofing, but every legitimate source (newsletters, CRMs, transactional tools) must pass SPF or DKIM with alignment before you turn it on.',
   },
   {
     question: 'How do I add a DMARC record?',
     answer:
-      'Add a TXT record in your DNS with the name _dmarc.yourdomain.com. Start with a monitoring-only value: v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com. This records email activity without affecting delivery. After reviewing reports for 2-4 weeks and confirming your SPF and DKIM setup, gradually strengthen to p=quarantine then p=reject.',
+      'Add a TXT record named _dmarc.yourdomain.com. Start with a monitoring value: v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com. This records activity without affecting delivery. After 2 to 4 weeks of reports, and once SPF and DKIM pass for every sender, move to p=quarantine and then p=reject.',
   },
   {
     question: 'Is DMARC required for email deliverability?',
     answer:
-      'Since February 2024, Google and Yahoo require DMARC authentication (with at least p=none) for bulk senders sending more than 5,000 emails per day to Gmail or Yahoo addresses. While not strictly required for smaller senders, implementing DMARC is strongly recommended for all domains to improve deliverability, prevent phishing, and meet industry best practices.',
+      'Since February 2024, Google and Yahoo require a DMARC record (at least p=none) for bulk senders sending more than 5,000 emails a day to Gmail or Yahoo addresses. Smaller senders are not strictly required to have one, but it is strongly recommended for every domain: it improves deliverability and blocks phishing in your name.',
   },
 ];
 
 export default function WhatIsDMARC() {
   return (
     <GuideLayout
+      slug={'what-is-dmarc'}
       title="What is DMARC? Policy, Setup & Reporting Explained"
+      heading={'What is DMARC?'}
       description="Learn how DMARC works with SPF and DKIM to protect your domain. Understand DMARC policies (none, quarantine, reject), how to set up a DMARC record, and read reports."
+      lead={
+        'DMARC is a DNS record that tells inboxes what to do with mail that fails SPF and DKIM: deliver it, send it to spam, or reject it. It also sends you reports on everyone sending email as your domain.'
+      }
       lastUpdated="2025-12-20"
-      readTime="9 min"
+      readTime="7 min"
       canonical="https://www.useplunk.com/guides/what-is-dmarc"
       faqs={faqs}
+      cta={'Send email that passes DMARC.'}
+      figure={
+        <SnippetTile align={'bleed-right'} className={'min-h-[26rem] py-10'}>
+          <div className={'flex flex-col gap-3'}>
+            <DnsRecordFragment
+              type={'TXT'}
+              name={'_dmarc.acme.com'}
+              value={'v=DMARC1; p=reject; rua=mailto:dmarc@acme.com'}
+              status={{tone: 'ok', label: 'Verified'}}
+              className={'w-full max-w-lg'}
+            />
+            <PolicyFragment className={'ml-10 w-full max-w-xs'} />
+          </div>
+        </SnippetTile>
+      }
     >
-      {/* Introduction */}
-      <section id="introduction" className="mb-12">
-        <p className="text-neutral-700 leading-relaxed">
-          DMARC (Domain-based Message Authentication, Reporting, and Conformance) is an email authentication protocol
-          that builds on SPF and DKIM to protect your domain from email spoofing and phishing.
+      <GuideSection id={'how-dmarc-works'} title={'How DMARC works'}>
+        <p>
+          SPF and DKIM say whether a message passed a check. DMARC adds two things: it requires the domain that passed to
+          match the one in the From address, and it tells the receiver what to do when nothing does.
         </p>
-        <p className="mt-4 text-neutral-700 leading-relaxed">
-          While SPF and DKIM authenticate emails, DMARC tells receiving servers what to do when authentication fails and
-          provides reports about your email authentication status.
-        </p>
-      </section>
-
-      {/* How DMARC Works */}
-      <section id="how-dmarc-works" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How DMARC Works</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          DMARC adds a policy layer on top of SPF and DKIM. Here's how it works:
-        </p>
-
-        <div className="space-y-6 mb-8">
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">1. Email Authentication</h3>
-            <p className="text-neutral-700">
-              When an email is received, the server first checks SPF and DKIM authentication. At least one of these must
-              pass for DMARC to pass.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">2. Alignment Check</h3>
-            <p className="text-neutral-700">
-              DMARC checks if the domain in the "From" header aligns with the domain that passed SPF or DKIM. This is
-              called "identifier alignment."
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">3. Policy Application</h3>
-            <p className="text-neutral-700">
-              If authentication and alignment pass, the email is delivered. If they fail, the receiving server follows
-              your DMARC policy: none (monitor only), quarantine (send to spam), or reject (block completely).
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">4. Reporting</h3>
-            <p className="text-neutral-700">
-              Receiving servers send daily reports to your specified email address, showing authentication results for
-              all emails claiming to be from your domain.
-            </p>
-          </div>
-        </div>
-
-        <InfoBox type="info" title="DMARC Requires SPF or DKIM">
-          <p>
-            DMARC doesn't work alone—you must have SPF and/or DKIM configured first. DMARC builds on these protocols to
-            provide policy enforcement and reporting.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* DMARC Record Syntax */}
-      <section id="dmarc-record-syntax" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">DMARC Record Syntax</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          A DMARC record is a TXT record published at <code>_dmarc.yourdomain.com</code>. Here's an example:
-        </p>
-
-        <CodeBlock
-          language="dns"
-          title="Example DMARC Record"
-          code={`_dmarc.yourdomain.com  IN  TXT  "v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com; ruf=mailto:forensic@yourdomain.com; pct=100; adkim=r; aspf=r"
-
-# Breaking down the components:
-# v=DMARC1                           -> DMARC version
-# p=quarantine                       -> Policy (none, quarantine, or reject)
-# rua=mailto:dmarc@yourdomain.com   -> Aggregate report email
-# ruf=mailto:forensic@yourdomain.com -> Forensic report email
-# pct=100                            -> Percentage of mail to apply policy (100%)
-# adkim=r                            -> DKIM alignment mode (r=relaxed, s=strict)
-# aspf=r                             -> SPF alignment mode (r=relaxed, s=strict)`}
+        <GuideSteps
+          steps={[
+            {
+              title: 'SPF and DKIM run',
+              body: 'The receiving server checks both. At least one has to pass for DMARC to pass.',
+            },
+            {
+              title: 'Alignment is checked',
+              body: 'The domain that passed SPF or DKIM must match the domain in the From header. This is called identifier alignment.',
+            },
+            {
+              title: 'Your policy is applied',
+              body: 'If a check passes and aligns, the message is delivered. If not, the receiver follows your policy: none, quarantine or reject.',
+            },
+            {
+              title: 'You get a report',
+              body: 'Receivers send daily reports to the address in your record, covering every message that claimed to be from your domain.',
+            },
+          ]}
         />
-
-        <div className="mt-8 space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">DMARC Policy Tags</h3>
-            <div className="rounded-xl border border-neutral-200 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Tag</th>
-                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Description</th>
-                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Required</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200">
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">v</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">DMARC version (always DMARC1)</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Yes</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">p</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Policy: none, quarantine, or reject</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Yes</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">rua</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Aggregate report email address</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Recommended</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">ruf</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Forensic report email address</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">pct</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Percentage of mail to filter (0-100)</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">sp</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Policy for subdomains</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">adkim</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">DKIM alignment: r (relaxed) or s (strict)</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">aspf</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">SPF alignment: r (relaxed) or s (strict)</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Optional</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        <GuideFigure caption={'Both messages pass a check. Only the one signed by acme.com aligns with the From address.'}>
+          <div className={'grid w-full max-w-xl gap-3 sm:grid-cols-2'}>
+            <AuthResultsFragment
+              subject={'Your receipt from Acme'}
+              from={'billing@acme.com'}
+              results={[
+                {label: 'DKIM, acme.com', value: 'Pass', tone: 'ok'},
+                {label: 'Aligned', value: 'Yes', tone: 'neutral'},
+                {label: 'DMARC', value: 'Pass', tone: 'ok'},
+              ]}
+              className={'w-full'}
+            />
+            <AuthResultsFragment
+              subject={'Your account is on hold'}
+              from={'billing@acme.com'}
+              results={[
+                {label: 'SPF, mailer.net', value: 'Pass', tone: 'ok'},
+                {label: 'Aligned', value: 'No', tone: 'neutral'},
+                {label: 'DMARC', value: 'Fail', tone: 'err'},
+              ]}
+              className={'w-full'}
+            />
           </div>
-        </div>
-      </section>
-
-      {/* DMARC Policies */}
-      <section id="dmarc-policies" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Understanding DMARC Policies</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          DMARC offers three policy levels. You should implement them progressively:
+        </GuideFigure>
+        <p>
+          DMARC does not work on its own. Set up <Link href={'/guides/what-is-spf'}>SPF</Link> and{' '}
+          <Link href={'/guides/what-is-dkim'}>DKIM</Link> first.
         </p>
+      </GuideSection>
 
-        <div className="space-y-6">
-          <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold">
-                1
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-blue-900 mb-2">p=none (Monitor Mode)</h3>
-                <p className="text-neutral-700 mb-3">
-                  No action is taken on failed emails—they're still delivered. Use this initially to monitor your email
-                  authentication without affecting delivery.
-                </p>
-                <CodeBlock language="dns" code={`v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com`} showCopy={false} />
-                <p className="text-ui text-neutral-600 mt-3">
-                  <strong>Best for:</strong> Initial setup, gathering data, testing configuration
-                </p>
-              </div>
-            </div>
-          </div>
+      <GuideSection id={'dmarc-record-syntax'} title={'Reading a DMARC record'}>
+        <p>
+          A DMARC record is a TXT record at <code>_dmarc.yourdomain.com</code>. Only the version and the policy are
+          required.
+        </p>
+        <GuideCode
+          title={'TXT record on _dmarc.acme.com'}
+          code={
+            'v=DMARC1; p=quarantine; rua=mailto:dmarc@acme.com; ruf=mailto:forensic@acme.com; pct=100; adkim=r; aspf=r'
+          }
+        />
+        <GuideTable
+          mono
+          head={['Tag', 'What it means', 'Required']}
+          rows={[
+            ['v', 'The version. Always DMARC1.', 'Yes'],
+            ['p', 'The policy: none, quarantine or reject.', 'Yes'],
+            ['rua', 'Where to send aggregate reports.', 'Recommended'],
+            ['ruf', 'Where to send forensic reports on single failures.', 'Optional'],
+            ['pct', 'The percentage of failing mail the policy applies to (0 to 100).', 'Optional'],
+            ['sp', 'The policy for subdomains.', 'Optional'],
+            ['adkim', 'DKIM alignment: r (relaxed) or s (strict).', 'Optional'],
+            ['aspf', 'SPF alignment: r (relaxed) or s (strict).', 'Optional'],
+          ]}
+        />
+        <p>
+          Relaxed alignment accepts a subdomain (mail.acme.com aligns with acme.com). Strict needs an exact match. Relaxed
+          is the default and right for most domains.
+        </p>
+      </GuideSection>
 
-          <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-600 text-white font-bold">
-                2
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-amber-900 mb-2">p=quarantine (Quarantine Failed Mail)</h3>
-                <p className="text-neutral-700 mb-3">
-                  Emails that fail authentication are sent to spam/junk folders. This is a good middle ground that
-                  protects your domain while minimizing delivery issues.
-                </p>
-                <CodeBlock
-                  language="dns"
-                  code={`v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com; pct=100`}
-                  showCopy={false}
-                />
-                <p className="text-ui text-neutral-600 mt-3">
-                  <strong>Best for:</strong> After monitoring, when you're confident in your setup
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-600 text-white font-bold">
-                3
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-red-900 mb-2">p=reject (Block Failed Mail)</h3>
-                <p className="text-neutral-700 mb-3">
-                  Emails that fail authentication are completely rejected and not delivered. This provides maximum
-                  protection but requires perfect configuration.
-                </p>
-                <CodeBlock
-                  language="dns"
-                  code={`v=DMARC1; p=reject; rua=mailto:dmarc@yourdomain.com; pct=100`}
-                  showCopy={false}
-                />
-                <p className="text-ui text-neutral-600 mt-3">
-                  <strong>Best for:</strong> Mature implementations with complete authentication coverage
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <InfoBox type="warning" title="Progressive Implementation">
+      <GuideSection id={'dmarc-policies'} title={'The three policies'}>
+        <p>
+          The policy only affects mail that fails DMARC. Move through the three in order, one step at a time, as reports
+          confirm your own mail passes.
+        </p>
+        <GuideFigure caption={'The same failing message under each policy. Only none lets it through.'}>
+          <PolicyRowsFragment />
+        </GuideFigure>
+        <InfoBox type={'warning'} title={'Start with p=none'}>
           <p>
-            Always start with <code>p=none</code> and monitor for at least 2-4 weeks. Review DMARC reports, fix any
-            authentication issues, then gradually move to <code>p=quarantine</code> and finally <code>p=reject</code>.
+            Monitor for at least 2 to 4 weeks before you enforce. Jumping straight to <code>p=reject</code> can block
+            your own newsletters, invoices or help desk replies if one of them is not authenticated yet.
           </p>
         </InfoBox>
-      </section>
+      </GuideSection>
 
-      {/* Setting Up DMARC */}
-      <section id="setting-up-dmarc" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How to Set Up DMARC</h2>
+      <GuideSection id={'dmarc-reports'} title={'Reading DMARC reports'}>
+        <p>
+          Aggregate reports (<code>rua</code>) arrive daily from each large mailbox provider as XML files. They list
+          every server that sent mail as your domain, how many messages it sent, and whether they passed SPF, DKIM and
+          alignment. Forensic reports (<code>ruf</code>) describe single failed messages, but few providers send them.
+        </p>
+        <GuideFigure caption={'Each row is a source sending as your domain. Fix the ones you recognise before you enforce.'}>
+          <ReportFragment />
+        </GuideFigure>
+        <p>
+          Reports can be large and frequent, so send them to a dedicated mailbox. Sources you recognise that fail need
+          SPF or DKIM set up; sources you do not recognise are what your policy will block.
+        </p>
+      </GuideSection>
 
-        <div className="space-y-4 mb-8">
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              1
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Ensure SPF and DKIM are Working</h3>
-              <p className="text-neutral-700">
-                DMARC requires either SPF or DKIM (or both) to be configured. Verify these are working before
-                implementing DMARC.
-              </p>
-            </div>
-          </div>
+      <GuideSection id={'why-dmarc-matters'} title={'Why DMARC matters'}>
+        <GuidePoints
+          columns={2}
+          items={[
+            {title: 'Blocks spoofing', body: 'At p=reject, forged mail in your name is refused outright.'},
+            {title: 'Required by Google and Yahoo', body: 'Bulk senders (5,000+ a day) need at least p=none since 2024.'},
+            {title: 'Shows who sends as you', body: 'Reports surface tools and servers you did not know about.'},
+            {title: 'Improves deliverability', body: 'An enforced policy is a strong trust signal for inboxes.'},
+          ]}
+        />
+      </GuideSection>
 
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              2
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Create a Mailbox for Reports</h3>
-              <p className="text-neutral-700">
-                Set up an email address to receive DMARC reports (e.g., dmarc@yourdomain.com). These reports can be
-                large and frequent, so use a dedicated mailbox.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              3
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Create Your DMARC Record</h3>
-              <p className="text-neutral-700 mb-3">Start with a monitoring-only policy:</p>
-              <CodeBlock language="dns" code={`v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com; pct=100`} />
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              4
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Add to DNS</h3>
-              <p className="text-neutral-700">
-                Add the DMARC record as a TXT record at <code>_dmarc.yourdomain.com</code>
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              5
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Monitor Reports</h3>
-              <p className="text-neutral-700">
-                Review DMARC reports for 2-4 weeks. Look for failed authentications and identify any legitimate sources
-                that need SPF/DKIM configuration.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              6
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Gradually Increase Policy</h3>
-              <p className="text-neutral-700">
-                Once confident, update to <code>p=quarantine</code>, monitor again, then move to <code>p=reject</code>{' '}
-                if desired.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Related Guides */}
-      <section id="related-guides" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Related Email Authentication Guides</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link
-            href="/guides/what-is-dkim"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is DKIM?</h3>
-            <p className="text-ui text-neutral-600">Learn how DKIM authenticates email content.</p>
-          </Link>
-          <Link
-            href="/guides/what-is-spf"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is SPF?</h3>
-            <p className="text-ui text-neutral-600">Understand SPF records and server authorization.</p>
-          </Link>
-          <Link
-            href="/guides/email-deliverability"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability Guide</h3>
-            <p className="text-ui text-neutral-600">Complete guide to improving email deliverability.</p>
-          </Link>
-        </div>
-      </section>
+      <GuideSection id={'setting-up-dmarc'} title={'How to set up DMARC'}>
+        <GuideSteps
+          steps={[
+            {
+              title: 'Make sure SPF and DKIM pass',
+              body: 'DMARC needs at least one of them working for every service that sends as you.',
+            },
+            {
+              title: 'Create a mailbox for reports',
+              body: 'For example dmarc@yourdomain.com. Keep it separate from your inbox.',
+            },
+            {
+              title: 'Publish a monitoring record',
+              body: (
+                <>
+                  Add a TXT record at <code>_dmarc.yourdomain.com</code>:
+                </>
+              ),
+              children: <GuideCode code={'v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com; pct=100'} />,
+            },
+            {
+              title: 'Watch reports for 2 to 4 weeks',
+              body: 'Find legitimate sources that fail and fix their SPF or DKIM.',
+            },
+            {
+              title: 'Tighten the policy',
+              body: (
+                <>
+                  Move to <code>p=quarantine</code>, monitor again, then to <code>p=reject</code>. Check each change with
+                  the <Link href={'/tools/dmarc-checker'}>DMARC checker</Link>.
+                </>
+              ),
+              children: <GuideCode code={'v=DMARC1; p=reject; rua=mailto:dmarc@yourdomain.com; pct=100'} />,
+            },
+          ]}
+        />
+      </GuideSection>
     </GuideLayout>
+  );
+}
+
+/** The policy setting on a domain, set to reject. */
+function PolicyFragment({className = ''}: {className?: string}) {
+  const options = ['None', 'Quarantine', 'Reject'];
+
+  return (
+    <UICard className={`p-4 ${className}`}>
+      <div className={'flex items-center justify-between gap-3'}>
+        <p className={'text-ui font-semibold text-neutral-900'}>DMARC policy</p>
+        <StatusPill tone={'ok'}>Enforced</StatusPill>
+      </div>
+      <div className={'mt-3 grid grid-cols-3 gap-1 rounded-lg bg-neutral-100 p-1'}>
+        {options.map(option => (
+          <span
+            key={option}
+            className={`rounded-md py-1.5 text-center text-label font-medium ${
+              option === 'Reject' ? 'bg-white text-neutral-900 shadow-fragment' : 'text-neutral-500'
+            }`}
+          >
+            {option}
+          </span>
+        ))}
+      </div>
+      <p className={'mt-3 text-label text-neutral-500'}>Mail that fails DMARC is refused</p>
+    </UICard>
+  );
+}
+
+/** One failing message, and what each policy does with it. */
+function PolicyRowsFragment() {
+  const rows = [
+    {name: 'None', value: 'p=none', use: 'Monitor while you collect reports', outcome: {tone: 'neutral' as const, label: 'Delivered'}},
+    {name: 'Quarantine', value: 'p=quarantine', use: 'Once your own mail passes', outcome: {tone: 'warn' as const, label: 'Spam folder'}},
+    {name: 'Reject', value: 'p=reject', use: 'Full protection', outcome: {tone: 'err' as const, label: 'Blocked'}},
+  ];
+
+  return (
+    <UICard className={'w-full max-w-md divide-y divide-neutral-100'}>
+      {rows.map(r => (
+        <div key={r.name} className={'flex items-center gap-3 px-4 py-3.5'}>
+          <div className={'min-w-0 flex-1'}>
+            <p className={'flex items-baseline gap-2 text-ui font-semibold text-neutral-900'}>
+              {r.name}
+              <span className={'font-code text-label font-normal text-neutral-500'}>{r.value}</span>
+            </p>
+            <p className={'truncate text-label text-neutral-500'}>{r.use}</p>
+          </div>
+          <StatusPill tone={r.outcome.tone}>{r.outcome.label}</StatusPill>
+        </div>
+      ))}
+    </UICard>
+  );
+}
+
+/** A day's aggregate report from one provider, grouped by sending source. */
+function ReportFragment() {
+  const sources = [
+    {name: 'Plunk', count: '12,480', result: {tone: 'ok' as const, label: 'Pass'}},
+    {name: 'Google Workspace', count: '1,204', result: {tone: 'ok' as const, label: 'Pass'}},
+    {name: 'Help desk', count: '310', result: {tone: 'warn' as const, label: 'Not aligned'}},
+    {name: '192.0.2.44', count: '58', result: {tone: 'err' as const, label: 'Fail'}},
+  ];
+
+  return (
+    <UICard className={'w-full max-w-md'}>
+      <div className={'flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3'}>
+        <p className={'text-ui font-semibold text-neutral-900'}>Report from google.com</p>
+        <p className={'text-label text-neutral-500'}>Oct 16</p>
+      </div>
+      <div className={'divide-y divide-neutral-100'}>
+        {sources.map(s => (
+          <div key={s.name} className={'flex items-center gap-3 px-4 py-3'}>
+            <div className={'min-w-0 flex-1'}>
+              <p className={'truncate text-ui font-semibold text-neutral-900'}>{s.name}</p>
+              <p className={'text-label text-neutral-500 tabular-nums'}>{s.count} messages</p>
+            </div>
+            <StatusPill tone={s.result.tone}>{s.result.label}</StatusPill>
+          </div>
+        ))}
+      </div>
+    </UICard>
   );
 }
