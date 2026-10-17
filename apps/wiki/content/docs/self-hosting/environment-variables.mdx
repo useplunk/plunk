@@ -84,6 +84,16 @@ Rate limiting is **off by default** — upgrading Plunk will never start refusin
 
 Contact writes share one budget because a sync integration drives create, update and delete from the same upstream change feed — separate budgets would let a single runaway sync spend three times the intended allowance.
 
+## Login Rate Limiting
+
+Failed password logins on `POST /auth/login` are counted in Redis over a fixed window. Once a counter reaches its limit, further attempts return `429` with a `Retry-After` header until the window expires. A successful login clears the per-email counter, and an unknown email is counted the same as a wrong password. Set a limit to `0` to disable that counter.
+
+| Variable                     | Required | Description                                                                                                                                                                                                                                                                                                   | Default |
+| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `LOGIN_RATE_LIMIT_PER_EMAIL` | No       | Failed login attempts allowed per email address within the window.                                                                                                                                                                                                                                            | `5`     |
+| `LOGIN_RATE_LIMIT_PER_IP`    | No       | Failed login attempts allowed per client IP within the window, across all emails. Plunk does not configure Express to trust proxy headers, so on the Docker image (bundled nginx) and behind any reverse proxy this counter is shared by every user. Only enable it when clients connect to the API directly. | `0`     |
+| `LOGIN_RATE_LIMIT_WINDOW`    | No       | Window length in seconds. Must be at least `1`.                                                                                                                                                                                                                                                               | `900`   |
+
 ## Idempotency
 
 Callers can pass an `Idempotency-Key` header to `POST /v1/track` and `POST /v1/send` to guarantee the request runs at most once. See [Idempotency](/guides/idempotency).
