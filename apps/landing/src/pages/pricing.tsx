@@ -40,11 +40,13 @@ export default function Pricing() {
   return (
     <>
       <NextSeo
+        canonical="https://www.useplunk.com/pricing"
         title={'Plunk Pricing | The Open-Source Email Platform'}
         description={
-          'Transparent email pricing at $0.001 per email with no contact limits. Free plan includes 1,000 emails/month across transactional, workflow, and campaign emails. No hidden fees, pay only for what you use.'
+          'Email pricing at $0.001 per email with unlimited contacts. The free plan includes 1,000 emails a month across transactional, workflow, and campaign email.'
         }
         openGraph={{
+          url: 'https://www.useplunk.com/pricing',
           title: 'Plunk Pricing | The Open-Source Email Platform',
           description:
             'Transparent email pricing at $0.001 per email with no contact limits. Free plan includes 1,000 emails/month. No hidden fees.',
@@ -57,7 +59,6 @@ export default function Pricing() {
             },
           ],
         }}
-        additionalMetaTags={[{property: 'title', content: 'Plunk Pricing | The Open-Source Email Platform'}]}
       />
 
       <Navbar />
@@ -66,12 +67,7 @@ export default function Pricing() {
         {/* Hero */}
         <section className={'relative overflow-hidden'}>
           <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pt-28 sm:pb-28'}>
-            <motion.div
-              initial={{opacity: 0, y: 16}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mx-auto max-w-4xl text-center'}
-            >
+            <div className={'hero-enter mx-auto max-w-4xl text-center'}>
               <h1
                 className={
                   'font-display text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'
@@ -82,7 +78,7 @@ export default function Pricing() {
               <p className={'mx-auto mt-6 max-w-2xl text-lead text-neutral-600'}>
                 Free plan: 1,000 emails per month. Paid plan: $0.001 per email. Unlimited contacts, no hidden fees.
               </p>
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -91,12 +87,7 @@ export default function Pricing() {
           <div className={'mx-auto max-w-[88rem] px-6 py-20 sm:px-10'}>
             <div className={'mx-auto grid max-w-4xl gap-px bg-neutral-200 sm:grid-cols-2'}>
               {/* Free */}
-              <motion.div
-                initial={{opacity: 0, y: 20}}
-                animate={{opacity: 1, y: 0}}
-                transition={{delay: 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1]}}
-                className={'flex flex-col bg-white p-10'}
-              >
+              <div className={'hero-enter flex flex-col bg-white p-10'} style={{animationDelay: '0.1s'}}>
                 <p className={'text-label font-semibold text-neutral-500'}>Free forever</p>
                 <div className={'mt-4 flex items-baseline gap-2'}>
                   <span className={'font-display text-6xl font-extrabold tracking-[-0.03em] text-neutral-900'}>
@@ -138,15 +129,10 @@ export default function Pricing() {
                 >
                   Start for free
                 </motion.a>
-              </motion.div>
+              </div>
 
               {/* Pay as you grow */}
-              <motion.div
-                initial={{opacity: 0, y: 20}}
-                animate={{opacity: 1, y: 0}}
-                transition={{delay: 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1]}}
-                className={'flex flex-col bg-neutral-900 p-10 text-white'}
-              >
+              <div className={'hero-enter flex flex-col bg-neutral-900 p-10 text-white'} style={{animationDelay: '0.2s'}}>
                 <p className={'text-label font-semibold text-neutral-400'}>Pay as you grow</p>
                 <div className={'mt-4 flex items-baseline gap-2'}>
                   <span className={'font-display text-6xl font-extrabold tracking-[-0.03em] text-white'}>$0.001</span>
@@ -173,7 +159,7 @@ export default function Pricing() {
                 >
                   Get started
                 </motion.a>
-              </motion.div>
+              </div>
             </div>
           </div>
         </section>

@@ -177,7 +177,7 @@ export default function EmailAPIGuide() {
       slug={'email-api-guide'}
       title="What is an Email API? Complete Guide with Code Examples"
       heading={'What is an email API?'}
-      description="An email API lets you send, receive, and manage emails programmatically. Learn how they work, see code examples in Node.js, Python, PHP, Ruby, and Go, and choose the right provider."
+      description="An email API lets you send and receive email from code. How they work, with examples in Node.js, Python, PHP, Ruby, and Go, and how to pick a provider."
       lead={
         'An email API lets your application send email with one HTTP request instead of running an SMTP connection. The provider handles delivery and retries, then tells you what happened to each message.'
       }

@@ -6,6 +6,7 @@ import {
   FeatureHighlights,
   FeatureSection,
   Footer,
+  MoreFeatures,
   Navbar,
   SmtpClientsFragment,
   SmtpEncryptionFragment,
@@ -129,6 +130,8 @@ export default function SMTPFeature() {
         <FAQSection faqs={faqs} schemaId={'faq-smtp'} />
 
         <FeatureCTA title={'Point your app at Plunk.'} />
+
+        <MoreFeatures current={'/features/smtp'} />
       </main>
 
       <Footer />

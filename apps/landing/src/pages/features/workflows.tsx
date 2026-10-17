@@ -9,6 +9,7 @@ import {
   FeatureSection,
   FlowFragment,
   Footer,
+  MoreFeatures,
   Navbar,
   WorkflowEventFragment,
   WorkflowRunsFragment,
@@ -170,6 +171,8 @@ export default function WorkflowsFeature() {
         <FAQSection faqs={faqs} schemaId={'faq-workflows'} />
 
         <FeatureCTA title={'Build your first workflow.'} />
+
+        <MoreFeatures current={'/features/workflows'} />
       </main>
 
       <Footer />

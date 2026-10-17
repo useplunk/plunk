@@ -1,4 +1,3 @@
-import {motion, useReducedMotion} from 'framer-motion';
 import {ArrowUpRight} from 'lucide-react';
 import {ArticleJsonLd, BreadcrumbJsonLd, NextSeo} from 'next-seo';
 import Link from 'next/link';
@@ -58,7 +57,6 @@ export function GuideLayout({
   children,
 }: GuideLayoutProps) {
   const guide = getGuide(slug);
-  const still = useReducedMotion();
   const ogImage = `https://www.useplunk.com/api/og?title=${encodeURIComponent(guide.name)}&tag=Guide`;
   const updated = new Date(lastUpdated).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
 
@@ -101,12 +99,7 @@ export function GuideLayout({
         {/* Hero */}
         <section className={'mx-auto max-w-[88rem] px-6 pb-16 pt-14 sm:px-10 sm:pb-24 sm:pt-20'}>
           <div className={`grid items-center gap-12 lg:gap-16 ${figure ? 'lg:grid-cols-12' : ''}`}>
-            <motion.div
-              initial={still ? undefined : {opacity: 0, y: 12}}
-              animate={still ? undefined : {opacity: 1, y: 0}}
-              transition={{duration: 0.6, ease: [0.23, 1, 0.32, 1]}}
-              className={figure ? 'lg:col-span-6' : 'max-w-4xl'}
-            >
+            <div className={`hero-enter ${figure ? 'lg:col-span-6' : 'max-w-4xl'}`}>
               <nav aria-label={'Breadcrumb'}>
                 <ol className={'flex flex-wrap items-center gap-2 text-ui text-neutral-500'}>
                   <li>
@@ -129,17 +122,12 @@ export function GuideLayout({
               <p className={'mt-8 text-ui text-neutral-500'}>
                 Updated <time dateTime={lastUpdated}>{updated}</time> · {readTime} read
               </p>
-            </motion.div>
+            </div>
 
             {figure && (
-              <motion.div
-                initial={still ? undefined : {opacity: 0, y: 16}}
-                animate={still ? undefined : {opacity: 1, y: 0}}
-                transition={{duration: 0.7, delay: 0.1, ease: [0.23, 1, 0.32, 1]}}
-                className={'min-w-0 lg:col-span-6'}
-              >
+              <div className={'hero-enter min-w-0 lg:col-span-6'} style={{animationDelay: '0.1s'}}>
                 {figure}
-              </motion.div>
+              </div>
             )}
           </div>
         </section>

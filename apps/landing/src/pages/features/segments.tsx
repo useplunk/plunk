@@ -6,6 +6,7 @@ import {
   FeatureSection,
   FilterBuilder,
   Footer,
+  MoreFeatures,
   Navbar,
   SegmentCampaignFragment,
   SegmentSnippets,
@@ -206,6 +207,8 @@ export default function SegmentsFeature() {
         <FAQSection faqs={faqs} schemaId={'faq-segments'} />
 
         <FeatureCTA title={'Build your first segment.'} />
+
+        <MoreFeatures current={'/features/segments'} />
       </main>
 
       <Footer />

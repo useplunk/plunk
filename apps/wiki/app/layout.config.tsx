@@ -1,5 +1,5 @@
 import type {BaseLayoutProps} from 'fumadocs-ui/layouts/shared';
-import {AppWindowIcon, GithubIcon, MessageSquareShareIcon} from 'lucide-react';
+import {AppWindowIcon, GithubIcon, GlobeIcon, MessageSquareShareIcon} from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 
@@ -23,6 +23,11 @@ export const baseOptions: BaseLayoutProps = {
     ),
   },
   links: [
+    {
+      icon: <GlobeIcon />,
+      text: 'Website',
+      url: 'https://www.useplunk.com',
+    },
     {
       icon: <AppWindowIcon />,
       text: 'Dashboard',

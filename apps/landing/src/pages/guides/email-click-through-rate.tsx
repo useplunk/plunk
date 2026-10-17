@@ -19,7 +19,7 @@ export default function EmailClickThroughRate() {
   return (
     <GuideLayout
       slug={'email-click-through-rate'}
-      title="Email Click-Through Rate: How to Optimize CTAs & Increase Clicks"
+      title="Email Click-Through Rate: Benchmarks & How to Improve"
       heading={'Email click-through rate'}
       description="Learn what affects email click-through rates, industry benchmarks, and proven tactics to optimize CTAs and boost engagement."
       lead={

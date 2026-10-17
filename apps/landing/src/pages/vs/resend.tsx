@@ -7,10 +7,10 @@ const comparison: Comparison = {
   slug: 'resend',
   name: 'Resend',
   seo: {
-    title: 'Open-Source Resend Alternative: Pay-As-You-Go at $0.001/Email | Plunk',
+    title: 'Open-Source Resend Alternative at $0.001/Email | Plunk',
     description:
       'Resend uses fixed subscription pricing. Plunk is pay-as-you-go at $0.001/email — open-source, self-hostable, with marketing campaigns and workflow automation included.',
-    ogTitle: 'Open-Source Resend Alternative: Pay-As-You-Go at $0.001/Email | Plunk',
+    ogTitle: 'Open-Source Resend Alternative at $0.001/Email | Plunk',
     ogDescription:
       'Resend uses fixed subscription pricing. Plunk is pay-as-you-go at $0.001/email — open-source, self-hostable, with marketing and automation included.',
     ogImageTitle: 'Open-Source Resend Alternative',

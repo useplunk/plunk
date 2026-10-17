@@ -28,7 +28,7 @@ export default function EmailMarketingBestPractices() {
       slug={'email-marketing-best-practices'}
       title="Email Marketing Best Practices: The Complete Guide"
       heading={'Email marketing best practices'}
-      description="Master email marketing with proven best practices for content, design, timing, deliverability, and compliance. Comprehensive guide for 2025."
+      description="Master email marketing with proven best practices for content, design, timing, deliverability, and compliance."
       lead={
         'Mail people who asked for it, send each segment something worth opening, test one change at a time and follow the law. Done well, email returns an average of $36 to $42 for every $1 spent.'
       }

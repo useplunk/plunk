@@ -1,33 +1,11 @@
 import {motion, useReducedMotion} from 'framer-motion';
 import {ArrowUpRight} from 'lucide-react';
-import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
 import Link from 'next/link';
 import {NextSeo} from 'next-seo';
 import React from 'react';
 
 import {FeatureCTA, Footer, Navbar, SectionHeader, TOOLS} from '../../components';
 import type {ToolInfo} from '../../components';
-
-const display = Funnel_Display({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const body = Funnel_Sans({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
-});
-
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-  weight: ['400', '500'],
-});
 
 /**
  * Two groups a visitor actually thinks in: is my domain set up, and is this
@@ -105,7 +83,7 @@ export default function ToolsIndex() {
 
       <Navbar />
 
-      <div className={`${display.variable} ${body.variable} ${mono.variable}`}>
+      <div>
         <main className={'text-neutral-800'}>
           <section className={'mx-auto max-w-[88rem] px-6 pb-8 pt-14 sm:px-10 sm:pt-20'}>
             <motion.div

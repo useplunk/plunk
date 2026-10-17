@@ -7,10 +7,10 @@ const comparison: Comparison = {
   slug: 'brevo',
   name: 'Brevo',
   seo: {
-    title: 'Brevo (Sendinblue) Alternative: Developer-First & Open Source | Plunk',
+    title: 'Brevo (Sendinblue) Alternative, Open Source | Plunk',
     description:
       "Done with Brevo's contact-based pricing? Plunk is a developer-first, open-source alternative — pay per email not per contact, self-hostable, no contact limits.",
-    ogTitle: 'Brevo (Sendinblue) Alternative: Developer-First & Open Source | Plunk',
+    ogTitle: 'Brevo (Sendinblue) Alternative, Open Source | Plunk',
     ogDescription:
       "Done with Brevo's contact-based pricing? Plunk is open-source, self-hostable, and charges per email not per contact.",
     ogImageTitle: 'Brevo Alternative: Developer-First & Open Source',

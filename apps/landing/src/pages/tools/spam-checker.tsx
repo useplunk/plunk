@@ -16,28 +16,6 @@ import {motion} from 'framer-motion';
 import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
 import {Button, Input, Textarea} from '@plunk/ui';
-import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
-
-const display = Funnel_Display({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const body = Funnel_Sans({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
-});
-
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-  weight: ['400', '500'],
-});
 
 const SPAM_TRIGGER_WORDS = [
   'act now', 'act immediately', 'action required', 'apply now', 'apply online',
@@ -280,11 +258,11 @@ export default function SpamCheckerPage() {
   return (
     <>
       <NextSeo
-        title="Email Spam Checker | Free Subject Line & Content Spam Test | Plunk"
+        title="Free Email Spam Checker & Subject Line Test | Plunk"
         description="Free spam checker tool. Test your email subject line and content for spam trigger words, capitalization issues, and other factors that cause emails to land in spam."
         canonical="https://www.useplunk.com/tools/spam-checker"
         openGraph={{
-          title: 'Email Spam Checker | Free Subject Line & Content Spam Test | Plunk',
+          title: 'Free Email Spam Checker & Subject Line Test | Plunk',
           description: 'Free spam checker. Test your email subject line and content for factors that cause emails to land in spam folders.',
           url: 'https://www.useplunk.com/tools/spam-checker',
           images: [{url: 'https://www.useplunk.com/api/og?title=Free+Email+Spam+Checker&tag=Tool', alt: 'Plunk Spam Checker', width: 1200, height: 630}],
@@ -293,7 +271,7 @@ export default function SpamCheckerPage() {
 
       <Navbar />
 
-      <div className={`${display.variable} ${body.variable} ${mono.variable}`}>
+      <div>
         <main className={'text-neutral-800'}>
           <ToolHero
             title={'Email spam checker'}

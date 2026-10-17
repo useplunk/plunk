@@ -7,10 +7,10 @@ const comparison: Comparison = {
   slug: 'mailgun',
   name: 'Mailgun',
   seo: {
-    title: 'Mailgun Alternative: Open-Source with Marketing & Automation | Plunk',
+    title: 'Mailgun Alternative with Marketing & Automation | Plunk',
     description:
       'Switching from Mailgun? Plunk is an open-source alternative with pay-as-you-go pricing, marketing campaigns, and workflow automation — no subscription tiers, no lock-in.',
-    ogTitle: 'Mailgun Alternative: Open-Source with Marketing & Automation | Plunk',
+    ogTitle: 'Mailgun Alternative with Marketing & Automation | Plunk',
     ogDescription:
       'Switching from Mailgun? Plunk is open-source with pay-as-you-go pricing, marketing campaigns, and workflow automation — no subscription tiers.',
     ogImageTitle: 'Mailgun Alternative: Open-Source with Marketing & Automation',

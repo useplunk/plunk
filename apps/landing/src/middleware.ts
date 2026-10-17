@@ -2,6 +2,20 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { hasMarkdownVariant } from './content/markdown-slugs';
+import { LANDING_URI } from './lib/constants';
+
+// Self-hosted installs serve this same site under their own domain. Only the official
+// deployment may be indexed, otherwise every install competes with useplunk.com in search.
+// Compared by hostname on purpose: the full-URL placeholder is rewritten at container startup.
+const OFFICIAL_HOSTNAMES = new Set(['www.useplunk.com', 'useplunk.com']);
+const INDEXABLE = OFFICIAL_HOSTNAMES.has(new URL(LANDING_URI).hostname);
+
+function withRobots(response: NextResponse, noindex = false): NextResponse {
+  if (noindex || !INDEXABLE) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
+  return response;
+}
 
 type Negotiated = 'markdown' | 'html' | 'none';
 
@@ -42,13 +56,14 @@ export function middleware(request: NextRequest) {
   if (pathname.endsWith('.md')) {
     const headers = new Headers(request.headers);
     headers.set('x-md-path', pathname.slice(0, -3));
-    return NextResponse.rewrite(new URL('/api/md', request.url), { request: { headers } });
+    // Markdown mirrors are for agents; keep them out of the index so they don't duplicate the HTML page
+    return withRobots(NextResponse.rewrite(new URL('/api/md', request.url), { request: { headers } }), true);
   }
 
   const result = negotiate(accept);
 
   if (result === 'none') {
-    return new NextResponse(null, { status: 406, headers: { 'Vary': 'Accept' } });
+    return withRobots(new NextResponse(null, { status: 406, headers: { 'Vary': 'Accept' } }));
   }
 
   if (result === 'markdown') {
@@ -56,7 +71,7 @@ export function middleware(request: NextRequest) {
     headers.set('x-md-path', pathname);
     const response = NextResponse.rewrite(new URL('/api/md', request.url), { request: { headers } });
     response.headers.set('Vary', 'Accept');
-    return response;
+    return withRobots(response, true);
   }
 
   const response = NextResponse.next();
@@ -64,7 +79,7 @@ export function middleware(request: NextRequest) {
   if (hasMarkdownVariant(pathname)) {
     response.headers.append('Link', `<${pathname}.md>; rel="alternate"; type="text/markdown"`);
   }
-  return response;
+  return withRobots(response);
 }
 
 export const config = {

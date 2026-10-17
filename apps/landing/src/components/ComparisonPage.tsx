@@ -1,8 +1,10 @@
 import {motion, useReducedMotion} from 'framer-motion';
 import {Check} from 'lucide-react';
-import {NextSeo} from 'next-seo';
+import {BreadcrumbJsonLd, NextSeo} from 'next-seo';
+import Link from 'next/link';
 import React from 'react';
 
+import {COMPARISONS} from '../content/comparisons';
 import {WIKI_URI} from '../lib/constants';
 import {ComparisonTable, type ComparisonRow} from './ComparisonTable';
 import {FAQSection, type FAQ} from './FAQSection';
@@ -92,6 +94,13 @@ export function ComparisonPage({comparison: c}: {comparison: Comparison}) {
           ],
         }}
       />
+      <BreadcrumbJsonLd
+        itemListElements={[
+          {position: 1, name: 'Home', item: 'https://www.useplunk.com'},
+          {position: 2, name: 'Comparisons', item: 'https://www.useplunk.com/vs'},
+          {position: 3, name: `Plunk vs ${c.name}`, item: url},
+        ]}
+      />
 
       <Navbar />
 
@@ -100,7 +109,7 @@ export function ComparisonPage({comparison: c}: {comparison: Comparison}) {
 
         <section className={'mx-auto max-w-[88rem] px-6 pb-24 sm:px-10 sm:pb-32'}>
           <SectionHeader title={`How Plunk differs from ${c.name}`} />
-          <div className={'mt-14'} data-nosnippet>
+          <div className={'mt-14'}>
             <DifferenceTiles items={c.differences} />
           </div>
         </section>
@@ -131,9 +140,40 @@ export function ComparisonPage({comparison: c}: {comparison: Comparison}) {
         <SwitchOffer competitorName={c.name} />
 
         <FeatureCTA title={c.cta.title} body={c.cta.body} />
+
+        <OtherComparisons current={c.slug} />
       </main>
 
       <Footer />
     </>
+  );
+}
+
+/**
+ * A quiet row of the other comparisons. Readers weighing one tool are usually
+ * weighing two or three, and before this every comparison was a dead end that
+ * only linked back out through the footer.
+ */
+function OtherComparisons({current}: {current: string}) {
+  const others = COMPARISONS.filter(other => other.slug !== current);
+
+  return (
+    <nav aria-label={'Other comparisons'} className={'mx-auto max-w-[88rem] px-6 pb-20 sm:px-10'}>
+      <p className={'text-label font-semibold text-neutral-500'}>Compare Plunk with</p>
+      <ul className={'mt-4 flex flex-wrap gap-x-6 gap-y-2'}>
+        {others.map(other => (
+          <li key={other.slug}>
+            <Link href={`/vs/${other.slug}`} className={'text-ui text-neutral-600 transition hover:text-neutral-900'}>
+              {other.name} alternative
+            </Link>
+          </li>
+        ))}
+        <li>
+          <Link href={'/vs'} className={'text-ui font-semibold text-neutral-900'}>
+            All comparisons
+          </Link>
+        </li>
+      </ul>
+    </nav>
   );
 }

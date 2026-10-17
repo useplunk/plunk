@@ -41,12 +41,7 @@ export default function Changelog() {
             the timeline directly below is the picture. */}
         <section className={'relative overflow-hidden'}>
           <div className={'mx-auto max-w-[88rem] px-6 pb-16 pt-20 sm:px-10 sm:pb-24 sm:pt-24'}>
-            <motion.div
-              initial={{opacity: 0, y: 16}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.7, ease: [0.23, 1, 0.32, 1]}}
-              className={'max-w-4xl'}
-            >
+            <div className={'hero-enter max-w-4xl'}>
               <h1 className={'font-display text-display font-extrabold tracking-[-0.035em] text-neutral-900'}>
                 What&apos;s new
                 <br />
@@ -79,7 +74,7 @@ export default function Changelog() {
                   View commits on GitHub
                 </Link>
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
 

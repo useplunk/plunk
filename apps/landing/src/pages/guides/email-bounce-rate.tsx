@@ -47,7 +47,7 @@ export default function EmailBounceRate() {
   return (
     <GuideLayout
       slug={'email-bounce-rate'}
-      title="Email Bounce Rate: Hard vs Soft Bounces & How to Reduce Them"
+      title="Email Bounce Rate: Hard vs Soft Bounces Explained"
       heading={'Email bounce rate'}
       description="Understand email bounce rates, the difference between hard and soft bounces, and proven strategies to reduce bounces and protect your sender reputation."
       lead={

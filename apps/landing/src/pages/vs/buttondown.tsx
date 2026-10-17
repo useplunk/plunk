@@ -7,10 +7,10 @@ const comparison: Comparison = {
   slug: 'buttondown',
   name: 'Buttondown',
   seo: {
-    title: 'Open-Source Buttondown Alternative: Newsletters + Transactional Emails | Plunk',
+    title: 'Buttondown Alternative: Newsletters + Transactional | Plunk',
     description:
-      'Buttondown is newsletters-only. Plunk is pay-as-you-go at $0.001/email — open-source, self-hostable, with transactional emails, marketing campaigns, and workflow automation in one platform.',
-    ogTitle: 'Open-Source Buttondown Alternative: Newsletters + Transactional Emails | Plunk',
+      'Buttondown is newsletters-only. Plunk is open source at $0.001/email, with transactional email, campaigns, and workflow automation in one platform.',
+    ogTitle: 'Buttondown Alternative: Newsletters + Transactional | Plunk',
     ogDescription:
       'Buttondown is newsletters-only. Plunk is open-source, pay-as-you-go, and handles transactional emails, newsletters, and automation in one self-hostable platform.',
     ogImageTitle: 'Open-Source Buttondown Alternative',

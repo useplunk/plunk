@@ -10,21 +10,17 @@ export default function Index() {
   return (
     <>
       <NextSeo
+        canonical="https://www.useplunk.com/made-by-humans"
         title={'Made By Humans | The Open-Source Email Platform'}
         description={
           'Meet the independent team building Plunk. No VC funding, no aggressive growth tactics—just a transparent, human-centered email platform built with care.'
         }
         openGraph={{
+          url: 'https://www.useplunk.com/made-by-humans',
           title: 'Made By Humans | The Open-Source Email Platform',
           description:
             'Meet the independent team building Plunk. No VC funding, no aggressive growth tactics—just a transparent, human-centered email platform built with care.',
         }}
-        additionalMetaTags={[
-          {
-            property: 'title',
-            content: 'Made By Humans | The Open-Source Email Platform',
-          },
-        ]}
       />
 
       <Navbar />
@@ -34,11 +30,7 @@ export default function Index() {
         {/* Hero */}
         <section className={'relative overflow-hidden'}>
           <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pt-28 sm:pb-28'}>
-            <motion.div
-              initial={{opacity: 0, y: 16}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-            >
+            <div className={'hero-enter'}>
               <h1
                 style={{fontFamily: 'var(--font-display)'}}
                 className={
@@ -53,7 +45,7 @@ export default function Index() {
                 Plunk is an indie SaaS run by a human. No VC funding, no aggressive growth tactics. Just a platform built
                 with care.
               </p>
-            </motion.div>
+            </div>
           </div>
         </section>
 

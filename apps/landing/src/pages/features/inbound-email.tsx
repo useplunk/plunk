@@ -13,6 +13,7 @@ import {
   InboundChecksFragment,
   InboundSnippets,
   InboundWebhookFragment,
+  MoreFeatures,
   Navbar,
   StepSequence,
 } from '../../components';
@@ -127,7 +128,7 @@ export default function InboundEmailFeature() {
   return (
     <>
       <NextSeo
-        title="Inbound Email - Receive and Process Emails at Your Domain | Plunk"
+        title="Inbound Email - Receive Emails at Your Domain | Plunk"
         description="Receive emails at your custom domain and automatically trigger workflows, capture contacts, or create support tickets. One MX record and every address starts receiving."
         canonical="https://www.useplunk.com/features/inbound-email"
         openGraph={{
@@ -176,6 +177,8 @@ export default function InboundEmailFeature() {
         <FAQSection faqs={faqs} schemaId={'faq-inbound-email'} />
 
         <FeatureCTA title={'Start receiving at your domain.'} />
+
+        <MoreFeatures current={'/features/inbound-email'} />
       </main>
 
       <Footer />

@@ -276,3 +276,20 @@
         font-size: 0.875em;
     }
 }
+
+/* Above-the-fold entrances run in CSS rather than framer-motion: the hero headline is the
+   LCP element on most pages and must paint from the server HTML, not wait for hydration. */
+@keyframes hero-enter {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+}
+.hero-enter {
+    animation: hero-enter 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+    .hero-enter {
+        animation: none;
+    }
+}

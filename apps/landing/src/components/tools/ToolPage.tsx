@@ -105,12 +105,7 @@ export function ToolHero({
   return (
     <section>
       <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-14 sm:px-10 sm:pb-24 sm:pt-20'}>
-        <motion.div
-          initial={{opacity: 0, y: 12}}
-          animate={{opacity: 1, y: 0}}
-          transition={{duration: 0.6, ease: [0.22, 1, 0.36, 1]}}
-          className={'mx-auto max-w-3xl text-center'}
-        >
+        <div className={'hero-enter mx-auto max-w-3xl text-center'}>
           <Link
             href={'/tools'}
             className={'inline-flex items-center gap-1.5 text-ui text-neutral-500 transition hover:text-neutral-900'}
@@ -126,16 +121,11 @@ export function ToolHero({
             {title}
           </h1>
           <p className={'mx-auto mt-5 max-w-[52ch] text-lead text-neutral-600'}>{subtitle}</p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{opacity: 0, y: 16}}
-          animate={{opacity: 1, y: 0}}
-          transition={{duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1]}}
-          className={`mx-auto mt-12 ${wide ? 'max-w-6xl' : 'max-w-2xl'}`}
-        >
+        <div className={`hero-enter mx-auto mt-12 ${wide ? 'max-w-6xl' : 'max-w-2xl'}`} style={{animationDelay: '0.1s'}}>
           {children}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

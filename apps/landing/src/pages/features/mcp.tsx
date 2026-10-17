@@ -10,6 +10,7 @@ import {
   McpCheckFragment,
   McpConfirmFragment,
   McpTestFragment,
+  MoreFeatures,
   Navbar,
   ToolGroups,
 } from '../../components';
@@ -206,7 +207,7 @@ export default function MCPFeature() {
     <>
       <NextSeo
         title="MCP Server - Connect Plunk to Claude, Cursor & AI Agents | Plunk"
-        description="The official Plunk MCP server lets Claude, Cursor, and any Model Context Protocol client send email, manage contacts, run campaigns, and build workflows in your Plunk project. Read-only mode and send confirmations built in."
+        description="The official Plunk MCP server lets Claude, Cursor, and any MCP client send email, manage contacts, run campaigns, and build workflows in your project."
         canonical="https://www.useplunk.com/features/mcp"
         openGraph={{
           title: 'MCP Server - Plunk for AI Agents | Plunk',
@@ -295,6 +296,8 @@ export default function MCPFeature() {
           title={'Let your agent run your email.'}
           secondary={{href: `${WIKI_URI}/guides/mcp-server`, label: 'Read the docs', external: true}}
         />
+
+        <MoreFeatures current={'/features/mcp'} />
       </main>
 
       <Footer />

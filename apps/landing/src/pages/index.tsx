@@ -26,8 +26,7 @@ import {
 } from '../components';
 import type {AgentExchangeCopy, Claim, FAQ, PriceRow, Quote} from '../components';
 import {motion} from 'framer-motion';
-import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
-import {DASHBOARD_URI, LANDING_URI, WIKI_URI} from '../lib/constants';
+import {DASHBOARD_URI, WIKI_URI} from '../lib/constants';
 import React from 'react';
 import {NextSeo} from 'next-seo';
 import Artur from '../../public/assets/artur.png';
@@ -45,27 +44,6 @@ import {ArrowRight, ArrowUpRight} from 'lucide-react';
 const PlunkMark = () => (
   <Image src={plunkLogo} alt="" aria-hidden width={20} height={20} className={'h-5 w-5 flex-shrink-0'} />
 );
-
-const display = Funnel_Display({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const body = Funnel_Sans({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
-});
-
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-  weight: ['400', '500'],
-});
 
 /**
  * The one label for the one action.
@@ -233,9 +211,11 @@ export default function Index() {
   return (
     <>
       <NextSeo
+        canonical="https://www.useplunk.com"
         title="Plunk — Open-Source Transactional Email Platform"
         description="Send transactional emails, run marketing campaigns, and automate workflows. Open-source and self-hostable, $0.001 per email, no contact limits."
         openGraph={{
+          url: 'https://www.useplunk.com',
           title: 'Plunk — Open-Source Transactional Email Platform',
           description:
             'Send transactional emails, run marketing campaigns, and automate workflows. Open-source and self-hostable, $0.001 per email, no contact limits.',
@@ -259,12 +239,24 @@ export default function Index() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Corporation',
+            '@type': 'Organization',
             'name': 'Plunk',
             'alternateName': 'UsePlunk',
-            'url': LANDING_URI,
-            'logo': `${LANDING_URI}/assets/logo.png`,
-            'sameAs': ['https://www.twitter.com/useplunk', LANDING_URI],
+            'url': 'https://www.useplunk.com',
+            'logo': 'https://www.useplunk.com/assets/logo.png',
+            'sameAs': ['https://x.com/useplunk', 'https://github.com/useplunk/plunk'],
+          }),
+        }}
+      />
+      <script
+        id={`website-schema-index`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            'name': 'Plunk',
+            'url': 'https://www.useplunk.com',
           }),
         }}
       />
@@ -276,7 +268,12 @@ export default function Index() {
             '@context': 'https://schema.org',
             '@type': 'SoftwareApplication',
             'name': 'Plunk',
-            'applicationCategory': 'Email Marketing Software',
+            'url': 'https://www.useplunk.com',
+            'description':
+              'Open-source email platform for transactional email, marketing campaigns, and workflow automation, on one contact list.',
+            'image': 'https://www.useplunk.com/api/og?title=The+Open-Source+Email+Platform',
+            'applicationCategory': 'BusinessApplication',
+            'applicationSubCategory': 'Email Marketing Software',
             'operatingSystem': 'Web, Docker',
             'offers': {
               '@type': 'Offer',
@@ -297,17 +294,12 @@ export default function Index() {
 
       <Navbar />
 
-      <div className={`${display.variable} ${body.variable} ${mono.variable}`}>
+      <div>
         <main className={'text-neutral-800'}>
           {/* ========== HERO ========== */}
           <section className={'relative overflow-hidden'}>
             <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pt-28 lg:pb-28'}>
-              <motion.div
-                initial={{opacity: 0, y: 16}}
-                animate={{opacity: 1, y: 0}}
-                transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
-                className={'mx-auto max-w-5xl text-center'}
-              >
+              <div className={'hero-enter mx-auto max-w-5xl text-center'}>
                 <h1
                   className={
                     'font-display text-display font-extrabold leading-none tracking-[-0.04em] text-neutral-900'
@@ -349,7 +341,7 @@ export default function Index() {
                     Read the docs
                   </Link>
                 </div>
-              </motion.div>
+              </div>
 
               <div className={'mt-16 sm:mt-20'} data-nosnippet>
                 <HeroSnippets />
@@ -402,7 +394,7 @@ export default function Index() {
               that repeated the third column is folded into it. */}
           <section className={'mx-auto max-w-[88rem] px-6 py-24 sm:px-10 sm:py-32'}>
             <SectionHeader title={'Simple to start.'} titleAccent={'Serious at scale.'} />
-            <div className={'mt-14'} data-nosnippet>
+            <div className={'mt-14'}>
               <DifferenceSnippets />
             </div>
             <a

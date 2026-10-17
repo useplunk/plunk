@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Self-hosted installs serve these docs under their own domain. Only the official
+// deployment may be indexed, otherwise every install competes with docs.useplunk.com in search.
+// Compared by hostname on purpose: the full-URL placeholder is rewritten at container startup.
+const WIKI_URI = process.env.NEXT_PUBLIC_WIKI_URI || 'http://localhost:1000';
+const INDEXABLE = new URL(WIKI_URI).hostname === 'docs.useplunk.com';
+
+function withRobots(response: NextResponse, noindex = false): NextResponse {
+  if (noindex || !INDEXABLE) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
+  return response;
+}
+
 type Negotiated = 'markdown' | 'html' | 'none';
 
 function parseAccept(accept: string): Array<{ type: string; q: number }> {
@@ -39,26 +52,26 @@ export function middleware(request: NextRequest) {
 
   if (pathname.endsWith('.md')) {
     const rewriteUrl = new URL(`/llms.mdx${pathname.slice(0, -3)}`, request.url);
-    return NextResponse.rewrite(rewriteUrl);
+    return withRobots(NextResponse.rewrite(rewriteUrl), true);
   }
 
   const result = negotiate(accept);
 
   if (result === 'none') {
-    return new NextResponse(null, { status: 406, headers: { 'Vary': 'Accept' } });
+    return withRobots(new NextResponse(null, { status: 406, headers: { 'Vary': 'Accept' } }));
   }
 
   if (result === 'markdown') {
     const rewriteUrl = new URL(`/llms.mdx${pathname}`, request.url);
     const response = NextResponse.rewrite(rewriteUrl);
     response.headers.set('Vary', 'Accept');
-    return response;
+    return withRobots(response, true);
   }
 
   const response = NextResponse.next();
   response.headers.set('Vary', 'Accept');
   response.headers.append('Link', `<${pathname}.md>; rel="alternate"; type="text/markdown"`);
-  return response;
+  return withRobots(response);
 }
 
 export const config = {

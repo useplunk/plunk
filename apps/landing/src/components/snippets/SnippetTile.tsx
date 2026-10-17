@@ -38,7 +38,8 @@ export function SnippetTile({
   }[align];
 
   return (
-    <div className={`relative overflow-hidden rounded-card bg-tile ${layout} ${className}`}>
+    // Fragments are mock UI with made-up data; keep that text out of search snippets
+    <div className={`relative overflow-hidden rounded-card bg-tile ${layout} ${className}`} data-nosnippet>
       <div className={`min-w-0 ${bleed}`}>{children}</div>
     </div>
   );

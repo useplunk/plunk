@@ -1,25 +1,21 @@
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import React from 'react';
-import {Navbar} from '../components';
+import {Footer, Navbar} from '../components';
 
 export default function PrivacyPolicy() {
   return (
     <>
       <NextSeo
+        canonical="https://www.useplunk.com/privacy"
         title="Plunk Privacy Policy | The Open-Source Email Platform"
         description="Privacy Policy for Plunk, the open-source email platform. Learn how we handle and protect your data with EU-hosted infrastructure and privacy-first design."
         openGraph={{
+          url: 'https://www.useplunk.com/privacy',
           title: 'Plunk Privacy Policy | The Open-Source Email Platform',
           description:
             'Privacy Policy for Plunk, the open-source email platform. Learn how we handle and protect your data with EU-hosted infrastructure and privacy-first design.',
         }}
-        additionalMetaTags={[
-          {
-            property: 'title',
-            content: 'Plunk Privacy Policy | The Open-Source Email Platform',
-          },
-        ]}
       />
 
       <div className="min-h-screen bg-white">
@@ -1178,6 +1174,8 @@ export default function PrivacyPolicy() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </>
   );
 }

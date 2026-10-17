@@ -1,24 +1,20 @@
 import {NextSeo} from 'next-seo';
 import React from 'react';
-import {Navbar} from '../components';
+import {Footer, Navbar} from '../components';
 
 export default function DataProcessingAgreement() {
   return (
     <>
       <NextSeo
+        canonical="https://www.useplunk.com/dpa"
         title="Plunk Data Processing Agreement (DPA) | GDPR Compliance"
         description="Data Processing Agreement for Plunk customers. GDPR-compliant DPA covering data processing activities, sub-processors, security measures, and data subject rights."
         openGraph={{
+          url: 'https://www.useplunk.com/dpa',
           title: 'Plunk Data Processing Agreement (DPA) | GDPR Compliance',
           description:
             'Data Processing Agreement for Plunk customers. GDPR-compliant DPA covering data processing activities, sub-processors, security measures, and data subject rights.',
         }}
-        additionalMetaTags={[
-          {
-            property: 'title',
-            content: 'Plunk Data Processing Agreement (DPA) | GDPR Compliance',
-          },
-        ]}
       />
 
       <div className="min-h-screen bg-white">
@@ -690,6 +686,8 @@ export default function DataProcessingAgreement() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </>
   );
 }

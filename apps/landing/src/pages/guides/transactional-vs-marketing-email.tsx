@@ -17,7 +17,7 @@ export default function TransactionalVsMarketingEmail() {
   return (
     <GuideLayout
       slug={'transactional-vs-marketing-email'}
-      title="Transactional vs Marketing Email: Legal & Technical Differences"
+      title="Transactional vs Marketing Email: Key Differences"
       heading={'Transactional vs marketing email'}
       description="Understand the critical differences between transactional and marketing emails, including legal requirements, deliverability, and best practices."
       lead={

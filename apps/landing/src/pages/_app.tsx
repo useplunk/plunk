@@ -57,7 +57,6 @@ function App({Component, pageProps}: AppProps) {
     <MotionConfig reducedMotion="user">
       <div className={`${display.variable} ${body.variable} ${mono.variable}`}>
         <Head>
-          <title>Plunk | The Open-Source Email Platform</title>
           <meta name="viewport" content="width=device-width, initial-scale=1.0" key={'viewport'} />
           {markdownHref && <link rel="alternate" type="text/markdown" href={markdownHref} />}
         </Head>
@@ -101,7 +100,6 @@ export default function WithProviders(props: AppProps) {
             },
           ],
         }}
-        additionalMetaTags={[{property: 'title', content: 'Plunk | The Open-Source Email Platform'}]}
       />
 
       <Script

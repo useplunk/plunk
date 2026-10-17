@@ -8,6 +8,7 @@ import {
   FeatureHero,
   FeatureHighlights,
   Footer,
+  MoreFeatures,
   Navbar,
 } from '../../components';
 import type {ChecklistItem, Claim, FAQ} from '../../components';
@@ -79,11 +80,11 @@ export default function EmailEditorFeature() {
   return (
     <>
       <NextSeo
-        title="Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk"
+        title="Email Editor - Visual and HTML Email Builder | Plunk"
         description="The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere."
         canonical="https://www.useplunk.com/features/email-editor"
         openGraph={{
-          title: 'Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk',
+          title: 'Email Editor - Visual and HTML Email Builder | Plunk',
           description:
             'The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere.',
           url: 'https://www.useplunk.com/features/email-editor',
@@ -120,6 +121,8 @@ export default function EmailEditorFeature() {
         <FAQSection faqs={faqs} schemaId={'faq-email-editor'} />
 
         <FeatureCTA title={'Write your first template.'} />
+
+        <MoreFeatures current={'/features/email-editor'} />
       </main>
 
       <Footer />

@@ -1,25 +1,21 @@
 import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import React from 'react';
-import {Navbar} from '../components';
+import {Footer, Navbar} from '../components';
 
 export default function TermsOfService() {
   return (
     <>
       <NextSeo
+        canonical="https://www.useplunk.com/terms"
         title="Plunk Terms of Service | The Open-Source Email Platform"
         description="Terms of Service for Plunk, the open-source email automation platform. Read our user agreement, acceptable use policy, and email compliance requirements."
         openGraph={{
+          url: 'https://www.useplunk.com/terms',
           title: 'Plunk Terms of Service | The Open-Source Email Platform',
           description:
             'Terms of Service for Plunk, the open-source email automation platform. Read our user agreement, acceptable use policy, and email compliance requirements.',
         }}
-        additionalMetaTags={[
-          {
-            property: 'title',
-            content: 'Plunk Terms of Service | The Open-Source Email Platform',
-          },
-        ]}
       />
 
       <div className="min-h-screen bg-white">
@@ -718,6 +714,8 @@ export default function TermsOfService() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </>
   );
 }

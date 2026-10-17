@@ -7,10 +7,10 @@ const comparison: Comparison = {
   slug: 'mailjet',
   name: 'Mailjet',
   seo: {
-    title: 'Open-Source Mailjet Alternative: Pay-As-You-Go with Workflow Automation | Plunk',
+    title: 'Open-Source Mailjet Alternative with Automation | Plunk',
     description:
-      'Mailjet uses monthly subscription plans and lacks workflow automation. Plunk is pay-as-you-go at $0.001/email — open-source, self-hostable, with transactional, marketing, and automation in one platform.',
-    ogTitle: 'Open-Source Mailjet Alternative: Pay-As-You-Go with Workflow Automation | Plunk',
+      'Mailjet uses monthly plans and lacks workflow automation. Plunk is open source and pay-as-you-go at $0.001/email, with transactional, marketing, and automation.',
+    ogTitle: 'Open-Source Mailjet Alternative with Automation | Plunk',
     ogDescription:
       'Mailjet uses monthly subscriptions and lacks automation. Plunk is pay-as-you-go, open-source, and self-hostable with transactional, marketing, and automation included.',
     ogImageTitle: 'Open-Source Mailjet Alternative',

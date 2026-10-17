@@ -9,7 +9,7 @@ const comparison: Comparison = {
   seo: {
     title: 'Plunk vs Amazon SES: Full Email Platform vs Raw Delivery | Plunk',
     description:
-      'Amazon SES only handles delivery — no contacts, no campaigns, no dashboard. Plunk is the full email platform built on SES infrastructure. Open-source, self-hostable, with marketing and automation included.',
+      'Amazon SES only handles delivery: no contacts, campaigns, or dashboard. Plunk is the full open-source email platform built on SES, with automation included.',
     ogTitle: 'Plunk vs Amazon SES: Full Email Platform vs Raw Delivery | Plunk',
     ogDescription:
       'SES is raw email delivery. Plunk is the full platform built on SES — contact management, campaigns, automation, and analytics. Open-source and self-hostable.',

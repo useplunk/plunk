@@ -136,7 +136,7 @@ export default function EmailSenderReputation() {
   return (
     <GuideLayout
       slug={'email-sender-reputation'}
-      title="Email Sender Reputation: Build & Maintain Trust for Better Deliverability"
+      title="Email Sender Reputation: How to Build and Protect It"
       heading={'Email sender reputation'}
       description="Learn how sender reputation works, what affects it, and proven strategies to build and maintain a positive reputation for maximum deliverability."
       lead={

@@ -49,7 +49,7 @@ export default function EmailOpenRate() {
   return (
     <GuideLayout
       slug={'email-open-rate'}
-      title="Email Open Rates: Industry Benchmarks & How to Improve Yours"
+      title="Email Open Rate: Benchmarks & How to Improve It"
       heading={'Email open rate'}
       description="Learn what affects email open rates, industry benchmarks by sector, B2B vs B2C averages, and proven tactics to improve your open rates. Complete guide with actionable tips."
       lead={
