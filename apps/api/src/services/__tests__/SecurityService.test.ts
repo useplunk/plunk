@@ -381,4 +381,12 @@ describe('SecurityService', () => {
       expect(status.shouldDisable).toBe(true);
     });
   });
+  it('excludes captured suppression from reputation denominators', async () => {
+    const contact = await factories.createContact({projectId});
+    await factories.createEmail(projectId, contact.id, {status: 'SUPPRESSED'});
+    const status = await SecurityService.getSecurityStatus(projectId);
+    expect(status.twentyFourHour.total).toBe(0);
+    expect(status.sevenDay.total).toBe(0);
+  });
+
 });

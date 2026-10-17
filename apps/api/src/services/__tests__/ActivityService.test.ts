@@ -263,3 +263,115 @@ describe('ActivityService - workflow activity', () => {
     expect(seen).toEqual(started.map(execution => `${execution.id}_started`));
   });
 });
+
+describe('ActivityService - suppressed captures', () => {
+  const prisma = getPrismaClient();
+  it('lists captures once, paginates timestamp ties, filters and isolates projects', async () => {
+    const {project} = await factories.createUserWithProject();
+    const {project: other} = await factories.createUserWithProject();
+    const contact = await factories.createContact({projectId: project.id});
+    const otherContact = await factories.createContact({projectId: other.id});
+    const timestamp = new Date();
+    const captures = [];
+    for (let i = 0; i < 3; i++)
+      captures.push(
+        await prisma.email.create({
+          data: {
+            projectId: project.id,
+            contactId: contact.id,
+            from: 'sender@example.test',
+            subject: 'Original {{code}}',
+            body: '<p>{{code}}</p>',
+            sourceType: 'TRANSACTIONAL',
+            status: 'SUPPRESSED',
+            createdAt: timestamp,
+            recipientAddress: 'override@example.com',
+            renderedSubject: 'Code 123456',
+            renderedBody: '<p>123456</p>',
+            suppression: {kind: 'DOMAIN', pattern: 'example.com'},
+          },
+        }),
+      );
+    await prisma.email.create({
+      data: {
+        projectId: other.id,
+        contactId: otherContact.id,
+        from: 'sender@example.test',
+        subject: 'Other project secret',
+        body: 'private',
+        sourceType: 'TRANSACTIONAL',
+        status: 'SUPPRESSED',
+        createdAt: timestamp,
+      },
+    });
+    const sent = await prisma.email.create({
+      data: {
+        projectId: project.id,
+        contactId: contact.id,
+        from: 'sender@example.test',
+        subject: 'Historical sent',
+        body: 'original',
+        sourceType: 'TRANSACTIONAL',
+        status: 'SENT',
+        sentAt: new Date(timestamp.getTime() - 1000),
+      },
+    });
+    const all = await ActivityService.getActivities(project.id);
+    expect(all.data.filter(a => a.type === ActivityType.EMAIL_SUPPRESSED)).toHaveLength(3);
+    expect(all.data.find(a => a.id === `${sent.id}_sent`)?.type).toBe(ActivityType.EMAIL_SENT);
+    expect(all.data.some(a => a.metadata.subject === 'Other project secret')).toBe(false);
+    const seen = [];
+    let cursor: string | undefined;
+    for (let i = 0; i < 3; i++) {
+      const page = await ActivityService.getActivities(project.id, 1, cursor, [ActivityType.EMAIL_SUPPRESSED]);
+      expect(page.data).toHaveLength(1);
+      expect(page.data[0]?.metadata).not.toHaveProperty('body');
+      expect(page.data[0]?.metadata).not.toHaveProperty('originalBody');
+      expect(await ActivityService.getEmailBody(project.id, String(page.data[0]?.metadata.emailId))).toEqual({
+        body: '<p>123456</p>',
+      });
+      expect(page.data[0]?.contactEmail).toBe('override@example.com');
+      expect(page.hasMore).toBe(i < 2);
+      seen.push(page.data[0]?.id);
+      cursor = page.cursor;
+    }
+    expect(new Set(seen).size).toBe(3);
+    expect(seen).toEqual(
+      captures
+        .map(e => `${e.id}_suppressed`)
+        .sort()
+        .reverse(),
+    );
+    await expect(ActivityService.getEmailBody(other.id, captures[0]!.id)).rejects.toThrow('Email not found');
+    await prisma.email.update({where: {id: captures[0]!.id}, data: {renderedBody: null}});
+    expect(await ActivityService.getEmailBody(project.id, captures[0]!.id)).toEqual({body: ''});
+    const sentOnly = await ActivityService.getActivities(project.id, 50, undefined, [ActivityType.EMAIL_SENT]);
+    expect(sentOnly.data.map(a => a.id)).toEqual([`${sent.id}_sent`]);
+    expect(
+      (await ActivityService.getActivities(project.id, 50, undefined, [ActivityType.EMAIL_SUPPRESSED], otherContact.id))
+        .data,
+    ).toEqual([]);
+    const outsideRange = await prisma.email.create({
+      data: {
+        projectId: project.id,
+        contactId: contact.id,
+        from: 'sender@example.test',
+        subject: 'Outside selected range',
+        body: 'old',
+        sourceType: 'TRANSACTIONAL',
+        status: 'SUPPRESSED',
+        createdAt: new Date(timestamp.getTime() - 86400000 * 2),
+      },
+    });
+    const ranged = await ActivityService.getActivities(
+      project.id,
+      50,
+      `${timestamp.getTime()}_${seen[2]}`,
+      [ActivityType.EMAIL_SUPPRESSED],
+      undefined,
+      new Date(timestamp.getTime() - 86400000),
+    );
+    expect(ranged.data.some(a => a.id === `${outsideRange.id}_suppressed`)).toBe(false);
+    expect((await ActivityService.getStats(project.id)).totalEmailsSent).toBe(1);
+  });
+});

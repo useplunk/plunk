@@ -10,6 +10,7 @@ import {createTranslatorSync, renderTemplate} from '@plunk/shared';
 
 import {BillingLimitService} from './BillingLimitService.js';
 import {withSourceEmail} from './EmailHeaderService.js';
+import {RecipientSuppressionService} from './RecipientSuppressionService.js';
 import {QueueService} from './QueueService.js';
 
 interface Attachment {
@@ -100,6 +101,7 @@ export class EmailService {
         sourceType: EmailSourceType.TRANSACTIONAL,
         templateId: params.templateId,
         status: EmailStatus.PENDING,
+        ...await RecipientSuppressionService.snapshot(params.projectId, params.contactId, params.headers, params.recipientEmail),
       },
     });
 
@@ -164,6 +166,7 @@ export class EmailService {
         templateId: params.templateId,
         campaignId: params.campaignId,
         status: EmailStatus.PENDING,
+        ...await RecipientSuppressionService.snapshot(params.projectId, params.contactId, params.headers, params.recipientEmail),
       },
     });
 
@@ -270,6 +273,7 @@ export class EmailService {
         workflowExecutionId: params.workflowExecutionId,
         workflowStepExecutionId: params.workflowStepExecutionId,
         status: EmailStatus.PENDING,
+        ...await RecipientSuppressionService.snapshot(params.projectId, params.contactId, params.headers, params.recipientEmail),
       },
     });
 

@@ -116,7 +116,7 @@ export async function sendRawEmail({
   // out empties so we never emit a blank line inside the header section.
   // Per RFC 5322 §2.1, a blank line terminates the header section, so any blank
   // line here would push subsequent headers (notably List-Unsubscribe) into the body.
-  const extraHeaderLines = headers ? Object.entries(headers).map(([key, value]) => `${key}: ${value}`) : [];
+  const extraHeaderLines = headers ? Object.entries(headers).filter(([key]) => !/^(?:to|cc|bcc|resent-to|resent-cc|resent-bcc)$/i.test(key)).map(([key, value]) => `${key}: ${value}`) : [];
   const extraHeaders = extraHeaderLines.length > 0 ? `\n${extraHeaderLines.join('\n')}` : '';
 
   // Build raw MIME message

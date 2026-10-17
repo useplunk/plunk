@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import {EmailStatus} from '@plunk/db';
 
 import {ProjectDisabledEmail, sendPlatformEmail} from '@plunk/email';
 import React from 'react';
@@ -480,6 +481,7 @@ export class SecurityService {
       // Nothing else changes for these emails -- the webhook fires, the activity feed
       // shows the bounce, the contact is still suppressed.
       simulated: false,
+      status: {not: EmailStatus.SUPPRESSED},
       ...(startDate && {
         createdAt: {
           gte: startDate,

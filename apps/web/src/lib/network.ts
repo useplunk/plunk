@@ -28,11 +28,12 @@ export class network {
     method: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'PATCH',
     path: string,
     body?: Schema extends TypedSchema ? ZodInfer<Schema> : never,
+    projectId?: string,
   ): Promise<T> {
     const url = path.startsWith('http') ? path : API_URI + path;
 
     // Get active project ID from localStorage
-    const activeProjectId = typeof window !== 'undefined' ? localStorage.getItem('activeProjectId') : null;
+    const activeProjectId = projectId ?? (typeof window !== 'undefined' ? localStorage.getItem('activeProjectId') : null);
 
     const headers: Record<string, string> = {};
     if (body) {

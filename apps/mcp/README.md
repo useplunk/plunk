@@ -78,6 +78,8 @@ Read-only tools (the only ones registered when `PLUNK_READ_ONLY=true`):
 | -------------------------------- | ------------------------------------------------------- |
 | `plunk_list_contacts`            | Browse or search contacts, cursor-paginated             |
 | `plunk_get_contact`              | Fetch one contact by ID **or email address**            |
+| `plunk_list_captured_emails`     | List this project's suppressed messages with rule snapshots |
+| `plunk_get_captured_email`       | Read stored original/rendered capture content and attachments |
 | `plunk_verify_email`             | Check whether an address is deliverable                 |
 | `plunk_list_templates`           | List reusable email templates                           |
 | `plunk_list_campaigns`           | List campaigns and their status                         |
@@ -194,3 +196,7 @@ PLUNK_API_KEY=sk_… npx @modelcontextprotocol/inspector node apps/mcp/dist/inde
 ## License
 
 AGPL-3.0-only, same as the rest of Plunk.
+
+### Suppressed email captures
+
+The two capture tools require an API version with recipient suppression support. They work in read-only mode and never send mail. Stored HTML follows the API's body retention policy; raw SMTP MIME and unstored alternatives are not available. Updating a self-hosted image does not update a separately installed MCP package. See [recipient suppression](https://docs.useplunk.com/guides/recipient-suppression) for rule semantics and endpoint details.

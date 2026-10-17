@@ -5,6 +5,7 @@
     "receiving-emails",
     "tracking",
     "api-keys",
+    "recipient-suppression",
     "mcp-server",
     "idempotency",
     "localization",

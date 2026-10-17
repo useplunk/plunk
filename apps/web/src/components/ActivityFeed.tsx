@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import {Activity as ActivityIcon, ArrowUp, ChevronRight} from 'lucide-react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {useActiveProject} from '../lib/contexts/ActiveProjectProvider';
 import {network} from '../lib/network';
 import {ActivityItem} from './ActivityItem';
 
@@ -33,7 +34,25 @@ const FIRST_WINDOW_DAYS = 90;
  * New activity is fetched in the background but never inserted on its own: the reader
  * gets a "new activity" button instead, so rows do not move under them mid-read.
  */
-export function ActivityFeed({typeFilter, contactId, showScheduled = !contactId, emptyMessage}: ActivityFeedProps) {
+export function ActivityFeed(props: ActivityFeedProps) {
+  const {activeProject} = useActiveProject();
+  if (!activeProject) return null;
+  return (
+    <ProjectActivityFeed
+      key={`${activeProject.id}:${props.typeFilter}:${props.contactId}`}
+      {...props}
+      projectId={activeProject.id}
+    />
+  );
+}
+
+function ProjectActivityFeed({
+  typeFilter,
+  contactId,
+  showScheduled = !contactId,
+  emptyMessage,
+  projectId,
+}: ActivityFeedProps & {projectId: string}) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [incoming, setIncoming] = useState<Activity[] | null>(null);
   const [scheduled, setScheduled] = useState<Activity[]>([]);
@@ -65,12 +84,12 @@ export function ActivityFeed({typeFilter, contactId, showScheduled = !contactId,
     setIncoming(null);
     try {
       const [page, upcoming] = await Promise.all([
-        network.fetch<CursorPaginatedResponse<Activity>>('GET', firstPageUrl()),
+        network.fetch<CursorPaginatedResponse<Activity>>('GET', firstPageUrl(), undefined, projectId),
         showScheduled
           ? network
               .fetch<{
                 activities: Activity[];
-              }>('GET', '/activity/upcoming?limit=20&daysAhead=30')
+              }>('GET', '/activity/upcoming?limit=20&daysAhead=30', undefined, projectId)
               .catch(() => ({activities: []}))
           : Promise.resolve({activities: []}),
       ]);
@@ -93,7 +112,7 @@ export function ActivityFeed({typeFilter, contactId, showScheduled = !contactId,
     } finally {
       if (run === generation.current) setIsLoading(false);
     }
-  }, [firstPageUrl, showScheduled, contactId]);
+  }, [firstPageUrl, showScheduled, contactId, projectId]);
 
   useEffect(() => {
     void load();
@@ -107,7 +126,12 @@ export function ActivityFeed({typeFilter, contactId, showScheduled = !contactId,
       const params = new URLSearchParams({limit: String(PAGE_SIZE), cursor: nextCursor});
       if (typeFilter) params.set('types', typeFilter);
       if (contactId) params.set('contactId', contactId);
-      const page = await network.fetch<CursorPaginatedResponse<Activity>>('GET', `/activity?${params.toString()}`);
+      const page = await network.fetch<CursorPaginatedResponse<Activity>>(
+        'GET',
+        `/activity?${params.toString()}`,
+        undefined,
+        projectId,
+      );
       if (run !== generation.current) return;
       setActivities(prev => {
         const seen = new Set(prev.map(a => a.id));
@@ -131,7 +155,12 @@ export function ActivityFeed({typeFilter, contactId, showScheduled = !contactId,
       if (document.visibilityState !== 'visible') return;
       const run = generation.current;
       try {
-        const page = await network.fetch<CursorPaginatedResponse<Activity>>('GET', firstPageUrl());
+        const page = await network.fetch<CursorPaginatedResponse<Activity>>(
+          'GET',
+          firstPageUrl(),
+          undefined,
+          projectId,
+        );
         if (run !== generation.current) return;
         const newestShown = activities[0] ? new Date(activities[0].timestamp).getTime() : 0;
         const known = new Set(activities.map(a => a.id));
@@ -144,7 +173,7 @@ export function ActivityFeed({typeFilter, contactId, showScheduled = !contactId,
 
     const interval = setInterval(() => void check(), POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [isLoading, error, activities, firstPageUrl]);
+  }, [isLoading, error, activities, firstPageUrl, projectId]);
 
   const showIncoming = () => {
     if (!incoming) return;
