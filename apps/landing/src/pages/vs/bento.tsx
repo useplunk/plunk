@@ -60,7 +60,7 @@ const comparison: Comparison = {
     {feature: 'Marketing campaigns', plunk: true, competitor: true},
     {feature: 'Workflow automation', plunk: true, competitor: true},
     {feature: 'CRM features', plunk: false, competitor: true},
-    {feature: 'Live chat', plunk: false, competitor: true},
+    {feature: 'Live chat', plunk: false, competitor: 'Paid add-on'},
     {feature: 'API-first design', plunk: true, competitor: 'Integration-focused'},
   ],
   faqs: [

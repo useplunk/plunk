@@ -38,7 +38,7 @@ const comparison: Comparison = {
     {
       kind: 'setup',
       title: 'Sending in five minutes',
-      copy: 'Add your domain, verify two records and send through the REST API. MailerLite is built UI first, with the API alongside.',
+      copy: 'Add your domain, add three DNS records and send through the REST API. MailerLite is built UI first, with the API alongside.',
     },
   ],
   choosePlunk: [
@@ -55,13 +55,12 @@ const comparison: Comparison = {
     {feature: 'Pricing model', plunk: 'Pay per email', competitor: 'Pay per subscriber'},
     {feature: 'Open source', plunk: true, competitor: false},
     {feature: 'Self-hostable', plunk: true, competitor: false},
-    {feature: 'Free tier', plunk: '1,000 emails/month', competitor: '1,000 subscribers'},
-    {feature: 'Transactional emails', plunk: true, competitor: true},
+    {feature: 'Free tier', plunk: '1,000 emails/month', competitor: '250 subscribers'},
+    {feature: 'Transactional emails', plunk: true, competitor: 'Separate product (MailerSend)'},
     {feature: 'Marketing campaigns', plunk: true, competitor: true},
     {feature: 'Workflow automation', plunk: true, competitor: true},
-    {feature: 'Drag-and-drop builder', plunk: 'Basic', competitor: 'Advanced'},
+    {feature: 'Email editor', plunk: 'Visual and HTML', competitor: 'Drag-and-drop'},
     {feature: 'API quality', plunk: 'Modern REST', competitor: 'Good REST'},
-    {feature: 'Developer experience', plunk: 'Excellent', competitor: 'Good'},
   ],
   faqs: [
     {
@@ -72,7 +71,7 @@ const comparison: Comparison = {
     {
       question: 'Is Plunk more expensive than MailerLite?',
       answer:
-        'It depends on your usage pattern. MailerLite charges based on subscriber count (e.g., $10/month for 1,000 subscribers), while Plunk charges per email sent. If you have a large subscriber list but send infrequently, Plunk is typically cheaper. If you email your entire list frequently, costs are similar. The key difference is predictability: Plunk only charges for actual usage.',
+        'It depends on your usage pattern. MailerLite charges based on subscriber count (paid plans start at $12/month), while Plunk charges per email sent. If you have a large subscriber list but send infrequently, Plunk is typically cheaper. If you email your entire list frequently, costs are similar. The key difference is predictability: Plunk only charges for actual usage.',
     },
     {
       question: 'Can I self-host Plunk unlike MailerLite?',
@@ -82,7 +81,7 @@ const comparison: Comparison = {
     {
       question: 'Does Plunk have a drag-and-drop builder like MailerLite?',
       answer:
-        "Plunk has a basic email editor, but most users manage templates using HTML/code for full control, version control, and reusability. MailerLite excels at visual drag-and-drop building for non-technical users. If you're a developer who prefers code-based templates, Plunk is better. If you need rich visual builders for marketers, MailerLite is better.",
+        "Plunk has a visual editor and an HTML editor side by side, with contact fields and fallbacks. MailerLite excels at visual drag-and-drop building for non-technical users. If you're a developer who prefers code-based templates, Plunk is better. If you need rich visual builders for marketers, MailerLite is better.",
     },
     {
       question: "How does Plunk's API compare to MailerLite?",

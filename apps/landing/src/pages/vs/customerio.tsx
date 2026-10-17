@@ -52,7 +52,7 @@ const comparison: Comparison = {
     'You run complex, enterprise-scale journeys in visual tools',
   ],
   table: [
-    {feature: 'Free tier', plunk: '1,000 emails/month', competitor: 'Limited free tier'},
+    {feature: 'Free tier', plunk: '1,000 emails/month', competitor: 'Trial only'},
     {feature: 'Pricing model', plunk: 'Pay-as-you-go', competitor: 'Complex usage-based tiers'},
     {feature: 'Open source', plunk: true, competitor: false},
     {feature: 'Self-hostable', plunk: true, competitor: false},
@@ -61,8 +61,7 @@ const comparison: Comparison = {
     {feature: 'Workflow automation', plunk: true, competitor: true},
     {feature: 'Behavioral segmentation', plunk: true, competitor: true},
     {feature: 'Visual journey builder', plunk: true, competitor: true},
-    {feature: 'Developer-first API', plunk: true, competitor: false},
-  ],
+      ],
   faqs: [
     {
       question: 'When should I choose Customer.io over Plunk?',

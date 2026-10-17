@@ -23,7 +23,7 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'Loops is a proprietary email platform sold as monthly subscriptions with contact limits. Plunk covers the same ground (transactional email, campaigns, workflows, segments) but is open source, has no contact limits, and charges $0.001 per email.',
+    'Loops is a proprietary email platform with a free tier and monthly plans capped by contacts. Plunk covers the same ground (transactional email, campaigns, workflows, segments) but is open source, has no contact limits, and charges $0.001 per email.',
   differences: [
     {
       kind: 'ownership',
@@ -36,9 +36,9 @@ const comparison: Comparison = {
       copy: 'Loops prices its tiers by contact count. Plunk stores unlimited contacts and charges $0.001 per email sent.',
     },
     {
-      kind: 'workflows',
-      title: 'Every feature on every account',
-      copy: 'Workflows, campaigns, segments and full API access are included for everyone. Loops limits some features on lower tiers.',
+      kind: 'eu',
+      title: 'Hosted in the EU',
+      copy: 'Plunk Cloud stores contacts and email history in Germany, with a DPA included. Or keep everything on your own servers.',
     },
   ],
   choosePlunk: [
@@ -49,7 +49,7 @@ const comparison: Comparison = {
   chooseThem: [
     'You prefer a fixed monthly subscription',
     'Your contact list fits comfortably within a tier',
-    'You have no need for source access or self-hosting',
+    'Your team wants a tool built only for SaaS marketing',
   ],
   table: [
     {feature: 'Pricing model', plunk: 'Pay-as-you-go', competitor: 'Monthly subscription tiers'},

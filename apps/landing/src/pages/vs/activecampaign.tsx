@@ -33,7 +33,7 @@ const comparison: Comparison = {
     {
       kind: 'pricing',
       title: 'Every feature, no tiers',
-      copy: 'Plunk bills per email with all automation included. ActiveCampaign starts at $29/month, and advanced automation costs $149/month or more.',
+      copy: 'Plunk bills per email with all automation included. ActiveCampaign prices plans by contacts and caps automation on its entry plan.',
     },
     {
       kind: 'ownership',
@@ -52,11 +52,10 @@ const comparison: Comparison = {
     'Your marketing and sales teams work from the same platform',
   ],
   table: [
-    {feature: 'Pricing model', plunk: 'Pay-as-you-go', competitor: 'Expensive tiers'},
-    {feature: 'Setup complexity', plunk: '5 minutes', competitor: 'Hours to days'},
+    {feature: 'Pricing model', plunk: 'Pay-as-you-go', competitor: 'Monthly tiers by contacts'},
     {feature: 'Open source', plunk: true, competitor: false},
     {feature: 'Self-hostable', plunk: true, competitor: false},
-    {feature: 'Transactional emails', plunk: true, competitor: true},
+    {feature: 'Transactional emails', plunk: true, competitor: 'Paid add-on'},
     {feature: 'Marketing campaigns', plunk: true, competitor: true},
     {feature: 'Workflow automation', plunk: true, competitor: true},
     {feature: 'CRM included', plunk: false, competitor: true},
@@ -72,7 +71,7 @@ const comparison: Comparison = {
     {
       question: 'What is the price difference between Plunk and ActiveCampaign?',
       answer:
-        'ActiveCampaign starts at $29/month for basic features and quickly scales to $149/month or more for automation features. Plunk uses pay-as-you-go pricing. You only pay for emails sent. For email-focused needs, Plunk typically costs 50-80% less than ActiveCampaign while providing the same email automation capabilities.',
+        'ActiveCampaign prices plans by contact count, and its entry plan limits how many actions an automation can have. Plunk uses pay-as-you-go pricing: you only pay for emails sent, with every automation feature included.',
     },
     {
       question: "Can Plunk match ActiveCampaign's automation capabilities?",

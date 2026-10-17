@@ -113,7 +113,7 @@ const moreFeatures: Claim[] = [
     title: 'Campaigns and analytics',
     copy: 'Broadcast to any segment, then see delivery, opens and clicks per send.',
     fragment: <CampaignsFragment />,
-    href: `${WIKI_URI}/concepts/campaigns`,
+    href: '/features/campaigns',
   },
   {
     title: 'Email editor',
@@ -198,7 +198,7 @@ const faqs: FAQ[] = [
   {
     question: 'Which languages and frameworks does Plunk support?',
     answer:
-      'Anything that can make an HTTP request. There is a REST API, an official Node SDK, and SMTP for clients and frameworks that already speak it, so no runtime is excluded.',
+      'Anything that can make an HTTP request. There is a REST API that works with any HTTP client, and SMTP for clients and frameworks that already speak it, so no runtime is excluded.',
   },
   {
     question: 'What does Plunk cost?',

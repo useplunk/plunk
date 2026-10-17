@@ -141,7 +141,7 @@ Yes. Plunk handles transactional emails — sign-ups, cancellations, plan change
 Yes. Plunk lets you send newsletters and broadcast emails to your full list or any segment.
 
 **What programming languages does Plunk support?**
-Any language capable of HTTP requests. Plunk provides a REST API plus SDKs for Node.js, Python, and more.
+Any language capable of HTTP requests. Plunk provides a REST API that works with any HTTP client, plus SMTP for frameworks that already send mail.
 
 **How much does Plunk cost?**
 Free plan includes 1,000 emails/month. Paid plan is $0.001 per email with no contact limits.
@@ -205,7 +205,7 @@ No feature tiers, no add-ons, no surprises.
 | Inbound email | Receive email on your domain and get every message delivered to your app as a webhook. |
 | Email validation | Catch typos, disposable domains, and missing MX records before you send. |
 | Unlimited contacts | Store as many contacts as you need. Growing your list never costs more. |
-| Full API access | REST API with SDKs for Node.js, Python, and more. |
+| Full API access | REST API and SMTP, usable from any language. |
 | Custom domains | Send from your own domain with DKIM, SPF, and DMARC set up automatically. |
 | Audience segmentation | Dynamic segments built on behavior, attributes, and engagement data. |
 | Analytics & tracking | Opens, clicks, bounces, and unsubscribes. Real data, no guessing. |

@@ -88,6 +88,13 @@ export default function CompetitorsIndex() {
               </motion.li>
             ))}
           </ul>
+          <p className={'mt-8 text-ui text-neutral-600'}>
+            Weighing Plunk against everything else?{' '}
+            <Link href={'/alternatives/plunk'} className={'text-neutral-900 underline underline-offset-4'}>
+              See when another tool is the better fit
+            </Link>
+            .
+          </p>
         </section>
 
         <section className={'mx-auto max-w-[88rem] px-6 pb-24 sm:px-10 sm:pb-32'}>

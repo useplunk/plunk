@@ -28,7 +28,7 @@ const comparison: Comparison = {
     {
       kind: 'pricing',
       title: 'Pay for emails, not contacts',
-      copy: 'With 10,000 contacts, Klaviyo costs $150-300+/month. Plunk stores contacts at no cost and charges only for the emails you send.',
+      copy: 'With 10,000 active profiles, Klaviyo’s email plan costs around $150 a month. Plunk stores contacts at no cost and charges only for the emails you send.',
     },
     {
       kind: 'transactional',
@@ -53,7 +53,6 @@ const comparison: Comparison = {
   ],
   table: [
     {feature: 'Pricing model', plunk: 'Pay-as-you-go', competitor: 'Contact-based tiers'},
-    {feature: 'Typical cost', plunk: 'Affordable', competitor: 'Very expensive'},
     {feature: 'Open source', plunk: true, competitor: false},
     {feature: 'Self-hostable', plunk: true, competitor: false},
     {feature: 'Transactional emails', plunk: true, competitor: true},
@@ -72,7 +71,7 @@ const comparison: Comparison = {
     {
       question: 'How much cheaper is Plunk compared to Klaviyo?',
       answer:
-        'Klaviyo can be dramatically more expensive. With 10,000 contacts, Klaviyo costs $150-300+/month depending on email volume. Plunk uses pay-as-you-go pricing. You only pay for emails sent, not contacts stored. For most use cases, Plunk costs 60-90% less than Klaviyo while providing the same email automation capabilities. The savings increase as your contact list grows.',
+        'Klaviyo can be dramatically more expensive. With 10,000 active profiles, Klaviyo’s email plan costs around $150 a month, and more with SMS. Plunk uses pay-as-you-go pricing. You only pay for emails sent, not contacts stored. For email-only use, Plunk usually costs much less, with event-triggered automation included. Capabilities. The savings increase as your contact list grows.',
     },
     {
       question: 'Can Plunk handle e-commerce emails?',

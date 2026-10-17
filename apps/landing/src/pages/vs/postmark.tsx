@@ -23,17 +23,17 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'Postmark sends transactional email and nothing else. Plunk sends it on AWS SES too, and adds campaigns, workflows and segments on the same account, billed at $0.001 per email.',
+    'Postmark is built for transactional email, with broadcasts sent through a separate stream but no campaign builder. Plunk sends transactional email on AWS SES and adds campaigns, workflows and segments on the same account, at $0.001 per email.',
   differences: [
     {
       kind: 'campaigns',
       title: 'Newsletters from the same account',
-      copy: 'Send announcements and newsletters without a second marketing platform. Postmark has no marketing campaigns.',
+      copy: 'Build, schedule and track newsletters in the dashboard. Postmark sends broadcasts through its API, without a campaign builder or audiences.',
     },
     {
       kind: 'pricing',
       title: 'No monthly minimum',
-      copy: 'Postmark starts at $15 a month for 10,000 emails. Plunk charges $0.001 per email, with transactional and marketing at the same rate.',
+      copy: 'Postmark’s paid plans start at $15 a month for 10,000 emails. Plunk charges $0.001 per email, with transactional and marketing at the same rate.',
     },
     {
       kind: 'transactional',
@@ -53,7 +53,7 @@ const comparison: Comparison = {
   ],
   table: [
     {feature: 'Transactional emails', plunk: true, competitor: true},
-    {feature: 'Marketing campaigns', plunk: true, competitor: false},
+    {feature: 'Marketing campaigns', plunk: true, competitor: 'Broadcast streams (API)'},
     {feature: 'Workflow automation', plunk: true, competitor: false},
     {feature: 'Dynamic segmentation', plunk: true, competitor: false},
     {feature: 'Open source', plunk: true, competitor: false},
@@ -63,7 +63,7 @@ const comparison: Comparison = {
     {
       question: 'What is the main difference between Plunk and Postmark?',
       answer:
-        'Postmark focuses exclusively on transactional emails, while Plunk offers transactional emails plus marketing campaigns, workflow automation, and dynamic segmentation. Plunk is also open-source and self-hostable, giving you more flexibility and control.',
+        'Postmark focuses on transactional email, with broadcasts sent through the API, while Plunk offers transactional emails plus marketing campaigns, workflow automation, and dynamic segmentation. Plunk is also open-source and self-hostable, giving you more flexibility and control.',
     },
     {
       question: 'Is Plunk as reliable as Postmark for transactional emails?',

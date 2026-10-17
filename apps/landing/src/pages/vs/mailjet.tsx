@@ -9,31 +9,31 @@ const comparison: Comparison = {
   seo: {
     title: 'Open-Source Mailjet Alternative with Automation | Plunk',
     description:
-      'Mailjet uses monthly plans and lacks workflow automation. Plunk is open source and pay-as-you-go at $0.001/email, with transactional, marketing, and automation.',
+      'Mailjet keeps automation to its Premium plan. Plunk is open source and pay-as-you-go at $0.001/email, with automation on every account.',
     ogTitle: 'Open-Source Mailjet Alternative with Automation | Plunk',
     ogDescription:
-      'Mailjet uses monthly subscriptions and lacks automation. Plunk is pay-as-you-go, open-source, and self-hostable with transactional, marketing, and automation included.',
+      'Mailjet keeps automation to its Premium plan. Plunk is pay-as-you-go, open-source, and self-hostable, with automation on every account.',
     ogImageTitle: 'Open-Source Mailjet Alternative',
   },
   headline: (
     <>
       The Mailjet alternative
       <br />
-      with workflow automation
+      with automation on every plan
     </>
   ),
   summary:
-    'Mailjet covers transactional and marketing email on monthly subscription plans, but has no workflow automation. Plunk adds multi-step workflows, bills $0.001 per email, and is open source.',
+    'Mailjet covers transactional and marketing email on monthly plans, with automation only on Premium. Plunk includes multi-step workflows on every account, bills $0.001 per email, and is open source.',
   differences: [
     {
       kind: 'workflows',
       title: 'Automation Mailjet does not have',
-      copy: 'Build onboarding, drip and re-engagement sequences with triggers, delays and conditions. Mailjet offers no workflow automation on any plan.',
+      copy: 'Build onboarding, drip and re-engagement sequences with triggers, delays and conditions. Mailjet includes automation only on its Premium plan.',
     },
     {
       kind: 'pricing',
       title: 'No capacity you do not use',
-      copy: 'Plunk bills $0.001 per email sent. Mailjet sells monthly tiers, starting around $17 a month for 15,000 emails, whether you send them or not.',
+      copy: 'Plunk bills $0.001 per email sent. Mailjet sells monthly tiers, from $9 a month for 8,000 emails or $19 for 15,000, whether you send them or not.',
     },
     {
       kind: 'ownership',
@@ -58,8 +58,8 @@ const comparison: Comparison = {
     {feature: 'Self-hostable', plunk: true, competitor: false},
     {feature: 'Transactional emails', plunk: true, competitor: true},
     {feature: 'Marketing campaigns', plunk: true, competitor: true},
-    {feature: 'Workflow automation', plunk: true, competitor: false},
-    {feature: 'Dynamic segmentation', plunk: true, competitor: 'Basic'},
+    {feature: 'Workflow automation', plunk: true, competitor: 'Premium plan only'},
+    {feature: 'Dynamic segmentation', plunk: true, competitor: 'Essential plan and up'},
     {feature: 'Event tracking', plunk: true, competitor: true},
     {feature: 'Custom domains', plunk: true, competitor: true},
   ],
@@ -67,12 +67,12 @@ const comparison: Comparison = {
     {
       question: 'When should I choose Mailjet over Plunk?',
       answer:
-        'Choose Mailjet if you need inbox preview testing or built-in A/B testing for email campaigns. Mailjet has been around longer and has a broad feature set. Choose Plunk if you need workflow automation, want an open-source platform you can self-host, or prefer pay-as-you-go pricing without monthly subscription commitments.',
+        'Choose Mailjet if you need inbox preview testing or built-in A/B testing for email campaigns. Mailjet has been around longer and has a broad feature set. Choose Plunk if you want automation without upgrading, want an open-source platform you can self-host, or prefer pay-as-you-go pricing without monthly subscription commitments.',
     },
     {
       question: 'What is the pricing difference between Plunk and Mailjet?',
       answer:
-        "Plunk is pure pay-as-you-go at $0.001/email — you pay only for what you send. Mailjet uses monthly subscription tiers: their Essential plan starts around $17/month for 15,000 emails, scaling up from there. For variable sending volumes, Plunk is more cost-effective since you never pay for capacity you don't use.",
+        "Plunk is pure pay-as-you-go at $0.001/email — you pay only for what you send. Mailjet uses monthly subscription tiers: plans start at $9/month for 8,000 emails, and the Essential plan is $19/month for 15,000. For variable sending volumes, Plunk is more cost-effective since you never pay for capacity you don't use.",
     },
     {
       question: 'Is migration from Mailjet to Plunk complex?',
@@ -82,10 +82,10 @@ const comparison: Comparison = {
     {
       question: "What does Plunk offer that Mailjet doesn't?",
       answer:
-        'Plunk adds multi-step workflow automation (triggers, delays, conditions — perfect for onboarding and drip sequences) and is fully open-source under AGPL-3.0, meaning you can self-host on your own infrastructure. Mailjet offers neither workflow automation nor self-hosting. Plunk also uses pure pay-as-you-go pricing rather than tiered subscriptions.',
+        'Plunk adds multi-step workflow automation (triggers, delays, conditions — perfect for onboarding and drip sequences) and is fully open-source under AGPL-3.0, meaning you can self-host on your own infrastructure. Mailjet includes automation only on Premium and cannot be self-hosted. Plunk also uses pure pay-as-you-go pricing rather than tiered subscriptions.',
     },
   ],
-  cta: {title: 'Get workflow automation without a monthly plan.'},
+  cta: {title: 'Automation on every account, no monthly plan.'},
 };
 
 export default function MailjetComparison() {

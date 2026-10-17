@@ -23,12 +23,12 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'SendGrid sells email on monthly tiers, with marketing as a separate product and automation on the enterprise tier. Plunk includes all of it, bills $0.001 per email, and takes about five minutes to set up.',
+    'SendGrid sells email on monthly tiers, with marketing as a separate product and automation on its Advanced marketing plan. Plunk includes all of it, bills $0.001 per email, and takes about five minutes to set up.',
   differences: [
     {
       kind: 'setup',
       title: 'Sending in five minutes',
-      copy: 'Verify your domain and call a modern REST API. No IP configuration, subuser accounts or legacy API to learn first.',
+      copy: 'Verify your domain and call a modern REST API. No IP configuration or subuser accounts to set up first.',
     },
     {
       kind: 'pricing',
@@ -38,7 +38,7 @@ const comparison: Comparison = {
     {
       kind: 'campaigns',
       title: 'Marketing included, not sold separately',
-      copy: 'Campaigns, workflows and segments come with every account. SendGrid sells marketing as a separate product and keeps automation for enterprise.',
+      copy: 'Campaigns, workflows and segments come with every account. SendGrid sells marketing as a separate product and keeps automation for its Advanced plan.',
     },
   ],
   choosePlunk: [
@@ -53,14 +53,14 @@ const comparison: Comparison = {
   ],
   table: [
     {feature: 'Pricing model', plunk: 'Pay-as-you-go', competitor: 'Monthly subscription tiers'},
-    {feature: 'Setup time', plunk: '5 minutes', competitor: 'Hours of configuration'},
+    {feature: 'Setup time', plunk: 'Minutes', competitor: 'Longer, more to configure'},
     {feature: 'Open source', plunk: true, competitor: false},
     {feature: 'Self-hostable', plunk: true, competitor: false},
     {feature: 'Transactional emails', plunk: true, competitor: true},
     {feature: 'Marketing campaigns', plunk: 'Included', competitor: 'Separate product'},
-    {feature: 'Workflow automation', plunk: true, competitor: 'Enterprise only'},
-    {feature: 'Dynamic segmentation', plunk: true, competitor: 'Limited'},
-    {feature: 'API simplicity', plunk: 'Modern REST', competitor: 'Complex legacy API'},
+    {feature: 'Workflow automation', plunk: true, competitor: 'Advanced plan only'},
+    {feature: 'Dynamic segmentation', plunk: true, competitor: 'Paid marketing plan'},
+    {feature: 'API', plunk: 'One send endpoint', competitor: 'Large, mature API'},
   ],
   faqs: [
     {
@@ -71,12 +71,12 @@ const comparison: Comparison = {
     {
       question: 'Why is SendGrid so complicated to set up?',
       answer:
-        'SendGrid is built for large enterprises with complex needs. It requires configuring IP addresses, sender authentication, subuser accounts, and understanding their legacy API structure. Plunk is built for developers who want to start sending emails in minutes with a simple, modern API.',
+        'SendGrid is built for large enterprises with complex needs. It offers IP configuration, subuser accounts and a broad API surface, which takes longer to learn. Plunk is built for developers who want to start sending emails in minutes with a simple, modern API.',
     },
     {
       question: 'Does Plunk have the same deliverability as SendGrid?',
       answer:
-        'Yes. Plunk is built on top of AWS SES, which has excellent deliverability comparable to SendGrid. Both platforms support custom domains, DKIM authentication, and dedicated IPs (for high-volume senders). The key difference is Plunk makes these features accessible without the complexity.',
+        'Yes. Plunk is built on top of AWS SES, which has excellent deliverability comparable to SendGrid. Both platforms support custom domains and DKIM authentication. Plunk also handles bounces and complaints automatically to protect your reputation.',
     },
     {
       question: 'Can I migrate from SendGrid to Plunk?',

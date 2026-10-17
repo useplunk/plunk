@@ -73,6 +73,16 @@ export default function Footer() {
                     </Link>
                   </li>
                   <li>
+                    <Link href={'/aws-ses'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
+                      Amazon SES dashboard
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href={'/eu'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
+                      EU hosting & GDPR
+                    </Link>
+                  </li>
+                  <li>
                     <Link href={'/changelog'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Changelog
                     </Link>
@@ -122,6 +132,16 @@ export default function Footer() {
               <div>
                 <h3 style={{fontFamily: 'var(--font-mono)'}} className="text-label font-semibold text-neutral-500">Features</h3>
                 <ul role="list" className="mt-6 space-y-4">
+                  <li>
+                    <Link href={'/features/transactional-email'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
+                      Transactional email
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href={'/features/campaigns'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
+                      Campaigns
+                    </Link>
+                  </li>
                   <li>
                     <Link href={'/features/email-editor'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Email editor
@@ -190,7 +210,7 @@ export default function Footer() {
                   </li>
                   <li>
                     <Link href={'/vs/convertkit'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
-                      vs ConvertKit
+                      vs Kit
                     </Link>
                   </li>
                 </ul>

@@ -4,6 +4,7 @@ import {BreadcrumbJsonLd, NextSeo} from 'next-seo';
 import Link from 'next/link';
 import React from 'react';
 
+import {getAlternativesPage} from '../content/alternatives';
 import {COMPARISONS} from '../content/comparisons';
 import {WIKI_URI} from '../lib/constants';
 import {ComparisonTable, type ComparisonRow} from './ComparisonTable';
@@ -156,6 +157,7 @@ export function ComparisonPage({comparison: c}: {comparison: Comparison}) {
  */
 function OtherComparisons({current}: {current: string}) {
   const others = COMPARISONS.filter(other => other.slug !== current);
+  const alternatives = getAlternativesPage(current);
 
   return (
     <nav aria-label={'Other comparisons'} className={'mx-auto max-w-[88rem] px-6 pb-20 sm:px-10'}>
@@ -168,6 +170,13 @@ function OtherComparisons({current}: {current: string}) {
             </Link>
           </li>
         ))}
+        {alternatives && (
+          <li>
+            <Link href={`/alternatives/${alternatives.slug}`} className={'text-ui font-semibold text-neutral-900'}>
+              All {alternatives.name} alternatives
+            </Link>
+          </li>
+        )}
         <li>
           <Link href={'/vs'} className={'text-ui font-semibold text-neutral-900'}>
             All comparisons

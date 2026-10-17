@@ -4,7 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {DASHBOARD_URI, WIKI_URI} from '../../lib/constants';
 import Image from 'next/image';
 import logo from '../../../public/assets/logo.svg';
-import {ArrowRight, Bot, ChevronDown, GitBranch, Inbox, Mail, Server, Users} from 'lucide-react';
+import {ArrowRight, Bot, ChevronDown, GitBranch, Inbox, Mail, Megaphone, Send, Server, Users} from 'lucide-react';
 
 interface FeatureLink {
   title: string;
@@ -22,6 +22,18 @@ interface FeatureLink {
  * automation and audience features lead.
  */
 const features: FeatureLink[] = [
+  {
+    title: 'Transactional email',
+    description: 'Send from your app with one API call',
+    href: '/features/transactional-email',
+    icon: <Send className="h-4 w-4" strokeWidth={1.75} />,
+  },
+  {
+    title: 'Campaigns',
+    description: 'Newsletters and product updates',
+    href: '/features/campaigns',
+    icon: <Megaphone className="h-4 w-4" strokeWidth={1.75} />,
+  },
   {
     title: 'Workflows',
     description: 'Automate email from product events',

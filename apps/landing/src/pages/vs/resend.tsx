@@ -9,83 +9,84 @@ const comparison: Comparison = {
   seo: {
     title: 'Open-Source Resend Alternative at $0.001/Email | Plunk',
     description:
-      'Resend uses fixed subscription pricing. Plunk is pay-as-you-go at $0.001/email — open-source, self-hostable, with marketing campaigns and workflow automation included.',
+      'Resend bills transactional email by plan and marketing by contact. Plunk charges $0.001 per email for both, with unlimited contacts. Open source, hosted in the EU.',
     ogTitle: 'Open-Source Resend Alternative at $0.001/Email | Plunk',
     ogDescription:
-      'Resend uses fixed subscription pricing. Plunk is pay-as-you-go at $0.001/email — open-source, self-hostable, with marketing and automation included.',
+      'Resend bills transactional email by plan and marketing by contact. Plunk charges $0.001 per email for both, with unlimited contacts.',
     ogImageTitle: 'Open-Source Resend Alternative',
   },
   headline: (
     <>
       The Resend alternative
       <br />
-      with marketing built in
+      with one simple bill
     </>
   ),
   summary:
-    'Resend sends transactional email. Plunk sends it too, and adds campaigns, workflows and segments on the same contact list, so you do not need a second tool for marketing.',
+    'Resend sells transactional email and marketing email as separate plans, with marketing priced per contact. Plunk sends both, plus workflows, at $0.001 per email with unlimited contacts, and it is open source.',
   differences: [
     {
-      kind: 'campaigns',
-      title: 'Campaigns in the same place',
-      copy: 'Send newsletters and announcements to your whole list or a segment, from the same account that sends your receipts.',
-    },
-    {
-      kind: 'workflows',
-      title: 'Automation, not just sending',
-      copy: 'Build onboarding and follow-up sequences with triggers, delays and conditions. Resend sends single emails only.',
-    },
-    {
       kind: 'pricing',
-      title: 'Pay per email, not per plan',
-      copy: 'Plunk bills $0.001 per email with no monthly tiers. Resend charges a fixed subscription with a sending limit per plan.',
+      title: 'Never priced per contact',
+      copy: 'Resend marketing plans are sized by how many contacts you store. Plunk stores unlimited contacts for free and bills only for the emails you send.',
+    },
+    {
+      kind: 'campaigns',
+      title: 'One plan for everything',
+      copy: 'Transactional, campaign and workflow email share one price and one contact list. No second plan to size, no second limit to watch.',
+    },
+    {
+      kind: 'ownership',
+      title: 'Open source, hosted in the EU',
+      copy: 'Plunk is AGPL-3.0 licensed. Use Plunk Cloud, with data stored in Germany, or run the same code on your own servers.',
     },
   ],
   choosePlunk: [
-    'You send transactional and marketing email and want one tool for both',
-    'You want automated sequences like onboarding or win-back',
+    'You have a large contact list and send to it occasionally',
+    'You want one price for transactional, marketing and automated email',
     'You want open source, with the option to self-host',
   ],
   chooseThem: [
-    'You only ever send transactional email',
-    'A larger free tier matters more than marketing features',
-    'You are happy running a separate tool for newsletters',
+    'You want a larger free tier for transactional email',
+    'You build emails with React Email and want the tightest integration',
+    'You prefer a fixed monthly plan to pay-as-you-go',
   ],
   table: [
     {feature: 'Free tier', plunk: '1,000 emails/month', competitor: '3,000 emails/month'},
-    {feature: 'Pricing model', plunk: 'Pay-as-you-go', competitor: 'Fixed subscription'},
+    {feature: 'Transactional pricing', plunk: '$0.001 per email', competitor: 'Monthly plans from $20'},
+    {feature: 'Marketing pricing', plunk: '$0.001 per email', competitor: 'Per contact, from $40/month'},
+    {feature: 'Unlimited contacts', plunk: true, competitor: false},
     {feature: 'Open source', plunk: true, competitor: false},
     {feature: 'Self-hostable', plunk: true, competitor: false},
     {feature: 'Transactional emails', plunk: true, competitor: true},
-    {feature: 'Marketing campaigns', plunk: true, competitor: false},
-    {feature: 'Workflow automation', plunk: true, competitor: false},
-    {feature: 'Dynamic segmentation', plunk: true, competitor: false},
-    {feature: 'Event tracking', plunk: true, competitor: true},
-    {feature: 'Custom domains', plunk: true, competitor: true},
+    {feature: 'Broadcasts and campaigns', plunk: true, competitor: true},
+    {feature: 'Automations', plunk: true, competitor: true},
+    {feature: 'Segments', plunk: true, competitor: true},
+    {feature: 'Inbound email', plunk: true, competitor: true},
   ],
   faqs: [
     {
       question: 'When should I choose Resend over Plunk?',
       answer:
-        'Choose Resend if you only need transactional emails and prefer a service focused exclusively on that use case. Resend has a larger free tier and excellent developer experience for transactional emails. Choose Plunk if you need marketing campaigns, automation workflows, or want the flexibility to self-host (though Plunk also offers fully-managed hosting).',
+        'Choose Resend if you mostly send transactional email and want its larger free tier, or if your team builds emails with React Email. Choose Plunk if you also send to a large contact list, since Plunk never prices by contacts, or if you want open source and EU hosting.',
     },
     {
       question: 'What is the pricing difference between Plunk and Resend?',
       answer:
-        "Plunk uses a pay-as-you-go pricing model, while Resend uses a fixed subscription model. Both optimize for different use cases - Resend focuses exclusively on transactional emails. Plunk includes marketing campaigns and workflow automation at no additional cost. If you need both transactional and marketing emails, Plunk may be more cost-effective overall since you won't need a separate marketing platform.",
+        'Resend has separate plans: transactional email by monthly volume, and marketing email by the number of contacts you store. Plunk charges $0.001 for every email, whatever kind, with unlimited contacts and no monthly plan. Pricing checked against resend.com in October 2026.',
     },
     {
       question: 'Is migration from Resend to Plunk complex?',
       answer:
-        "Migration requires updating your API integration since Plunk and Resend use different API structures. You'll need to update your code to use Plunk's endpoints and parameter format. However, both platforms support similar features (templates, webhooks, custom domains), so the concepts translate directly. Plan for a few hours of development work to migrate your integration.",
+        'You verify your domain in Plunk, change your send calls to Plunk’s endpoint, and import your contacts from a CSV. Both use a recipient, subject and HTML body or a template, so the concepts carry over. Most teams finish in an afternoon.',
     },
     {
-      question: "What does Plunk offer that Resend doesn't?",
+      question: 'Does Plunk have the same features as Resend?',
       answer:
-        'Plunk adds marketing campaigns (one-time broadcasts to segments), workflow automation (multi-step email sequences with triggers and conditions), and dynamic audience segmentation. These features mean you can handle both transactional and marketing emails in one platform. Plunk is also open-source (AGPL-3.0) and self-hostable, giving you full control over your email infrastructure.',
+        'Both have transactional email, broadcasts, automations, segments, webhooks and inbound email. The differences are pricing, where Plunk bills per email and never per contact, and ownership, since Plunk is open source and can run on your own servers.',
     },
   ],
-  cta: {title: 'Send transactional and marketing email from one place.'},
+  cta: {title: 'One price for every email you send.'},
 };
 
 export default function ResendComparison() {

@@ -52,7 +52,7 @@ const comparison: Comparison = {
     'You want a provider with a long track record and deep deliverability tooling',
   ],
   table: [
-    {feature: 'Free tier', plunk: '1,000 emails/month', competitor: 'Limited trial'},
+    {feature: 'Free tier', plunk: '1,000 emails/month', competitor: '100 emails/day'},
     {feature: 'Pricing model', plunk: 'Pay-as-you-go', competitor: 'Tiered monthly plans'},
     {feature: 'Open source', plunk: true, competitor: false},
     {feature: 'Self-hostable', plunk: true, competitor: false},

@@ -195,7 +195,23 @@ export function InboundFragment() {
   );
 }
 
+/** Where the data lives, as the project's data-residency row shows it. */
+function EuFragment() {
+  return (
+    <UICard className={'w-full max-w-xs p-4'}>
+      <SnippetRow
+        icon={Globe}
+        label={'Data location'}
+        title={'Germany, EU'}
+        trailing={<StatusPill tone={'ok'}>EU only</StatusPill>}
+      />
+      <p className={'mt-4 border-t border-neutral-100 pt-4 text-ui text-neutral-700'}>DPA included</p>
+    </UICard>
+  );
+}
+
 export type DifferenceKind =
+  | 'eu'
   | 'setup'
   | 'pricing'
   | 'ownership'
@@ -206,6 +222,7 @@ export type DifferenceKind =
   | 'inbound';
 
 const fragments: Record<DifferenceKind, () => React.JSX.Element> = {
+  eu: EuFragment,
   setup: SetupFragment,
   pricing: PricingFragment,
   ownership: OwnershipFragment,
@@ -227,7 +244,7 @@ const homepageDifferences: Difference[] = [
   {
     kind: 'setup',
     title: 'Sending in five minutes',
-    copy: 'Add your domain, verify two records, send. No onboarding call, no warm-up project.',
+    copy: 'Add your domain, add three DNS records, send. No onboarding call, no warm-up project.',
   },
   {
     kind: 'pricing',

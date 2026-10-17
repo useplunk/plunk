@@ -23,11 +23,11 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'Mailchimp is a marketing tool priced by contacts stored, with transactional email in a separate product, Mandrill. Plunk sends both from one API and charges only for emails sent.',
+    'Mailchimp is a marketing tool priced by contacts stored, with transactional email sold as a paid add-on, Mailchimp Transactional (formerly Mandrill). Plunk sends both from one API and charges only for emails sent.',
   differences: [
     {
       kind: 'transactional',
-      title: 'No separate Mandrill account',
+      title: 'No transactional add-on',
       copy: 'Password resets and receipts go out from the same platform as your newsletters, using the same contact list.',
     },
     {
@@ -38,7 +38,7 @@ const comparison: Comparison = {
     {
       kind: 'workflows',
       title: 'Triggered by what users do',
-      copy: "Start workflows from events your app tracks, with waits and conditions in between. Mailchimp's event-based triggers are limited.",
+      copy: "Start workflows from events your app tracks, with waits and conditions in between. Mailchimp keeps automation flows to its paid plans.",
     },
   ],
   choosePlunk: [
@@ -54,15 +54,13 @@ const comparison: Comparison = {
   table: [
     {feature: 'Pricing model', plunk: 'Pay per email', competitor: 'Pay per contact'},
     {feature: 'Target audience', plunk: 'Developers', competitor: 'Marketers'},
-    {feature: 'API quality', plunk: 'Modern REST', competitor: 'Legacy/complex'},
-    {feature: 'Open source', plunk: true, competitor: false},
+        {feature: 'Open source', plunk: true, competitor: false},
     {feature: 'Self-hostable', plunk: true, competitor: false},
-    {feature: 'Transactional emails', plunk: 'Built-in', competitor: 'Mandrill (separate)'},
+    {feature: 'Transactional emails', plunk: 'Built-in', competitor: 'Paid add-on (Standard+)'},
     {feature: 'Marketing campaigns', plunk: true, competitor: true},
-    {feature: 'Event-based triggers', plunk: true, competitor: 'Limited'},
+    {feature: 'Event-based triggers', plunk: true, competitor: 'Paid plans only'},
     {feature: 'Developer experience', plunk: 'Excellent', competitor: 'Marketing-first'},
-    {feature: 'Setup time', plunk: '5 minutes', competitor: '1-2 hours'},
-  ],
+      ],
   faqs: [
     {
       question: 'When should I choose Mailchimp over Plunk?',
@@ -77,17 +75,17 @@ const comparison: Comparison = {
     {
       question: 'Can Plunk handle both transactional and marketing emails?',
       answer:
-        "Yes, that's one of Plunk's key advantages. Transactional emails (receipts, password resets) and marketing emails (newsletters, campaigns) are built into one platform. With Mailchimp, you need their separate Mandrill service for transactional emails, which adds complexity.",
+        "Yes, that's one of Plunk's key advantages. Transactional emails (receipts, password resets) and marketing emails (newsletters, campaigns) are built into one platform. With Mailchimp, transactional email is a paid add-on, Mailchimp Transactional, available on Standard plans and above.",
     },
     {
       question: "Is Plunk's API easier to use than Mailchimp's?",
       answer:
-        'Yes, significantly. Plunk has a modern RESTful API designed for developers. Mailchimp\'s API is complex and marketing-focused, requiring you to understand concepts like "audiences," "campaigns," and "merge fields." Most developers find Plunk\'s API 10x easier to integrate.',
+        'Yes, significantly. Plunk has a modern RESTful API designed for developers. Mailchimp\'s API is built around marketing concepts like audiences and merge fields. Plunk sends an email with one request: a recipient, a subject and a body or template.',
     },
     {
       question: 'Does Plunk have a visual email builder like Mailchimp?',
       answer:
-        'Plunk has a minimal email editor, most of our users manage their own templates using their own HTML. This gives developers full control and enables version control, testing, and reusability. If you need a drag-and-drop builder, Mailchimp is better. If you prefer code and want beautiful, responsive emails, Plunk is the better choice.',
+        'Plunk has a visual editor and an HTML editor side by side, with contact fields and fallbacks. If your team wants a drag-and-drop builder with a large template library, Mailchimp offers more. If you prefer code and want beautiful, responsive emails, Plunk is the better choice.',
     },
   ],
   cta: {title: 'Send receipts and newsletters from one API.'},

@@ -13,7 +13,7 @@ export const COMPARISONS: {name: string; slug: string; category: string}[] = [
   {name: 'Customer.io', slug: 'customerio', category: 'Behavioural messaging platform'},
   {name: 'Loops', slug: 'loops', category: 'Email for software companies'},
   {name: 'Brevo', slug: 'brevo', category: 'Marketing and CRM suite'},
-  {name: 'ConvertKit', slug: 'convertkit', category: 'Email for creators'},
+  {name: 'Kit (ConvertKit)', slug: 'convertkit', category: 'Email for creators'},
   {name: 'ActiveCampaign', slug: 'activecampaign', category: 'Marketing automation and CRM'},
   {name: 'MailerLite', slug: 'mailerlite', category: 'Newsletters and marketing email'},
   {name: 'Klaviyo', slug: 'klaviyo', category: 'E-commerce marketing platform'},
@@ -21,4 +21,5 @@ export const COMPARISONS: {name: string; slug: string; category: string}[] = [
   {name: 'Mailjet', slug: 'mailjet', category: 'Email API and newsletters'},
   {name: 'Buttondown', slug: 'buttondown', category: 'Newsletter publishing'},
   {name: 'Amazon SES', slug: 'amazon-ses', category: 'Raw sending infrastructure'},
+  {name: 'useSend', slug: 'usesend', category: 'Open-source email API'},
 ];

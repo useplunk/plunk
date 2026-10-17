@@ -5,40 +5,40 @@ import type {Comparison} from '../../components';
 
 const comparison: Comparison = {
   slug: 'convertkit',
-  name: 'ConvertKit',
+  name: 'Kit',
   seo: {
-    title: 'ConvertKit Alternative for Developers | Plunk',
+    title: 'Kit (ConvertKit) Alternative for Developers | Plunk',
     description:
-      'Developer-first alternative to ConvertKit. Pay per email instead of per subscriber. Open-source, self-hostable, with powerful automation. No landing page bloat.',
-    ogTitle: 'ConvertKit Alternative for Developers | Plunk',
+      'Developer-first alternative to Kit, formerly ConvertKit. Pay per email instead of per subscriber. Open-source, self-hostable, with powerful automation. No landing page bloat.',
+    ogTitle: 'Kit (ConvertKit) Alternative for Developers | Plunk',
     ogDescription:
-      'Developer-first alternative to ConvertKit. Pay per email instead of per subscriber. Open-source, self-hostable, with powerful automation.',
-    ogImageTitle: 'ConvertKit Alternative for Developers',
+      'Developer-first alternative to Kit, formerly ConvertKit. Pay per email instead of per subscriber. Open-source, self-hostable, with powerful automation.',
+    ogImageTitle: 'Kit (ConvertKit) Alternative',
   },
   headline: (
     <>
-      The ConvertKit alternative
+      The Kit alternative
       <br />
       priced per email
     </>
   ),
   summary:
-    'ConvertKit is built for creators and charges by subscriber count. Plunk charges only for emails sent, stores contacts for free, and sends transactional email from the same account.',
+    'Kit, formerly ConvertKit, is built for creators and charges by subscriber count. Plunk charges only for emails sent, stores contacts for free, and sends transactional email from the same account.',
   differences: [
     {
       kind: 'pricing',
       title: 'Pay per email, not per subscriber',
-      copy: 'A list of 10,000 subscribers costs $119/month on ConvertKit, even if you rarely email it. Plunk stores contacts for free and bills only for emails sent.',
+      copy: 'Kit’s free plan stops at 10,000 subscribers and leaves out automations, and paid plans rise with every subscriber. Plunk stores contacts for free and bills only for emails sent.',
     },
     {
       kind: 'transactional',
       title: 'Transactional email included',
-      copy: 'Send password resets and receipts through the same API as your newsletters. ConvertKit does not send transactional email.',
+      copy: 'Send password resets and receipts through the same API as your newsletters. Kit does not send transactional email.',
     },
     {
       kind: 'ownership',
       title: 'Open source, and yours to host',
-      copy: 'Plunk is AGPL-3.0 licensed and runs on your own servers with Docker if you want it there. ConvertKit is proprietary and cloud-only.',
+      copy: 'Plunk is AGPL-3.0 licensed and runs on your own servers with Docker if you want it there. Kit is proprietary and cloud-only.',
     },
   ],
   choosePlunk: [
@@ -61,33 +61,33 @@ const comparison: Comparison = {
     {feature: 'Workflow automation', plunk: true, competitor: true},
     {feature: 'Landing pages', plunk: false, competitor: true},
     {feature: 'Product selling', plunk: false, competitor: true},
-    {feature: 'API-first design', plunk: true, competitor: false},
+    {feature: 'Built for', plunk: 'Product email', competitor: 'Creator audiences'},
   ],
   faqs: [
     {
-      question: 'When should I choose ConvertKit over Plunk?',
+      question: 'When should I choose Kit over Plunk?',
       answer:
-        "Choose ConvertKit if you're a creator who needs landing pages, product selling, and a creator-focused interface designed for non-technical users. ConvertKit excels at helping course creators, bloggers, and podcasters monetize their audience. Choose Plunk if you're a developer who values API-first design, needs transactional + marketing emails in one platform, and prefers code over visual builders.",
+        "Choose Kit if you're a creator who needs landing pages, product selling, and a creator-focused interface designed for non-technical users. Kit excels at helping course creators, bloggers, and podcasters monetize their audience. Choose Plunk if you're a developer who values API-first design, needs transactional + marketing emails in one platform, and prefers code over visual builders.",
     },
     {
-      question: 'What is the pricing difference between Plunk and ConvertKit?',
+      question: 'What is the pricing difference between Plunk and Kit?',
       answer:
-        'ConvertKit charges based on subscriber count. Your cost increases as your list grows, regardless of how many emails you send. Plunk uses pay-as-you-go pricing where you only pay for emails actually sent. This means with ConvertKit, a list of 10,000 subscribers costs $119/month even if you rarely email them. With Plunk, you only pay when you send.',
+        'Kit charges based on subscriber count. Your cost increases as your list grows, regardless of how many emails you send. Plunk uses pay-as-you-go pricing where you only pay for emails actually sent. On Kit, paid plans rise with every subscriber, even ones you rarely email. With Plunk, you only pay when you send.',
     },
     {
-      question: 'Can Plunk handle creator workflows like ConvertKit?',
+      question: 'Can Plunk handle creator workflows like Kit?',
       answer:
-        "Yes, Plunk supports email automation, workflows, and segmentation similar to ConvertKit. You can create automated sequences, trigger emails based on events, and segment your audience. The main difference is Plunk doesn't include landing page builders or product selling features. It's focused purely on email delivery and automation.",
+        "Yes, Plunk supports email automation, workflows, and segmentation similar to Kit. You can create automated sequences, trigger emails based on events, and segment your audience. The main difference is Plunk doesn't include landing page builders or product selling features. It's focused purely on email delivery and automation.",
     },
     {
-      question: 'Does Plunk have landing pages like ConvertKit?',
+      question: 'Does Plunk have landing pages like Kit?',
       answer:
         "No, Plunk doesn't include landing page or form builders. It's focused on being the best email platform for developers. If you need landing pages, you'd build them with your preferred tools and connect them to Plunk's API. This gives you full design control and keeps Plunk lightweight and developer-friendly.",
     },
     {
-      question: 'How easy is it to migrate from ConvertKit to Plunk?',
+      question: 'How easy is it to migrate from Kit to Plunk?',
       answer:
-        "Migration is straightforward. Export your subscribers from ConvertKit as CSV, import them to Plunk via our API or dashboard, recreate your email sequences using our workflow builder, and update your forms to use Plunk's API. Most migrations can be completed in a few hours. You'll need to rebuild landing pages separately if you rely on ConvertKit's landing page feature.",
+        "Migration is straightforward. Export your subscribers from Kit as CSV, import them to Plunk via our API or dashboard, recreate your email sequences using our workflow builder, and update your forms to use Plunk's API. Most migrations can be completed in a few hours. You'll need to rebuild landing pages separately if you rely on Kit's landing page feature.",
     },
   ],
   cta: {title: 'Stop paying for subscribers you rarely email.'},
