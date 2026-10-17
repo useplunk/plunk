@@ -24,11 +24,11 @@ import {DASHBOARD_URI} from '../../lib/constants';
  */
 export function FeatureCTA({
   title,
-  body = 'Free plan: 1,000 emails a month. Paid: $0.001 an email.',
+  body = 'Start on the free plan with 1,000 emails a month, no credit card needed. When you need more, every email is $0.001, with unlimited contacts and every feature included.',
   secondary,
 }: {
   title: React.ReactNode;
-  /** Defaults to the pricing line. Tool pages say what Plunk does for that check. */
+  /** Defaults to a short pricing pitch. Tool pages say what Plunk does for that check. */
   body?: React.ReactNode;
   /** Defaults to pricing. Pages whose natural next step is docs override it. */
   secondary?: {href: string; label: string; external?: boolean};

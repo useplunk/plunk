@@ -2,6 +2,7 @@ import {motion, useReducedMotion} from 'framer-motion';
 import {Check, Copy, Minus, X} from 'lucide-react';
 import React, {ReactNode, useState} from 'react';
 
+import {StepMarker} from '../sections';
 import {SnippetTile} from '../snippets';
 
 /**
@@ -70,27 +71,25 @@ export function GuideFigure({
 }
 
 /**
- * A real sequence: setup steps, the order a check runs in. Black numbered
- * dots on a hairline, no boxes. Use it only when order matters.
+ * A real sequence: setup steps, the order a check runs in. Use it only when
+ * order matters.
+ *
+ * The same markers as StepSequence, joined by one line down the left that
+ * stops short of each marker, the way FlowFragment joins workflow steps. The
+ * old solid black dots with a line that touched one dot and not the next read
+ * as bullets, not as a sequence.
  */
 export function GuideSteps({steps}: {steps: {title: string; body?: ReactNode; children?: ReactNode}[]}) {
   return (
     <ol className={'!my-10 !list-none !pl-0'}>
       {steps.map((step, i) => (
-        <li key={step.title} className={'relative flex gap-5 pb-8 last:pb-0 !mt-0'}>
+        <li key={step.title} className={'relative flex gap-5 pb-9 last:pb-0 !mt-0'}>
           {i < steps.length - 1 && (
-            <span aria-hidden className={'absolute bottom-0 left-[0.9375rem] top-9 w-px bg-neutral-200'} />
+            <span aria-hidden className={'absolute bottom-2 left-4 top-10 w-px bg-neutral-300'} />
           )}
-          <span
-            aria-hidden
-            className={
-              'relative flex h-[1.875rem] w-[1.875rem] flex-shrink-0 items-center justify-center rounded-full bg-neutral-900 text-label font-semibold text-white'
-            }
-          >
-            {i + 1}
-          </span>
-          <div className={'min-w-0 flex-1 pt-0.5'}>
-            <p className={'!text-base font-semibold !text-neutral-900'}>{step.title}</p>
+          <StepMarker n={i + 1} />
+          <div className={'min-w-0 flex-1 pt-1'}>
+            <p className={'!text-base font-semibold !leading-6 !text-neutral-900'}>{step.title}</p>
             {step.body && <div className={'mt-1.5 text-neutral-700'}>{step.body}</div>}
             {step.children && <div className={'mt-4'}>{step.children}</div>}
           </div>
