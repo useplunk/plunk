@@ -207,9 +207,9 @@ services:
       # Optional: Mount certificates for SMTP TLS
       # For Traefik acme.json:
       # - /path/to/acme.json:/certs/acme.json:ro
-      # For PEM files:
-      # - /path/to/privkey.pem:/certs/privkey.pem:ro
-      # - /path/to/fullchain.pem:/certs/fullchain.pem:ro
+      # For PEM files, mount the directory holding privkey.pem and fullchain.pem
+      # (a single-file mount keeps the old file when a renewal replaces it):
+      # - /path/to/certs:/certs:ro
 
     ports:
       # SMTP ports (for email relay)

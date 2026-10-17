@@ -24,6 +24,11 @@ const PORT_SECURE = parseInt(process.env.PORT_SECURE ?? '465', 10);
 const PORT_SUBMISSION = parseInt(process.env.PORT_SUBMISSION ?? '587', 10);
 const CERT_PATH = process.env.CERT_PATH ?? '/certs';
 const ACME_JSON_PATH = process.env.ACME_JSON_PATH ?? path.join(CERT_PATH, 'acme.json');
+const PEM_KEY_PATH = path.join(CERT_PATH, 'privkey.pem');
+const PEM_CERT_PATH = path.join(CERT_PATH, 'fullchain.pem');
+const CERT_WATCH_INTERVAL_MS = 60 * 1000;
+// How long certificate files must stay unchanged before a reload reads them
+const CERT_SETTLE_MS = 5 * 1000;
 
 // Extended session interface to store authenticated project
 interface ExtendedSession extends SMTPServerSession {
@@ -35,22 +40,44 @@ interface ExtendedSession extends SMTPServerSession {
   };
 }
 
+interface Certificates {
+  key: Buffer;
+  cert: Buffer;
+}
+
+// Progress logging of the certificate loaders; reloads pass a silent one
+type CertificateLog = Pick<typeof signale, 'info' | 'success' | 'warn'>;
+
+interface CertificateSource {
+  name: string;
+  // Files the source reads, watched for renewals
+  files: string[];
+  load: (log: CertificateLog) => Certificates | null;
+}
+
+interface ResolvedCertificates {
+  source: CertificateSource;
+  certs: Certificates;
+}
+
+const SILENT_LOG: CertificateLog = {info: () => {}, success: () => {}, warn: () => {}};
+
 /**
  * Load certificates from Traefik's acme.json file
  * Requires SMTP_DOMAIN to be set to select the correct certificate
  */
-function loadFromTraefikAcme(): {key: Buffer; cert: Buffer} | null {
+function loadFromTraefikAcme(log: CertificateLog): Certificates | null {
   try {
     if (!fs.existsSync(ACME_JSON_PATH)) {
       return null;
     }
 
     if (!SMTP_DOMAIN) {
-      signale.warn('SMTP_DOMAIN not set, cannot load certificate from acme.json');
+      log.warn('SMTP_DOMAIN not set, cannot load certificate from acme.json');
       return null;
     }
 
-    signale.info(`Loading certificates from Traefik acme.json: ${ACME_JSON_PATH}`);
+    log.info(`Loading certificates from Traefik acme.json: ${ACME_JSON_PATH}`);
     const acmeData = JSON.parse(fs.readFileSync(ACME_JSON_PATH, 'utf8'));
 
     // Traefik acme.json structure: {letsencrypt: {Certificates: [{domain: {main: ...}, certificate: ..., key: ...}]}}
@@ -68,7 +95,7 @@ function loadFromTraefikAcme(): {key: Buffer; cert: Buffer} | null {
     );
 
     if (!certData) {
-      signale.warn(`Certificate for domain ${SMTP_DOMAIN} not found in acme.json`);
+      log.warn(`Certificate for domain ${SMTP_DOMAIN} not found in acme.json`);
       return null;
     }
 
@@ -76,7 +103,7 @@ function loadFromTraefikAcme(): {key: Buffer; cert: Buffer} | null {
     const cert = Buffer.from(certData.certificate, 'base64');
     const key = Buffer.from(certData.key, 'base64');
 
-    signale.success(`Loaded certificate for ${SMTP_DOMAIN} from Traefik acme.json`);
+    log.success(`Loaded certificate for ${SMTP_DOMAIN} from Traefik acme.json`);
     return {key, cert};
   } catch (error) {
     signale.error('Failed to load Traefik acme.json:', error);
@@ -88,25 +115,42 @@ function loadFromTraefikAcme(): {key: Buffer; cert: Buffer} | null {
  * Load certificates from PEM files
  * Looks for standard filenames: privkey.pem and fullchain.pem
  */
-function loadFromPemFiles(): {key: Buffer; cert: Buffer} | null {
+function loadFromPemFiles(log: CertificateLog): Certificates | null {
   try {
-    const keyPath = path.join(CERT_PATH, 'privkey.pem');
-    const certPath = path.join(CERT_PATH, 'fullchain.pem');
-
-    if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+    if (!fs.existsSync(PEM_KEY_PATH) || !fs.existsSync(PEM_CERT_PATH)) {
       return null;
     }
 
-    signale.info(`Loading certificates from ${keyPath} and ${certPath}`);
-    const key = fs.readFileSync(keyPath);
-    const cert = fs.readFileSync(certPath);
+    log.info(`Loading certificates from ${PEM_KEY_PATH} and ${PEM_CERT_PATH}`);
+    const key = fs.readFileSync(PEM_KEY_PATH);
+    const cert = fs.readFileSync(PEM_CERT_PATH);
 
-    signale.success('Loaded certificates from PEM files');
+    log.success('Loaded certificates from PEM files');
     return {key, cert};
   } catch (error) {
     signale.error('Failed to load PEM files:', error);
     return null;
   }
+}
+
+// Certificate sources in priority order
+const CERTIFICATE_SOURCES: CertificateSource[] = [
+  {name: 'Traefik acme.json', files: [ACME_JSON_PATH], load: loadFromTraefikAcme},
+  {name: 'PEM files', files: [PEM_KEY_PATH, PEM_CERT_PATH], load: loadFromPemFiles},
+];
+
+/**
+ * Load certificates from the first of the given sources that has them
+ */
+function resolveCertificates(sources: CertificateSource[], log: CertificateLog): ResolvedCertificates | null {
+  for (const source of sources) {
+    const certs = source.load(log);
+    if (certs) {
+      return {source, certs};
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -116,31 +160,109 @@ function loadFromPemFiles(): {key: Buffer; cert: Buffer} | null {
  * 2. Mounted PEM files
  * 3. No TLS
  */
-async function getCertificates(): Promise<{key: Buffer; cert: Buffer} | null> {
-  try {
-    signale.info('Checking for mounted certificates...');
+function getCertificates(): ResolvedCertificates | null {
+  signale.info('Checking for mounted certificates...');
 
-    // Try loading from Traefik acme.json
-    let certs = loadFromTraefikAcme();
-    if (certs) {
-      return certs;
-    }
-
-    // Try loading from PEM files
-    certs = loadFromPemFiles();
-    if (certs) {
-      return certs;
-    }
-
-    signale.warn('No certificates found. SMTP server will run without TLS.');
-    signale.info('To use TLS, mount certificates to one of:');
-    signale.info(`  1. Traefik acme.json: ${ACME_JSON_PATH}`);
-    signale.info(`  2. PEM files: ${CERT_PATH}/privkey.pem and ${CERT_PATH}/fullchain.pem`);
-    return null;
-  } catch (error) {
-    signale.error('Failed to load certificates:', error);
-    return null;
+  const resolved = resolveCertificates(CERTIFICATE_SOURCES, signale);
+  if (resolved) {
+    return resolved;
   }
+
+  signale.warn('No certificates found. SMTP server will run without TLS until certificates appear.');
+  signale.info('To use TLS, mount certificates to one of:');
+  signale.info(`  1. Traefik acme.json: ${ACME_JSON_PATH}`);
+  signale.info(`  2. PEM files: ${PEM_KEY_PATH} and ${PEM_CERT_PATH}`);
+  return null;
+}
+
+/**
+ * Fingerprint the files' identity, size and mtime, to tell whether any of them changed in between
+ */
+function snapshotFiles(files: string[]): string {
+  return files
+    .map(file => {
+      try {
+        const stats = fs.statSync(file);
+        return `${stats.ino}:${stats.size}:${stats.mtimeMs}`;
+      } catch {
+        return 'missing';
+      }
+    })
+    .join('|');
+}
+
+/**
+ * Watch the certificate files and hand new certificates to `apply`, so certificates issued or renewed by
+ * Traefik/certbot after startup take effect without restarting the relay. Only the active source is watched
+ * and reloaded; until a certificate is found, every source is, and the first one to produce a certificate
+ * becomes the active source
+ */
+function watchCertificates(
+  initial: ResolvedCertificates | null,
+  apply: (next: Certificates, previous: Certificates | null) => boolean,
+): void {
+  let activeSource = initial?.source ?? null;
+  let appliedCerts = initial?.certs ?? null;
+  let watchedFiles: string[] = [];
+  let settleTimer: NodeJS.Timeout | undefined;
+  let settleSnapshot = '';
+
+  // A poll can land while a file is being written (Traefik rewrites acme.json in place), and a half-written
+  // fullchain.pem still parses and matches the key. So a read is used only if no file changed between the
+  // change event and the end of the read, at least CERT_SETTLE_MS later
+  const scheduleReload = (snapshot: string) => {
+    clearTimeout(settleTimer);
+    settleSnapshot = snapshot;
+    settleTimer = setTimeout(reload, CERT_SETTLE_MS);
+  };
+
+  const reload = () => {
+    try {
+      const resolved = resolveCertificates(activeSource ? [activeSource] : CERTIFICATE_SOURCES, SILENT_LOG);
+
+      const snapshot = snapshotFiles(watchedFiles);
+      if (snapshot !== settleSnapshot) {
+        return scheduleReload(snapshot);
+      }
+
+      if (!resolved || appliedCerts?.cert.equals(resolved.certs.cert)) {
+        return;
+      }
+
+      if (!apply(resolved.certs, appliedCerts)) {
+        return;
+      }
+
+      appliedCerts = resolved.certs;
+
+      if (activeSource) {
+        signale.success('Reloaded renewed TLS certificate');
+        return;
+      }
+
+      activeSource = resolved.source;
+      watch(activeSource.files);
+      signale.success(`Loaded TLS certificate from ${activeSource.name}, TLS is now enabled`);
+    } catch (error) {
+      signale.error('Failed to reload TLS certificate:', error);
+    }
+  };
+
+  const onChange = () => scheduleReload(snapshotFiles(watchedFiles));
+
+  const watch = (files: string[]) => {
+    for (const file of watchedFiles) {
+      fs.unwatchFile(file, onChange);
+    }
+
+    for (const file of files) {
+      fs.watchFile(file, {interval: CERT_WATCH_INTERVAL_MS, persistent: false}, onChange);
+    }
+
+    watchedFiles = files;
+  };
+
+  watch(activeSource ? activeSource.files : CERTIFICATE_SOURCES.flatMap(source => source.files));
 }
 
 /**
@@ -440,7 +562,7 @@ function handleData(
 /**
  * Create and start an SMTP server
  */
-function createSMTPServer(options: {secure: boolean; port: number; key?: Buffer; cert?: Buffer}): void {
+function createSMTPServer(options: {secure: boolean; port: number; key?: Buffer; cert?: Buffer}): SMTPServer | null {
   const {secure, port, key, cert} = options;
 
   const serverOptions: SMTPServerOptions = {
@@ -460,7 +582,7 @@ function createSMTPServer(options: {secure: boolean; port: number; key?: Buffer;
     serverOptions.secure = secure;
   } else if (secure) {
     signale.warn(`Cannot start secure server on port ${port} without TLS certificates`);
-    return;
+    return null;
   }
 
   const server = new SMTPServer(serverOptions);
@@ -472,6 +594,8 @@ function createSMTPServer(options: {secure: boolean; port: number; key?: Buffer;
   server.listen(port, '0.0.0.0', () => {
     signale.success(`SMTP server listening on port ${port} (secure=${secure})`);
   });
+
+  return server;
 }
 
 /**
@@ -527,11 +651,13 @@ async function main(): Promise<void> {
     signale.info(`SMTP domain: ${SMTP_DOMAIN}`);
   }
 
-  const certs = await getCertificates();
+  const initial = getCertificates();
+  const certs = initial?.certs;
 
-  // Start secure SMTP (port 465) - only if TLS is available
+  // Start secure SMTP (port 465) - only if TLS is available, otherwise once a certificate appears
+  let secureServer: SMTPServer | null = null;
   if (certs) {
-    createSMTPServer({
+    secureServer = createSMTPServer({
       secure: true,
       port: PORT_SECURE,
       key: certs.key,
@@ -540,11 +666,40 @@ async function main(): Promise<void> {
   }
 
   // Start submission SMTP (port 587) - STARTTLS if certs available, plaintext otherwise
-  createSMTPServer({
+  const submissionServer = createSMTPServer({
     secure: false,
     port: PORT_SUBMISSION,
     key: certs?.key,
     cert: certs?.cert,
+  });
+
+  // Pick up certificates issued or renewed after startup without a restart
+  watchCertificates(initial, (next, previous) => {
+    const runningServers = [secureServer, submissionServer].filter((server): server is SMTPServer => server !== null);
+
+    try {
+      // On the first certificate, creating the 465 server builds a context from the pair, so an invalid pair
+      // throws here, before any running server is touched
+      secureServer ??= createSMTPServer({secure: true, port: PORT_SECURE, key: next.key, cert: next.cert});
+
+      for (const server of runningServers) {
+        server.updateSecureContext({key: next.key, cert: next.cert});
+      }
+
+      return true;
+    } catch (error) {
+      signale.warn('Could not apply the new TLS certificate, keeping the previous one:', error);
+
+      // updateSecureContext() drops a server's live context before building the new one, so put the previous
+      // pair back on every server rather than leaving some without TLS or on a different certificate
+      if (previous) {
+        for (const server of runningServers) {
+          server.updateSecureContext({key: previous.key, cert: previous.cert});
+        }
+      }
+
+      return false;
+    }
   });
 
   signale.success('SMTP relay started successfully');
