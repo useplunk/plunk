@@ -37,7 +37,8 @@ export type ChangelogArtifact =
   | 'inlineImage'
   | 'preview'
   | 'locales'
-  | 'security';
+  | 'security'
+  | 'analytics';
 
 interface BaseEntry {
   /** ISO date, `YYYY-MM-DD`. */
@@ -53,7 +54,76 @@ export type ChangelogEntry =
   | (BaseEntry & {kind: 'minor'; tag: string});
 
 export const CHANGELOG: ChangelogEntry[] = [
+  // October 2026
+  {
+    kind: 'major',
+    date: '2026-10-09',
+    title: 'Analytics by stream and period',
+    description:
+      'Analytics splits into overview, deliverability, engagement, and audience tabs. Filter by period or by transactional email, campaigns, or workflows, and see every rate next to the period before.',
+    artifact: 'analytics',
+  },
+  {
+    kind: 'minor',
+    date: '2026-10-14',
+    title: 'Renewed SMTP certificates load automatically',
+    description:
+      'The SMTP relay on self-hosted instances picks up renewed TLS certificates within a minute, without restarting the container.',
+    href: `${WIKI_URI}/self-hosting/docker`,
+    tag: 'fullchain.pem',
+  },
+  {
+    kind: 'minor',
+    date: '2026-10-06',
+    title: 'Build workflows through the MCP server',
+    description:
+      'Your agent can create workflows with every step type, connect branches, and check a workflow for errors. It asks you to confirm before enabling one that sends email.',
+    href: '/features/mcp',
+    tag: 'plunk_check_workflow',
+  },
+
   // September 2026
+  {
+    kind: 'minor',
+    date: '2026-09-27',
+    title: 'Uploads in a folder of a shared bucket',
+    description:
+      'Self-hosted instances can store uploads under a folder in the S3 bucket, and Plunk only makes that folder publicly readable.',
+    href: `${WIKI_URI}/self-hosting/environment-variables#storage-minio`,
+    tag: 'S3_PREFIX=plunk/',
+  },
+  {
+    kind: 'minor',
+    date: '2026-09-19',
+    title: 'Contacts behind campaign stats',
+    description:
+      "Click a campaign's bounce, spam report, or unsubscribe count to see the contacts behind it. A contact who unsubscribes twice from the same email counts once.",
+    href: `${WIKI_URI}/concepts/campaigns#stats`,
+    tag: 'Spam reports: 3',
+  },
+  {
+    kind: 'minor',
+    date: '2026-09-19',
+    title: 'Safe bounce testing with the SES simulator',
+    description:
+      'Emails to the Amazon SES mailbox simulator trigger events, workflows, and webhooks like any other, but never count toward your bounce and complaint rates.',
+    href: `${WIKI_URI}/guides/list-hygiene#testing-bounces-and-complaints-safely`,
+    tag: 'bounce@simulator.amazonses.com',
+  },
+  {
+    kind: 'minor',
+    date: '2026-09-19',
+    title: 'Welsh translations',
+    description: 'Unsubscribe and preference pages are now available in Welsh.',
+    tag: 'cy',
+  },
+  {
+    kind: 'minor',
+    date: '2026-09-05',
+    title: 'Delete your account',
+    description: 'Delete your account from the account page once you have left or deleted every project.',
+    tag: 'Delete account',
+  },
   {
     kind: 'minor',
     date: '2026-09-21',
@@ -201,6 +271,28 @@ export const CHANGELOG: ChangelogEntry[] = [
 
   // May 2026
   {
+    kind: 'minor',
+    date: '2026-05-25',
+    title: 'Preview campaigns as a contact in the segment',
+    description: "Preview as now lists contacts from the campaign's segment, so you check the email with data from someone who will receive it.",
+    tag: 'Preview as',
+  },
+  {
+    kind: 'minor',
+    date: '2026-05-11',
+    title: 'Custom MAIL FROM subdomain',
+    description: 'Self-hosted instances can choose the subdomain used as the MAIL FROM domain for verified domains.',
+    href: `${WIKI_URI}/self-hosting/environment-variables#aws-ses`,
+    tag: 'MAIL_FROM_SUBDOMAIN=emails',
+  },
+  {
+    kind: 'minor',
+    date: '2026-05-01',
+    title: 'Paste contacts into a static segment',
+    description: 'Paste a list of email addresses to add the matching contacts to a static segment in one go.',
+    tag: 'ana@x.com, ben@y.com',
+  },
+  {
     kind: 'major',
     date: '2026-05-04',
     title: 'Segments built from segments',
@@ -261,6 +353,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Configurable attachment limits',
     description: 'Self-hosted instances can raise the attachment size and count, up to the 40 MB that SES allows.',
     tag: 'MAX_ATTACHMENT_SIZE_MB',
+  },
+  {
+    kind: 'minor',
+    date: '2026-04-27',
+    title: 'Remove contact fields with null',
+    description: 'Set a field to null to remove it from a contact. Empty strings are ignored, so they never overwrite existing data.',
+    href: `${WIKI_URI}/concepts/contacts`,
+    tag: '"plan": null',
   },
   {
     kind: 'minor',
@@ -401,7 +501,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2025-12-21',
     title: 'Translated unsubscribe and preference pages',
     description:
-      'Set a language per project, or per contact with a locale field, and these pages follow it. Plunk supports 16 languages today.',
+      'Set a language per project, or per contact with a locale field, and these pages follow it. Plunk supports 17 languages today.',
     artifact: 'locales',
   },
   {

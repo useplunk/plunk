@@ -403,6 +403,49 @@ function Security() {
   );
 }
 
+/** Rates for one stream, each against the period before. */
+function Analytics() {
+  const tabs = ['Overview', 'Deliverability', 'Engagement', 'Audience'];
+  const metrics = [
+    {label: 'Delivery rate', value: '99.1%', change: '+0.4 pts'},
+    {label: 'Open rate', value: '42.8%', change: '+3.2 pts'},
+    // Lower is better, so a fall is still good news.
+    {label: 'Bounce rate', value: '0.6%', change: '−0.2 pts'},
+  ];
+
+  return (
+    <Tile>
+      <UICard className={'w-full max-w-sm'}>
+        <div className={'flex gap-1 overflow-hidden px-3 pt-3'}>
+          {tabs.map((tab, i) => (
+            <span
+              key={tab}
+              className={`whitespace-nowrap rounded-md px-2 py-1 text-label font-medium ${
+                i === 0 ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-500'
+              }`}
+            >
+              {tab}
+            </span>
+          ))}
+        </div>
+        <div className={'flex items-center justify-between px-4 pb-3 pt-3'}>
+          <p className={'text-ui font-semibold text-neutral-900'}>Last 30 days</p>
+          <StatusPill>Campaigns</StatusPill>
+        </div>
+        <ul className={'divide-y divide-neutral-100 border-t border-neutral-100'}>
+          {metrics.map(metric => (
+            <li key={metric.label} className={'flex items-baseline justify-between gap-3 px-4 py-3'}>
+              <span className={'flex-1 text-ui text-neutral-700'}>{metric.label}</span>
+              <span className={'text-ui font-semibold text-neutral-900 tabular-nums'}>{metric.value}</span>
+              <span className={'w-16 text-right text-label font-medium text-ok tabular-nums'}>{metric.change}</span>
+            </li>
+          ))}
+        </ul>
+      </UICard>
+    </Tile>
+  );
+}
+
 /* ------------------------------------------------------------------------- */
 
 const ARTIFACTS: Record<ChangelogArtifact, React.ComponentType> = {
@@ -420,6 +463,7 @@ const ARTIFACTS: Record<ChangelogArtifact, React.ComponentType> = {
   preview: Preview,
   locales: Locales,
   security: Security,
+  analytics: Analytics,
 };
 
 export function ChangelogArtifactView({artifact}: {artifact: ChangelogArtifact}) {
