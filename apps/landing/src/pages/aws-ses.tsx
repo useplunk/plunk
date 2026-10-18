@@ -98,7 +98,7 @@ const faqs: FAQ[] = [
   {
     question: 'How much does it cost?',
     answer:
-      'Plunk Cloud is $0.001 per email, with 1,000 free each month, and covers SES itself. Self-hosted Plunk is free software; you pay AWS for SES and your own server.',
+      'Plunk Cloud is $0.001 per email, or free for up to 1,000 emails a month, and covers SES itself. Self-hosted Plunk is free software; you pay AWS for SES and your own server.',
   },
   {
     question: 'Is this the same deliverability as SES?',

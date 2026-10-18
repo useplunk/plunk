@@ -68,7 +68,7 @@ const faqs: FAQ[] = [
   {
     question: 'How much do campaigns cost?',
     answer:
-      'Every email is $0.001, the same as transactional and workflow email, and the first 1,000 each month are free. Contacts are unlimited and free to store, so a large list with a small send costs little.',
+      'Every email is $0.001, the same as transactional and workflow email, and the free plan covers 1,000 a month. Contacts are unlimited and free to store, so a large list with a small send costs little.',
   },
   {
     question: 'Are unsubscribed contacts skipped?',

@@ -89,7 +89,7 @@ const sharedFaqs = [
   {
     question: 'How much does it cost?',
     answer:
-      'The first 1,000 emails each month are free. After that every email is $0.001, whether it is sent through the API or SMTP, with unlimited contacts.',
+      'The free plan covers 1,000 emails a month. On the paid plan every email is $0.001, whether it is sent through the API or SMTP, with unlimited contacts.',
   },
 ];
 

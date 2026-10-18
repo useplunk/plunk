@@ -6,7 +6,7 @@ import {Footer, Navbar} from '../components';
 
 const destinations = [
   {href: '/', label: 'Home', copy: 'Transactional email, campaigns, and workflows on one contact list.'},
-  {href: '/pricing', label: 'Pricing', copy: '$0.001 per email, unlimited contacts, 1,000 free emails a month.'},
+  {href: '/pricing', label: 'Pricing', copy: '$0.001 per email, unlimited contacts, or a free plan with 1,000 emails a month.'},
   {href: '/features/workflows', label: 'Features', copy: 'Workflows, segments, the editor, SMTP, inbound email, and MCP.'},
   {href: '/vs', label: 'Comparisons', copy: 'How Plunk compares to Resend, SendGrid, Mailchimp, and others.'},
   {href: '/guides', label: 'Guides', copy: 'Deliverability, authentication, and email metrics explained.'},

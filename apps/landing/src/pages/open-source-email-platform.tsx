@@ -82,7 +82,7 @@ const faqs: FAQ[] = [
   {
     question: 'Should I self-host or use Plunk Cloud?',
     answer:
-      'Self-host if you must keep all data on your own infrastructure. Otherwise Plunk Cloud runs the same platform for you, hosted in Germany, at $0.001 per email with the first 1,000 each month free and unlimited contacts.',
+      'Self-host if you must keep all data on your own infrastructure. Otherwise Plunk Cloud runs the same platform for you, hosted in Germany, at $0.001 per email with unlimited contacts, or on a free plan with 1,000 emails a month.',
   },
   {
     question: 'How is Plunk different from listmonk or Mautic?',

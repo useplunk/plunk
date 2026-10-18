@@ -225,7 +225,7 @@ export const ALTERNATIVES: AlternativesPage[] = [
       {
         question: 'Is there a free alternative to SendGrid?',
         answer:
-          'Plunk includes 1,000 free emails a month and is open source, so you can self-host it for the cost of your server and Amazon SES. Resend and Brevo also have free tiers.',
+          'Plunk has a free plan with 1,000 emails a month and is open source, so you can self-host it for the cost of your server and Amazon SES. Resend and Brevo also have free tiers.',
       },
       {
         question: 'How hard is it to move off SendGrid?',
@@ -254,7 +254,7 @@ export const ALTERNATIVES: AlternativesPage[] = [
       {
         question: 'Is there a free alternative to Mailgun?',
         answer:
-          'Plunk includes 1,000 free emails a month and is open source, so you can also self-host it for the cost of your server and Amazon SES. Resend also has a free tier.',
+          'Plunk has a free plan with 1,000 emails a month and is open source, so you can also self-host it for the cost of your server and Amazon SES. Resend also has a free tier.',
       },
       {
         question: 'Is there a European alternative to Mailgun?',

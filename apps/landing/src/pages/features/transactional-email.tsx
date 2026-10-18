@@ -72,7 +72,7 @@ const faqs: FAQ[] = [
   {
     question: 'How much does transactional email cost on Plunk?',
     answer:
-      'The first 1,000 emails each month are free. After that every email is $0.001, with no monthly plan and unlimited contacts. Transactional, campaign and workflow emails all count the same way.',
+      'The free plan covers 1,000 emails a month. On the paid plan every email is $0.001, with no monthly fee and unlimited contacts. Transactional, campaign and workflow emails all count the same way.',
   },
   {
     question: 'Do transactional emails respect unsubscribes?',
