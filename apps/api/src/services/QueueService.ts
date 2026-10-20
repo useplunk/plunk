@@ -11,6 +11,8 @@ import type {
   CardVerificationJobData,
   CardVerificationSweepJobData,
   ContactImportJobData,
+  ContactExportJobData,
+  ContactExportResult,
   DomainVerificationJobData,
   CampaignCancelCleanupJobData,
   EmailBodyCleanupJobData,
@@ -104,6 +106,16 @@ export const importQueue = new Queue<ContactImportJobData>('import', {
     },
     removeOnComplete: 50, // Keep last 50 completed imports
     removeOnFail: 100, // Keep last 100 failed imports
+  },
+});
+
+// Only one unfinished export per project. Results expire independently in private S3 storage.
+export const contactExportQueue = new Queue<ContactExportJobData, ContactExportResult>('contact-export', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 1,
+    removeOnComplete: {age: 86400, count: 1000},
+    removeOnFail: {age: 86400, count: 1000},
   },
 });
 
@@ -788,6 +800,7 @@ export class QueueService {
       workflowQueue.close(),
       scheduledQueue.close(),
       importQueue.close(),
+      contactExportQueue.close(),
       segmentCountQueue.close(),
       domainVerificationQueue.close(),
       apiRequestCleanupQueue.close(),

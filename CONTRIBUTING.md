@@ -142,3 +142,29 @@ between groups.
 ## License
 
 By contributing to Plunk, you agree that your contributions will be licensed under the AGPL-3.0 License.
+
+## Contact CSV exports
+
+Contact exports use the API and the contact-export BullMQ worker. The worker reads the
+whole authenticated project in batches of 100, snapshots rows to a temporary file,
+and uploads CSV using bounded multipart buffers. Search, table pagination and selection
+do not affect the export. Contacts are evaluated while the worker reads them; concurrent
+contact edits are not a point-in-time database backup.
+
+Standard columns are id, email, subscribed, snoozedUntil, createdAt and updatedAt.
+Custom keys are sorted and prefixed with `data.` to avoid collisions. Null/missing
+values become empty cells, booleans/numbers use their JSON spelling, dates use ISO 8601,
+and nested custom values use JSON. Formula-like strings gain an apostrophe. Exports
+support up to 1000 distinct custom keys and fail rather than silently omit extra fields.
+
+The existing S3 credentials must be allowed to create/manage a separate private bucket
+named `<S3_BUCKET>-contact-exports`, read its policy, configure lifecycle rules, and
+upload/download/delete objects and multipart uploads there. Do not grant anonymous
+access or configure a bucket policy on this bucket: exports fail closed if a policy is
+present. Keep S3 account/bucket ACLs private. Export status and downloads expire
+24 hours after the request. The worker requests one-day object expiry and incomplete-multipart
+abort rules; verify lifecycle support on your storage backend. Handled failures abort
+uploads, but crash-abandoned upload cleanup depends on the backend's support. Downloads
+go through the authenticated API and membership checks; no public URL is returned.
+Workers need temporary disk space for the project snapshot; temporary files are removed
+on success, cancellation or failure.

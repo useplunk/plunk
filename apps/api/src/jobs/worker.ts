@@ -19,6 +19,7 @@ import {createCardVerificationWorker} from './card-verification-processor.js';
 import {createCampaignStatsSweepWorker} from './campaign-stats-sweep-processor.js';
 import {createSnoozeSweepWorker} from './snooze-sweep-processor.js';
 import {createCardVerificationSweepWorker} from './card-verification-sweep-processor.js';
+import {createContactExportWorker} from './contact-export-processor.js';
 import {createDomainVerificationWorker} from './domain-verification-processor.js';
 import {createEmailBodyCleanupWorker} from './email-body-cleanup-processor.js';
 import {createEmailWorker} from './email-processor.js';
@@ -68,6 +69,8 @@ async function startWorkers() {
     const workflowWorker = createWorkflowWorker();
     workers.push({name: 'workflow', worker: workflowWorker});
     signale.success('[WORKER] Workflow worker started');
+
+    workers.push({name: 'contact-export', worker: createContactExportWorker()});
 
     // Start import worker
     const importWorker = createImportWorker();

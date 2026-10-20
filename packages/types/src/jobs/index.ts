@@ -9,3 +9,5 @@ export * from './campaign.js';
 export * from './workflow.js';
 export * from './import.js';
 export * from './maintenance.js';
+
+export * from './contact-export.js';

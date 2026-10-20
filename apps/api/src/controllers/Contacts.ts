@@ -1,3 +1,5 @@
+import {pipeline} from 'node:stream/promises';
+
 import {Controller, Delete, Get, Middleware, Patch, Post} from '@overnightjs/core';
 import type {NextFunction, Request, Response} from 'express';
 import multer from 'multer';
@@ -7,6 +9,8 @@ import signale from 'signale';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {contactWriteRateLimit} from '../middleware/rateLimit.js';
 import {HttpException} from '../exceptions/index.js';
+import {ContactExportService} from '../services/ContactExportService.js';
+import {ContactExportStorage} from '../services/ContactExportStorage.js';
 import {ContactService} from '../services/ContactService.js';
 import {QueueService} from '../services/QueueService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
@@ -139,6 +143,51 @@ export class Contacts {
       return res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to get field values',
       });
+    }
+  }
+
+  @Post('exports')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async exportCsv(_req: Request, res: Response) {
+    return res.status(202).json(await ContactExportService.start(res.locals.auth.projectId!));
+  }
+
+  @Get('exports/:jobId')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async exportStatus(req: Request, res: Response) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.json(await ContactExportService.status(req.params.jobId!, res.locals.auth.projectId!));
+  }
+
+  @Delete('exports/:jobId')
+  @Middleware([requireAuth, requireEmailVerified])
+  @CatchAsync
+  public async cancelExport(req: Request, res: Response) {
+    await ContactExportService.cancel(req.params.jobId!, res.locals.auth.projectId!);
+    return res.status(204).send();
+  }
+
+  @Get('exports/:jobId/download')
+  @Middleware([exportDownloadAuth, requireEmailVerified])
+  @CatchAsync
+  public async downloadExport(req: Request, res: Response) {
+    const job = await ContactExportService.getJob(req.params.jobId!, res.locals.auth.projectId!);
+    if (job.data.cancelled || (await job.getState()) !== 'completed') {
+      throw new HttpException(409, 'Contact export is not ready');
+    }
+    const file = job.returnvalue;
+    const stream = await ContactExportStorage.download(file.key);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.attachment(file.filename);
+    // pipeline propagates backpressure and destroys the S3 stream on disconnect.
+    try {
+      await pipeline(stream, res);
+    } catch (error) {
+      // A disconnected client has no response left for the JSON error middleware.
+      if (!res.destroyed) throw error;
     }
   }
 
@@ -604,5 +653,19 @@ async function queueBulkAction(
     return res.status(500).json({
       error: error instanceof Error ? error.message : `Failed to queue bulk ${operation}`,
     });
+  }
+}
+
+/** Native browser downloads cannot set X-Project-Id. Resolve the locator from the
+ * job, then use the normal authentication AND membership checks for that project.
+ * A job id alone never grants access to a CSV.
+ */
+async function exportDownloadAuth(req: Request, res: Response, next: NextFunction) {
+  try {
+    const job = await ContactExportService.getJob(req.params.jobId!);
+    req.headers['x-project-id'] = job.data.projectId;
+    await requireAuth(req, res, next);
+  } catch (error) {
+    next(error);
   }
 }

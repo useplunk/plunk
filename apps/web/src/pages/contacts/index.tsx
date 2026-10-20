@@ -26,6 +26,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from '@tanstack/react-table';
+import {ContactExportDialog} from '../../components/ContactExportDialog';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {
   BulkActionBar,
@@ -45,6 +46,7 @@ import {KeyValueEditor} from '../../components/KeyValueEditor';
 import {network} from '../../lib/network';
 import {ContactStatusBadge, ContactStatusIcon} from '../../lib/contactStatus';
 import {formatRelativeTime} from '../../lib/dateUtils';
+import {useActiveProject} from '../../lib/contexts/ActiveProjectProvider';
 import {useColumnVisibility} from '../../lib/hooks/useColumnVisibility';
 import {usePersistentState} from '../../lib/hooks/usePersistentState';
 import {
@@ -54,6 +56,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
+  Download,
   EyeOff,
   FileUp,
   Loader2,
@@ -99,6 +102,7 @@ const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
 };
 
 export default function ContactsPage() {
+  const {activeProject} = useActiveProject();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([undefined]);
   const [currentPage, setCurrentPage] = useState(0);
@@ -111,6 +115,7 @@ export default function ContactsPage() {
   const [columnVisibility, setColumnVisibility] = useColumnVisibility(COLUMNS_STORAGE_KEY, DEFAULT_COLUMN_VISIBILITY);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -449,6 +454,7 @@ export default function ContactsPage() {
 
   return (
     <>
+      <ContactExportDialog key={activeProject?.id} open={showExportDialog} onOpenChange={setShowExportDialog} />
       <NextSeo title="Contacts" />
       <DashboardLayout>
         <div className="space-y-6">
@@ -462,6 +468,11 @@ export default function ContactsPage() {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowExportDialog(true)} className="flex-1 sm:flex-none">
+                <Download className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Export CSV</span>
+                <span className="sm:hidden">Export</span>
+              </Button>
               <Button variant="outline" onClick={() => setShowImportDialog(true)} className="flex-1 sm:flex-none">
                 <Upload className="h-4 w-4" />
                 <span className="hidden sm:inline">Import CSV</span>
