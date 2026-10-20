@@ -3020,15 +3020,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/core@npm:2.0.0":
-  version: 2.0.0
-  resolution: "@modelcontextprotocol/core@npm:2.0.0"
-  dependencies:
-    zod: "npm:^4.2.0"
-  checksum: 10c0/1cb96fcebfb60651775bcaa3b1e92b47b9317239e9e0352a2d6a404f77d1abfb68ce5b462becd073cddc4db08f2f0024cd3c7dd2582e3463ddb958f65b73fbe3
-  languageName: node
-  linkType: hard
-
 "@modelcontextprotocol/core@npm:2.2.0":
   version: 2.2.0
   resolution: "@modelcontextprotocol/core@npm:2.2.0"
@@ -3038,13 +3029,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/server@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "@modelcontextprotocol/server@npm:2.0.0"
+"@modelcontextprotocol/core@npm:2.3.0":
+  version: 2.3.0
+  resolution: "@modelcontextprotocol/core@npm:2.3.0"
   dependencies:
-    "@modelcontextprotocol/core": "npm:2.0.0"
     zod: "npm:^4.2.0"
-  checksum: 10c0/18f5dbb4c533eda392a66565d8177d792c8018d3455d2cb241102917f660c0c73181e80cbf2b76b1c0e8efae22e7ee0fbb1c27e667d439ba596f1c6059c1d8af
+  checksum: 10c0/9f7aa035efe3e69cefc7793468555793c8ce8ae2c0210ddc10aba447159fc843b1331bcfcb567c418bc75503931b9ccaa188b5f393feeddde6add86be0d8a148
+  languageName: node
+  linkType: hard
+
+"@modelcontextprotocol/server@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "@modelcontextprotocol/server@npm:2.3.0"
+  dependencies:
+    "@modelcontextprotocol/core": "npm:2.3.0"
+    zod: "npm:^4.2.0"
+  checksum: 10c0/53cceb20e9ce63cbd4dbd0f4c015cc665c8f6bcbbe430069cccb23dad2a781b4d2745dfcbabb8b9815b6e095cc244f8f7e41d54324cebae80e73bb4e4c1f8aa2
   languageName: node
   linkType: hard
 
@@ -3410,7 +3410,7 @@ __metadata:
   resolution: "@plunk/mcp@workspace:apps/mcp"
   dependencies:
     "@modelcontextprotocol/client": "npm:^2.2.0"
-    "@modelcontextprotocol/server": "npm:^2.0.0"
+    "@modelcontextprotocol/server": "npm:^2.3.0"
     "@plunk/typescript-config": "npm:*"
     "@types/node": "npm:^24.10.0"
     tsx: "npm:^4.20.6"

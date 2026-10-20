@@ -41,7 +41,7 @@
   },
   "//scripts": "No `dev` or `start` script on purpose: turbo runs those across every workspace, and an stdio MCP server is spawned by the MCP client rather than run as a long-lived dev service. Adding them would make `yarn dev` try to start this and fail without an API key. Use `yarn workspace @plunk/mcp inspect` to drive it locally.",
   "dependencies": {
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.3.0",
     "zod": "^4.2.0"
   },
   "devDependencies": {
