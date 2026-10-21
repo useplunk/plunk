@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.17.0](https://github.com/useplunk/plunk/compare/v0.16.0...v0.17.0) (2026-10-21)
+
+
+### Features
+
+* add S3_PREFIX to store uploads under a folder in the bucket ([fb0363f](https://github.com/useplunk/plunk/commit/fb0363f8e7a185b818d38cb57dd0fd9904c4f5a1))
+* Add unsubscribedAt on email ([0cbd5cb](https://github.com/useplunk/plunk/commit/0cbd5cb7b1fcd86f52281bcb0542b25a6ba035df))
+* Add upgrade analytics dashboard ([f9ba5e5](https://github.com/useplunk/plunk/commit/f9ba5e5e597e125a2c4e55f940f76b3d49dae71d))
+* Allow multiple projects under one MCP install ([dbd77d1](https://github.com/useplunk/plunk/commit/dbd77d13c845d27c87cbbb1f442c4bbe0bbc6160))
+* Correctly identify rejection statuses on verification ([d4621a9](https://github.com/useplunk/plunk/commit/d4621a98c7cae9dd91b27c99c74d943cd5ba5090))
+* Enhanced campaign display ([44b4b10](https://github.com/useplunk/plunk/commit/44b4b108fbfb7c7f83f16213ffeafd7fb06a301e))
+* Enhanced segment display ([4774e38](https://github.com/useplunk/plunk/commit/4774e38ec87d254fb943e874242b9633ff39302f))
+* Enhanced templates display ([c70cacf](https://github.com/useplunk/plunk/commit/c70cacf1e9b4f02b93c466a3d68e1597917d9927))
+* Enhanced workflow display ([3d5bcb6](https://github.com/useplunk/plunk/commit/3d5bcb6e924e0e93e9f17e5c3f67c69a0f67906a))
+* Remove in-flow verification fee and default to off-session flow ([b91ae18](https://github.com/useplunk/plunk/commit/b91ae188b45867839588ae3ca156e09de9a80db8))
+* Show maximum 1 banner on home with additional details ([209baee](https://github.com/useplunk/plunk/commit/209baeea5516528e56a5746d6ac0144bf6371bca))
+
+
+### Bug Fixes
+
+* Add additional indexes to speed up analytics and search ([ded0e3b](https://github.com/useplunk/plunk/commit/ded0e3b2f831318848b14dd0075936fa8f3e605c))
+* Add invoice for verification charges ([756d9f0](https://github.com/useplunk/plunk/commit/756d9f036d887fb9a7994ef4de9033e9fab5743b))
+* Add lazy loading of email bodies to speed up activity feed ([76b4efb](https://github.com/useplunk/plunk/commit/76b4efbd9f1c2db4b0260407f6c97c19b2182518))
+* **api:** keep username and TLS when parsing REDIS_URL for queues ([d163865](https://github.com/useplunk/plunk/commit/d163865cb2eb878eaad15148917f4aa4eb4d74d2))
+* Harmonize deletion and confirmation modals ([12f9f20](https://github.com/useplunk/plunk/commit/12f9f20f7c991b94063c51b7ad03c875e08d90c9))
+* Harmonize UI across various pages ([8c8cbda](https://github.com/useplunk/plunk/commit/8c8cbdafc1df4c74fd68fab289eb4a3202918744))
+* release please configuration for MCP server ([71969bd](https://github.com/useplunk/plunk/commit/71969bd0e59fbfae20cc657aee0598f01adfc2c6))
+* **smtp:** hot-reload renewed TLS certificates without restart ([bc84b4a](https://github.com/useplunk/plunk/commit/bc84b4ada0482f84f9226e3a1afb08900d5d39fe))
+* **smtp:** hot-reload renewed TLS certificates without restart ([30a04a4](https://github.com/useplunk/plunk/commit/30a04a445f3a321d7c3400240a01d45860e9176b))
+* **smtp:** pick up certificates issued after startup and harden reloads ([873849c](https://github.com/useplunk/plunk/commit/873849cd5542061be840cd4b6073224a0e9fa49b))
+
+
+### Documentation
+
+* warn that setting S3_PREFIX on an existing install breaks old uploads ([a9350e5](https://github.com/useplunk/plunk/commit/a9350e57d2b56ae2cee555d697462bf095d800ec))
+
 ## [0.16.0](https://github.com/useplunk/plunk/compare/v0.15.0...v0.16.0) (2026-10-08)
 
 
