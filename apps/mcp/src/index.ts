@@ -34,9 +34,15 @@ function main(): void {
     onerror: (error) => console.error(`[plunk-mcp] ${error.message}`),
   });
 
+  const projects = config.projects ? Object.keys(config.projects).sort() : undefined;
+  const target = projects
+    ? ` projects=${projects.join(',')}`
+    : config.publicKey
+      ? ''
+      : ' (no public key: event tracking upserts the contact first)';
+
   console.error(
-    `[plunk-mcp] v${SERVER_VERSION} ready on stdio — api=${config.apiUrl}` +
-      `${config.readOnly ? ' (read-only)' : ''}${config.publicKey ? '' : ' (no public key: event tracking upserts the contact first)'}`,
+    `[plunk-mcp] v${SERVER_VERSION} ready on stdio — api=${config.apiUrl}${config.readOnly ? ' (read-only)' : ''}${target}`,
   );
 
   const shutdown = () => {

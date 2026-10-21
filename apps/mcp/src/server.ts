@@ -9,6 +9,7 @@ import {McpServer} from '@modelcontextprotocol/server';
 
 import {PlunkClient} from './client.js';
 import type {PlunkMcpConfig} from './config.js';
+import {ProjectRouter} from './projects.js';
 import {registerCampaignTools} from './tools/campaigns.js';
 import {registerContactTools} from './tools/contacts.js';
 import {registerDomainTools} from './tools/domains.js';
@@ -49,14 +50,30 @@ const INSTRUCTIONS = [
   'confirm when it sends email.',
 ].join('\n');
 
+function projectInstructions(names: string[]): string {
+  return [
+    '',
+    `This server is connected to ${names.length} Plunk projects: ${names.map((n) => `\`${n}\``).join(', ')}.`,
+    'Every tool takes a `project` argument naming the one it acts on. IDs belong to a single project, so pass',
+    'the same `project` you used to look an ID up. If the user has not made clear which project they mean,',
+    'ask rather than guessing — a send to the wrong project reaches the wrong audience.',
+  ].join('\n');
+}
+
 export function buildServer(config: PlunkMcpConfig): McpServer {
+  const projects = new ProjectRouter(config);
+  const names = projects.names;
+
   const server = new McpServer(
     {name: SERVER_NAME, version: SERVER_VERSION},
-    {capabilities: {tools: {}}, instructions: INSTRUCTIONS},
+    {
+      capabilities: {tools: {}},
+      instructions: names.length > 0 ? INSTRUCTIONS + projectInstructions(names) : INSTRUCTIONS,
+    },
   );
 
-  const client = new PlunkClient(config);
-  const ctx: ToolContext = {server, readOnly: config.readOnly};
+  const client = new PlunkClient(config.apiUrl, () => projects.current());
+  const ctx: ToolContext = {server, readOnly: config.readOnly, projects};
 
   // Registration order is stable, which keeps `tools/list` deterministic as the
   // spec asks and keeps client-side prompt caches warm across restarts.

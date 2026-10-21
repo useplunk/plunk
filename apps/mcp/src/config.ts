@@ -8,9 +8,18 @@
 
 export const DEFAULT_API_URL = 'https://next-api.useplunk.com';
 
-export interface PlunkMcpConfig {
-  /** Secret key (`sk_*`). Every tool except `plunk_track_event` needs it. */
+/** One project's keys, as configured through `PLUNK_API_KEY_<NAME>`. */
+export interface ProjectKeys {
   apiKey: string;
+  publicKey?: string;
+}
+
+export interface PlunkMcpConfig {
+  /**
+   * Secret key (`sk_*`). Every tool except `plunk_track_event` needs it.
+   * Unset when `projects` is.
+   */
+  apiKey?: string;
   /**
    * Public key (`pk_*`), optional. `POST /v1/track` is the one endpoint that
    * requires a public key, so without this `plunk_track_event` has to resolve
@@ -21,6 +30,24 @@ export interface PlunkMcpConfig {
   apiUrl: string;
   /** When true only read-only tools are registered — mutations become unreachable. */
   readOnly: boolean;
+  /**
+   * Named projects, keyed by the name the agent passes as `project`. Set
+   * instead of `apiKey`/`publicKey` when the server spans several projects.
+   */
+  projects?: Record<string, ProjectKeys>;
+}
+
+const PROJECT_KEY_PREFIX = 'PLUNK_API_KEY_';
+const PROJECT_PUBLIC_KEY_PREFIX = 'PLUNK_PUBLIC_KEY_';
+
+/** The variable a project's secret key is read from, for error messages. */
+export function apiKeyVariable(project?: string): string {
+  return project ? `${PROJECT_KEY_PREFIX}${project.toUpperCase()}` : 'PLUNK_API_KEY';
+}
+
+/** The variable a project's public key is read from, for error messages. */
+export function publicKeyVariable(project?: string): string {
+  return project ? `${PROJECT_PUBLIC_KEY_PREFIX}${project.toUpperCase()}` : 'PLUNK_PUBLIC_KEY';
 }
 
 export class ConfigError extends Error {}
@@ -32,6 +59,21 @@ export class ConfigError extends Error {}
  * Recognised flags: `--read-only`, `--api-url=<url>`.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] = process.argv.slice(2)): PlunkMcpConfig {
+  const urlFlag = argv.find((a) => a.startsWith('--api-url='))?.slice('--api-url='.length);
+  const apiUrl = stripTrailingSlash(urlFlag ?? (env.PLUNK_MCP_API_URL ?? env.PLUNK_API_URL)?.trim() ?? DEFAULT_API_URL);
+
+  if (!/^https?:\/\//.test(apiUrl)) {
+    throw new ConfigError(`PLUNK_API_URL must be an absolute http(s) URL, received "${apiUrl}".`);
+  }
+
+  const readOnly = argv.includes('--read-only') || isTruthy(env.PLUNK_READ_ONLY);
+
+  const projects = loadProjects(env);
+
+  if (projects) {
+    return {apiUrl, readOnly, projects};
+  }
+
   // `PLUNK_API_KEY` is the name users expect from the published package, but the
   // Plunk API server already uses that name for its own platform-notification
   // key. Anyone running this inside the monorepo, or on a host that self-hosts
@@ -62,16 +104,92 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] 
     throw new ConfigError('PLUNK_PUBLIC_KEY must be a public key (pk_*).');
   }
 
-  const urlFlag = argv.find((a) => a.startsWith('--api-url='))?.slice('--api-url='.length);
-  const apiUrl = stripTrailingSlash(urlFlag ?? (env.PLUNK_MCP_API_URL ?? env.PLUNK_API_URL)?.trim() ?? DEFAULT_API_URL);
+  return {apiKey, publicKey, apiUrl, readOnly};
+}
 
-  if (!/^https?:\/\//.test(apiUrl)) {
-    throw new ConfigError(`PLUNK_API_URL must be an absolute http(s) URL, received "${apiUrl}".`);
+/**
+ * Reads `PLUNK_API_KEY_<NAME>` (and optionally `PLUNK_PUBLIC_KEY_<NAME>`) pairs.
+ * Returns undefined when none are set, which means single-project mode.
+ *
+ * A bare `PLUNK_API_KEY` is ignored once named keys exist: inside the monorepo
+ * or on a self-hosted box it is often the API server's own platform key, and
+ * silently adding it as an extra project would point the agent at data it was
+ * never meant to touch. `PLUNK_MCP_API_KEY` and `PLUNK_PUBLIC_KEY` are only
+ * ever set for this server, so combining them with named keys is ambiguous
+ * and fails instead.
+ */
+function loadProjects(env: NodeJS.ProcessEnv): Record<string, ProjectKeys> | undefined {
+  const projects: Record<string, ProjectKeys> = {};
+
+  for (const [variable, raw] of Object.entries(env)) {
+    const value = raw?.trim();
+
+    if (!variable.startsWith(PROJECT_KEY_PREFIX) || !value) {
+      continue;
+    }
+
+    const name = projectName(variable.slice(PROJECT_KEY_PREFIX.length), variable);
+
+    if (!value.startsWith('sk_')) {
+      throw new ConfigError(
+        `${variable} must be a secret key (sk_*). Set a public key, if you want one, as ${publicKeyVariable(name)}.`,
+      );
+    }
+
+    projects[name] = {apiKey: value};
   }
 
-  const readOnly = argv.includes('--read-only') || isTruthy(env.PLUNK_READ_ONLY);
+  for (const [variable, raw] of Object.entries(env)) {
+    const value = raw?.trim();
 
-  return {apiKey, publicKey, apiUrl, readOnly};
+    if (!variable.startsWith(PROJECT_PUBLIC_KEY_PREFIX) || !value) {
+      continue;
+    }
+
+    const name = projectName(variable.slice(PROJECT_PUBLIC_KEY_PREFIX.length), variable);
+    const project = projects[name];
+
+    if (!project) {
+      throw new ConfigError(`${variable} is set but ${apiKeyVariable(name)} is not. Every project needs a secret key.`);
+    }
+
+    if (!value.startsWith('pk_')) {
+      throw new ConfigError(`${variable} must be a public key (pk_*).`);
+    }
+
+    project.publicKey = value;
+  }
+
+  if (Object.keys(projects).length === 0) {
+    return undefined;
+  }
+
+  if (env.PLUNK_MCP_API_KEY?.trim()) {
+    throw new ConfigError(
+      `PLUNK_MCP_API_KEY cannot be combined with ${PROJECT_KEY_PREFIX}<NAME> keys. ` +
+        `Give that project a name too, e.g. ${PROJECT_KEY_PREFIX}MAIN.`,
+    );
+  }
+
+  if (env.PLUNK_PUBLIC_KEY?.trim()) {
+    throw new ConfigError(
+      `PLUNK_PUBLIC_KEY cannot be combined with ${PROJECT_KEY_PREFIX}<NAME> keys, because it is unclear which ` +
+        `project it belongs to. Set it as ${PROJECT_PUBLIC_KEY_PREFIX}<NAME> instead.`,
+    );
+  }
+
+  return projects;
+}
+
+/** Project names are what the agent passes as `project`, so keep them simple. */
+function projectName(suffix: string, variable: string): string {
+  const name = suffix.toLowerCase();
+
+  if (!/^[a-z0-9][a-z0-9_]*$/.test(name)) {
+    throw new ConfigError(`${variable}: the project name after the prefix may only use letters, digits and underscores.`);
+  }
+
+  return name;
 }
 
 function stripTrailingSlash(url: string): string {

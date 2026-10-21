@@ -8,7 +8,8 @@
  * retry correctly, so it is flattened into the message rather than dropped.
  */
 
-import type {PlunkMcpConfig} from './config.js';
+import {apiKeyVariable, publicKeyVariable} from './config.js';
+import type {ProjectCredentials} from './projects.js';
 
 /** Error carrying enough context for the agent to decide whether to retry. */
 export class PlunkApiError extends Error {
@@ -34,18 +35,21 @@ interface RequestOptions {
 }
 
 export class PlunkClient {
-  constructor(private readonly config: PlunkMcpConfig) {}
-
-  get apiUrl(): string {
-    return this.config.apiUrl;
-  }
+  /**
+   * `credentials` is read on every request rather than once, so a single client
+   * serves whichever project the current tool call targets.
+   */
+  constructor(
+    readonly apiUrl: string,
+    private readonly credentials: () => ProjectCredentials,
+  ) {}
 
   get hasPublicKey(): boolean {
-    return Boolean(this.config.publicKey);
+    return Boolean(this.credentials().publicKey);
   }
 
   async request<T = unknown>({method = 'GET', path, query, body, usePublicKey}: RequestOptions): Promise<T> {
-    const url = new URL(`${this.config.apiUrl}${path}`);
+    const url = new URL(`${this.apiUrl}${path}`);
 
     for (const [key, value] of Object.entries(query ?? {})) {
       if (value !== undefined && value !== '') {
@@ -53,11 +57,12 @@ export class PlunkClient {
       }
     }
 
-    const key = usePublicKey ? this.config.publicKey : this.config.apiKey;
+    const project = this.credentials();
+    const key = usePublicKey ? project.publicKey : project.apiKey;
 
     if (!key) {
       throw new PlunkApiError(
-        'This action needs a public key (pk_*). Set PLUNK_PUBLIC_KEY to enable it.',
+        `This action needs a public key (pk_*). Set ${publicKeyVariable(project.name)} to enable it.`,
         400,
         'MISSING_PUBLIC_KEY',
       );
@@ -77,7 +82,7 @@ export class PlunkClient {
       });
     } catch (cause) {
       throw new PlunkApiError(
-        `Could not reach the Plunk API at ${this.config.apiUrl}. ` +
+        `Could not reach the Plunk API at ${this.apiUrl}. ` +
           `Check PLUNK_API_URL is correct and the instance is reachable. (${(cause as Error).message})`,
         0,
         'NETWORK_ERROR',
@@ -98,14 +103,14 @@ export class PlunkClient {
     }
 
     if (!response.ok) {
-      throw toApiError(response, payload, text);
+      throw toApiError(response, payload, text, project);
     }
 
     return payload as T;
   }
 }
 
-function toApiError(response: Response, payload: unknown, raw: string): PlunkApiError {
+function toApiError(response: Response, payload: unknown, raw: string, project: ProjectCredentials): PlunkApiError {
   const error = (payload as {error?: Record<string, unknown>} | undefined)?.error;
   const code = typeof error?.code === 'string' ? error.code : undefined;
 
@@ -142,7 +147,7 @@ function toApiError(response: Response, payload: unknown, raw: string): PlunkApi
 
   if (response.status === 401) {
     return new PlunkApiError(
-      `${message} Check that PLUNK_API_KEY is a valid secret key (sk_*) for the intended project.`,
+      `${message} Check that ${apiKeyVariable(project.name)} is a valid secret key (sk_*) for the intended project.`,
       401,
       code,
     );

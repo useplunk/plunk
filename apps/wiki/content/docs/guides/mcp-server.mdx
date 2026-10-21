@@ -80,12 +80,37 @@ Point `PLUNK_API_URL` at your own API domain:
 | `PLUNK_ALLOW_UNCONFIRMED_SENDS` | No       | `true` skips the confirmation prompt before sending. Headless automation only.                         |
 | `PLUNK_MCP_API_KEY`             | No       | Takes precedence over `PLUNK_API_KEY`, for environments where that name is already taken.               |
 | `PLUNK_MCP_API_URL`             | No       | Takes precedence over `PLUNK_API_URL`, for the same reason.                                             |
+| `PLUNK_API_KEY_<NAME>`          | No       | A named project's secret key. Set one per project to use several at once — see below.                   |
+| `PLUNK_PUBLIC_KEY_<NAME>`       | No       | That project's public key.                                                                              |
 
 <Callout type="warn">
 If you self-host, the Plunk API server itself uses a variable called `PLUNK_API_KEY` for its platform
 notification emails — and that key belongs to a different project. When both live in the same
 environment, set `PLUNK_MCP_API_KEY` so the agent works on the project you intend.
 </Callout>
+
+## Several projects
+
+To give one agent access to more than one project, set a key per project with the project's name as a
+suffix instead of `PLUNK_API_KEY`:
+
+```bash
+claude mcp add plunk \
+  --env PLUNK_API_KEY_ACME=sk_acme_key \
+  --env PLUNK_API_KEY_SIDE_PROJECT=sk_other_key \
+  -- npx -y @plunk/mcp
+```
+
+Every tool then takes a required `project` argument (`acme` or `side_project` here), so each call says
+which project it acts on — there is no "current project" the agent could lose track of. Confirmation
+prompts name the project too.
+
+- `PLUNK_PUBLIC_KEY_<NAME>` sets that project's public key, just like `PLUNK_PUBLIC_KEY` does for a single one.
+- Names may use letters, digits and underscores, and are lowercased.
+- Once a named key is set, a plain `PLUNK_API_KEY` is ignored, so a key inherited from a self-hosted Plunk
+  server's environment cannot slip in as an extra project. `PLUNK_MCP_API_KEY` and `PLUNK_PUBLIC_KEY` cannot be
+  combined with named keys.
+- All projects share one API URL and one read-only setting.
 
 ## Available tools
 

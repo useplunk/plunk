@@ -12,8 +12,10 @@ import type {
   ToolAnnotations,
   ToolCallback,
 } from '@modelcontextprotocol/server';
+import * as z from 'zod';
 
 import {PlunkApiError} from '../client.js';
+import {activeProject, type ProjectRouter} from '../projects.js';
 
 export type ToolResult = CallToolResult | InputRequiredResult;
 
@@ -82,10 +84,14 @@ export function requireConfirmation(
     return undefined;
   }
 
+  // With several projects configured, the prompt is the user's last chance to
+  // notice the agent picked the wrong one — so it always says which.
+  const project = activeProject()?.name;
+
   return inputRequired({
     inputRequests: {
       [key]: inputRequired.elicit({
-        message,
+        message: project ? `In project "${project}": ${message}` : message,
         requestedSchema: {
           type: 'object',
           properties: {
@@ -105,18 +111,24 @@ export function requireConfirmation(
 export interface ToolContext {
   server: McpServer;
   readOnly: boolean;
+  projects: ProjectRouter;
 }
 
 /**
  * Registers a tool, skipping mutating tools entirely when running read-only so
  * they never appear in `tools/list`.
  *
+ * When several projects are configured, every tool also takes a required
+ * `project` argument. It is stripped before the handler runs — some handlers
+ * forward their whole input as a request body — and the handler runs with that
+ * project's key active instead.
+ *
  * Generic over the input schema so the handler keeps its inferred argument
  * types — widening this to the SDK's deprecated raw-shape overload would erase
  * them to `unknown` at every call site.
  */
 export function register<InputArgs extends StandardSchemaWithJSON>(
-  {server, readOnly}: ToolContext,
+  {server, readOnly, projects}: ToolContext,
   name: string,
   config: {
     title: string;
@@ -130,7 +142,28 @@ export function register<InputArgs extends StandardSchemaWithJSON>(
     return;
   }
 
-  server.registerTool(name, config, handler);
+  const names = projects.names;
+
+  if (names.length === 0) {
+    server.registerTool(name, config, handler);
+    return;
+  }
+
+  // Every tool module declares its input as a plain `z.object`, which is what
+  // makes extending it safe here.
+  const baseSchema = (config.inputSchema as unknown as z.ZodObject | undefined) ?? z.object({});
+  const inputSchema = baseSchema.extend({
+    project: z
+      .enum(names as [string, ...string[]])
+      .describe(`Which Plunk project to act on: ${names.join(', ')}. Ask the user if it is unclear.`),
+  });
+
+  // A schema-less handler is called as `(extra)`; one with a schema as `(args, extra)`.
+  const call = handler as unknown as (...params: unknown[]) => Promise<ToolResult>;
+
+  server.registerTool(name, {...config, inputSchema}, ({project, ...args}, extra) =>
+    projects.run(project, () => (config.inputSchema ? call(args, extra) : call(extra))),
+  );
 }
 
 /** Truncation notice steering the agent to filter rather than page blindly. */
