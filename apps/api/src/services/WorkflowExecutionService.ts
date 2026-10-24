@@ -399,6 +399,47 @@ export class WorkflowExecutionService {
   }
 
   /**
+   * End a DELAY step that had no step after it when the delay started
+   * Called by BullMQ worker when the delay-end job executes
+   */
+  public static async processDelayEnd(executionId: string, stepId: string): Promise<void> {
+    const execution = await prisma.workflowExecution.findUnique({where: {id: executionId}});
+
+    // Cancelled, deleted, or already moved on: nothing left to end
+    if (execution?.status !== WorkflowExecutionStatus.WAITING) {
+      return;
+    }
+
+    // A step may have been connected after the delay while the contact was waiting
+    const firstTransition = await prisma.workflowTransition.findFirst({
+      where: {fromStepId: stepId},
+      orderBy: {priority: 'asc'},
+    });
+
+    if (firstTransition) {
+      if (
+        await this.updateUnlessCancelled(executionId, {
+          status: WorkflowExecutionStatus.RUNNING,
+          currentStepId: firstTransition.toStepId,
+        })
+      ) {
+        await this.processStepExecution(executionId, firstTransition.toStepId);
+      }
+      return;
+    }
+
+    // The delay was the last step, so the workflow is done (guarded on WAITING so a cancel that lands first wins)
+    await prisma.workflowExecution.updateMany({
+      where: {id: executionId, status: WorkflowExecutionStatus.WAITING},
+      data: {
+        status: WorkflowExecutionStatus.COMPLETED,
+        completedAt: new Date(),
+        currentStepId: null,
+      },
+    });
+  }
+
+  /**
    * Handle event occurrence and resume waiting workflows
    */
   public static async handleEvent(
@@ -657,6 +698,9 @@ export class WorkflowExecutionService {
         const nextStep = firstTransition.toStep;
         await QueueService.queueWorkflowStep(_execution.id, nextStep.id, Math.max(0, delayMs));
       }
+    } else {
+      // Nothing follows the delay: still schedule its end, or the execution would never leave WAITING
+      await QueueService.queueWorkflowDelayEnd(_execution.id, _step.id, stepExecution.id, Math.max(0, delayMs));
     }
 
     return {

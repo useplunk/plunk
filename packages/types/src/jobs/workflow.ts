@@ -9,6 +9,6 @@
 export interface WorkflowStepJobData {
   executionId: string;
   stepId: string;
-  type?: 'process-step' | 'timeout'; // Job type for different handling
+  type?: 'process-step' | 'timeout' | 'delay-end'; // Job type for different handling
   stepExecutionId?: string; // For timeout jobs, reference to the step execution
 }

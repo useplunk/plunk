@@ -345,6 +345,26 @@ export class QueueService {
   }
 
   /**
+   * Queue the end of a DELAY step that has no step after it, so the execution completes
+   * when the delay runs out instead of staying WAITING forever
+   */
+  public static async queueWorkflowDelayEnd(
+    executionId: string,
+    stepId: string,
+    stepExecutionId: string,
+    delayMs: number,
+  ): Promise<Job<WorkflowStepJobData>> {
+    return workflowQueue.add(
+      'delay-end',
+      {executionId, stepId, stepExecutionId, type: 'delay-end'},
+      {
+        delay: delayMs,
+        jobId: `workflow-delay-end-${stepExecutionId}`,
+      },
+    );
+  }
+
+  /**
    * Queue a timeout handler for WAIT_FOR_EVENT steps
    */
   public static async queueWorkflowTimeout(
