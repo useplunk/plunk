@@ -41,7 +41,11 @@ export interface Activity {
 export interface ActivityStats {
   totalEvents: number;
   totalEmailsSent: number;
+  /** Sent with open and click tracking: what the open and click rates are measured against */
+  totalEmailsTracked: number;
+  /** Opened among the tracked emails */
   totalEmailsOpened: number;
+  /** Clicked among the tracked emails */
   totalEmailsClicked: number;
   totalWorkflowsStarted: number;
   openRate: number;

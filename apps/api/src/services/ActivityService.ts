@@ -6,6 +6,7 @@ import signale from 'signale';
 import {prisma} from '../database/prisma.js';
 import {redis} from '../database/redis.js';
 import {HttpException} from '../exceptions/index.js';
+import {EmailService} from './EmailService.js';
 import {Keys} from './keys.js';
 
 /**
@@ -193,8 +194,17 @@ export class ActivityService {
    * Falls back to database aggregation if cache miss
    */
   public static async getStats(projectId: string, startDate?: Date, endDate?: Date): Promise<ActivityStats> {
+    // Opens and clicks are measured against the streams the project tracks now, so they are
+    // part of the cache key: changing the tracking mode must not serve stats from the old one
+    const trackedStreams = await EmailService.trackedStreams(projectId);
+
     // Try to get from cache
-    const cacheKey = Keys.Activity.stats(projectId, startDate?.getTime() || 'all', endDate?.getTime() || 'now');
+    const cacheKey = Keys.Activity.stats(
+      projectId,
+      startDate?.getTime() || 'all',
+      endDate?.getTime() || 'now',
+      trackedStreams.join(','),
+    );
 
     try {
       const cached = await redis.get(cacheKey);
@@ -214,7 +224,7 @@ export class ActivityService {
     };
 
     // Compute stats from database (in parallel for performance)
-    const [totalEvents, emailStats] = await Promise.all([
+    const [totalEvents, emailGroups] = await Promise.all([
       // Count total events
       prisma.event.count({
         where: {
@@ -223,8 +233,9 @@ export class ActivityService {
         },
       }),
 
-      // Aggregate email stats
-      prisma.email.aggregate({
+      // Email counts per stream, so opens and clicks can be measured against tracked emails
+      prisma.email.groupBy({
+        by: ['sourceType', 'simulated'],
         where: {
           projectId,
           createdAt: dateFilter,
@@ -233,6 +244,7 @@ export class ActivityService {
         // alone, COUNT("id") would need every row fetched since id is not in that index
         _count: {
           _all: true,
+          sentAt: true,
           openedAt: true,
           clickedAt: true,
         },
@@ -249,18 +261,24 @@ export class ActivityService {
       },
     });
 
-    const totalEmailsSent = emailStats._count._all;
-    const totalEmailsOpened = emailStats._count.openedAt || 0;
-    const totalEmailsClicked = emailStats._count.clickedAt || 0;
+    // Measured as analytics does: mail to the SES mailbox simulator never reaches anyone, and
+    // inbound or unsent mail is never in a tracked stream with a send time
+    const tracked = emailGroups.filter(group => !group.simulated && trackedStreams.includes(group.sourceType));
+
+    const totalEmailsSent = emailGroups.reduce((sum, group) => sum + group._count._all, 0);
+    const totalEmailsTracked = tracked.reduce((sum, group) => sum + group._count.sentAt, 0);
+    const totalEmailsOpened = tracked.reduce((sum, group) => sum + group._count.openedAt, 0);
+    const totalEmailsClicked = tracked.reduce((sum, group) => sum + group._count.clickedAt, 0);
 
     const stats: ActivityStats = {
       totalEvents,
       totalEmailsSent,
+      totalEmailsTracked,
       totalEmailsOpened,
       totalEmailsClicked,
       totalWorkflowsStarted,
-      openRate: totalEmailsSent > 0 ? (totalEmailsOpened / totalEmailsSent) * 100 : 0,
-      clickRate: totalEmailsSent > 0 ? (totalEmailsClicked / totalEmailsSent) * 100 : 0,
+      openRate: totalEmailsTracked > 0 ? (totalEmailsOpened / totalEmailsTracked) * 100 : 0,
+      clickRate: totalEmailsTracked > 0 ? (totalEmailsClicked / totalEmailsTracked) * 100 : 0,
     };
 
     // Cache for 5 minutes

@@ -3,13 +3,14 @@ import {EmailSourceType, EmailStatus, TrackingMode} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
 import signale from 'signale';
 
-import {DASHBOARD_URI, LANDING_URI, STRIPE_ENABLED} from '../app/constants.js';
+import {DASHBOARD_URI, LANDING_URI, STRIPE_ENABLED, TRACKING_TOGGLE_ENABLED} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
 import {createTranslatorSync, renderTemplate} from '@plunk/shared';
 
 import {BillingLimitService} from './BillingLimitService.js';
 import {withSourceEmail} from './EmailHeaderService.js';
+import {ProjectService} from './ProjectService.js';
 import {QueueService} from './QueueService.js';
 
 interface Attachment {
@@ -314,6 +315,33 @@ export class EmailService {
         return sourceType !== EmailSourceType.TRANSACTIONAL;
       default:
         return true;
+    }
+  }
+
+  /**
+   * The outbound streams sent with open and click tracking under a tracking mode, so stats
+   * measure opens and clicks only against emails that could record them. Mirrors
+   * SESService: without a no-tracking configuration set every email goes out tracked.
+   */
+  public static trackedSourceTypes(
+    trackingMode: TrackingMode,
+    toggleEnabled: boolean = TRACKING_TOGGLE_ENABLED,
+  ): EmailSourceType[] {
+    const outbound = Object.values(EmailSourceType).filter(type => type !== EmailSourceType.INBOUND);
+    return toggleEnabled ? outbound.filter(type => this.shouldTrackEmail(trackingMode, type)) : outbound;
+  }
+
+  /**
+   * The tracked streams of a project under its current tracking mode. A project that cannot
+   * be found or read counts as tracking everything, the default mode, so stats still load.
+   */
+  public static async trackedStreams(projectId: string): Promise<EmailSourceType[]> {
+    try {
+      const project = await ProjectService.id(projectId);
+      return this.trackedSourceTypes(project?.tracking ?? TrackingMode.ENABLED);
+    } catch (error) {
+      signale.warn('[EMAIL] Failed to read the tracking mode, measuring stats as if everything is tracked:', error);
+      return this.trackedSourceTypes(TrackingMode.ENABLED);
     }
   }
 

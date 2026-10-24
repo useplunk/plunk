@@ -28,8 +28,8 @@ const ratio = (part: number, whole: number) => (whole > 0 ? (part / whole) * 100
 export const METRICS: MetricDefinition[] = [
   {key: 'sent', label: 'Sent', kind: 'count', better: 'up', fromPoint: p => p.sent},
   {key: 'deliveryRate', label: 'Delivery rate', kind: 'rate', better: 'up', fromPoint: p => ratio(p.delivered, p.sent)},
-  {key: 'openRate', label: 'Open rate', kind: 'rate', better: 'up', fromPoint: p => ratio(p.opened, p.sent)},
-  {key: 'clickRate', label: 'Click rate', kind: 'rate', better: 'up', fromPoint: p => ratio(p.clicked, p.sent)},
+  {key: 'openRate', label: 'Open rate', kind: 'rate', better: 'up', fromPoint: p => ratio(p.opened, p.tracked)},
+  {key: 'clickRate', label: 'Click rate', kind: 'rate', better: 'up', fromPoint: p => ratio(p.clicked, p.tracked)},
   {
     key: 'clickToOpenRate',
     label: 'Click-to-open',
