@@ -114,7 +114,7 @@ export function WaitForEventStepDialog({step, workflowId, open, onOpenChange, on
                 setTimeout(() => setEventPopoverOpen(false), 150);
               }}
               required
-              placeholder="e.g., email.clicked, user.upgraded"
+              placeholder="e.g., email.click, user.upgraded"
               className="mt-1.5"
               autoComplete="off"
             />

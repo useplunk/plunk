@@ -30,6 +30,36 @@ export class WorkflowService {
   }
 
   /**
+   * Rejects a past-tense spelling of an email event, such as `email.opened`, as a trigger or wait
+   * event name. Plunk records opens as `email.open`, so the workflow would silently never fire.
+   * Only a new or changed name is checked, so a workflow saved before this check can still be edited.
+   */
+  private static validateEventName(config: Prisma.JsonValue | undefined, saved?: Prisma.JsonValue): void {
+    const eventName = this.eventNameOf(config);
+
+    if (eventName === undefined || eventName === this.eventNameOf(saved)) {
+      return;
+    }
+
+    const emitted = EventService.emittedEmailEventName(eventName);
+
+    if (emitted) {
+      throw new HttpException(
+        400,
+        `Plunk records this event as "${emitted}", not "${eventName}". Workflows match event names exactly, so "${eventName}" would never fire.`,
+      );
+    }
+  }
+
+  private static eventNameOf(config: Prisma.JsonValue | undefined): string | undefined {
+    if (!config || typeof config !== 'object' || Array.isArray(config) || typeof config.eventName !== 'string') {
+      return undefined;
+    }
+
+    return config.eventName.trim();
+  }
+
+  /**
    * Get all workflows for a project with pagination
    */
   public static async list(
@@ -142,6 +172,8 @@ export class WorkflowService {
       throw new HttpException(400, 'Event name is required');
     }
 
+    this.validateEventName({eventName: data.eventName});
+
     const workflow = await prisma.$transaction(async tx => {
       const newWorkflow = await tx.workflow.create({
         data: {
@@ -222,6 +254,8 @@ export class WorkflowService {
         }
       }
     }
+
+    this.validateEventName(data.triggerConfig, workflow.triggerConfig);
 
     // Use transaction to update workflow and TRIGGER step atomically
     const updated = await prisma.$transaction(async tx => {
@@ -521,6 +555,10 @@ export class WorkflowService {
 
     await this.validateStepTemplate(projectId, data.templateId);
 
+    if (data.type === 'WAIT_FOR_EVENT') {
+      this.validateEventName(data.config);
+    }
+
     // Create the new step
     const newStep = await prisma.workflowStep.create({
       data: {
@@ -607,6 +645,10 @@ export class WorkflowService {
     }
 
     await this.validateStepTemplate(projectId, data.templateId);
+
+    if (step.type === 'WAIT_FOR_EVENT') {
+      this.validateEventName(data.config, step.config);
+    }
 
     const updateData: Prisma.WorkflowStepUpdateInput = {};
 
@@ -880,6 +922,10 @@ export class WorkflowService {
     }
 
     await this.validateStepTemplate(projectId, data.templateId);
+
+    if (data.type === 'WAIT_FOR_EVENT') {
+      this.validateEventName(data.config);
+    }
 
     return prisma.$transaction(async tx => {
       const newStep = await tx.workflowStep.create({
