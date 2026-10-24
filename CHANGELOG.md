@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.0](https://github.com/useplunk/plunk/compare/v0.17.0...v0.18.0) (2026-10-24)
+
+
+### Features
+
+* Verify SES configuration sets on startup ([2f3cb50](https://github.com/useplunk/plunk/commit/2f3cb509080b98e34165fb7f49895a0ab97283b5))
+
+
+### Bug Fixes
+
+* **workflows:** treat a zero wait timeout as no limit ([0ab8bf9](https://github.com/useplunk/plunk/commit/0ab8bf94f300f3bb82eedb44b545588beb288bcd))
+* **workflows:** treat a zero wait timeout as no limit ([006cc4c](https://github.com/useplunk/plunk/commit/006cc4c7c8f0015105a89303b9a3cc5784ab7073))
+
 ## [0.17.0](https://github.com/useplunk/plunk/compare/v0.16.0...v0.17.0) (2026-10-21)
 
 
