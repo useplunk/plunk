@@ -41,6 +41,8 @@ A workflow always begins with a single auto-created `TRIGGER` step. You build th
 | `UPDATE_CONTACT`  | Patches contact data — useful for tagging contacts as they progress (`{ stage: "activated" }`).        | `data` object                                                    |
 | `EXIT`            | Terminates the execution. Optionally records an `exitReason` for analytics.                            | optional `reason`                                                |
 
+A `WAIT_FOR_EVENT` step on an email event resumes when that event comes from any email of the contact, including emails sent by campaigns or other workflows (`scope: "contact"`, the default). For the events a workflow email produces (`email.sent`, `email.delivery`, `email.open`, `email.click`, `email.bounce`, `email.complaint`), set `scope: "execution"` in the step config (**Only emails from this execution** in the editor) to count only the emails this execution sent to the contact. Emails a step sends to a custom recipient are recorded under the contact but never count for a scoped wait. If the execution sent several emails, an event from any of them resumes the wait. Give a scoped wait a timeout: if its email is never sent (for example, to an unsubscribed contact) or never opened, the execution would otherwise wait forever.
+
 ## Transitions
 
 Transitions are the edges of the workflow graph. For most step types a transition is a simple "next" pointer. For `CONDITION` steps, each transition carries a `branch` discriminator (`"yes"` or `"no"`) so the engine knows which path to take when the condition evaluates.
