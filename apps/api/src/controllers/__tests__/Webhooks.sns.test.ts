@@ -9,8 +9,18 @@ import {ContactService} from '../../services/ContactService';
 import {Keys} from '../../services/keys';
 import {NtfyService} from '../../services/NtfyService';
 import {SecurityService} from '../../services/SecurityService';
+import {getAwsAccountId} from '../../services/SESService';
 import {Webhooks} from '../Webhooks';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
+
+// The account the SES credentials belong to, normally looked up through STS
+vi.mock('../../services/SESService', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../services/SESService')>()),
+  getAwsAccountId: vi.fn(),
+}));
+
+const OWN_TOPIC = 'arn:aws:sns:eu-north-1:111111111111:plunk-ses-events';
+const FOREIGN_TOPIC = 'arn:aws:sns:eu-north-1:999999999999:plunk-ses-events';
 
 /**
  * The SES event webhook, which is the only path that records delivery, opens, clicks, bounces
@@ -36,6 +46,7 @@ describe('Webhooks - SES event notifications', () => {
     // The signature is AWS's to produce; every test here is about what happens after it checks
     // out. The rejection path is covered separately below.
     vi.spyOn(SecurityService, 'verifySnsSignature').mockResolvedValue(true);
+    vi.mocked(getAwsAccountId).mockResolvedValue('111111111111');
 
     // One Redis key holds the dirty set for the whole worker, so an id left behind by an
     // earlier test would be swept by a later one and make its count wrong.
@@ -72,19 +83,20 @@ describe('Webhooks - SES event notifications', () => {
     return {res, captured, sent};
   }
 
-  /** Deliver one SES event notification, shaped the way SNS posts it. */
-  async function post(event: Record<string, unknown>) {
+  /** Deliver one SNS message as posted to the webhook. */
+  async function postSns(body: Record<string, unknown>) {
     const {res, captured, sent} = mockResponse();
-    const req = {
-      body: {Type: 'Notification', Message: JSON.stringify(event)},
-      get: () => undefined,
-      headers: {},
-    } as unknown as Request;
+    const req = {body, get: () => undefined, headers: {}} as unknown as Request;
 
     await new Webhooks().receiveSNSWebhook(req, res);
     await sent;
 
     return captured;
+  }
+
+  /** Deliver one SES event notification, shaped the way SNS posts it. */
+  async function post(event: Record<string, unknown>, topicArn = OWN_TOPIC) {
+    return postSns({Type: 'Notification', TopicArn: topicArn, Message: JSON.stringify(event)});
   }
 
   const notification = (eventType: string, messageId: string, extra: Record<string, unknown> = {}) => ({
@@ -292,6 +304,120 @@ describe('Webhooks - SES event notifications', () => {
       await post(notification('Delivery', 'ses-transactional-1'));
 
       expect(await CampaignService.sweepDirtyStats(100)).toBe(0);
+    });
+  });
+
+  /**
+   * A valid signature only proves AWS delivered a message. Anyone can create a topic in their
+   * own AWS account, subscribe this webhook to it and publish SES-shaped events, which AWS then
+   * signs. Only topics in the account Plunk sends from may be trusted.
+   */
+  describe('SNS topic origin', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    const inbound = (sender: string, recipient: string) => ({
+      notificationType: 'Received',
+      mail: {source: sender, messageId: 'inbound-1', commonHeaders: {subject: 'Hello'}},
+      receipt: {recipients: [recipient]},
+    });
+
+    it('rejects an event from a topic in another AWS account', async () => {
+      const email = await sentEmail('ses-foreign-1');
+
+      const captured = await post(notification('Complaint', 'ses-foreign-1'), FOREIGN_TOPIC);
+
+      expect(captured.status).toBe(403);
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.complainedAt).toBeNull();
+      const contact = await prisma.contact.findUnique({where: {id: contactId}});
+      expect(contact?.subscribed).toBe(true);
+      expect(await prisma.event.count({where: {emailId: email.id}})).toBe(0);
+    });
+
+    it('rejects a forged inbound email from another account, so no contact is created or resubscribed', async () => {
+      await factories.createDomain({projectId, domain: 'acme-inbound.test'});
+      const unsubscribed = await factories.createContact({
+        projectId,
+        email: 'opted-out@example.test',
+        subscribed: false,
+      });
+
+      const forged = await post(inbound('injected@example.test', 'hello@acme-inbound.test'), FOREIGN_TOPIC);
+      const resubscribe = await post(inbound(unsubscribed.email, 'hello@acme-inbound.test'), FOREIGN_TOPIC);
+
+      expect(forged.status).toBe(403);
+      expect(resubscribe.status).toBe(403);
+      expect(await prisma.contact.findFirst({where: {projectId, email: 'injected@example.test'}})).toBeNull();
+      expect((await prisma.contact.findUnique({where: {id: unsubscribed.id}}))?.subscribed).toBe(false);
+      expect(await prisma.email.count({where: {projectId, sourceType: 'INBOUND'}})).toBe(0);
+    });
+
+    it('still processes an inbound email from its own account', async () => {
+      await factories.createDomain({projectId, domain: 'acme-inbound.test'});
+
+      const captured = await post(inbound('customer@example.test', 'hello@acme-inbound.test'));
+
+      expect(captured.status).toBe(200);
+      expect(await prisma.contact.findFirst({where: {projectId, email: 'customer@example.test'}})).not.toBeNull();
+      expect(await prisma.email.count({where: {projectId, sourceType: 'INBOUND'}})).toBe(1);
+    });
+
+    it('does not confirm a subscription to a topic in another account', async () => {
+      const confirm = vi.fn().mockResolvedValue({ok: true});
+      vi.stubGlobal('fetch', confirm);
+
+      const captured = await postSns({
+        Type: 'SubscriptionConfirmation',
+        TopicArn: FOREIGN_TOPIC,
+        SubscribeURL: 'https://sns.eu-north-1.amazonaws.com/?Action=ConfirmSubscription&Token=abc',
+      });
+
+      expect(captured.status).toBe(403);
+      expect(confirm).not.toHaveBeenCalled();
+    });
+
+    it('confirms a subscription to a topic in its own account', async () => {
+      const confirm = vi.fn().mockResolvedValue({ok: true});
+      vi.stubGlobal('fetch', confirm);
+
+      const captured = await postSns({
+        Type: 'SubscriptionConfirmation',
+        TopicArn: OWN_TOPIC,
+        SubscribeURL: 'https://sns.eu-north-1.amazonaws.com/?Action=ConfirmSubscription&Token=abc',
+      });
+
+      expect(captured.status).toBe(200);
+      expect(confirm).toHaveBeenCalledOnce();
+    });
+
+    it('rejects a message without a topic ARN', async () => {
+      const email = await sentEmail('ses-no-topic-1');
+
+      const captured = await postSns({
+        Type: 'Notification',
+        Message: JSON.stringify(notification('Delivery', 'ses-no-topic-1')),
+      });
+
+      expect(captured.status).toBe(403);
+      expect((await prisma.email.findUnique({where: {id: email.id}}))?.deliveredAt).toBeNull();
+    });
+
+    it('asks SNS to retry when the account cannot be looked up, then processes the redelivery', async () => {
+      const email = await sentEmail('ses-lookup-down-1');
+      vi.mocked(getAwsAccountId).mockRejectedValueOnce(new Error('STS unreachable'));
+
+      const failed = await post(notification('Delivery', 'ses-lookup-down-1'));
+
+      // 5xx, not 4xx: SNS retries server errors, so the genuine event is not lost
+      expect(failed.status).toBe(503);
+      expect((await prisma.email.findUnique({where: {id: email.id}}))?.deliveredAt).toBeNull();
+
+      const redelivered = await post(notification('Delivery', 'ses-lookup-down-1'));
+
+      expect(redelivered.status).toBe(200);
+      expect((await prisma.email.findUnique({where: {id: email.id}}))?.deliveredAt).not.toBeNull();
     });
   });
 

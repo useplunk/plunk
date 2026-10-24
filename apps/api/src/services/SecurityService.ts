@@ -10,6 +10,7 @@ import {Keys} from './keys.js';
 import {MembershipService} from './MembershipService.js';
 import {NtfyService} from './NtfyService.js';
 import {QueueService} from './QueueService.js';
+import {getAwsAccountId} from './SESService.js';
 import {
   AUTO_PROJECT_DISABLE,
   DASHBOARD_URI,
@@ -175,8 +176,42 @@ function buildSnsStringToSign(message: Record<string, string>): string {
     .join('');
 }
 
+/**
+ * The account id in an SNS topic ARN (`arn:aws:sns:<region>:<account>:<topic>`), or
+ * undefined when the value is not an SNS topic ARN.
+ */
+export function snsTopicAccountId(topicArn: unknown): string | undefined {
+  if (typeof topicArn !== 'string') return undefined;
+
+  const [prefix, , service, , account, topic] = topicArn.split(':');
+  if (prefix !== 'arn' || service !== 'sns' || !account || !topic) return undefined;
+
+  return account;
+}
+
 export class SecurityService {
   private static readonly CACHE_TTL = 300; // 5 minutes
+
+  /**
+   * Whether a verified SNS message comes from a topic in the AWS account Plunk sends
+   * from. A valid signature only proves AWS delivered the message: anyone can create
+   * a topic in their own account, subscribe this webhook to it and publish SES-shaped
+   * events. `TopicArn` is part of the signed payload, so its account can be trusted.
+   *
+   * Returns 'unknown' when the account lookup fails, so the caller can ask SNS to
+   * retry instead of accepting or permanently dropping the message.
+   */
+  public static async snsTopicOrigin(topicArn: unknown): Promise<'own' | 'foreign' | 'unknown'> {
+    const topicAccount = snsTopicAccountId(topicArn);
+    if (!topicAccount) return 'foreign';
+
+    try {
+      return topicAccount === (await getAwsAccountId()) ? 'own' : 'foreign';
+    } catch (error) {
+      signale.error('[SNS] Could not look up the AWS account to check the topic against:', error);
+      return 'unknown';
+    }
+  }
 
   /**
    * Verify an AWS SNS message signature. Returns false if the cert URL is

@@ -96,6 +96,19 @@ export class Webhooks {
         return res.status(403).json({success: false, message: 'Invalid SNS signature'});
       }
 
+      // A valid signature only proves AWS sent it: the topic must also be in our own account,
+      // or anyone could subscribe this endpoint to a topic of theirs and publish forged events.
+      // Checked before the subscription branch, so a foreign topic is never confirmed either.
+      const topicOrigin = await SecurityService.snsTopicOrigin(req.body.TopicArn);
+      if (topicOrigin === 'unknown') {
+        // 5xx makes SNS retry, so a genuine event is delivered again once the lookup works
+        return res.status(503).json({success: false, message: 'Could not verify SNS topic'});
+      }
+      if (topicOrigin === 'foreign') {
+        signale.warn(`[WEBHOOK] SNS message rejected — topic is not in this AWS account: ${String(req.body.TopicArn)}`);
+        return res.status(403).json({success: false, message: 'Untrusted SNS topic'});
+      }
+
       // Handle SNS subscription confirmation FIRST (before parsing Message field)
       if (req.body.Type === 'SubscriptionConfirmation') {
         signale.info('SNS Subscription Confirmation received');

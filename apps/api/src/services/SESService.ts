@@ -1,4 +1,5 @@
 import {SES} from '@aws-sdk/client-ses';
+import {STS} from '@aws-sdk/client-sts';
 import signale from 'signale';
 
 import {
@@ -23,6 +24,41 @@ export const ses = new SES({
     secretAccessKey: AWS_SES_SECRET_ACCESS_KEY,
   },
 });
+
+/**
+ * AWS STS Client, used only to look up the account the SES credentials belong to
+ */
+const sts = new STS({
+  region: AWS_SES_REGION,
+  credentials: {
+    accessKeyId: AWS_SES_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SES_SECRET_ACCESS_KEY,
+  },
+});
+
+let awsAccountId: Promise<string> | undefined;
+
+/**
+ * The AWS account the SES credentials belong to. GetCallerIdentity needs no IAM
+ * permission, so this works with any policy. Looked up once and cached; a failed
+ * lookup is not cached, so the next call tries again.
+ */
+export const getAwsAccountId = (): Promise<string> => {
+  awsAccountId ??= sts
+    .getCallerIdentity({})
+    .then(identity => {
+      if (!identity.Account) {
+        throw new Error('GetCallerIdentity returned no account');
+      }
+      return identity.Account;
+    })
+    .catch((error: unknown) => {
+      awsAccountId = undefined;
+      throw error;
+    });
+
+  return awsAccountId;
+};
 
 interface SendRawEmailParams {
   from: {
