@@ -1,7 +1,8 @@
 import {beforeEach, describe, expect, it, vi, type Mock} from 'vitest';
-import {EmailSourceType, EmailStatus, TemplateType} from '@plunk/db';
+import {EmailSourceType, EmailStatus, TemplateType, TrackingMode} from '@plunk/db';
 import {ActionSchemas} from '@plunk/shared';
 import {EmailService} from '../EmailService';
+import {ProjectService} from '../ProjectService';
 import {sendRawEmail} from '../SESService';
 import {factories} from '../../../../../test/helpers';
 
@@ -1040,5 +1041,60 @@ describe('Template rendering — hostile contact data keys (no DB)', () => {
     expect(EmailService.format({subject: 'Hi {{name ?? Guest}}', body: 'x', data: {}}).subject).toBe('Hi Guest');
     // A missing field with no fallback renders empty rather than leaking `{{...}}`.
     expect(EmailService.format({subject: 'Hi {{missing}}', body: 'x', data: {}}).subject).toBe('Hi ');
+  });
+});
+
+/**
+ * Stats measure opens and clicks only against emails that could record them, so the
+ * streams a mode tracks have to match what the send path does (shouldTrackEmail, plus
+ * SESService sending everything tracked without a no-tracking configuration set).
+ */
+describe('EmailService.trackedSourceTypes', () => {
+  const {TRANSACTIONAL, CAMPAIGN, WORKFLOW} = EmailSourceType;
+
+  it('tracks every outbound stream when tracking is enabled', () => {
+    expect(EmailService.trackedSourceTypes(TrackingMode.ENABLED, true)).toEqual([TRANSACTIONAL, CAMPAIGN, WORKFLOW]);
+  });
+
+  it('tracks campaigns and workflows only in marketing-only mode', () => {
+    expect(EmailService.trackedSourceTypes(TrackingMode.MARKETING_ONLY, true)).toEqual([CAMPAIGN, WORKFLOW]);
+  });
+
+  it('tracks nothing when tracking is disabled', () => {
+    expect(EmailService.trackedSourceTypes(TrackingMode.DISABLED, true)).toEqual([]);
+  });
+
+  it('tracks everything whatever the mode without a no-tracking configuration set', () => {
+    for (const mode of [TrackingMode.ENABLED, TrackingMode.MARKETING_ONLY, TrackingMode.DISABLED]) {
+      expect(EmailService.trackedSourceTypes(mode, false)).toEqual([TRANSACTIONAL, CAMPAIGN, WORKFLOW]);
+    }
+  });
+});
+
+describe('EmailService.trackedStreams', () => {
+  it("reads the project's tracking mode", async () => {
+    const project = await factories.createProject({tracking: TrackingMode.MARKETING_ONLY});
+
+    expect(await EmailService.trackedStreams(project.id)).toEqual([EmailSourceType.CAMPAIGN, EmailSourceType.WORKFLOW]);
+  });
+
+  it('treats a project it cannot find as tracking everything', async () => {
+    expect(await EmailService.trackedStreams('00000000-0000-0000-0000-000000000000')).toEqual([
+      EmailSourceType.TRANSACTIONAL,
+      EmailSourceType.CAMPAIGN,
+      EmailSourceType.WORKFLOW,
+    ]);
+  });
+
+  it('still answers when the project cannot be read, so stats keep loading', async () => {
+    const project = await factories.createProject({tracking: TrackingMode.MARKETING_ONLY});
+    const read = vi.spyOn(ProjectService, 'id').mockRejectedValueOnce(new Error('Redis unavailable'));
+
+    expect(await EmailService.trackedStreams(project.id)).toEqual([
+      EmailSourceType.TRANSACTIONAL,
+      EmailSourceType.CAMPAIGN,
+      EmailSourceType.WORKFLOW,
+    ]);
+    read.mockRestore();
   });
 });

@@ -13,6 +13,7 @@ import {type Column, RateTable} from './RateTable';
 
 const bounce = metric('bounceRate');
 const complaint = metric('complaintRate');
+const open = metric('openRate');
 
 export function DeliverabilityTab({filters}: {filters: AnalyticsFilters}) {
   const overview = useAnalyticsData<AnalyticsOverview>('overview', filters);
@@ -110,7 +111,12 @@ function Providers({data, error, retry}: {data?: AnalyticsDeliverability; error:
     },
     {key: 'sent', label: 'Sent', render: row => formatCount(row.sent), sortValue: row => row.sent},
     {key: 'deliveryRate', label: 'Delivered', render: row => formatRate(row.deliveryRate), sortValue: row => row.deliveryRate},
-    {key: 'openRate', label: 'Opened', render: row => formatRate(row.openRate), sortValue: row => row.openRate},
+    {
+      key: 'openRate',
+      label: 'Opened',
+      render: row => (open.volume(row) > 0 ? formatRate(row.openRate) : '—'),
+      sortValue: row => row.openRate,
+    },
     {
       key: 'bounceRate',
       label: 'Bounced',

@@ -8,6 +8,8 @@ type CampaignsResponse = PaginatedResponse<unknown>;
 export interface DashboardStats {
   totalContacts: number;
   totalEmailsSent: number;
+  /** Sent with open and click tracking: what the open rate is measured against */
+  totalEmailsTracked: number;
   totalCampaigns: number;
   openRate: number;
   isLoading: boolean;
@@ -47,6 +49,7 @@ export function useDashboardStats(): DashboardStats {
   return {
     totalContacts: contactsData?.total ?? 0,
     totalEmailsSent: activityStats?.totalEmailsSent ?? 0,
+    totalEmailsTracked: activityStats?.totalEmailsTracked ?? 0,
     totalCampaigns: campaignsData?.total ?? 0,
     openRate: activityStats?.openRate ?? 0,
     isLoading,
