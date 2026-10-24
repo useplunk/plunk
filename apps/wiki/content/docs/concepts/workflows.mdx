@@ -75,7 +75,7 @@ Cosmetic changes (renaming, editing template content referenced by steps) don't 
 
 - **Welcome series** — `EVENT` trigger on `signed_up`, send welcome email, delay 2 days, send tips email, delay 5 days, send upgrade nudge.
 - **Inbound auto-reply** — `EVENT` trigger on `email.received`, `CONDITION` on `event.spamVerdict == "PASS"`, then `SEND_EMAIL` with an auto-reply template. See [Receiving emails](/guides/receiving-emails).
-- **Re-engagement** — Triggered by a segment exit (`segment.active-users.exit`), send a "we miss you" email, wait 7 days for any `email.opened` event, branch on whether the contact engaged.
+- **Re-engagement** — Triggered by a segment exit (`segment.active-users.exit`), send a "we miss you" email, then wait up to 7 days for an `email.open` event (an open of any email counts) before continuing.
 - **Webhook fan-out** — `EVENT` trigger on `purchase.completed`, `WEBHOOK` step to your CRM, `UPDATE_CONTACT` to tag `{ tier: "customer" }`, `SEND_EMAIL` with the receipt.
 
 ## API reference

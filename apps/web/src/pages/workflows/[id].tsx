@@ -824,7 +824,7 @@ function SettingsDialog({workflow, open, onOpenChange, onSave}: SettingsDialogPr
                 onBlur={() => {
                   setTimeout(() => setEventPopoverOpen(false), 150);
                 }}
-                placeholder="e.g., contact.created, email.opened"
+                placeholder="e.g., user.signup, email.open"
                 required
                 autoComplete="off"
               />
