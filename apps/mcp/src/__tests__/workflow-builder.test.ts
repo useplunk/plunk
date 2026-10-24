@@ -1060,6 +1060,30 @@ describe('workflow lifecycle', () => {
     expect(review.issues[1]?.message).toContain('branch "yes"');
   });
 
+  it('accepts a wait with a timeout of 0 and shows it without a time limit', () => {
+    const review = reviewWorkflow({
+      id: 'wf-1',
+      steps: [
+        {
+          id: 'trigger',
+          type: 'TRIGGER',
+          config: {eventName: 'x'},
+          outgoingTransitions: [{id: 't1', fromStepId: 'trigger', toStepId: 'w'}],
+        },
+        {
+          id: 'w',
+          type: 'WAIT_FOR_EVENT',
+          name: 'Wait',
+          config: {eventName: 'user.verified', timeout: 0},
+          outgoingTransitions: [],
+        },
+      ],
+    });
+
+    expect(review.issues).toEqual([]);
+    expect(review.outline.split('\n')[1]).toContain('wait for "user.verified"  → end');
+  });
+
   it('gives generated branch ids readable, unique slugs', () => {
     const result = normaliseBranches([
       {name: 'Default', operator: 'exists'},

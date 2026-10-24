@@ -40,7 +40,8 @@ function deriveTimeoutAmountUnit(timeoutSeconds: number): {amount: string; unit:
 export function WaitForEventStepDialog({step, workflowId, open, onOpenChange, onSuccess}: EditStepDialogProps) {
   const config = getStepConfig(step);
 
-  const initialTimeout = deriveTimeoutAmountUnit(Number(config.timeout) || 86400);
+  // A saved 0 means no time limit and stays 0; a new step still proposes one day
+  const initialTimeout = deriveTimeoutAmountUnit(config.timeout === 0 ? 0 : Number(config.timeout) || 86400);
   const initialUnit: TimeUnit = isTimeUnit(initialTimeout.unit) ? initialTimeout.unit : 'days';
 
   const [name, setName] = useState(step.name);
@@ -179,7 +180,10 @@ export function WaitForEventStepDialog({step, workflowId, open, onOpenChange, on
               </SelectContent>
             </Select>
           </div>
-          <p className="text-xs text-neutral-500 mt-1.5">If not received, the workflow continues after this time</p>
+          <p className="text-xs text-neutral-500 mt-1.5">
+            If not received, the workflow continues after this time. Set it to 0 to wait until the event arrives, with
+            no time limit; until then the execution stays active.
+          </p>
         </div>
       </div>
     </StepDialogShell>
