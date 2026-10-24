@@ -342,7 +342,8 @@ export const WorkflowStepConfigSchemas = {
     ),
   waitForEvent: z.object({
     eventName: z.string().min(1),
-    timeout: z.number().positive().max(31536000, 'Timeout cannot exceed 365 days (31,536,000 seconds)').optional(),
+    // 0 or omitted waits with no time limit
+    timeout: z.number().nonnegative().max(31536000, 'Timeout cannot exceed 365 days (31,536,000 seconds)').optional(),
   }),
   condition: z.union([
     // Legacy binary condition (if/else)

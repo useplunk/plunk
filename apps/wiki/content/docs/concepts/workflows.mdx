@@ -35,7 +35,7 @@ A workflow always begins with a single auto-created `TRIGGER` step. You build th
 | `TRIGGER`         | Auto-created entry point. Holds the trigger configuration.                                             | `eventName` (for `EVENT` trigger)                                |
 | `SEND_EMAIL`      | Sends an email to the contact using a template. Template variables resolve from contact data + execution context. | `templateId`, optional `from` override                  |
 | `DELAY`           | Pauses the execution for a fixed duration before continuing.                                           | `amount`, `unit` (`minutes` / `hours` / `days`)                  |
-| `WAIT_FOR_EVENT`  | Pauses until a specified event is tracked on the contact, with a timeout fallback.                     | `eventName`, `timeout` (seconds)                                 |
+| `WAIT_FOR_EVENT`  | Pauses until a specified event is tracked on the contact, with a timeout fallback.                     | `eventName`, `timeout` (seconds; `0` or omitted waits with no limit) |
 | `CONDITION`       | Branches the execution based on contact data or event data. Each `CONDITION` step has two outgoing transitions tagged `yes` / `no`. | A filter expression (same shape as segment filters) |
 | `WEBHOOK`         | Calls an external HTTPS endpoint with contact + execution context as the JSON body. `url`, header values, and `body` support `{{variables}}`. | `url`, optional `method`, `headers`, `body`            |
 | `UPDATE_CONTACT`  | Patches contact data — useful for tagging contacts as they progress (`{ stage: "activated" }`).        | `data` object                                                    |
@@ -66,7 +66,7 @@ Each execution carries a `context` JSON object that's merged with the contact's 
 
 A workflow is **locked** for structural edits while it has active (`RUNNING` or `WAITING`) executions. To make breaking changes — adding/removing steps, changing the trigger event, switching trigger type — first either:
 
-- Disable the workflow and wait for active executions to complete, or
+- Disable the workflow and wait for active executions to complete (an execution waiting on a `WAIT_FOR_EVENT` step with no timeout only completes when its event arrives), or
 - `POST /workflows/:id/executions/cancel-all` to cancel everything in flight.
 
 Cosmetic changes (renaming, editing template content referenced by steps) don't require this.
