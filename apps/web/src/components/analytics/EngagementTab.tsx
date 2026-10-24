@@ -54,9 +54,9 @@ function Leaderboard({filters}: {filters: AnalyticsFilters}) {
   const rate = (key: MetricKey, label: string): Column<AnalyticsLeaderboardRow> => ({
     key,
     label,
-    render: row => (row.sent > 0 ? formatRate(row[key]) : '—'),
+    render: row => (metric(key).volume(row) > 0 ? formatRate(row[key]) : '—'),
     sortValue: row => row[key],
-    tone: row => thresholdTone(metric(key), row[key], row.sent),
+    tone: row => thresholdTone(metric(key), row[key], metric(key).volume(row)),
   });
 
   const columns: Column<AnalyticsLeaderboardRow>[] = [
