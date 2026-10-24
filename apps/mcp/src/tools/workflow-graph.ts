@@ -111,6 +111,7 @@ const STEP_CONFIG_SCHEMAS: Record<BuildableStepType, z.ZodType> = {
     .object({amount: z.number().positive(), unit: z.enum(DELAY_UNITS)})
     .refine((data) => data.amount <= MAX_DELAY[data.unit], {message: 'Delay cannot exceed 365 days'}),
   WAIT_FOR_EVENT: z.object({
+    scope: z.enum(['contact', 'execution']).optional(),
     eventName: z.string().min(1),
     timeout: z.number().positive().max(MAX_WAIT_SECONDS, 'Timeout cannot exceed 365 days').optional(),
   }),
