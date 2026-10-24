@@ -13,7 +13,8 @@ When open tracking is enabled, Plunk includes a small invisible tracking pixel a
 ### Considerations
 
 - Open tracking depends on the mail client loading remote images. If a contact has images disabled, no open is recorded.
-- Some clients (and corporate mail security gateways) pre-fetch images, which can produce false positive opens.
+- Gmail can fetch the tracking pixel as soon as an email is delivered, whether or not anyone reads it. SES marks fetches like this as likely automated (`isBotEvent`), and Plunk does not count them: the open is recorded when the contact actually opens the email. On self-hosted instances, set `IGNORE_AUTOMATIC_OPENS=false` to count them.
+- Some other clients and corporate mail security gateways pre-fetch images too. Those opens are counted unless SES marks them as automated.
 - Apple Mail Privacy Protection masks individual opens — opens from Apple Mail are recorded but reflect proxy fetches rather than human reads.
 
 ## Click tracking

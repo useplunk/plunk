@@ -10,7 +10,13 @@ import type Stripe from 'stripe';
 import {ProjectDisabledPaymentEmail, sendPlatformEmail} from '@plunk/email';
 import React from 'react';
 
-import {DASHBOARD_URI, LANDING_URI, STRIPE_ENABLED, STRIPE_WEBHOOK_SECRET} from '../app/constants.js';
+import {
+  DASHBOARD_URI,
+  IGNORE_AUTOMATIC_OPENS,
+  LANDING_URI,
+  STRIPE_ENABLED,
+  STRIPE_WEBHOOK_SECRET,
+} from '../app/constants.js';
 import {stripe} from '../app/stripe.js';
 import {prisma} from '../database/prisma.js';
 import {BillingLimitService} from '../services/BillingLimitService.js';
@@ -69,6 +75,17 @@ export function nextStatus(current: EmailStatus, incoming?: EmailStatus): EmailS
   const incomingRank = STATUS_RANK[incoming] ?? 0;
 
   return incomingRank >= currentRank ? incoming : undefined;
+}
+
+/**
+ * Whether SES judged an Open to be made by software rather than a person. Mail providers fetch
+ * the tracking pixel on their own -- Gmail's servers do it on delivery, whether or not anyone
+ * reads the email -- and SES marks those fetches `isBotEvent: "Likely"`. Measured, Gmail's own
+ * fetch was "Likely" and every real open was "Unlikely", including one seconds after delivery
+ * and Apple Mail's proxy. An Open without the mark counts, as every Open did before SES added it.
+ */
+export function isAutomaticOpen(open?: {isBotEvent?: unknown} | null, enabled = IGNORE_AUTOMATIC_OPENS): boolean {
+  return enabled && open?.isBotEvent === 'Likely';
 }
 
 /**
@@ -414,7 +431,17 @@ export class Webhooks {
           break;
 
         case 'Open':
-          signale.success(`[WEBHOOK] Open received for ${email.contact.email} from ${email.project.name}`);
+          // Counting an automatic fetch as an open would stamp openedAt, move segments and resume
+          // workflows waiting for a real one, so nothing is written for it
+          if (isAutomaticOpen(body.open)) {
+            signale.info(`[WEBHOOK] Automatic open ignored for ${email.contact.email} from ${email.project.name}`);
+            return res.status(200).json({success: true});
+          }
+          // The mark is logged only when it is text, so an unexpected payload cannot make logging
+          // throw and lose an open that would have counted
+          signale.success(
+            `[WEBHOOK] Open received for ${email.contact.email} from ${email.project.name} (isBotEvent: ${typeof body.open?.isBotEvent === 'string' ? body.open.isBotEvent : 'none'})`,
+          );
           // Only set openedAt on first open
           if (!email.openedAt) {
             updateData.openedAt = now;

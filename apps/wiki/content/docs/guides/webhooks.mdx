@@ -29,8 +29,8 @@ Plunk automatically tracks a set of internal events that you can use as workflow
 | ----------------- | -------------------------------------------------------------------------------------------------------- |
 | `email.sent`      | An email was successfully sent                                                                           |
 | `email.delivery`  | An email was delivered to the recipient                                                                  |
-| `email.open`      | A contact opened an email for the first time                                                             |
-| `email.click`     | A contact clicked a link in an email for the first time                                                  |
+| `email.open`      | A contact opened an email. By default, opens SES marks as automated are left out                         |
+| `email.click`     | A contact clicked a link in an email                                                                     |
 | `email.bounce`    | An email bounced (hard or soft bounce)                                                                   |
 | `email.complaint` | A contact marked an email as spam                                                                        |
 | `email.received`  | An email was received at your verified domain (requires [inbound email setup](/guides/receiving-emails)) |

@@ -60,6 +60,10 @@ for (const [key, value] of Object.entries(TEST_ENV_DEFAULTS)) {
 // assert against a middleware that returns immediately, and still pass.
 process.env.RATE_LIMIT_ENABLED = 'true';
 
+// Forced too, to its default this time, so a local .env that counts automatic opens cannot
+// turn the suite's expectations about them upside down.
+process.env.IGNORE_AUTOMATIC_OPENS = 'true';
+
 // Static import is safe: database.ts only reads env in initialize(), which runs
 // in beforeAll — well after the env mutations above.
 import {testDatabase} from './helpers/database';

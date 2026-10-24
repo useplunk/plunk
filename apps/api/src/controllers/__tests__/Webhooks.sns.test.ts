@@ -470,4 +470,85 @@ describe('Webhooks - SES event notifications', () => {
       expect(enforce).not.toHaveBeenCalled();
     });
   });
+
+  /**
+   * Mail providers fetch the tracking pixel on their own, and SES marks those fetches. These are
+   * the fetches measured against a Gmail inbox: Gmail's servers took the pixel about two seconds
+   * after sending ("Likely"), and the reader's open came later through Google's image proxy, or
+   * Apple's when reading in Apple Mail ("Unlikely").
+   */
+  describe('automatic opens', () => {
+    const AUTOMATIC = {
+      isBotEvent: 'Likely',
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246 Mozilla/5.0',
+    };
+    const PEOPLE = {
+      'Gmail web': {
+        isBotEvent: 'Unlikely',
+        userAgent: 'Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)',
+      },
+      'Apple Mail': {isBotEvent: 'Unlikely', userAgent: 'Mozilla/5.0'},
+    };
+    const HUMAN = PEOPLE['Gmail web'];
+
+    const open = (messageId: string, mark: typeof AUTOMATIC) =>
+      notification('Open', messageId, {open: {...mark, timestamp: new Date().toISOString()}});
+
+    it('writes nothing for an open SES marks as automated', async () => {
+      const campaign = await factories.createCampaign({projectId, name: 'Gmail', status: 'SENT'});
+      const email = await sentEmail('ses-automatic-1', campaign.id);
+
+      const captured = await post(open('ses-automatic-1', AUTOMATIC));
+      expect(captured.status).toBe(200);
+
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.status).toBe(EmailStatus.SENT);
+      expect(updated?.openedAt).toBeNull();
+      expect(updated?.opens).toBe(0);
+      expect(await prisma.event.findFirst({where: {emailId: email.id, name: 'email.open'}})).toBeNull();
+      expect(await CampaignService.sweepDirtyStats(100)).toBe(0);
+    });
+
+    it.each(Object.entries(PEOPLE))('counts an open SES marks as made by a person (%s)', async (client, mark) => {
+      const messageId = `ses-human-${client.replace(' ', '-')}`;
+      const email = await sentEmail(messageId);
+
+      await post(open(messageId, mark));
+
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.status).toBe(EmailStatus.OPENED);
+      expect(updated?.openedAt).not.toBeNull();
+      expect(updated?.opens).toBe(1);
+      const events = await prisma.event.findMany({where: {emailId: email.id, name: 'email.open'}});
+      expect(events).toHaveLength(1);
+      expect((events[0]?.data as {isFirstOpen?: boolean} | null)?.isFirstOpen).toBe(true);
+    });
+
+    it("counts the reader's open after the automatic fetch as the first one", async () => {
+      const email = await sentEmail('ses-automatic-2');
+
+      await post(open('ses-automatic-2', AUTOMATIC));
+      await post(open('ses-automatic-2', HUMAN));
+
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.opens).toBe(1);
+      const events = await prisma.event.findMany({where: {emailId: email.id, name: 'email.open'}});
+      expect(events).toHaveLength(1);
+      expect((events[0]?.data as {isFirstOpen?: boolean} | null)?.isFirstOpen).toBe(true);
+    });
+
+    it('ignores a redelivered automatic open as well', async () => {
+      const email = await sentEmail('ses-automatic-3');
+
+      await post(open('ses-automatic-3', AUTOMATIC));
+      await post(open('ses-automatic-3', AUTOMATIC));
+
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.status).toBe(EmailStatus.SENT);
+      expect(updated?.openedAt).toBeNull();
+      expect(updated?.opens).toBe(0);
+      expect(await prisma.event.count({where: {emailId: email.id, name: 'email.open'}})).toBe(0);
+    });
+  });
 });
