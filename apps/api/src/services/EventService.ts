@@ -11,6 +11,18 @@ import {Keys} from './keys.js';
 import {WorkflowExecutionService} from './WorkflowExecutionService.js';
 
 /**
+ * Past-tense spellings of email events, mapped to the name Plunk records. Segments accept both
+ * spellings, but Plunk only ever emits the present-tense one.
+ */
+const PAST_TENSE_EMAIL_EVENTS = new Map([
+  ['email.opened', 'email.open'],
+  ['email.clicked', 'email.click'],
+  ['email.delivered', 'email.delivery'],
+  ['email.bounced', 'email.bounce'],
+  ['email.complained', 'email.complaint'],
+]);
+
+/**
  * Event Service
  * Handles event tracking and workflow triggering
  */
@@ -342,6 +354,14 @@ export class EventService {
     }
 
     return false;
+  }
+
+  /**
+   * The name Plunk records for a past-tense spelling of an email event, e.g. `email.opened` → `email.open`,
+   * or undefined for any other name. A workflow configured with the past tense would never fire.
+   */
+  public static emittedEmailEventName(eventName: string): string | undefined {
+    return PAST_TENSE_EMAIL_EVENTS.get(eventName);
   }
 
   /**
