@@ -147,6 +147,18 @@ A small "Sent with Plunk" line below the page credits Plunk as the mail provider
 
 For full control over the look, send marketing as **headless** templates and build the unsubscribe surface into your own product UI. Link your in-product controls to the same `{{unsubscribeUrl}}` for one-click revocation.
 
+## Using your own one-click unsubscribe endpoint
+
+Gmail and Yahoo require bulk mail to carry a one-click `List-Unsubscribe` header (RFC 8058). Plunk adds one to marketing sends, and to any send whose body contains `{{unsubscribeUrl}}` or `{{manageUrl}}`, pointing at Plunk's own endpoint.
+
+If you run your own preferences center, mark your unsubscribe link with `data-plunk-one-click` and Plunk points the header at it instead:
+
+```html
+<a data-plunk-one-click href="https://example.com/unsubscribe/{{id}}">Unsubscribe</a>
+```
+
+This works for campaigns, templates and workflow emails of any type. The URL must be absolute HTTPS, and it must unsubscribe the recipient when it receives a bare `POST` with the body `List-Unsubscribe=One-Click`: mailbox providers send that request server-side, with no cookies and no user interaction. Opt-outs made there go through your endpoint, not Plunk's, so update the contact yourself (`PATCH /contacts/:id`) to keep Plunk's subscription state in step. A `List-Unsubscribe` header passed in `headers` on `/v1/send` still takes precedence.
+
 ## API reference
 
 If you need to drive subscription changes programmatically rather than through the hosted pages — for example because you've built your own preferences UI — use the contacts API:
