@@ -60,6 +60,21 @@ export function bodyHasListManagementLink(html: string, contactId: string): bool
 }
 
 /**
+ * Find the sender's own one-click unsubscribe URL in a compiled body: the href of an
+ * `<a>` carrying the `data-plunk-one-click` attribute. This is how a HEADLESS sender
+ * that runs its own preference center gets List-Unsubscribe pointed at its own
+ * endpoint (campaigns have no headers field). The attribute is an explicit opt-in
+ * because the header asserts RFC 8058 support: the URL must unsubscribe on a bare
+ * POST. Only absolute HTTPS URLs qualify, as Gmail and Yahoo require.
+ */
+export function senderOneClickUrl(html: string): string | undefined {
+  const tag = html.match(/<a\b[^>]*\bdata-plunk-one-click\b[^>]*>/i)?.[0];
+  const href = tag?.match(/\bhref\s*=\s*(["'])(.*?)\1/i)?.[2]?.trim().replace(/&amp;/gi, '&');
+
+  return href && /^https:\/\/[^\s<>]+$/i.test(href) ? href : undefined;
+}
+
+/**
  * Tag a list-management URL with the email it was sent in, as `?e=<id>`.
  *
  * Recipient-initiated opt-outs are otherwise unattributable: the links are
@@ -101,6 +116,11 @@ export interface BuildEmailHeadersParams {
    */
   hasListManagementLink?: boolean;
   /**
+   * The sender's own one-click URL (see {@link senderOneClickUrl}). When set, the
+   * List-Unsubscribe pair points here instead of Plunk's endpoint, whatever the class.
+   */
+  senderUnsubscribeUrl?: string;
+  /**
    * Contact id used to build the List-Unsubscribe URL. Required for the
    * List-Unsubscribe pair to be emitted; omit it and no pair is added.
    */
@@ -140,6 +160,7 @@ export function buildEmailHeaders({
   emailClass,
   isCampaign = false,
   hasListManagementLink = false,
+  senderUnsubscribeUrl,
   unsubscribeId,
   sourceEmailId,
   customHeaders,
@@ -159,7 +180,10 @@ export function buildEmailHeaders({
   // unsubscribes on a button click, so a provider POSTing to it would get a
   // response but change nothing. `GET /unsubscribe/:id` on the API redirects to
   // that dashboard page, so this one URL still serves humans who click through.
-  if ((isMarketing || hasListManagementLink) && unsubscribeId) {
+  if (senderUnsubscribeUrl) {
+    defaults['List-Unsubscribe'] = `<${senderUnsubscribeUrl}>`;
+    defaults['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+  } else if ((isMarketing || hasListManagementLink) && unsubscribeId) {
     defaults['List-Unsubscribe'] =
       `<${withSourceEmail(`${API_URI}/unsubscribe/${unsubscribeId}`, sourceEmailId)}>`;
     defaults['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
