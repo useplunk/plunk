@@ -307,6 +307,40 @@ export const deleteIdentity = async (domain: string): Promise<void> => {
 };
 
 /**
+ * Check at startup that the configuration sets Plunk sends through exist in SES.
+ * A missing set otherwise only shows up as a failed send, with an AWS error that
+ * doesn't name the env var. The no-tracking set is only checked when it was
+ * configured explicitly, since that is the only case in which it is used.
+ * Never throws: a failed check is logged and the API keeps starting.
+ */
+export const verifyConfigurationSets = async (): Promise<void> => {
+  const sets: {envVar: string; name: string}[] = [{envVar: 'SES_CONFIGURATION_SET', name: SES_CONFIGURATION_SET}];
+  if (TRACKING_TOGGLE_ENABLED) {
+    sets.push({envVar: 'SES_CONFIGURATION_SET_NO_TRACKING', name: SES_CONFIGURATION_SET_NO_TRACKING});
+  }
+
+  for (const {envVar, name} of sets) {
+    try {
+      await ses.describeConfigurationSet({ConfigurationSetName: name});
+    } catch (error) {
+      const errorName = error instanceof Error ? error.name : undefined;
+
+      if (errorName === 'ConfigurationSetDoesNotExistException') {
+        signale.error(
+          `[SES] Configuration set "${name}" from ${envVar} does not exist in ${AWS_SES_REGION}. Emails sent through it will fail until it is created or ${envVar} is corrected.`,
+        );
+      } else if (errorName === 'AccessDenied' || errorName === 'AccessDeniedException') {
+        // Older IAM policies predate this check, so a missing permission is not a misconfiguration
+        signale.info('[SES] Skipped configuration set check: grant ses:DescribeConfigurationSet to enable it');
+        return;
+      } else {
+        signale.warn(`[SES] Could not verify configuration set "${name}" from ${envVar}:`, error);
+      }
+    }
+  }
+};
+
+/**
  * Get AWS SES account sending quota and rate limit
  * @returns MaxSendRate (emails per second) or null if the call fails
  */

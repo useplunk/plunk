@@ -57,6 +57,7 @@ import {
   snoozeSweepQueue,
 } from './services/QueueService.js';
 import * as S3Service from './services/S3Service.js';
+import {verifyConfigurationSets} from './services/SESService.js';
 import {requestIdMiddleware} from './middleware/requestId.js';
 import {databaseRequestLogger} from './middleware/requestLogger.js';
 import {logger, requestLogger} from './utils/logger.js';
@@ -478,6 +479,9 @@ void prisma.$connect().then(async () => {
       signale.warn('[S3] File uploads may not work properly');
     }
   }
+
+  // Not awaited: a slow SES response must not hold up scheduling the background jobs below
+  void verifyConfigurationSets();
 
   // Set up repeatable job for domain verification (BullMQ)
   // Run every 5 minutes to check domain verification status with AWS SES
