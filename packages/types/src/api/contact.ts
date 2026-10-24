@@ -36,3 +36,21 @@ export type SubscriptionChangeReason = 'bounce' | 'complaint' | 'snooze' | 'snoo
  * Storing it would mean a third state every send path had to learn about.
  */
 export type ContactSubscriptionStatus = 'subscribed' | 'snoozed' | 'unsubscribed';
+
+/**
+ * A field the segment builder, workflow conditions and template editor can filter or
+ * interpolate on. Either a column on `Contact` (`email`, `subscribed`, ...) or a key
+ * discovered inside the `Contact.data` JSON, in which case `field` is `data.<key>`.
+ */
+export interface ContactField {
+  field: string;
+  type: ContactFieldType;
+  /**
+   * Percentage of the project's contacts carrying this field, rounded. Always 100 for
+   * the standard columns. A field only 4% of contacts have is the difference between a
+   * working template and a silent blank, so the pickers surface it.
+   */
+  coverage: number;
+}
+
+export type ContactFieldType = 'string' | 'number' | 'boolean' | 'date';
