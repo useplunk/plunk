@@ -1,4 +1,4 @@
-import {CampaignStatus, EmailSourceType, EmailStatus} from '@plunk/db';
+import {CampaignStatus, EmailSourceType, EmailStatus, WorkflowExecutionStatus} from '@plunk/db';
 import {type Job, Queue} from 'bullmq';
 import type {RedisOptions} from 'ioredis';
 import signale from 'signale';
@@ -704,20 +704,24 @@ export class QueueService {
   public static async cancelAllProjectJobs(projectId: string): Promise<void> {
     signale.info(`[QUEUE] Cancelling all pending jobs for project ${projectId}`);
 
-    // Cancel all scheduled campaigns for this project
-    const scheduledCampaigns = await scheduledQueue.getJobs(['waiting', 'delayed']);
-    for (const job of scheduledCampaigns) {
-      // We need to check if the campaign belongs to this project
-      // by looking up the campaign in the database
-      const campaign = await prisma.campaign.findUnique({
-        where: {id: job.data.campaignId},
-        select: {projectId: true},
+    // Cancel all scheduled campaigns for this project. A disable is final for what was planned:
+    // re-enabling the project must not send them, so the campaign itself is cancelled, not only its job
+    const scheduledCampaigns = await prisma.campaign.findMany({
+      where: {projectId, status: CampaignStatus.SCHEDULED},
+      select: {id: true},
+    });
+
+    if (scheduledCampaigns.length > 0) {
+      await prisma.campaign.updateMany({
+        where: {id: {in: scheduledCampaigns.map(c => c.id)}, status: CampaignStatus.SCHEDULED},
+        data: {status: CampaignStatus.CANCELLED},
       });
 
-      if (campaign?.projectId === projectId) {
-        await job.remove();
-        signale.info(`[QUEUE] Removed scheduled campaign job ${job.id}`);
+      for (const campaign of scheduledCampaigns) {
+        await this.cancelScheduledCampaign(campaign.id);
       }
+
+      signale.info(`[QUEUE] Cancelled ${scheduledCampaigns.length} scheduled campaigns for project ${projectId}`);
     }
 
     // Cancel all pending emails for this project
@@ -748,18 +752,23 @@ export class QueueService {
       }
     }
 
-    // Cancel all pending workflow steps for this project
-    const workflowSteps = await workflowQueue.getJobs(['waiting', 'delayed']);
-    for (const job of workflowSteps) {
-      const execution = await prisma.workflowExecution.findUnique({
-        where: {id: job.data.executionId},
-        select: {workflow: {select: {projectId: true}}},
-      });
+    // Cancel every workflow execution still in progress. Removing their queued jobs alone left them
+    // WAITING forever, and re-enabling the project must not resume them either. Jobs still queued for
+    // them stay in Redis and do nothing when they fire, since the engine never moves a cancelled execution on.
+    const cancelledExecutions = await prisma.workflowExecution.updateMany({
+      where: {
+        workflow: {projectId},
+        status: {in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING]},
+      },
+      data: {
+        status: WorkflowExecutionStatus.CANCELLED,
+        completedAt: new Date(),
+        exitReason: 'Project disabled',
+      },
+    });
 
-      if (execution?.workflow.projectId === projectId) {
-        await job.remove();
-        signale.info(`[QUEUE] Removed workflow step job ${job.id}`);
-      }
+    if (cancelledExecutions.count > 0) {
+      signale.info(`[QUEUE] Cancelled ${cancelledExecutions.count} workflow executions for project ${projectId}`);
     }
 
     // Mark every still-PENDING email for this project as FAILED. We just stripped
