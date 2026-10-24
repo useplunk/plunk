@@ -769,7 +769,7 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
                   // 延遲關閉，讓 CommandItem 的 onSelect 有時間觸發
                   setTimeout(() => setEventPopoverOpen(false), 150);
                 }}
-                placeholder="e.g., contact.created, email.opened"
+                placeholder="e.g., user.signup, email.open"
                 required
                 autoComplete="off"
               />
