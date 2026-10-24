@@ -58,7 +58,7 @@ Each contact entering the workflow creates a `WorkflowExecution`. Executions mov
 | `COMPLETED` | Reached the end of the graph successfully.                                                    |
 | `EXITED`    | Hit an `EXIT` step. `exitReason` records why.                                                 |
 | `FAILED`    | An unrecoverable error occurred (e.g. webhook returned non-2xx after retries, template not found). |
-| `CANCELLED` | Cancelled manually via the API or dashboard.                                                  |
+| `CANCELLED` | Cancelled manually via the API or dashboard. Pending delays and waits do not resume it; a step already running finishes, and an email it queued is still sent. |
 
 Each execution carries a `context` JSON object that's merged with the contact's `data` when rendering templates and evaluating conditions. When you start an execution manually with `POST /workflows/:id/executions`, you can pass an initial `context` — this is how you parameterise per-execution variables (a coupon code, a referrer name) without storing them on the contact.
 
