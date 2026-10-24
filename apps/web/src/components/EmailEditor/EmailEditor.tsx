@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {EditorContent, useEditor} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import {TextAlign} from '@tiptap/extension-text-align';
 import {Color} from '@tiptap/extension-color';
 import {TextStyle} from '@tiptap/extension-text-style';
 import {Link} from '@tiptap/extension-link';
@@ -12,6 +11,7 @@ import {LogicMention} from './LogicMention';
 import {subscribeSuggestionOpen} from './suggestionPopup';
 import {Toolbar} from './Toolbar';
 import {ResizableImage} from './ResizableImage';
+import {EmailTextAlign} from './EmailTextAlign';
 import {HtmlEditor} from './HtmlEditor';
 import {useContactFields, useContacts, useSegmentContacts} from '../../lib/hooks/useContacts';
 import {useConfig} from '../../lib/hooks/useConfig';
@@ -127,10 +127,7 @@ export function EmailEditor({value, onChange, placeholder, subject, from, replyT
           levels: [1, 2, 3],
         },
       }),
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-        alignments: ['left', 'center', 'right', 'justify'],
-      }),
+      EmailTextAlign,
       Color,
       TextStyle,
       Link.configure({

@@ -406,6 +406,7 @@ export function Toolbar({editor, onInsertVariable, onInsertImage, canUploadImage
           size="icon"
           onMouseDown={e => e.preventDefault()}
           onClick={handleAlignJustify}
+          disabled={!editor.can().setTextAlign('justify')}
           data-active={editor.isActive({textAlign: 'justify'})}
           className="h-8 w-8 data-[active=true]:bg-neutral-200"
         >
