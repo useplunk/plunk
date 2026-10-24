@@ -446,6 +446,36 @@ function Analytics() {
   );
 }
 
+/** Gmail's own fetch on delivery is left out; the reader's open counts. */
+function Opens() {
+  const activity = [
+    {label: 'Delivered', time: '9:41 AM', counted: true},
+    {label: 'Opened automatically by Gmail', time: '9:41 AM', counted: false},
+    {label: 'Opened by Ana Ruiz', time: '11:02 AM', counted: true},
+  ];
+
+  return (
+    <Tile>
+      <UICard className={'w-full max-w-sm'}>
+        <div className={'flex items-center gap-3 px-4 py-3'}>
+          <span className={'min-w-0 flex-1 truncate text-ui font-semibold text-neutral-900'}>Your October update</span>
+          <StatusPill tone={'ok'}>Opened</StatusPill>
+        </div>
+        <ul className={'divide-y divide-neutral-100 border-t border-neutral-100'}>
+          {activity.map(item => (
+            <li key={item.label} className={'flex items-center gap-3 px-4 py-3'}>
+              <span className={`flex-1 text-ui ${item.counted ? 'text-neutral-800' : 'text-neutral-400'}`}>
+                {item.label}
+              </span>
+              {item.counted ? <TimeAgo>{item.time}</TimeAgo> : <StatusPill>Not counted</StatusPill>}
+            </li>
+          ))}
+        </ul>
+      </UICard>
+    </Tile>
+  );
+}
+
 /* ------------------------------------------------------------------------- */
 
 const ARTIFACTS: Record<ChangelogArtifact, React.ComponentType> = {
@@ -464,6 +494,7 @@ const ARTIFACTS: Record<ChangelogArtifact, React.ComponentType> = {
   locales: Locales,
   security: Security,
   analytics: Analytics,
+  opens: Opens,
 };
 
 export function ChangelogArtifactView({artifact}: {artifact: ChangelogArtifact}) {

@@ -38,7 +38,8 @@ export type ChangelogArtifact =
   | 'preview'
   | 'locales'
   | 'security'
-  | 'analytics';
+  | 'analytics'
+  | 'opens';
 
 interface BaseEntry {
   /** ISO date, `YYYY-MM-DD`. */
@@ -55,6 +56,42 @@ export type ChangelogEntry =
 
 export const CHANGELOG: ChangelogEntry[] = [
   // October 2026
+  {
+    kind: 'major',
+    date: '2026-10-24',
+    title: 'Open rates that count real readers',
+    description:
+      'Inboxes like Gmail open some emails automatically, before anyone reads them. Plunk now tells those apart and only counts the open when a contact actually reads your email, so open rates, segments, and workflows reflect real engagement. Expect open rates to look lower, and closer to the truth.',
+    href: `${WIKI_URI}/guides/tracking#open-tracking`,
+    artifact: 'opens',
+  },
+  {
+    kind: 'minor',
+    date: '2026-10-24',
+    title: 'Cancelling a workflow stops it for good',
+    description:
+      'When you cancel a workflow for a contact, they receive none of its remaining emails, even if it was waiting for something they do later.',
+    href: `${WIKI_URI}/concepts/workflows#executions`,
+    tag: 'Cancel execution',
+  },
+  {
+    kind: 'minor',
+    date: '2026-10-24',
+    title: 'Wait for an event as long as it takes',
+    description:
+      'A workflow can now wait for an event with no time limit, and continues as soon as the event happens. Leave the timeout at 0 to use it.',
+    href: `${WIKI_URI}/concepts/workflows#step-types`,
+    tag: 'No time limit',
+  },
+  {
+    kind: 'minor',
+    date: '2026-10-24',
+    title: 'Clearer setup errors for self-hosting',
+    description:
+      'Self-hosted instances check their Amazon SES setup when they start and name the exact setting to fix, instead of failing on the first email.',
+    href: `${WIKI_URI}/self-hosting/environment-variables#aws-ses`,
+    tag: 'SES_CONFIGURATION_SET',
+  },
   {
     kind: 'major',
     date: '2026-10-09',
