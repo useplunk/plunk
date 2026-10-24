@@ -329,6 +329,24 @@ describe('ActivityService - stats', () => {
     expect(stats.openRate).toBe(100);
   });
 
+  it('counts only emails that went out as emails sent', async () => {
+    const {project, contact, send} = await setUp(TrackingMode.ENABLED);
+    await send(EmailSourceType.CAMPAIGN);
+    const simulated = await send(EmailSourceType.CAMPAIGN);
+    await prisma.email.update({where: {id: simulated.id}, data: {simulated: true}});
+    for (const [sourceType, status] of [
+      [EmailSourceType.INBOUND, EmailStatus.RECEIVED],
+      [EmailSourceType.WORKFLOW, EmailStatus.FAILED],
+      [EmailSourceType.TRANSACTIONAL, EmailStatus.PENDING],
+    ] as const) {
+      await factories.createEmail({projectId: project.id, contactId: contact.id, sourceType, status});
+    }
+
+    const stats = await ActivityService.getStats(project.id);
+
+    expect(stats.totalEmailsSent).toBe(1);
+  });
+
   it('follows a change of tracking mode instead of serving stats cached under the old one', async () => {
     const {project, send} = await setUp(TrackingMode.ENABLED);
     await send(EmailSourceType.TRANSACTIONAL);

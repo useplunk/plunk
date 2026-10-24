@@ -233,17 +233,16 @@ export class ActivityService {
         },
       }),
 
-      // Email counts per stream, so opens and clicks can be measured against tracked emails
+      // Email counts per stream, so opens and clicks can be measured against tracked emails.
+      // Every column read here is in emails_projectId_createdAt_stats_idx, so the counts are
+      // served from that index alone
       prisma.email.groupBy({
         by: ['sourceType', 'simulated'],
         where: {
           projectId,
           createdAt: dateFilter,
         },
-        // _all rather than id: COUNT(*) can be served from emails_projectId_createdAt_stats_idx
-        // alone, COUNT("id") would need every row fetched since id is not in that index
         _count: {
-          _all: true,
           sentAt: true,
           openedAt: true,
           clickedAt: true,
@@ -261,11 +260,12 @@ export class ActivityService {
       },
     });
 
-    // Measured as analytics does: mail to the SES mailbox simulator never reaches anyone, and
-    // inbound or unsent mail is never in a tracked stream with a send time
-    const tracked = emailGroups.filter(group => !group.simulated && trackedStreams.includes(group.sourceType));
+    // Measured as analytics does: outbound emails that went out, leaving out mail to the SES
+    // mailbox simulator, which never reaches anyone
+    const outbound = emailGroups.filter(group => !group.simulated && group.sourceType !== 'INBOUND');
+    const tracked = outbound.filter(group => trackedStreams.includes(group.sourceType));
 
-    const totalEmailsSent = emailGroups.reduce((sum, group) => sum + group._count._all, 0);
+    const totalEmailsSent = outbound.reduce((sum, group) => sum + group._count.sentAt, 0);
     const totalEmailsTracked = tracked.reduce((sum, group) => sum + group._count.sentAt, 0);
     const totalEmailsOpened = tracked.reduce((sum, group) => sum + group._count.openedAt, 0);
     const totalEmailsClicked = tracked.reduce((sum, group) => sum + group._count.clickedAt, 0);

@@ -40,6 +40,7 @@ export interface Activity {
  */
 export interface ActivityStats {
   totalEvents: number;
+  /** Outbound emails that went out, leaving out mail to the SES mailbox simulator */
   totalEmailsSent: number;
   /** Sent with open and click tracking: what the open and click rates are measured against */
   totalEmailsTracked: number;
