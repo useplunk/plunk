@@ -29,7 +29,7 @@ import {NextSeo} from 'next-seo';
 const claims: Claim[] = [
   {
     title: 'Forwarded to your systems',
-    copy: 'Sender, subject, body and attachments arrive on your webhook in real time, ready for a help desk or CRM.',
+    copy: 'Sender, subject and the parsed body arrive on your webhook in real time, ready for a help desk or CRM.',
     fragment: <InboundWebhookFragment />,
   },
   {
@@ -48,7 +48,7 @@ const extras: ChecklistItem[] = [
   {title: 'Every address at once', description: 'One MX record covers the whole domain.'},
   {title: 'Senders become contacts', description: 'New senders are added to your contacts.'},
   {title: 'Starts workflows', description: 'Any inbound message can trigger a sequence.'},
-  {title: 'Attachments included', description: 'Files arrive with the message on your webhook.'},
+  {title: 'Clean, parsed body', description: 'HTML is parsed and sanitized before it reaches you.'},
   {title: 'Replies on the record', description: 'Answers to campaigns land on the same contact.'},
   {title: 'Your own routing', description: 'Route each address however you like.'},
 ];
@@ -111,7 +111,7 @@ const faqs: FAQ[] = [
   {
     question: 'What does Plunk send to my webhook?',
     answer:
-      'A JSON payload with the sender, the recipient address, the subject, the parsed body and any attachments, plus the contact record the sender was matched to or created as.',
+      'A JSON payload with the sender, the recipient address, the subject, the parsed and sanitized body, and the spam and authentication results, plus the contact record the sender was matched to or created as.',
   },
   {
     question: 'Is inbound mail filtered for spam?',

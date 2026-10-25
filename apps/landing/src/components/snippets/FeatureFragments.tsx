@@ -6,7 +6,6 @@ import {
   Lock,
   Mail,
   Megaphone,
-  Paperclip,
   Play,
   Reply,
   ShieldCheck,
@@ -193,9 +192,8 @@ export function InboundWebhookFragment() {
           </div>
         ))}
       </dl>
-      <p className={'flex items-center gap-2 border-t border-neutral-100 px-4 py-3 text-ui text-neutral-700'}>
-        <Paperclip aria-hidden strokeWidth={1.75} className={'h-3.5 w-3.5 text-neutral-500'} />
-        invoice-3980.pdf
+      <p className={'line-clamp-2 border-t border-neutral-100 px-4 py-3 text-ui text-neutral-500'}>
+        Hi, could you resend the invoice for August? The one I have shows the wrong address.
       </p>
     </UICard>
   );

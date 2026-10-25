@@ -295,9 +295,9 @@ Inbound email lets your application receive emails sent to your Plunk domain. Wh
 ## Capabilities
 
 - **Webhook delivery**: Parsed email payload posted to your endpoint
-- **Attachment handling**: Access attachments programmatically
+- **Security checks**: Spam, virus, SPF, DKIM and DMARC results on every message
 - **Custom addresses**: Route different addresses to different webhooks
-- **Reply detection**: Track email threads automatically
+- **Workflow triggers**: Start an automation from any inbound message
 
 [Back to features](/features) | [Pricing](/pricing)
 `,
