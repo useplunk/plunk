@@ -216,6 +216,7 @@ export const TemplateSchemas = {
     fromName: z.string().max(100).nullish(),
     replyTo: email.nullish(),
     type: z.nativeEnum(TemplateType).default('MARKETING'),
+    tracking: z.boolean().nullish(),
   }),
   update: z.object({
     name: z.string().min(1).max(100).optional(),
@@ -226,6 +227,7 @@ export const TemplateSchemas = {
     fromName: z.string().max(100).nullish(),
     replyTo: email.nullish(),
     type: z.nativeEnum(TemplateType).optional(),
+    tracking: z.boolean().nullish(),
   }),
   // Bulk operation payload for POST /templates/bulk-update.
   //
@@ -461,6 +463,7 @@ export const CampaignSchemas = {
     fromName: z.string().max(100).nullish(),
     replyTo: email.nullish(),
     type: z.nativeEnum(TemplateType).default(TemplateType.MARKETING),
+    tracking: z.boolean().nullish(),
     audienceType: z.nativeEnum(CampaignAudienceType),
     audienceCondition: filterConditionSchema.optional(),
     segmentId: uuid.optional(),
@@ -477,6 +480,7 @@ export const CampaignSchemas = {
     fromName: z.string().max(100).nullish(),
     replyTo: z.string().nullish(),
     type: z.nativeEnum(TemplateType).optional(),
+    tracking: z.boolean().nullish(),
     audienceType: z.nativeEnum(CampaignAudienceType).optional(),
     audienceCondition: filterConditionSchema.optional(),
     segmentId: z.string().optional(),
@@ -668,6 +672,7 @@ export const ActionSchemas = {
         )
         .optional(),
       reply: email.optional(),
+      tracking: z.boolean().optional(),
       headers: z
         .record(
           z.string().regex(/^[^\r\n]+$/, 'Header key contains invalid characters'),

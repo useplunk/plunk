@@ -105,6 +105,11 @@
             "type": "string",
             "enum": ["TRANSACTIONAL", "MARKETING", "HEADLESS"]
           },
+          "tracking": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Open and click tracking for emails sent with this template. `null` follows the project's tracking mode."
+          },
           "projectId": {
             "type": "string"
           },
@@ -154,6 +159,11 @@
             "type": "string",
             "enum": ["TRANSACTIONAL", "MARKETING", "HEADLESS"],
             "description": "Content type of the campaign email. Not to be confused with `audienceType`."
+          },
+          "tracking": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Open and click tracking for this campaign. `null` follows the project's tracking mode."
           },
           "status": {
             "type": "string",
@@ -792,6 +802,10 @@
                     "type": "string",
                     "format": "email",
                     "description": "Reply-to address."
+                  },
+                  "tracking": {
+                    "type": "boolean",
+                    "description": "Open and click tracking for this email, overriding the template's and the project's setting. Omit to use them. Only takes effect on instances with a no-tracking configuration set (`SES_CONFIGURATION_SET_NO_TRACKING`)."
                   },
                   "attachments": {
                     "type": "array",
@@ -1898,6 +1912,11 @@
                     "enum": ["TRANSACTIONAL", "MARKETING", "HEADLESS"],
                     "default": "MARKETING",
                     "description": "Optional. Defaults to `MARKETING` when omitted."
+                  },
+                  "tracking": {
+                    "type": "boolean",
+                    "nullable": true,
+                    "description": "Open and click tracking for emails sent with this template, overriding the project's tracking mode. Omit or pass `null` to follow the project. A `tracking` field on `POST /v1/send` overrides this in turn. Only takes effect on instances with a no-tracking configuration set (`SES_CONFIGURATION_SET_NO_TRACKING`)."
                   }
                 }
               },
@@ -2084,6 +2103,11 @@
                     "enum": ["TRANSACTIONAL", "MARKETING", "HEADLESS"],
                     "default": "MARKETING",
                     "description": "Content type of the campaign email. Defaults to `MARKETING`."
+                  },
+                  "tracking": {
+                    "type": "boolean",
+                    "nullable": true,
+                    "description": "Open and click tracking for this campaign, overriding the project's tracking mode. Omit or pass `null` to follow the project. Only takes effect on instances with a no-tracking configuration set (`SES_CONFIGURATION_SET_NO_TRACKING`)."
                   },
                   "audienceType": {
                     "type": "string",

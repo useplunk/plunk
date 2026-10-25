@@ -38,6 +38,25 @@ Tracking is configured per project under **Settings → Tracking**. Three modes 
 
 Tracking is **all or nothing** within a single send — there's no separate toggle for opens vs clicks. Pick the mode that fits your privacy and analytics requirements.
 
+## Overriding the project setting
+
+A template, a campaign, or a single API send can turn tracking on or off for itself, whatever the project's mode. This is useful when most mail should be tracked but a few emails, like invoices or security notices, must never carry a tracking pixel or rewritten links.
+
+- **Templates and campaigns**: set **Open and click tracking** in the editor to *Track*, *Don't track*, or *Project setting* (the default). A template's setting applies everywhere it is sent: `POST /v1/send` with that template, and workflow steps that use it. Through the API, pass `tracking` (`true`, `false`, or `null` to follow the project) when creating or updating the template or campaign.
+- **Single sends**: pass the optional `tracking` boolean to [`POST /v1/send`](/api-reference/public-api/sendEmail):
+
+```json
+{
+  "to": "user@example.com",
+  "template": "<template id>",
+  "tracking": false
+}
+```
+
+The most specific setting wins: the send's `tracking` field, then the template's or campaign's setting, then the project's mode.
+
+A campaign sent with tracking off records no opens or clicks, so its results show none.
+
 <Callout title="Tracking mode availability" type="info">
-On self-hosted instances, the Marketing-only mode is only available when a no-tracking configuration set is configured. See [Self-hosting → Email setup](/self-hosting/email-setup) for details.
+On self-hosted instances, tracking can only be turned off (by the Disabled and Marketing-only modes, or by an override) when a no-tracking configuration set is configured. Without one, every email is tracked and the tracking controls are hidden. See [Self-hosting → Email setup](/self-hosting/email-setup) for details.
 </Callout>
