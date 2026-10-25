@@ -19,8 +19,8 @@ export function ActiveProjectProvider({children}: {children: ReactNode}) {
   const {data: projects, isLoading} = useProjects();
   const {mutate} = useSWRConfig();
 
-  // State is null until projects load, but localStorage is read synchronously by network.ts
-  // This ensures consistent behavior: either all calls use stored ID, or all fall back to projects[0]
+  // State is null until projects load. network.ts reads the id from localStorage on every request,
+  // so requests made before the effect below stores one go out without X-Project-Id, or with a stale one
   const [activeProject, setActiveProjectState] = useState<Project | null>(null);
 
   // Initialize active project from localStorage or use first project
@@ -36,8 +36,8 @@ export function ActiveProjectProvider({children}: {children: ReactNode}) {
     if (choice.persist) {
       localStorage.setItem('activeProjectId', choice.project.id);
 
-      // Pages mount and fetch before this effect runs, so on a fresh session (e.g. right after
-      // login) their requests went out without X-Project-Id, or with a stale one, and failed.
+      // Pages mount and fetch before this effect runs, so on a fresh session (e.g. after signing
+      // out and back in) their requests went out without X-Project-Id, or with a stale one, and failed.
       // SWR does not retry errors here, so fetch everything again now that the id is stored.
       void mutate(() => true);
     }

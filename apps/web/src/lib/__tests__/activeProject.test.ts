@@ -1,4 +1,5 @@
 import {describe, expect, it} from 'vitest';
+
 import {pickActiveProject} from '../activeProject';
 
 const first = {id: 'project-1'};
@@ -15,7 +16,7 @@ describe('pickActiveProject', () => {
     expect(pickActiveProject(projects, 'project-2')).toEqual({project: second, persist: false});
   });
 
-  // Right after login the stored id has been cleared: requests made before this point
+  // After signing out, or in a new browser, no id is stored: requests made before this point
   // went out without X-Project-Id, so the caller must persist the id and fetch again
   it('falls back to the first project and asks to persist it when nothing is stored', () => {
     expect(pickActiveProject(projects, null)).toEqual({project: first, persist: true});
