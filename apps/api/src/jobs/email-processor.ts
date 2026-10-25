@@ -28,6 +28,7 @@ import {
   bodyHasListManagementLink,
   buildEmailHeaders,
   classifyEmail,
+  senderOneClickUrl,
   withSourceEmail,
 } from '../services/EmailHeaderService.js';
 import {EmailService} from '../services/EmailService.js';
@@ -255,6 +256,7 @@ export async function processEmailJob(emailId: string): Promise<void> {
       emailClass,
       isCampaign: email.campaignId != null,
       hasListManagementLink: bodyHasListManagementLink(compiledHtml, email.contact.id),
+      senderUnsubscribeUrl: senderOneClickUrl(compiledHtml),
       unsubscribeId: email.contact.id,
       sourceEmailId: emailId,
       customHeaders: publicHeaders,
