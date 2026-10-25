@@ -48,7 +48,7 @@ const extras: ChecklistItem[] = [
   {title: 'Delays on the clock', description: 'Wait an hour, a day or until a set date.'},
   {title: 'Branches on real data', description: 'Split on contact fields, custom data or an earlier open.'},
   {title: 'Exit when it worked', description: 'Stop the sequence once the contact does the thing.'},
-  {title: 'Re-entry, your call', description: 'Run once per contact, or every time the event fires.'},
+  {title: 'Re-entry, your call', description: 'Once per contact, every time, or at most once a day.'},
   {title: 'Visual builder', description: 'Drag in emails, delays, conditions and webhooks.'},
   {title: 'Same templates', description: 'Use the templates you already send from campaigns.'},
 ];
@@ -112,7 +112,7 @@ const faqs: FAQ[] = [
   {
     question: 'What happens if someone enters a workflow twice?',
     answer:
-      'You choose. A workflow can allow re-entry for things like abandoned carts, or run once per contact for things like onboarding.',
+      'You choose. A workflow can run once per contact for things like onboarding, every time for things like abandoned carts, or at most once per period, such as once a day per organisation, so an event you track on every request starts it only once.',
   },
   {
     question: 'Can I stop a sequence part way through?',

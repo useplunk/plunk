@@ -1,8 +1,11 @@
 import {Controller, Delete, Get, Middleware, Patch, Post} from '@overnightjs/core';
+import type {Workflow} from '@plunk/db';
 import {WorkflowExecutionStatus} from '@plunk/db';
-import {WorkflowSchemas} from '@plunk/shared';
+import {WorkflowSchemas, WorkflowThrottleSchemas} from '@plunk/shared';
+import type {WorkflowThrottle, WorkflowThrottleOptions} from '@plunk/types';
 import type {NextFunction, Request, Response} from 'express';
 import signale from 'signale';
+import {z} from 'zod';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {WorkflowService} from '../services/WorkflowService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
@@ -115,7 +118,7 @@ export class Workflows {
 
     const workflow = await WorkflowService.get(auth.projectId!, workflowId);
 
-    return res.status(200).json(workflow);
+    return res.status(200).json(presentWorkflow(workflow));
   }
 
   /**
@@ -128,6 +131,7 @@ export class Workflows {
   public async create(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;
     const {name, description, eventName, enabled, allowReentry} = req.body;
+    const throttle = parseThrottle(req.body);
 
     if (!name) {
       return res.status(400).json({error: 'Name is required'});
@@ -143,9 +147,10 @@ export class Workflows {
       eventName,
       enabled,
       allowReentry,
+      throttle,
     });
 
-    return res.status(201).json(workflow);
+    return res.status(201).json(presentWorkflow(workflow));
   }
 
   /**
@@ -159,6 +164,7 @@ export class Workflows {
     const auth = res.locals.auth;
     const workflowId = req.params.id;
     const {name, description, triggerType, triggerConfig, enabled, allowReentry} = req.body;
+    const throttle = parseThrottle(req.body);
 
     if (!workflowId) {
       return res.status(400).json({error: 'Workflow ID is required'});
@@ -171,9 +177,10 @@ export class Workflows {
       triggerConfig,
       enabled,
       allowReentry,
+      throttle,
     });
 
-    return res.status(200).json(workflow);
+    return res.status(200).json(presentWorkflow(workflow));
   }
 
   /**
@@ -213,7 +220,7 @@ export class Workflows {
 
     const workflow = await WorkflowService.duplicate(auth.projectId!, workflowId);
 
-    return res.status(201).json(workflow);
+    return res.status(201).json(presentWorkflow(workflow));
   }
 
   /**
@@ -493,4 +500,17 @@ export class Workflows {
 
     return res.status(200).json(result);
   }
+}
+
+/** `throttle` from a create or update body: undefined when absent, null to turn it off */
+function parseThrottle(body: Record<string, unknown>): WorkflowThrottleOptions | null | undefined {
+  // Parsed under its own name so validation errors point at "throttle.key" or "throttle.window"
+  return body.throttle === undefined
+    ? undefined
+    : z.object({throttle: WorkflowThrottleSchemas.throttle}).parse({throttle: body.throttle}).throttle;
+}
+
+/** A workflow as the API returns it: its entry throttle in the same shape it is set in */
+function presentWorkflow<T extends Workflow>(workflow: T): T & {throttle: WorkflowThrottle | null} {
+  return {...workflow, throttle: WorkflowService.throttleOf(workflow)};
 }

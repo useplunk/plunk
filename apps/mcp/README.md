@@ -103,6 +103,7 @@ Read-only tools (the only ones registered when `PLUNK_READ_ONLY=true`):
 | -------------------------------- | ------------------------------------------------------- |
 | `plunk_list_contacts`            | Browse or search contacts, cursor-paginated             |
 | `plunk_get_contact`              | Fetch one contact by ID **or email address**            |
+| `plunk_get_email`                | Look up one email's status and when it sends            |
 | `plunk_verify_email`             | Check whether an address is deliverable                 |
 | `plunk_list_templates`           | List reusable email templates                           |
 | `plunk_list_campaigns`           | List campaigns and their status                         |
@@ -127,7 +128,9 @@ Writing tools:
 | `plunk_subscribe_contact`          | Re-subscribe an existing contact, by email or ID          |
 | `plunk_unsubscribe_contact`        | Opt a contact out of marketing email, by email or ID      |
 | `plunk_delete_contact`             | Permanently delete a contact *(destructive)*              |
-| `plunk_send_email`                 | Send a transactional email to specific recipients         |
+| `plunk_send_email`                 | Send a transactional email, now, scheduled or throttled   |
+| `plunk_reschedule_email`           | Move a scheduled transactional email to another time      |
+| `plunk_cancel_email`               | Cancel a scheduled transactional email *(destructive)*    |
 | `plunk_track_event`                | Record an event, which can trigger automation workflows   |
 | `plunk_create_template`            | Create a reusable template                                |
 | `plunk_create_campaign`            | Create a campaign as a draft                              |
@@ -136,7 +139,7 @@ Writing tools:
 | `plunk_cancel_campaign`            | Stop a scheduled or in-flight campaign *(destructive)*    |
 | `plunk_create_segment`             | Create an audience segment                                |
 | `plunk_create_workflow`            | Create a workflow, disabled, triggered by an event        |
-| `plunk_update_workflow`            | Rename, change the trigger event, or allow re-entry       |
+| `plunk_update_workflow`            | Rename, change the trigger event, re-entry or throttle    |
 | `plunk_duplicate_workflow`         | Copy a workflow, disabled, e.g. for another language      |
 | `plunk_delete_workflow`            | Delete a disabled workflow *(destructive)*                |
 | `plunk_add_workflow_step`          | Add any step type, appended, on a branch, or in between   |

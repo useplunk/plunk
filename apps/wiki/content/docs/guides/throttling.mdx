@@ -1,0 +1,187 @@
+---
+title: Throttling
+description: Send a notification to a recipient at most once per period, straight from the send call
+icon: Timer
+---
+
+Some emails are triggered far more often than they should arrive. A user close to their plan limit hits that limit on every request; a failing integration fails every minute. Emailing on every occurrence spams them, and the usual fix is a cache in your own app of who was told what, and when.
+
+`delivery.throttle` moves that bookkeeping into the send. Call `POST /v1/send` every time it happens; Plunk sends the email when the recipient hasn't had it within the window, and skips it when they have.
+
+import {Tab, Tabs} from 'fumadocs-ui/components/tabs';
+
+<Tabs items={['cURL', 'JavaScript', 'Python']}>
+<Tab value="cURL">
+
+```bash
+curl -X POST https://next-api.useplunk.com/v1/send \
+  -H "Authorization: Bearer sk_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "ana@acme.com",
+    "template": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
+    "data": { "used": 9200, "limit": 10000 },
+    "delivery": { "throttle": "24h" }
+  }'
+```
+
+</Tab>
+<Tab value="JavaScript">
+
+```javascript
+await fetch('https://next-api.useplunk.com/v1/send', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer sk_your_secret_key',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    to: 'ana@acme.com',
+    template: '9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f',
+    data: {used: 9200, limit: 10000},
+    delivery: {throttle: '24h'},
+  }),
+});
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+import requests
+
+requests.post(
+    "https://next-api.useplunk.com/v1/send",
+    headers={"Authorization": "Bearer sk_your_secret_key"},
+    json={
+        "to": "ana@acme.com",
+        "template": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
+        "data": {"used": 9200, "limit": 10000},
+        "delivery": {"throttle": "24h"},
+    },
+)
+```
+
+</Tab>
+</Tabs>
+
+## What a throttled send returns
+
+A throttled send is not an error. It is a normal `200`, and the recipient's `status` says what happened:
+
+```json
+{
+  "success": true,
+  "data": {
+    "emails": [
+      {
+        "contact": { "id": "cnt_abc123", "email": "ana@acme.com" },
+        "email": null,
+        "status": "throttled",
+        "nextAllowedAt": "2026-10-26T09:41:02.000Z"
+      }
+    ],
+    "timestamp": "2026-10-25T14:03:11.000Z"
+  }
+}
+```
+
+| `status` | Meaning |
+| -------- | ------- |
+| `queued` | The email is on its way. |
+| `scheduled` | The email is held until `scheduledFor` (see [Scheduling](/guides/scheduling)). |
+| `throttled` | The recipient already had this notification within the window. Nothing was sent. `nextAllowedAt` is when it may go out again, or `null` if it never may. |
+
+A throttled recipient is a **no-op**: no email is stored, nothing is billed, and the contact is not updated — not even with the `data` you sent. That keeps the call cheap enough to make on every request. (With `scope: "project"`, a recipient who is not a contact yet is still added as one, so the response can name them.) To keep contact data current, use [`/v1/track`](/api-reference/public-api/trackEvent) or the contacts API.
+
+## What counts as the same notification
+
+A notification is the **template** you send, per **recipient**. Two different templates never throttle each other, and neither do two different people.
+
+When the template alone is too coarse, add a `key`. It narrows the notification further:
+
+```json
+{
+  "template": "usage-warning-template-id",
+  "delivery": { "throttle": { "window": "24h", "key": "org_123" } }
+}
+```
+
+A user who belongs to two organisations, both near their limit, now gets one warning per organisation per day instead of one in total.
+
+Sending without a template (`subject` and `body`)? Then there is nothing to throttle by, so `key` is **required**. Name the notification yourself, for example `"key": "usage-warning"`.
+
+## The window
+
+`window` is a duration: `"30m"`, `"24h"`, `"7d"`, anything from 1 minute to 365 days. `"24h"` on its own is shorthand for `{ "window": "24h" }`.
+
+- **The window runs from when the email was actually sent.** An email that waits in the queue, or is [scheduled](/guides/scheduling) for later, starts its window when it goes out.
+- **Throttled attempts never extend it.** A user who keeps triggering the warning still gets the next one 24 hours after the last, not 24 hours after the last attempt.
+- **No window means once, ever.** `"throttle": {}` sends the notification to each recipient a single time.
+
+Combine "once, ever" with a period in the key to get "once per period":
+
+```json
+{ "delivery": { "throttle": { "key": "org_123:2026-10" } } }
+```
+
+Next month the key changes, so the notification can go out again. This is the clean way to say "once per billing cycle".
+
+## Scope
+
+By default a notification is held per recipient. Set `scope` to `"project"` to hold it once for the whole project, whoever it went to:
+
+```json
+{ "delivery": { "throttle": { "window": "1h", "scope": "project" } } }
+```
+
+Useful for operational alerts sent to a team: the first recipient in the hour gets it, everyone after is throttled.
+
+## Recipes
+
+| You want | `delivery.throttle` |
+| -------- | ------------------- |
+| A usage warning at most once a day | `"24h"` |
+| A usage warning per organisation, at most once a day | `{ "window": "24h", "key": "org_123" }` |
+| A "you hit 80%" email once per billing period | `{ "key": "org_123:2026-10" }` |
+| A one-time "your first send went out" email | `{}` |
+| An outage alert to the on-call team, at most hourly | `{ "window": "1h", "scope": "project" }` |
+
+See [Usage limit warnings](/recipes/usage-limit-warnings) for the motivating example end to end.
+
+## When the hold is released early
+
+The notification is held from the moment Plunk accepts the send. It is released, so the next send can go out straight away, when the email never reaches the recipient:
+
+- the send was refused (for example the [billing limit](/concepts/billing) was reached),
+- the email failed before it was handed to the mail server,
+- a scheduled email was cancelled, or its project was disabled.
+
+A delivered email keeps its hold even if it later bounces: it did go out.
+
+## Concurrency
+
+Two requests for the same notification at the same moment cannot both send it. The hold is claimed in the database, and exactly one of them wins; the other is reported as `throttled`.
+
+## Multiple recipients
+
+With `to` as an array, each recipient is checked separately. One request can send to some recipients and throttle others; the response lists each one's `status`. With `scope: "project"`, the first recipient sends and the rest are throttled.
+
+## Without code: workflows
+
+If you track events with [`/v1/track`](/api-reference/public-api/trackEvent) and let a workflow send the email, set the same throttle on the workflow instead. In the dashboard choose **Who can enter → At most once per period** in the workflow's settings, or through the API:
+
+```json
+{ "allowReentry": true, "throttle": { "window": "24h", "key": "event.orgId" } }
+```
+
+Track the event from every request; the workflow starts at most once a day per organisation, and the extra events start nothing. On a workflow, `key` names a field of the event or contact rather than a fixed value, and the period starts when the contact enters. See [entry rules](/concepts/workflows#entry-rules).
+
+## Throttling versus idempotency
+
+They solve different problems, and you can use both on the same request.
+
+- An [`Idempotency-Key`](/guides/idempotency) makes a **retry of the same request** safe. A reused key is refused with `409`.
+- A **throttle** skips **a new request for the same notification**. That is a normal `200` with `status: "throttled"`.
+
+Use an idempotency key so a network retry doesn't send twice, and a throttle so your hundredth "you're near your limit" doesn't either.

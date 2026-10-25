@@ -75,6 +75,7 @@ export interface Workflow {
   name?: string;
   enabled?: boolean;
   allowReentry?: boolean;
+  throttle?: {window: string | null; key: string | null} | null;
   triggerConfig?: {eventName?: string} | null;
   steps?: WorkflowStep[];
 }
@@ -113,7 +114,7 @@ const STEP_CONFIG_SCHEMAS: Record<BuildableStepType, z.ZodType> = {
   WAIT_FOR_EVENT: z.object({
     scope: z.enum(['contact', 'execution']).optional(),
     eventName: z.string().min(1),
-    timeout: z.number().positive().max(MAX_WAIT_SECONDS, 'Timeout cannot exceed 365 days').optional(),
+    timeout: z.number().nonnegative().max(MAX_WAIT_SECONDS, 'Timeout cannot exceed 365 days').optional(),
   }),
   CONDITION: z.union([
     z
@@ -664,7 +665,8 @@ export function stepSummary(step: WorkflowStep): string {
     case 'DELAY':
       return `wait ${String(config.amount ?? '?')} ${unitLabel(config.amount, config.unit)}`;
     case 'WAIT_FOR_EVENT': {
-      const timeout = typeof config.timeout === 'number' ? ` (timeout ${humanSeconds(config.timeout)})` : '';
+      const timeout =
+        typeof config.timeout === 'number' && config.timeout > 0 ? ` (timeout ${humanSeconds(config.timeout)})` : '';
       return `wait for "${String(config.eventName ?? '?')}"${timeout}`;
     }
     case 'CONDITION': {

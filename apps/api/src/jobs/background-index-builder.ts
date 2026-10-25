@@ -89,6 +89,14 @@ const INDEXES: BackgroundIndex[] = [
     sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "emails_campaignId_unsubscribedAt_idx" ON "emails"("campaignId", "unsubscribedAt" DESC, "id" DESC) WHERE "unsubscribedAt" IS NOT NULL`,
   },
   {
+    // Scheduled transactional emails (`delivery.at`): the scheduled-email sweep's "what is
+    // overdue?" query and the dashboard's upcoming list. Partial, so it only ever holds the
+    // emails still waiting for their time, a tiny slice of the table. The predicate must
+    // match `status = 'SCHEDULED'` in those queries, or the planner will not use it.
+    name: 'emails_scheduledFor_scheduled_idx',
+    sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "emails_scheduledFor_scheduled_idx" ON "emails"("scheduledFor") WHERE "status" = 'SCHEDULED'`,
+  },
+  {
     // Dashboard and analytics stats: per-project counts over a createdAt range. INCLUDE
     // lets those counts be answered from the index alone, without fetching email rows,
     // which are wide because of the stored body. Covers every column the analytics

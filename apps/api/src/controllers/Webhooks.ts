@@ -72,6 +72,17 @@ export function nextStatus(current: EmailStatus, incoming?: EmailStatus): EmailS
 }
 
 /**
+ * Whether SES judged an Open to be made by software rather than a person. Mail providers fetch
+ * the tracking pixel on their own -- Gmail's servers do it on delivery, whether or not anyone
+ * reads the email -- and SES marks those fetches `isBotEvent: "Likely"`. Measured, Gmail's own
+ * fetch was "Likely" and every real open was "Unlikely", including one seconds after delivery
+ * and Apple Mail's proxy. An Open without the mark counts, as every Open did before SES added it.
+ */
+export function isAutomaticOpen(open?: {isBotEvent?: unknown} | null): boolean {
+  return open?.isBotEvent === 'Likely';
+}
+
+/**
  * Webhooks Controller
  * Handles incoming webhooks from external services (AWS SNS/SES)
  */
@@ -94,6 +105,19 @@ export class Webhooks {
         // for every project drops here, and nothing else in the system counts the misses.
         signale.error('[WEBHOOK] SNS signature verification failed — request rejected. All SES events are being dropped.');
         return res.status(403).json({success: false, message: 'Invalid SNS signature'});
+      }
+
+      // A valid signature only proves AWS sent it: the topic must also be in our own account,
+      // or anyone could subscribe this endpoint to a topic of theirs and publish forged events.
+      // Checked before the subscription branch, so a foreign topic is never confirmed either.
+      const topicOrigin = await SecurityService.snsTopicOrigin(req.body.TopicArn);
+      if (topicOrigin === 'unknown') {
+        // 5xx makes SNS retry, so a genuine event is delivered again once the lookup works
+        return res.status(503).json({success: false, message: 'Could not verify SNS topic'});
+      }
+      if (topicOrigin === 'foreign') {
+        signale.warn(`[WEBHOOK] SNS message rejected — topic is not in this AWS account: ${String(req.body.TopicArn)}`);
+        return res.status(403).json({success: false, message: 'Untrusted SNS topic'});
       }
 
       // Handle SNS subscription confirmation FIRST (before parsing Message field)
@@ -414,7 +438,17 @@ export class Webhooks {
           break;
 
         case 'Open':
-          signale.success(`[WEBHOOK] Open received for ${email.contact.email} from ${email.project.name}`);
+          // Counting an automatic fetch as an open would stamp openedAt, move segments and resume
+          // workflows waiting for a real one, so nothing is written for it
+          if (isAutomaticOpen(body.open)) {
+            signale.info(`[WEBHOOK] Automatic open ignored for ${email.contact.email} from ${email.project.name}`);
+            return res.status(200).json({success: true});
+          }
+          // The mark is logged only when it is text, so an unexpected payload cannot make logging
+          // throw and lose an open that would have counted
+          signale.success(
+            `[WEBHOOK] Open received for ${email.contact.email} from ${email.project.name} (isBotEvent: ${typeof body.open?.isBotEvent === 'string' ? body.open.isBotEvent : 'none'})`,
+          );
           // Only set openedAt on first open
           if (!email.openedAt) {
             updateData.openedAt = now;

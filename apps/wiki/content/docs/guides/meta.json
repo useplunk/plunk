@@ -7,6 +7,8 @@
     "api-keys",
     "mcp-server",
     "idempotency",
+    "scheduling",
+    "throttling",
     "localization",
     "webhooks",
     "template-language",
