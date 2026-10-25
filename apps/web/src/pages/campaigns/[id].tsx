@@ -38,6 +38,7 @@ import {AnimatedNumber} from '../../components/AnimatedNumber';
 import {CampaignRecipientsSheet} from '../../components/CampaignRecipientsSheet';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {EmailSettings} from '../../components/EmailSettings';
+import {TrackingOverrideSelect} from '../../components/TrackingOverrideSelect';
 import {EmailEditor} from '../../components/EmailEditor';
 import {network} from '../../lib/network';
 import {formatFullDateTime, formatUTCDateTime, getUserTimezone, schedulePresets} from '../../lib/dateUtils';
@@ -369,6 +370,7 @@ export default function CampaignDetailsPage() {
         fromName: editedCampaign.fromName || null,
         replyTo: editedCampaign.replyTo || null,
         type: editedCampaign.type,
+        tracking: editedCampaign.tracking ?? null,
         audienceType: editedCampaign.audienceType,
         segmentId: editedCampaign.segmentId || undefined,
       });
@@ -386,6 +388,7 @@ export default function CampaignDetailsPage() {
           fromName: updated.data.fromName || '',
           replyTo: updated.data.replyTo || '',
           type: updated.data.type,
+          tracking: updated.data.tracking,
           audienceType: updated.data.audienceType,
           segmentId: updated.data.segmentId || undefined,
         });
@@ -409,6 +412,7 @@ export default function CampaignDetailsPage() {
         fromName: campaign.data.fromName || '',
         replyTo: campaign.data.replyTo || '',
         type: campaign.data.type,
+        tracking: campaign.data.tracking,
         audienceType: campaign.data.audienceType,
         segmentId: campaign.data.segmentId || undefined,
       });
@@ -430,6 +434,7 @@ export default function CampaignDetailsPage() {
       (editedCampaign.fromName || '') !== (campaign.data.fromName || '') ||
       (editedCampaign.replyTo || '') !== (campaign.data.replyTo || '') ||
       editedCampaign.type !== campaign.data.type ||
+      (editedCampaign.tracking ?? null) !== campaign.data.tracking ||
       editedCampaign.audienceType !== campaign.data.audienceType ||
       (editedCampaign.segmentId || null) !== (campaign.data.segmentId || null);
 
@@ -864,6 +869,12 @@ export default function CampaignDetailsPage() {
                   required
                 />
               </div>
+
+              <TrackingOverrideSelect
+                value={editedCampaign.tracking ?? null}
+                onChange={tracking => setEditedCampaign({...editedCampaign, tracking})}
+                appliesTo="campaign"
+              />
             </CardContent>
           </Card>
 
@@ -1308,6 +1319,7 @@ export default function CampaignDetailsPage() {
               <CardDescription>
                 {`Sent to ${s.sentCount.toLocaleString()} ${s.sentCount === 1 ? 'contact' : 'contacts'}`}
                 {c.sentAt ? ` on ${formatFullDateTime(new Date(c.sentAt))}` : ''}.
+                {c.tracking === false && ' Opens and clicks aren’t tracked for this campaign.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
