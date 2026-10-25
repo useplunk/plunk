@@ -419,6 +419,74 @@
             "format": "date-time"
           }
         }
+      },
+      "Email": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "CANCELLED",
+              "PENDING",
+              "SENDING",
+              "SENT",
+              "DELIVERED",
+              "OPENED",
+              "CLICKED",
+              "BOUNCED",
+              "COMPLAINED",
+              "FAILED"
+            ]
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": ["TRANSACTIONAL", "CAMPAIGN", "WORKFLOW", "INBOUND"]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              }
+            }
+          },
+          "scheduledFor": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "When a scheduled email is (or was) due."
+          },
+          "sentAt": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "example": {
+          "id": "ac32f08e-c6b9-45d3-9824-a73dff1e3bbf",
+          "status": "SCHEDULED",
+          "sourceType": "TRANSACTIONAL",
+          "subject": "Your trial ends in 3 days",
+          "contact": {
+            "id": "cnt_abc123",
+            "email": "user@example.com"
+          },
+          "scheduledFor": "2026-11-01T09:00:00.000Z",
+          "sentAt": null,
+          "createdAt": "2026-10-25T10:30:00.000Z"
+        }
       }
     },
     "parameters": {
@@ -595,7 +663,7 @@
       "post": {
         "tags": ["Public API"],
         "summary": "Send transactional email",
-        "description": "Send a transactional email via the public API. Automatically creates or updates the recipient contact.\n\n**Required content:** either a `template` ID, **or** both `subject` and `body`. Template fields can be overridden by explicit request fields.\n\n**Sender:** `from` is required unless using a template that already has a `from` configured. The sender's domain must be verified.\n\n**Multiple recipients:** when `to` is an array, each recipient is processed sequentially with its own contact upsert and rendered email — there is no batch-send semantics. Sending is always immediate; for scheduled sends, use a Campaign.\n\n**Attachments:** up to 10 attachments per email and 10 MB total by default. The total message size cannot exceed 40 MB.\n\n**Message format:** `body` is your HTML. Plunk generates a plain text alternative from it and sends both, which avoids the spam penalties that apply to HTML-only mail. There is no plain text field to set.",
+        "description": "Send a transactional email via the public API. Automatically creates or updates the recipient contact.\n\n**Required content:** either a `template` ID, **or** both `subject` and `body`. Template fields can be overridden by explicit request fields.\n\n**Sender:** `from` is required unless using a template that already has a `from` configured. The sender's domain must be verified.\n\n**Multiple recipients:** when `to` is an array, each recipient is processed sequentially with its own contact upsert and rendered email — there is no batch-send semantics.\n\n**Attachments:** up to 10 attachments per email and 10 MB total by default. The total message size cannot exceed 40 MB.\n\n**Message format:** `body` is your HTML. Plunk generates a plain text alternative from it and sends both, which avoids the spam penalties that apply to HTML-only mail. There is no plain text field to set.\n\n**Delivery:** `delivery.at` schedules the email for later (up to 30 days ahead), and `delivery.throttle` sends a notification to a recipient at most once per window. A throttled recipient is skipped without writing or billing anything, and is reported with `status: \"throttled\"` in a normal `200` response. See [Scheduling](/guides/scheduling) and [Throttling](/guides/throttling).",
         "operationId": "sendEmail",
         "requestBody": {
           "required": true,
@@ -759,6 +827,51 @@
                         }
                       }
                     }
+                  },
+                  "delivery": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "description": "When, and whether, the email goes out.",
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Send the email at this time instead of now: an ISO 8601 date with a timezone, at most 30 days ahead. A time that is not in the future sends now. A scheduled email can be moved with `PATCH /emails/{id}` or cancelled with `POST /emails/{id}/cancel` until it goes out."
+                      },
+                      "throttle": {
+                        "description": "Send this notification to a recipient at most once per window. The notification is the template (plus `key`, if given). The window runs from when the email is actually sent; throttled attempts never extend it.",
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^[1-9][0-9]*(m|h|d)$",
+                            "description": "Window, e.g. `\"24h\"`. Shorthand for `{ \"window\": \"24h\" }`."
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "window": {
+                                "type": "string",
+                                "pattern": "^[1-9][0-9]*(m|h|d)$",
+                                "description": "`\"30m\"`, `\"24h\"`, `\"7d\"`: between 1 minute and 365 days. Omit to send the notification at most once, ever."
+                              },
+                              "key": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255,
+                                "description": "Narrows the notification beyond its template, e.g. an organisation ID or a billing period. **Required** when sending without a `template`."
+                              },
+                              "scope": {
+                                "type": "string",
+                                "enum": ["recipient", "project"],
+                                "default": "recipient",
+                                "description": "`recipient` holds the notification for each person separately. `project` holds it once for the whole project, whoever it was sent to."
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
                   }
                 }
               },
@@ -864,6 +977,38 @@
                       }
                     ]
                   }
+                },
+                "scheduled": {
+                  "summary": "Schedule for later",
+                  "description": "Send a template at a set time. The response reports `status: \"scheduled\"` and the email ID, which can be used to move or cancel it.",
+                  "value": {
+                    "to": "user@example.com",
+                    "template": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
+                    "data": {
+                      "daysLeft": 3
+                    },
+                    "delivery": {
+                      "at": "2026-11-01T09:00:00Z"
+                    }
+                  }
+                },
+                "throttled": {
+                  "summary": "At most once a day",
+                  "description": "Warn a user they are close to their plan limit from every request that uses it, while they get the email at most once a day per organisation.",
+                  "value": {
+                    "to": "user@example.com",
+                    "template": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
+                    "data": {
+                      "used": 9200,
+                      "limit": 10000
+                    },
+                    "delivery": {
+                      "throttle": {
+                        "window": "24h",
+                        "key": "org_123"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -871,7 +1016,7 @@
         },
         "responses": {
           "200": {
-            "description": "Email queued successfully",
+            "description": "Accepted. Each recipient reports whether its email was queued, scheduled or throttled.",
             "content": {
               "application/json": {
                 "schema": {
@@ -900,8 +1045,23 @@
                                 }
                               },
                               "email": {
+                                "type": ["string", "null"],
+                                "description": "Plunk email record ID, or `null` when the recipient was throttled. Use it to correlate webhook events (which include this ID as 'emailId' in the event data), and to move or cancel a scheduled email."
+                              },
+                              "status": {
                                 "type": "string",
-                                "description": "Plunk email record ID. Use this to correlate webhook events (which include this ID as 'emailId' in the event data) with your send requests."
+                                "enum": ["queued", "scheduled", "throttled"],
+                                "description": "`queued`: on its way now. `scheduled`: sent at `scheduledFor`. `throttled`: held back by `delivery.throttle`; nothing was sent, stored or billed."
+                              },
+                              "scheduledFor": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "When a scheduled email will be sent."
+                              },
+                              "nextAllowedAt": {
+                                "type": ["string", "null"],
+                                "format": "date-time",
+                                "description": "When a throttled notification may be sent to this recipient again; `null` when it never may (no window)."
                               }
                             }
                           }
@@ -923,7 +1083,8 @@
                           "id": "cnt_abc123",
                           "email": "user@example.com"
                         },
-                        "email": "ac32f08e-c6b9-45d3-9824-a73dff1e3bbf"
+                        "email": "ac32f08e-c6b9-45d3-9824-a73dff1e3bbf",
+                        "status": "queued"
                       }
                     ],
                     "timestamp": "2025-01-15T10:30:00.000Z"
@@ -2339,12 +2500,181 @@
           }
         }
       }
+    },
+    "/emails/{id}": {
+      "get": {
+        "tags": ["Emails"],
+        "summary": "Get email",
+        "operationId": "getEmail",
+        "description": "Get one email of the project: its status, and when it is scheduled for or was sent.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Email ID, as returned by `POST /v1/send`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Email"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Emails"],
+        "summary": "Reschedule email",
+        "operationId": "rescheduleEmail",
+        "description": "Move a scheduled transactional email (sent with `delivery.at`) to another time. A time that is not in the future sends it now. A throttle window it holds moves with it. Only the time can change; to change the content, cancel it and send a new one.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Email ID, as returned by `POST /v1/send`."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["delivery"],
+                "properties": {
+                  "delivery": {
+                    "type": "object",
+                    "required": ["at"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "New time: an ISO 8601 date with a timezone, at most 30 days ahead."
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "delivery": {
+                  "at": "2026-11-02T09:00:00Z"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The rescheduled email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Email"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "`EMAIL_NOT_SCHEDULED`: the email is already sending, sent or cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/emails/{id}/cancel": {
+      "post": {
+        "tags": ["Emails"],
+        "summary": "Cancel scheduled email",
+        "operationId": "cancelEmail",
+        "description": "Cancel a scheduled transactional email before it goes out. It is kept with status `CANCELLED`, is not billed, and a notification it held under `delivery.throttle` may be sent again straight away. This cannot be undone.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Email ID, as returned by `POST /v1/send`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The cancelled email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Email"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "`EMAIL_NOT_SCHEDULED`: the email is already sending, sent or cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "tags": [
     {
       "name": "Public API",
       "description": "Public API endpoints for sending emails and tracking events"
+    },
+    {
+      "name": "Emails",
+      "description": "Look up an email, and move or cancel a scheduled one"
     },
     {
       "name": "Contacts",

@@ -33,6 +33,7 @@ import {Auth} from './controllers/Auth.js';
 import {Campaigns} from './controllers/Campaigns.js';
 import {Contacts} from './controllers/Contacts.js';
 import {Domains} from './controllers/Domains.js';
+import {Emails} from './controllers/Emails.js';
 import {Events} from './controllers/Events.js';
 import {Oauth} from './controllers/Oauth/index.js';
 import {Projects} from './controllers/Projects.js';
@@ -53,10 +54,12 @@ import {
   cardVerificationSweepQueue,
   emailBodyCleanupQueue,
   idempotencyKeyCleanupQueue,
+  scheduledEmailSweepQueue,
   segmentCountQueue,
   snoozeSweepQueue,
 } from './services/QueueService.js';
 import * as S3Service from './services/S3Service.js';
+import {verifyConfigurationSets} from './services/SESService.js';
 import {requestIdMiddleware} from './middleware/requestId.js';
 import {databaseRequestLogger} from './middleware/requestLogger.js';
 import {logger, requestLogger} from './utils/logger.js';
@@ -170,6 +173,7 @@ const server = new (class extends Server {
       new Users(),
       new Contacts(),
       new Domains(),
+      new Emails(),
       new Projects(),
       new Segments(),
       new Templates(),
@@ -479,6 +483,9 @@ void prisma.$connect().then(async () => {
     }
   }
 
+  // Not awaited: a slow SES response must not hold up scheduling the background jobs below
+  void verifyConfigurationSets();
+
   // Set up repeatable job for domain verification (BullMQ)
   // Run every 5 minutes to check domain verification status with AWS SES
   await domainVerificationQueue.add(
@@ -604,4 +611,21 @@ void prisma.$connect().then(async () => {
   );
 
   signale.info('[BACKGROUND-JOB] Snooze sweep scheduled (BullMQ repeatable job, runs every 5 minutes)');
+
+  // Set up repeatable job for the scheduled email sweep (BullMQ)
+  // Every 5 minutes: a scheduled transactional email is sent by its own delayed job; this only
+  // catches the ones whose job was lost, which would otherwise never be sent. A run with
+  // nothing overdue is one query on a partial index of the emails still waiting.
+  await scheduledEmailSweepQueue.add(
+    'sweep-overdue-scheduled-emails',
+    {},
+    {
+      repeat: {
+        pattern: '*/5 * * * *', // Every 5 minutes
+      },
+      jobId: 'scheduled-email-sweep-repeatable', // Fixed ID to prevent duplicates
+    },
+  );
+
+  signale.info('[BACKGROUND-JOB] Scheduled email sweep scheduled (BullMQ repeatable job, runs every 5 minutes)');
 });

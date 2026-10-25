@@ -81,6 +81,33 @@ function countEmailSteps(workflow: Workflow): number {
   return workflow.steps?.filter((step) => step.type === 'SEND_EMAIL').length ?? 0;
 }
 
+/** Mirrors `throttle` on the workflow API: the same value as `delivery.throttle` on a send */
+const workflowThrottle = z
+  .union([
+    z.string().regex(/^[1-9]\d*(m|h|d)$/, 'Use a duration like "30m", "24h" or "7d"'),
+    z
+      .object({
+        window: z
+          .string()
+          .regex(/^[1-9]\d*(m|h|d)$/, 'Use a duration like "30m", "24h" or "7d"')
+          .optional()
+          .describe('At most one entry per window. Leave out for once per key value.'),
+        key: z
+          .string()
+          .regex(/^(event|data|contact)\.[\w.-]+$/)
+          .optional()
+          .describe('Field counted separately, e.g. "event.orgId" or "data.plan".'),
+      })
+      .strict(),
+  ])
+  .nullable()
+  .optional()
+  .describe(
+    'Let a contact enter at most once per window, e.g. "24h", or {window: "24h", key: "event.orgId"} to count ' +
+      'per organisation; {key: "event.period"} enters once per value. Turns re-entry on. null removes it. ' +
+      'Extra events inside the window are ignored without starting a run.',
+  );
+
 const branchInput = z.object({
   id: z
     .string()
@@ -384,6 +411,7 @@ function nextHint(type: BuildableStepType, step: WorkflowStep, config: Record<st
   return ` Continue each path with after="${step.id}" and branch=${choices}; an unconnected branch ends the workflow.`;
 }
 
+
 export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): void {
   register(
     ctx,
@@ -637,17 +665,18 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
           .boolean()
           .optional()
           .describe('Let a contact enter the workflow again after a previous run. Defaults to false.'),
+        throttle: workflowThrottle,
       }),
       annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true},
     },
-    async ({name, description, eventName, allowReentry}) =>
+    async ({name, description, eventName, allowReentry, throttle}) =>
       runTool(async () => {
         // Always created disabled: enabling goes through plunk_set_workflow_enabled
         // so it gets the same confirmation as any other send.
         const created = await client.request<Workflow>({
           method: 'POST',
           path: '/workflows',
-          body: {name, description, eventName, allowReentry, enabled: false},
+          body: {name, description, eventName, allowReentry, throttle, enabled: false},
         });
 
         // The create response does not include the trigger step the API adds,
@@ -669,14 +698,15 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
     {
       title: 'Update workflow',
       description: [
-        '**Purpose:** Rename a workflow, edit its description, change the event that starts it, or',
-        'allow / forbid re-entry.',
+        '**Purpose:** Rename a workflow, edit its description, change the event that starts it,',
+        'allow / forbid re-entry, or limit how often a contact can enter (`throttle`).',
         '',
         '**NOT for:** Turning it on or off (use `plunk_set_workflow_enabled`) or editing steps (use',
         '`plunk_update_workflow_step`).',
         '',
-        '**Note:** on an enabled workflow that sends email, changing the trigger event or allowing',
-        're-entry changes who receives it, so it asks the user to confirm first. The trigger event',
+        '**Note:** on an enabled workflow that sends email, changing the trigger event, allowing',
+        're-entry or removing a throttle changes who receives it, so it asks the user to confirm',
+        'first. The trigger event',
         'cannot change while runs are in progress; disable the workflow first.',
         '',
         '**Returns:** The updated workflow.',
@@ -687,23 +717,31 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
         description: z.string().max(500).optional().describe('New internal note.'),
         eventName: z.string().min(1).optional().describe('New trigger event.'),
         allowReentry: z.boolean().optional().describe('Let a contact enter again after a previous run.'),
+        throttle: workflowThrottle,
       }),
       annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true},
     },
-    async ({id, name, description, eventName, allowReentry}, context) =>
+    async ({id, name, description, eventName, allowReentry, throttle}, context) =>
       runTool(async () => {
-        if ([name, description, eventName, allowReentry].every((value) => value === undefined)) {
-          return errorResult('Nothing to update: pass name, description, eventName or allowReentry.');
+        if ([name, description, eventName, allowReentry, throttle].every((value) => value === undefined)) {
+          return errorResult('Nothing to update: pass name, description, eventName, allowReentry or throttle.');
         }
 
-        if (eventName !== undefined || allowReentry === true) {
+        if (eventName !== undefined || allowReentry === true || throttle !== undefined) {
           const workflow = await getWorkflow(client, id);
           const emailSteps = countEmailSteps(workflow);
+          // A throttle turns re-entry on; removing one lets contacts in every time
+          const widensEntry =
+            (allowReentry === true && !workflow.allowReentry) ||
+            (throttle != null && allowReentry !== false && !workflow.allowReentry) ||
+            (throttle === null && allowReentry !== false && workflow.throttle != null);
 
-          if (workflow.enabled && emailSteps > 0) {
+          if (workflow.enabled && emailSteps > 0 && (eventName !== undefined || widensEntry)) {
             const change = eventName
               ? `start on "${eventName}" instead of "${workflow.triggerConfig?.eventName ?? 'its current event'}"`
-              : 'let contacts enter again after a previous run';
+              : throttle === null
+                ? 'let contacts enter every time the event fires, without its throttle'
+                : 'let contacts enter again after a previous run';
 
             const pending = requireConfirmation(
               context as {mcpReq?: {inputResponses?: unknown}},
@@ -721,7 +759,7 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
         const result = await client.request<Workflow>({
           method: 'PATCH',
           path: workflowPath(id),
-          body: {name, description, allowReentry, triggerConfig: eventName ? {eventName} : undefined},
+          body: {name, description, allowReentry, throttle, triggerConfig: eventName ? {eventName} : undefined},
         });
 
         return jsonResult('Workflow updated.', result);
@@ -1410,8 +1448,9 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
         '**Purpose:** Stop runs in progress: one execution, or every running and waiting execution of',
         'the workflow. Only RUNNING and WAITING executions can be cancelled.',
         '',
-        '**Caveat:** a run parked on a WAIT_FOR_EVENT step can still resume when that event arrives or',
-        'its timeout passes, so check it with `plunk_get_workflow_execution` afterwards.',
+        '**Caveat:** on self-hosted servers running an older Plunk version, a run parked on a',
+        'WAIT_FOR_EVENT step can still resume when that event arrives or its timeout passes, so check it',
+        'with `plunk_get_workflow_execution` afterwards.',
         '',
         '**NOT for:** Stopping new contacts from entering — disable the workflow for that.',
         '',

@@ -16,6 +16,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.937.0",
     "@aws-sdk/client-ses": "^3.937.0",
+    "@aws-sdk/client-sts": "3.948.0",
     "@overnightjs/core": "^1.7.6",
     "@plunk/db": "*",
     "@plunk/email": "*",

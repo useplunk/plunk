@@ -15,6 +15,43 @@ const recipient = z.union([
   }),
 ]);
 
+const scheduleAt = z
+  .string()
+  .describe(
+    'When to send, as an ISO 8601 date with a timezone (e.g. "2026-11-01T09:00:00Z"), up to 30 days ahead. ' +
+      'A time that is not in the future sends now.',
+  );
+
+const delivery = z
+  .object({
+    at: scheduleAt.optional(),
+    throttle: z
+      .union([
+        z.string().describe('Window, e.g. "24h": send this notification to a recipient at most once per window.'),
+        z.object({
+          window: z
+            .string()
+            .optional()
+            .describe('"30m", "24h", "7d" (1 minute to 365 days). Omit to send it at most once, ever.'),
+          key: z
+            .string()
+            .optional()
+            .describe(
+              'Narrows the notification beyond its template, e.g. an organisation id. Required without a template.',
+            ),
+          scope: z
+            .enum(['recipient', 'project'])
+            .optional()
+            .describe('"recipient" (default) holds it per person; "project" holds it once for everyone.'),
+        }),
+      ])
+      .optional(),
+  })
+  .describe(
+    'When, and whether, the email goes out. `at` schedules it; `throttle` skips it when the same ' +
+      'notification already went to the recipient within the window (reported as status "throttled").',
+  );
+
 const sender = z.union([
   z.string().describe('Sender email address'),
   z.object({
@@ -30,13 +67,15 @@ export function registerEmailTools(ctx: ToolContext, client: PlunkClient): void 
     {
       title: 'Send transactional email',
       description: [
-        '**Purpose:** Send a one-off transactional email immediately to one or a few specific recipients.',
+        '**Purpose:** Send a one-off transactional email to one or a few specific recipients, now or at a',
+        'scheduled time (`delivery.at`), optionally at most once per period (`delivery.throttle`).',
         '',
         '**NOT for:** Sending the same email to a whole list, segment, or audience — use',
         '`plunk_create_campaign` followed by `plunk_send_campaign`. Sending to more than a handful of',
         'people through this tool is the wrong shape and will hit the send rate limit.',
         '',
-        '**Returns:** The created email records with their IDs and the resolved contacts.',
+        '**Returns:** Per recipient: the contact, the email ID, and a `status` of "queued", "scheduled"',
+        '(with `scheduledFor`) or "throttled" (with `nextAllowedAt`; nothing was sent).',
         '',
         '**When to use:**',
         '- One-off messages to named people: password reset, receipt, alert, reply',
@@ -46,6 +85,7 @@ export function registerEmailTools(ctx: ToolContext, client: PlunkClient): void 
         'on a verified domain unless the template already sets one.',
         '',
         '**This cannot be undone once sent.** Sending to multiple recipients asks for confirmation first.',
+        'A scheduled email can be cancelled with `plunk_cancel_email` until it goes out.',
         '',
         '**Key trigger phrases:** "send an email", "email this to", "notify", "send them a message"',
       ].join('\n'),
@@ -73,10 +113,11 @@ export function registerEmailTools(ctx: ToolContext, client: PlunkClient): void 
           .boolean()
           .optional()
           .describe('Set the subscription state of the recipient contact as part of this send.'),
+        delivery: delivery.optional(),
       }),
       annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true},
     },
-    async ({to, subject, body, template, from, reply, data, subscribed}, context) =>
+    async ({to, subject, body, template, from, reply, data, subscribed, delivery}, context) =>
       runTool(async () => {
         if (!template && (!subject || !body)) {
           return {
@@ -114,10 +155,92 @@ export function registerEmailTools(ctx: ToolContext, client: PlunkClient): void 
         const result = await client.request({
           method: 'POST',
           path: '/v1/send',
-          body: {to, subject, body, template, from, reply, data, subscribed},
+          body: {to, subject, body, template, from, reply, data, subscribed, delivery},
         });
 
-        return jsonResult(`Sent to ${recipients.length} recipient(s).`, result);
+        return jsonResult(
+          delivery ? `Processed ${recipients.length} recipient(s); see each status.` : `Sent to ${recipients.length} recipient(s).`,
+          result,
+        );
+      }),
+  );
+
+  register(
+    ctx,
+    'plunk_get_email',
+    {
+      title: 'Get email',
+      description: [
+        '**Purpose:** Look up one email by ID: its status, and when it is scheduled for or was sent.',
+        '',
+        '**Returns:** id, status (SCHEDULED, PENDING, SENT, DELIVERED, CANCELLED, …), subject, contact,',
+        '`scheduledFor`, `sentAt`.',
+        '',
+        '**Key trigger phrases:** "did that email go out", "when is it scheduled", "status of email"',
+      ].join('\n'),
+      inputSchema: z.object({id: z.string().describe('Email ID, as returned by `plunk_send_email`.')}),
+      annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true},
+    },
+    async ({id}) =>
+      runTool(async () => {
+        const email = await client.request({path: `/emails/${encodeURIComponent(id)}`});
+        return jsonResult('Email:', email);
+      }),
+  );
+
+  register(
+    ctx,
+    'plunk_reschedule_email',
+    {
+      title: 'Reschedule email',
+      description: [
+        '**Purpose:** Move a scheduled transactional email to another time before it goes out.',
+        '',
+        '**NOT for:** Changing its content — cancel it with `plunk_cancel_email` and send a new one.',
+        '',
+        '**Fails** once the email is sending, sent or cancelled.',
+        '',
+        '**Key trigger phrases:** "send it later instead", "move the email to", "postpone"',
+      ].join('\n'),
+      inputSchema: z.object({
+        id: z.string().describe('Email ID of a scheduled email.'),
+        at: scheduleAt,
+      }),
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true},
+    },
+    async ({id, at}) =>
+      runTool(async () => {
+        const email = await client.request({
+          method: 'PATCH',
+          path: `/emails/${encodeURIComponent(id)}`,
+          body: {delivery: {at}},
+        });
+        return jsonResult('Rescheduled:', email);
+      }),
+  );
+
+  register(
+    ctx,
+    'plunk_cancel_email',
+    {
+      title: 'Cancel scheduled email',
+      description: [
+        '**Purpose:** Cancel a scheduled transactional email before it goes out. It is not sent or billed.',
+        '',
+        '**NOT for:** Recalling an email that was already sent — that is not possible.',
+        '',
+        '**Fails** once the email is sending, sent or cancelled.',
+        '',
+        '**Key trigger phrases:** "cancel that email", "don\'t send it", "unschedule"',
+      ].join('\n'),
+      inputSchema: z.object({id: z.string().describe('Email ID of a scheduled email.')}),
+      // Like cancelling a campaign, it cannot be undone: the email can only be sent again
+      annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true},
+    },
+    async ({id}) =>
+      runTool(async () => {
+        const email = await client.request({method: 'POST', path: `/emails/${encodeURIComponent(id)}/cancel`});
+        return jsonResult('Cancelled:', email);
       }),
   );
 

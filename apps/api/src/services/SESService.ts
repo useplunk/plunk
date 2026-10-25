@@ -1,4 +1,5 @@
 import {SES} from '@aws-sdk/client-ses';
+import {STS} from '@aws-sdk/client-sts';
 import signale from 'signale';
 
 import {
@@ -23,6 +24,41 @@ export const ses = new SES({
     secretAccessKey: AWS_SES_SECRET_ACCESS_KEY,
   },
 });
+
+/**
+ * AWS STS Client, used only to look up the account the SES credentials belong to
+ */
+const sts = new STS({
+  region: AWS_SES_REGION,
+  credentials: {
+    accessKeyId: AWS_SES_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SES_SECRET_ACCESS_KEY,
+  },
+});
+
+let awsAccountId: Promise<string> | undefined;
+
+/**
+ * The AWS account the SES credentials belong to. GetCallerIdentity needs no IAM
+ * permission, so this works with any policy. Looked up once and cached; a failed
+ * lookup is not cached, so the next call tries again.
+ */
+export const getAwsAccountId = (): Promise<string> => {
+  awsAccountId ??= sts
+    .getCallerIdentity({})
+    .then(identity => {
+      if (!identity.Account) {
+        throw new Error('GetCallerIdentity returned no account');
+      }
+      return identity.Account;
+    })
+    .catch((error: unknown) => {
+      awsAccountId = undefined;
+      throw error;
+    });
+
+  return awsAccountId;
+};
 
 interface SendRawEmailParams {
   from: {
@@ -304,6 +340,40 @@ export const disableFeedbackForwarding = async (domain: string): Promise<void> =
  */
 export const deleteIdentity = async (domain: string): Promise<void> => {
   await ses.deleteIdentity({Identity: domain});
+};
+
+/**
+ * Check at startup that the configuration sets Plunk sends through exist in SES.
+ * A missing set otherwise only shows up as a failed send, with an AWS error that
+ * doesn't name the env var. The no-tracking set is only checked when it was
+ * configured explicitly, since that is the only case in which it is used.
+ * Never throws: a failed check is logged and the API keeps starting.
+ */
+export const verifyConfigurationSets = async (): Promise<void> => {
+  const sets: {envVar: string; name: string}[] = [{envVar: 'SES_CONFIGURATION_SET', name: SES_CONFIGURATION_SET}];
+  if (TRACKING_TOGGLE_ENABLED) {
+    sets.push({envVar: 'SES_CONFIGURATION_SET_NO_TRACKING', name: SES_CONFIGURATION_SET_NO_TRACKING});
+  }
+
+  for (const {envVar, name} of sets) {
+    try {
+      await ses.describeConfigurationSet({ConfigurationSetName: name});
+    } catch (error) {
+      const errorName = error instanceof Error ? error.name : undefined;
+
+      if (errorName === 'ConfigurationSetDoesNotExistException') {
+        signale.error(
+          `[SES] Configuration set "${name}" from ${envVar} does not exist in ${AWS_SES_REGION}. Emails sent through it will fail until it is created or ${envVar} is corrected.`,
+        );
+      } else if (errorName === 'AccessDenied' || errorName === 'AccessDeniedException') {
+        // Older IAM policies predate this check, so a missing permission is not a misconfiguration
+        signale.info('[SES] Skipped configuration set check: grant ses:DescribeConfigurationSet to enable it');
+        return;
+      } else {
+        signale.warn(`[SES] Could not verify configuration set "${name}" from ${envVar}:`, error);
+      }
+    }
+  }
 };
 
 /**

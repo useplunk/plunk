@@ -86,6 +86,7 @@ model Project {
   apiRequests ApiRequest[]
 
   idempotencyKeys IdempotencyKey[]
+  throttleClaims  ThrottleClaim[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -167,6 +168,7 @@ model Contact {
   workflowExecutions WorkflowExecution[]
   events             Event[]
   segmentMemberships SegmentMembership[]
+  throttleClaims     ThrottleClaim[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -391,12 +393,19 @@ model Workflow {
   // Re-entry behavior
   allowReentry Boolean @default(false) // If true, contacts can enter workflow multiple times
 
+  // Entry throttle (requires allowReentry): a contact enters at most once per window, counted
+  // separately per value of throttleKey (a field path such as "event.orgId"). A key without a
+  // window means once per key value. Claims live in throttle_claims under "wf:<workflowId>:".
+  throttleWindowSeconds Int?
+  throttleKey           String?
+
   // Relations
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
 
-  steps      WorkflowStep[]
-  executions WorkflowExecution[]
+  steps          WorkflowStep[]
+  executions     WorkflowExecution[]
+  throttleClaims ThrottleClaim[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -594,6 +603,12 @@ model Email {
   // Delivery
   status EmailStatus @default(PENDING)
 
+  /// When a transactional email sent with `delivery.at` is due. Only meaningful while the
+  /// status is SCHEDULED; the delayed queue job is the timer and the scheduled-email sweep
+  /// re-queues any row still SCHEDULED past this time. The partial index on SCHEDULED rows
+  /// is built by the background index builder, not a migration (see background-index-builder.ts).
+  scheduledFor DateTime?
+
   // Event timestamps
   sentAt       DateTime?
   deliveredAt  DateTime?
@@ -715,6 +730,53 @@ model IdempotencyKey {
   @@unique([projectId, key]) // Enforces the guarantee; the claim races on this constraint
   @@index([expiresAt]) // Supports the cleanup job's expired-key sweep
   @@map("idempotency_keys")
+}
+
+/// One transactional notification held for one recipient (or for the whole project) by a
+/// send with `delivery.throttle`. While it is held, the same notification is not sent again.
+///
+/// The claim is taken by inserting (or taking over an expired) row, so the unique constraint
+/// decides the race between concurrent sends, like `IdempotencyKey`. It is held from the
+/// moment the send is accepted, re-anchored to the real send time once SES has the message,
+/// and released when the email never gets there (cancelled, or failed before sending).
+model ThrottleClaim {
+  id String @id @default(uuid())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  // The notification: template id (or "-" for inline sends) plus the caller's optional key
+  key String
+
+  // Who it is held for: the contact id, or "*" for `scope: 'project'`
+  recipientKey String
+
+  // Set for recipient-scoped claims, so deleting the contact deletes what was held for it
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String?
+
+  // The email holding the claim; null only in the moment between claiming and creating it
+  emailId String?
+
+  // Set for a workflow's entry throttle, so deleting the workflow deletes its claims
+  workflow   Workflow? @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowId String?
+
+  // Window length; null holds the claim forever ("once ever")
+  windowSeconds Int?
+
+  // When the notification may be sent again; null while held forever
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, key, recipientKey]) // Enforces the guarantee; the claim races on this constraint
+  @@index([emailId]) // Re-anchor and release look the claim up by its email
+  @@index([workflowId]) // Cascade from a deleted workflow
+  @@index([contactId]) // Cascade from a deleted contact without scanning every claim
+  @@index([expiresAt]) // Supports the cleanup job's expired-claim sweep
+  @@map("throttle_claims")
 }
 
 // ============================================
@@ -873,6 +935,8 @@ enum EmailSourceType {
 }
 
 enum EmailStatus {
+  SCHEDULED // Accepted with `delivery.at`, waiting for its time
+  CANCELLED // Scheduled, then cancelled before it was sent
   PENDING // Queued for sending
   SENDING // Currently being sent
   SENT // Successfully sent to provider
