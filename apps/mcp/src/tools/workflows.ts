@@ -12,7 +12,7 @@ import * as z from 'zod';
 import type {PlunkClient} from '../client.js';
 
 import {resolveContact} from './contacts.js';
-import {errorResult, jsonResult, register, requireConfirmation, runTool, type ToolContext} from './shared.js';
+import {errorResult, jsonResult, pageHint, register, requireConfirmation, runTool, type ToolContext} from './shared.js';
 import {
   branchProblem,
   buildStepConfig,
@@ -35,7 +35,7 @@ import {
   type WorkflowTransition,
 } from './workflow-graph.js';
 
-/** `GET /workflows` is page-based, unlike the cursor-paginated contact/campaign lists. */
+/** `GET /workflows` is page-based, unlike the cursor-paginated contact list. */
 interface WorkflowList {
   data: unknown[];
   total: number;
@@ -60,10 +60,6 @@ interface Execution {
 }
 
 const EXECUTION_STATUSES = ['RUNNING', 'WAITING', 'COMPLETED', 'EXITED', 'FAILED', 'CANCELLED'] as const;
-
-function pageHint(page: number, totalPages: number): string {
-  return page < totalPages ? `\n\nMore results exist. For the next page, pass page=${page + 1}.` : '';
-}
 
 async function getWorkflow(client: PlunkClient, id: string): Promise<Workflow> {
   return client.request<Workflow>({path: `/workflows/${encodeURIComponent(id)}`});

@@ -361,3 +361,43 @@ describe('single-campaign envelope', () => {
     await close();
   });
 });
+
+describe('page-based lists', () => {
+  // GET /campaigns and GET /templates take page/pageSize, unlike the cursor-paginated contact list.
+  it.each([
+    ['plunk_list_campaigns', '/campaigns', 'campaign'],
+    ['plunk_list_templates', '/templates', 'template'],
+  ])('%s pages by page/pageSize and points to the next page', async (tool, path, noun) => {
+    const calls: URL[] = [];
+
+    mockApi((url) => {
+      const target = new URL(url);
+      calls.push(target);
+      const page = Number(target.searchParams.get('page'));
+      const pageSize = Number(target.searchParams.get('pageSize'));
+      return json({data: [{id: `item-${page}`}], total: 12, page, pageSize, totalPages: Math.ceil(12 / pageSize)});
+    });
+
+    const {client, close} = await connect(baseConfig);
+
+    const first = await client.callTool({name: tool, arguments: {limit: 5}});
+    const middle = await client.callTool({name: tool, arguments: {limit: 5, page: 2}});
+    const last = await client.callTool({name: tool, arguments: {limit: 5, page: 3}});
+
+    expect(calls.map((c) => c.pathname)).toEqual([path, path, path]);
+    expect(calls.map((c) => Object.fromEntries(c.searchParams))).toEqual([
+      {page: '1', pageSize: '5'},
+      {page: '2', pageSize: '5'},
+      {page: '3', pageSize: '5'},
+    ]);
+    expect(JSON.stringify(first.content)).toContain('pass page=2');
+    expect(middle.isError).toBeFalsy();
+    expect(JSON.stringify(middle.content)).toContain(`Found 12 ${noun}(s); showing 1.`);
+    expect(JSON.stringify(middle.content)).toContain('pass page=3');
+    expect(last.isError).toBeFalsy();
+    expect(JSON.stringify(last.content)).toContain(`Found 12 ${noun}(s); showing 1.`);
+    expect(JSON.stringify(last.content)).not.toContain('More results exist');
+
+    await close();
+  });
+});
