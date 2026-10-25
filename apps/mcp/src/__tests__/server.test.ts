@@ -176,6 +176,27 @@ describe('tool behaviour', () => {
     await close();
   });
 
+  it('lists segments from the bare array GET /segments returns', async () => {
+    const calls: string[] = [];
+
+    mockApi((url) => {
+      calls.push(url);
+      return json([{id: 'seg-1', name: 'VIP', type: 'DYNAMIC', memberCount: 12}]);
+    });
+
+    const {client, close} = await connect(baseConfig);
+
+    const result = await client.callTool({name: 'plunk_list_segments', arguments: {}});
+
+    expect(result.isError).toBeFalsy();
+    expect(JSON.stringify(result.content)).toContain('Found 1 segment(s).');
+    expect(JSON.stringify(result.content)).toContain('VIP');
+    // The endpoint is not paginated, so no limit/cursor should be sent.
+    expect(calls).toEqual(['https://api.example.com/segments']);
+
+    await close();
+  });
+
   it('turns an API failure into a readable tool error rather than throwing', async () => {
     mockApi(() => json({error: {code: 'NOT_FOUND', message: 'Contact not found'}}, 404));
 
