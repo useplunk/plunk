@@ -1,3 +1,4 @@
+import type {ContactSubscriptionStatus} from '@plunk/types';
 import {beforeEach, describe, expect, it} from 'vitest';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
 import {ContactService} from '../ContactService.js';
@@ -35,7 +36,7 @@ describe('Bulk contact actions - select all matching', () => {
   });
 
   const emailsFor = async (
-    filter: {search?: string; status?: 'subscribed' | 'snoozed' | 'unsubscribed'; subscribed?: boolean},
+    filter: {search?: string; status?: ContactSubscriptionStatus; subscribed?: boolean},
     excludeIds?: string[],
   ) => {
     const contacts = await prisma.contact.findMany({

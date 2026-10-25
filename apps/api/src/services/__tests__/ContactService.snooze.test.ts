@@ -204,7 +204,7 @@ describe('ContactService - snoozing', () => {
       expect(await emailsFor('unsubscribed')).toEqual(['left@example.com']);
     });
 
-    it('builds the same buckets for the shared filter the bulk actions and the export use', async () => {
+    it('builds the same buckets for the shared filter the bulk actions use', async () => {
       const emailsWhere = async (status: 'subscribed' | 'snoozed' | 'unsubscribed') => {
         const contacts = await prisma.contact.findMany({where: ContactService.buildFilterWhere(projectId, {status})});
         return contacts.map(c => c.email).sort();

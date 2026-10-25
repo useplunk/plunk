@@ -32,8 +32,8 @@ export class ContactService {
 
   /**
    * Build the where-clause for the contacts list filters: the email search plus the
-   * subscription status. Shared by the list, the select-all bulk actions and the export so
-   * "all matching" always means exactly the rows the dashboard shows.
+   * subscription status. Shared by the list and the select-all bulk actions so "all matching"
+   * always means exactly the rows the dashboard shows.
    *
    * `snoozed` is derived, not stored -- it is `subscribed = false` with a snooze date still
    * set. `unsubscribed` therefore has to exclude snoozed contacts explicitly, or the two
