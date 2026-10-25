@@ -2,6 +2,7 @@ import {ArrowRight, Check, CornerDownLeft, Inbox, Search, Split, UserPlus} from 
 import React from 'react';
 
 import type {ChangelogArtifact} from '../../content/changelog';
+import {ThrottleFragment} from '../snippets/DeliverySnippets';
 import {Avatar, SnippetRow, StatusPill, TimeAgo, UICard} from '../snippets/fragments';
 import {SnippetTile} from '../snippets/SnippetTile';
 
@@ -476,6 +477,15 @@ function Opens() {
   );
 }
 
+/** One recipient's usage warning: sent, held back twice, sent again a day later. */
+function Delivery() {
+  return (
+    <Tile>
+      <ThrottleFragment className={'w-full max-w-sm'} />
+    </Tile>
+  );
+}
+
 /* ------------------------------------------------------------------------- */
 
 const ARTIFACTS: Record<ChangelogArtifact, React.ComponentType> = {
@@ -495,6 +505,7 @@ const ARTIFACTS: Record<ChangelogArtifact, React.ComponentType> = {
   security: Security,
   analytics: Analytics,
   opens: Opens,
+  delivery: Delivery,
 };
 
 export function ChangelogArtifactView({artifact}: {artifact: ChangelogArtifact}) {

@@ -4,7 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {DASHBOARD_URI, WIKI_URI} from '../../lib/constants';
 import Image from 'next/image';
 import logo from '../../../public/assets/logo.svg';
-import {ArrowRight, Bot, ChevronDown, GitBranch, Inbox, Mail, Megaphone, Send, Server, Users} from 'lucide-react';
+import {ArrowRight, Bot, ChevronDown, GitBranch, Inbox, Mail, Megaphone, Send, Server, Timer, Users} from 'lucide-react';
 
 interface FeatureLink {
   title: string;
@@ -27,6 +27,12 @@ const features: FeatureLink[] = [
     description: 'Send from your app with one API call',
     href: '/features/transactional-email',
     icon: <Send className="h-4 w-4" strokeWidth={1.75} />,
+  },
+  {
+    title: 'Scheduling and throttling',
+    description: 'Send later, or at most once a day',
+    href: '/features/scheduling-and-throttling',
+    icon: <Timer className="h-4 w-4" strokeWidth={1.75} />,
   },
   {
     title: 'Campaigns',
@@ -254,7 +260,8 @@ export default function Navbar() {
                         >
                           <ul className={'grid grid-cols-2 gap-1'}>
                             {features.map(item => (
-                              <li key={item.href}>
+                              // An odd count would leave the last cell empty; let it take the row
+                              <li key={item.href} className={'odd:last:col-span-2'}>
                                 <FeatureRow item={item} onNavigate={closeFeatures} />
                               </li>
                             ))}

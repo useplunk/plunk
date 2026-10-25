@@ -7,6 +7,7 @@
     "public-api/trackEvent",
     "public-api/verifyEmail",
     "---Resources---",
+    "emails",
     "contacts",
     "templates",
     "campaigns",

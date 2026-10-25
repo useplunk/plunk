@@ -1,4 +1,5 @@
 import {
+  ClaimTiles,
   CodeBlock,
   ComparisonTable,
   EventList,
@@ -11,7 +12,10 @@ import {
   IdempotencyFragment,
   MoreFeatures,
   Navbar,
+  RescheduleFragment,
+  ScheduleFragment,
   TemplateSendFragment,
+  ThrottleFragment,
   TransactionalSnippet,
 } from '../../components';
 import type {ChecklistItem, Claim, ComparisonRow, FAQ} from '../../components';
@@ -44,6 +48,28 @@ const claims: Claim[] = [
   },
 ];
 
+/** Delivery control, which has its own page; each tile links there. */
+const delivery: Claim[] = [
+  {
+    title: 'At most once a day',
+    copy: 'Send a usage warning from every request. Plunk delivers it once per window and skips the rest, without billing them.',
+    fragment: <ThrottleFragment />,
+    href: '/features/scheduling-and-throttling',
+  },
+  {
+    title: 'Scheduled in the same call',
+    copy: 'Add a time and the email waits until then, up to 30 days ahead. Cancel it from the API or the dashboard.',
+    fragment: <ScheduleFragment />,
+    href: '/features/scheduling-and-throttling',
+  },
+  {
+    title: 'Moved before it goes out',
+    copy: 'Plans change. Move a scheduled email to another time with its ID, as long as it has not been sent.',
+    fragment: <RescheduleFragment />,
+    href: '/features/scheduling-and-throttling',
+  },
+];
+
 const extras: ChecklistItem[] = [
   {title: 'Attachments', description: 'Up to 10 files and 10 MB per email, inline images included.'},
   {title: 'Multiple recipients', description: 'One address, a name and address, or a list.'},
@@ -58,6 +84,8 @@ const comparison: ComparisonRow[] = [
   {feature: 'Price', plunk: '$0.001 per email', competitor: '$0.10 per 1,000 emails'},
   {feature: 'Templates with variables', plunk: true, competitor: 'Via API only'},
   {feature: 'Per-email delivery log', plunk: true, competitor: false},
+  {feature: 'Scheduled sending', plunk: 'Up to 30 days', competitor: false},
+  {feature: 'At most once per period', plunk: true, competitor: 'Build it yourself'},
   {feature: 'Bounce and complaint handling', plunk: 'Automatic', competitor: 'Build it yourself'},
   {feature: 'Contacts and history', plunk: true, competitor: 'Basic contact lists'},
   {feature: 'Campaigns and workflows', plunk: true, competitor: false},
@@ -78,6 +106,11 @@ const faqs: FAQ[] = [
     question: 'Do transactional emails respect unsubscribes?',
     answer:
       'Emails sent with a subject and body through the send endpoint are treated as transactional and always delivered, because a password reset should not depend on a newsletter preference. Templates can be marked as marketing when they should respect it.',
+  },
+  {
+    question: 'Can I schedule a transactional email, or limit how often it is sent?',
+    answer:
+      'Yes, with one field on the same send call. delivery.at sends the email later, up to 30 days ahead, and delivery.throttle sends a notification to a recipient at most once per period, for example a usage warning once a day.',
   },
   {
     question: 'Which languages and frameworks can I use?',
@@ -147,6 +180,13 @@ export default function TransactionalEmailFeature() {
         />
 
         <FeatureHighlights title={'What you get'} claims={claims} extras={extras} />
+
+        <FeatureSection
+          title={'Control when it arrives'}
+          intro={'Send it later, or at most once per period, with one more field on the same call.'}
+        >
+          <ClaimTiles items={delivery} />
+        </FeatureSection>
 
         <FeatureSection
           title={'Send your first email'}

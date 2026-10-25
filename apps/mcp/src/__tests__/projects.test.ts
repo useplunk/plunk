@@ -86,7 +86,7 @@ describe('tool schemas', () => {
 
     const {tools} = await client.listTools();
 
-    expect(tools).toHaveLength(42);
+    expect(tools).toHaveLength(45);
 
     for (const tool of tools) {
       const schema = tool.inputSchema as {properties?: Record<string, {enum?: string[]}>; required?: string[]};

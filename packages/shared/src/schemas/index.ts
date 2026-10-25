@@ -3,6 +3,13 @@ import type {FilterCondition, FilterGroup} from '@plunk/types';
 import {SNOOZE_DURATIONS} from '@plunk/types';
 import {z} from 'zod';
 
+import {
+  MAX_SCHEDULE_DAYS,
+  MAX_THROTTLE_WINDOW_SECONDS,
+  MIN_THROTTLE_WINDOW_SECONDS,
+  parseDuration,
+} from '../delivery.js';
+
 const literalSchema = z.union([z.string(), z.number(), z.boolean(), z.null(), z.date()]);
 type Literal = z.infer<typeof literalSchema>;
 type Json = Literal | {[key: string]: Json} | Json[];
@@ -234,12 +241,22 @@ export const TemplateSchemas = {
   }),
 };
 
+/**
+ * `throttle` on a workflow create or update, as clients send it. The API validates and
+ * normalises it with WorkflowThrottleSchemas.throttle.
+ */
+const workflowThrottleInput = z
+  .union([z.string(), z.object({window: z.string().optional(), key: z.string().optional()})])
+  .nullable()
+  .optional();
+
 export const WorkflowSchemas = {
   create: z.object({
     name: z.string().min(1).max(100),
     description: z.string().max(500).optional(),
     eventName: z.string().min(1),
     allowReentry: z.boolean().optional(),
+    throttle: workflowThrottleInput,
     enabled: z.boolean().default(false),
   }),
   update: z.object({
@@ -249,6 +266,7 @@ export const WorkflowSchemas = {
     triggerConfig: jsonSchema.optional(),
     enabled: z.boolean().optional(),
     allowReentry: z.boolean().optional(),
+    throttle: workflowThrottleInput,
   }),
   addStep: z.object({
     type: z.nativeEnum(WorkflowStepType),
@@ -483,6 +501,117 @@ export const CampaignSchemas = {
   }),
 } as const;
 
+const throttleWindow = z
+  .string()
+  .transform((value, ctx) => {
+    const seconds = parseDuration(value);
+
+    if (seconds === null) {
+      ctx.addIssue({code: z.ZodIssueCode.custom, message: 'Use a duration like "30m", "24h" or "7d"'});
+      return z.NEVER;
+    }
+
+    if (seconds < MIN_THROTTLE_WINDOW_SECONDS || seconds > MAX_THROTTLE_WINDOW_SECONDS) {
+      ctx.addIssue({code: z.ZodIssueCode.custom, message: 'The throttle window must be between 1 minute and 365 days'});
+      return z.NEVER;
+    }
+
+    return seconds;
+  });
+
+/**
+ * `delivery.at`: an ISO 8601 date with a timezone, at most MAX_SCHEDULE_DAYS ahead. Parses to
+ * a Date, or to undefined when it is not in the future, so the email goes out now.
+ */
+const scheduledAt = z
+  .string()
+  .datetime({offset: true, message: 'Use an ISO 8601 date with a timezone, e.g. 2026-11-01T09:00:00Z'})
+  .transform((value, ctx) => {
+    const at = new Date(value);
+    // A minute of leeway so a client clock slightly ahead of ours is not refused at the limit
+    const latest = Date.now() + MAX_SCHEDULE_DAYS * 24 * 60 * 60 * 1000 + 60 * 1000;
+
+    if (at.getTime() > latest) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Emails can be scheduled up to ${MAX_SCHEDULE_DAYS} days ahead`,
+      });
+      return z.NEVER;
+    }
+
+    return at.getTime() > Date.now() ? at : undefined;
+  });
+
+export const DeliverySchemas = {
+  /**
+   * `delivery` on POST /v1/send. Normalised on parse: `at` becomes a Date (or is dropped when
+   * it is not in the future, so the email goes out now), and `throttle` always comes out as
+   * `{windowSeconds, key?, scope}` with `windowSeconds: null` meaning "once, ever".
+   */
+  delivery: z
+    .object({
+      at: scheduledAt.optional(),
+      throttle: z
+        .union([
+          throttleWindow.transform(windowSeconds => ({
+            windowSeconds: windowSeconds as number | null,
+            key: undefined as string | undefined,
+            scope: 'recipient' as 'recipient' | 'project',
+          })),
+          z
+            .object({
+              window: throttleWindow.optional(),
+              key: z.string().min(1).max(255).optional(),
+              scope: z.enum(['recipient', 'project']).default('recipient'),
+            })
+            .strict()
+            .transform(({window, key, scope}) => ({windowSeconds: window ?? null, key, scope})),
+        ])
+        .optional(),
+    })
+    .strict(),
+} as const;
+
+/**
+ * A field a workflow throttle counts by, resolved per execution like a condition's field:
+ * event data, contact data or a contact property.
+ */
+const workflowThrottleKey = z
+  .string()
+  .max(255)
+  .regex(/^(event|data|contact)\.[\w.-]+$/, 'Use a field such as "event.orgId" or "data.plan"');
+
+export const WorkflowThrottleSchemas = {
+  /**
+   * `throttle` on a workflow: the same value as `delivery.throttle` on POST /v1/send, except
+   * that `key` is a field path and there is no `scope`. Normalised to `{windowSeconds, key}`;
+   * `null` turns the throttle off.
+   */
+  throttle: z
+    // The "24h" shorthand is read as {window: "24h"}, so a bad value reports which field is wrong
+    .preprocess(
+      value => (typeof value === 'string' ? {window: value} : value),
+      z
+        .object({
+          window: throttleWindow.optional(),
+          key: workflowThrottleKey.optional(),
+        })
+        .strict()
+        .refine(value => value.window !== undefined || value.key !== undefined, {
+          message: 'Set a window, a key or both',
+        })
+        .transform(({window, key}) => ({windowSeconds: window ?? null, key: key ?? null}))
+        .nullable(),
+    ),
+} as const;
+
+export const EmailSchemas = {
+  /** PATCH /emails/:id: move a scheduled email; a time not in the future sends it now */
+  reschedule: z.object({
+    delivery: z.object({at: scheduledAt}).strict(),
+  }),
+} as const;
+
 export const ActionSchemas = {
   track: z.object({
     event: z.string().min(1),
@@ -567,6 +696,7 @@ export const ActionSchemas = {
         )
         .max(Number(process.env['MAX_ATTACHMENTS_COUNT'] ?? 10))
         .optional(),
+      delivery: DeliverySchemas.delivery.optional(),
     })
     .superRefine((data, ctx) => {
       // Validate that either template or subject+body are provided
@@ -575,6 +705,17 @@ export const ActionSchemas = {
           code: z.ZodIssueCode.custom,
           message: 'Either template ID or both subject and body are required',
           path: ['template'],
+        });
+      }
+
+      // A throttle is tracked per template. An inline send has none, so it must name the
+      // notification itself; throttling the whole recipient instead would silently hold back
+      // unrelated emails.
+      if (data.delivery?.throttle && !data.template && !data.delivery.throttle.key) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Sends without a template need delivery.throttle.key to name what is being throttled',
+          path: ['delivery', 'throttle', 'key'],
         });
       }
 

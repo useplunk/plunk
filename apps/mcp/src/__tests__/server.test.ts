@@ -74,7 +74,8 @@ describe('tool registration', () => {
     expect(names).toContain('plunk_send_email');
     expect(names).toContain('plunk_send_campaign');
     expect(names).toContain('plunk_delete_contact');
-    expect(tools).toHaveLength(42);
+    expect(names).toContain('plunk_cancel_email');
+    expect(tools).toHaveLength(45);
 
     await close();
   });
@@ -101,6 +102,7 @@ describe('tool registration', () => {
 
     expect(destructive.sort()).toEqual([
       'plunk_cancel_campaign',
+      'plunk_cancel_email',
       'plunk_cancel_workflow_executions',
       'plunk_delete_contact',
       'plunk_delete_workflow',

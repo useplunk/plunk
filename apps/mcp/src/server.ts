@@ -36,6 +36,7 @@ const INSTRUCTIONS = [
   '   ask the user to confirm and will show them the recipient count. Do not try to work around that',
   '   prompt. Prefer `plunk_test_campaign` to send the user a single copy for review before any bulk',
   '   send. If a send is already scheduled or in flight, `plunk_cancel_campaign` stops the remainder.',
+  '   A transactional email scheduled with `delivery.at` can be cancelled with `plunk_cancel_email`.',
   '',
   'Sender addresses must be on a domain verified for the project, or the send is rejected — check with',
   '`plunk_list_domains` when you are choosing a `from` address or a send was refused.',

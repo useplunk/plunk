@@ -17,6 +17,7 @@ import type {
   IdempotencyKeyCleanupJobData,
   MeterEventJobData,
   ScheduledCampaignJobData,
+  ScheduledEmailSweepJobData,
   SegmentCountJobData,
   SendEmailJobData,
   SnoozeSweepJobData,
@@ -26,6 +27,8 @@ import type {
 import {REDIS_URL} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {parseRedisUrl} from '../utils/redis.js';
+
+import {ThrottleService} from './ThrottleService.js';
 
 /**
  * Queue Configuration
@@ -276,6 +279,24 @@ export const snoozeSweepQueue = new Queue<SnoozeSweepJobData>('snooze-sweep', {
   },
 });
 
+/**
+ * Re-queues scheduled transactional emails whose time has passed while they are still
+ * SCHEDULED, which only happens when their delayed job was lost. Safe to repeat: the email
+ * processor only promotes an email that is still scheduled and due.
+ */
+export const scheduledEmailSweepQueue = new Queue<ScheduledEmailSweepJobData>('scheduled-email-sweep', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: {
+      type: 'exponential',
+      delay: 30000,
+    },
+    removeOnComplete: 20,
+    removeOnFail: 50,
+  },
+});
+
 function emailPriorityFor(sourceType: EmailSourceType): number {
   switch (sourceType) {
     case EmailSourceType.TRANSACTIONAL:
@@ -313,6 +334,63 @@ export class QueueService {
         delay,
         jobId: `email-${emailId}`,
         priority: emailPriorityFor(sourceType),
+      },
+    );
+  }
+
+  /**
+   * Move a scheduled email's job to its new time. The job normally still waits in the delayed
+   * set. If it is gone or can no longer be moved, a fresh one is added under a new id, since
+   * BullMQ ignores an add whose id it still remembers; whichever job fires at the wrong time
+   * finds the email not yet due and does nothing.
+   */
+  public static async rescheduleEmail(emailId: string, delay: number): Promise<void> {
+    const job = await emailQueue.getJob(`email-${emailId}`);
+
+    try {
+      if (job && (await job.isDelayed())) {
+        await job.changeDelay(delay);
+        return;
+      }
+    } catch (error) {
+      signale.warn(`[QUEUE] Could not move the job of email ${emailId}, adding a new one:`, error);
+    }
+
+    await emailQueue.add(
+      'send-email',
+      {emailId},
+      {
+        delay,
+        jobId: `email-${emailId}-${Date.now()}`,
+        priority: emailPriorityFor(EmailSourceType.TRANSACTIONAL),
+      },
+    );
+  }
+
+  /**
+   * Drop the queued job of an email that will no longer be sent. Best effort: a job the
+   * worker has just picked up cannot be removed, and finds the email no longer sendable.
+   */
+  public static async removeEmailJob(emailId: string): Promise<void> {
+    try {
+      const job = await emailQueue.getJob(`email-${emailId}`);
+
+      if (job && ((await job.isDelayed()) || (await job.isWaiting()))) {
+        await job.remove();
+      }
+    } catch (error) {
+      signale.warn(`[QUEUE] Could not remove the job of email ${emailId}:`, error);
+    }
+  }
+
+  /** Re-queue a scheduled email whose time has passed but whose job was lost */
+  public static async requeueScheduledEmail(emailId: string): Promise<void> {
+    await emailQueue.add(
+      'send-email',
+      {emailId},
+      {
+        jobId: `email-sweep-${emailId}`,
+        priority: emailPriorityFor(EmailSourceType.TRANSACTIONAL),
       },
     );
   }
@@ -722,6 +800,25 @@ export class QueueService {
       }
 
       signale.info(`[QUEUE] Cancelled ${scheduledCampaigns.length} scheduled campaigns for project ${projectId}`);
+    }
+
+    // Cancel scheduled transactional emails (`delivery.at`) for the same reason, and release
+    // the throttle claims they held. Their queued jobs find them CANCELLED and do nothing.
+    const scheduledEmails = await prisma.email.findMany({
+      where: {projectId, status: EmailStatus.SCHEDULED},
+      select: {id: true},
+    });
+
+    if (scheduledEmails.length > 0) {
+      const ids = scheduledEmails.map(e => e.id);
+
+      await prisma.email.updateMany({
+        where: {id: {in: ids}, status: EmailStatus.SCHEDULED},
+        data: {status: EmailStatus.CANCELLED, error: 'Project is disabled'},
+      });
+      await ThrottleService.releaseForEmails(ids);
+
+      signale.info(`[QUEUE] Cancelled ${ids.length} scheduled emails for project ${projectId}`);
     }
 
     // Cancel all pending emails for this project

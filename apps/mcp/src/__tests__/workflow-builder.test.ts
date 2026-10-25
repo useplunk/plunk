@@ -936,6 +936,31 @@ describe('workflow lifecycle', () => {
     await close();
   });
 
+  it('asks before a throttle opens a once-per-contact workflow to re-entry', async () => {
+    const api = fakeApi({enabled: true});
+    const {client, close} = await connect();
+
+    await call(client, 'plunk_add_workflow_step', {workflowId: 'wf-1', type: 'SEND_EMAIL', templateId: 'tpl-1'});
+
+    const prompt = await rawToolCall('plunk_update_workflow', {id: 'wf-1', throttle: '24h'});
+
+    expect(prompt).toContain('confirm_workflow_update');
+    expect(api.calls.filter((c) => c.method === 'PATCH' && c.path === '/workflows/wf-1')).toHaveLength(0);
+
+    await close();
+  });
+
+  it('rejects a throttle key that is not a field path', async () => {
+    fakeApi();
+    const {client, close} = await connect();
+
+    const result = await call(client, 'plunk_update_workflow', {id: 'wf-1', throttle: {window: '24h', key: 'org_123'}});
+
+    expect(result.isError).toBe(true);
+
+    await close();
+  });
+
   it('renames an enabled workflow without asking', async () => {
     const api = fakeApi({enabled: true});
     const {client, close} = await connect();

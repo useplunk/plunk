@@ -1,0 +1,145 @@
+---
+title: Scheduling
+description: Send a transactional email at a set time, and move or cancel it until it goes out
+icon: CalendarClock
+---
+
+Add `delivery.at` to `POST /v1/send` and the email waits until then instead of going out now. A trial-ending reminder, a follow-up the morning after signup, a receipt timed to a delivery window — scheduled in the same call that would otherwise send it.
+
+import {Tab, Tabs} from 'fumadocs-ui/components/tabs';
+
+<Tabs items={['cURL', 'JavaScript', 'Python']}>
+<Tab value="cURL">
+
+```bash
+curl -X POST https://next-api.useplunk.com/v1/send \
+  -H "Authorization: Bearer sk_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "ana@acme.com",
+    "template": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
+    "data": { "daysLeft": 3 },
+    "delivery": { "at": "2026-11-01T09:00:00Z" }
+  }'
+```
+
+</Tab>
+<Tab value="JavaScript">
+
+```javascript
+await fetch('https://next-api.useplunk.com/v1/send', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer sk_your_secret_key',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    to: 'ana@acme.com',
+    template: '9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f',
+    data: {daysLeft: 3},
+    delivery: {at: trialEndsAt.toISOString()},
+  }),
+});
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+import requests
+
+requests.post(
+    "https://next-api.useplunk.com/v1/send",
+    headers={"Authorization": "Bearer sk_your_secret_key"},
+    json={
+        "to": "ana@acme.com",
+        "template": "9c4d5e1f-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
+        "data": {"daysLeft": 3},
+        "delivery": {"at": "2026-11-01T09:00:00Z"},
+    },
+)
+```
+
+</Tab>
+</Tabs>
+
+The response reports each recipient as `scheduled`, with the email ID you need to move or cancel it:
+
+```json
+{
+  "success": true,
+  "data": {
+    "emails": [
+      {
+        "contact": { "id": "cnt_abc123", "email": "ana@acme.com" },
+        "email": "ac32f08e-c6b9-45d3-9824-a73dff1e3bbf",
+        "status": "scheduled",
+        "scheduledFor": "2026-11-01T09:00:00.000Z"
+      }
+    ],
+    "timestamp": "2026-10-25T10:30:00.000Z"
+  }
+}
+```
+
+## Rules for `at`
+
+- An **ISO 8601 date with a timezone**: `2026-11-01T09:00:00Z` or `2026-11-01T10:00:00+01:00`. A date without a timezone is refused rather than guessed.
+- **At most 30 days ahead.** For anything further out, or anything with conditions, use a [workflow](/concepts/workflows) with a delay step.
+- A time that is **not in the future** sends now, so a slightly late clock never fails a send.
+
+## What is fixed, and what is checked at send time
+
+The email's subject, body and the `data` you sent are rendered when Plunk accepts the request, so what you scheduled is what goes out. Contact fields used in the template are filled in once more when it is sent, as for every email.
+
+When its time comes, Plunk checks again that it may still go out:
+
+- A **marketing** template is not sent to a contact who unsubscribed while it waited. The email is cancelled instead.
+- If the project is **disabled**, its scheduled emails are cancelled, and re-enabling the project does not bring them back.
+
+## Look it up, move it, cancel it
+
+Until it goes out, a scheduled email can be changed with its ID.
+
+```bash
+# Where is it?
+curl https://next-api.useplunk.com/emails/ac32f08e-c6b9-45d3-9824-a73dff1e3bbf \
+  -H "Authorization: Bearer sk_your_secret_key"
+
+# Send it a day later instead
+curl -X PATCH https://next-api.useplunk.com/emails/ac32f08e-c6b9-45d3-9824-a73dff1e3bbf \
+  -H "Authorization: Bearer sk_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{ "delivery": { "at": "2026-11-02T09:00:00Z" } }'
+
+# Don't send it at all
+curl -X POST https://next-api.useplunk.com/emails/ac32f08e-c6b9-45d3-9824-a73dff1e3bbf/cancel \
+  -H "Authorization: Bearer sk_your_secret_key"
+```
+
+Only the time can change. To change what it says, cancel it and send a new one. Once the email is sending, sent or cancelled, both calls return `409` with the error code `EMAIL_NOT_SCHEDULED`.
+
+A typical use: schedule the trial-ending reminder when the trial starts, store the email ID, and cancel it when the customer upgrades.
+
+In the dashboard, scheduled emails are listed under **Activity → Scheduled**, where you can preview or cancel them.
+
+## Billing
+
+A scheduled email counts towards your [billing limits](/concepts/billing) in the month it was accepted, and is charged when it is sent. A cancelled email is never charged.
+
+## Webhooks and events
+
+Nothing is reported for an email until it is sent. `email.sent`, and every event after it, fire at the scheduled time, exactly as for an email sent straight away.
+
+## With a throttle
+
+`delivery.at` combines with [`delivery.throttle`](/guides/throttling). A scheduled email holds its notification from the moment it is accepted, so scheduling the same reminder five times sends one email; the other four are reported as `throttled`. Cancelling the scheduled email releases the hold, and moving it moves its window along.
+
+```json
+{
+  "delivery": {
+    "at": "2026-11-01T09:00:00Z",
+    "throttle": { "key": "trial-ending:org_123" }
+  }
+}
+```

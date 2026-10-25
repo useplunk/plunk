@@ -1,9 +1,10 @@
 import type {Activity} from '@plunk/types';
-import {Badge, Button, cn} from '@plunk/ui';
+import {Badge, Button, cn, ConfirmDialog} from '@plunk/ui';
 import dayjs from 'dayjs';
 import {
   AlertCircle,
   Calendar,
+  CalendarX,
   CheckCheck,
   CheckCircle,
   ChevronRight,
@@ -21,7 +22,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import {memo, type ReactNode, useState} from 'react';
+import {toast} from 'sonner';
 import useSWR from 'swr';
+
+import {network} from '../lib/network';
 
 import {EmailPreviewModal, type EmailPreviewModalProps} from './EmailPreviewModal';
 
@@ -33,6 +37,9 @@ const num = (value: unknown): number | undefined => (typeof value === 'number' ?
 function isEmailActivity(type: string): boolean {
   return type.startsWith('email.');
 }
+
+/** A transactional email sent with `delivery.at`, waiting for its time */
+const SCHEDULED_EMAIL = 'transactional.scheduled';
 
 /**
  * Read an event's payload, which Prisma types as JsonValue
@@ -293,6 +300,14 @@ function getActivityConfig(activity: Activity): ActivityConfig {
         detail: subject,
       };
 
+    case SCHEDULED_EMAIL:
+      return {
+        icon: Calendar,
+        tile: TILE.neutral,
+        title: subject ?? 'Email scheduled',
+        badge: {label: 'Scheduled', variant: 'outline'},
+      };
+
     default:
       return {
         icon: AlertCircle,
@@ -314,7 +329,7 @@ function getDetails(activity: Activity): {label: string; value: ReactNode}[] {
     if (value !== undefined && value !== null && value !== '') rows.push({label, value});
   };
 
-  if (isEmailActivity(type)) {
+  if (isEmailActivity(type) || type === SCHEDULED_EMAIL) {
     add('Subject', str(metadata.subject));
     const fromName = str(metadata.fromName);
     const from = str(metadata.from);
@@ -372,17 +387,24 @@ function getDetails(activity: Activity): {label: string; value: ReactNode}[] {
     add('Subject', str(metadata.subject));
   }
 
+  if (type === SCHEDULED_EMAIL) {
+    add('Sends', dayjs(activity.timestamp).format('ddd, MMM D, YYYY [at] HH:mm'));
+  }
+
   return rows;
 }
 
 interface ActivityItemProps {
   activity: Activity;
   status?: 'upcoming' | 'completed';
+  /** Called after the row changed what is scheduled, so the feed can reload */
+  onChange?: () => void;
 }
 
-export const ActivityItem = memo(function ActivityItem({activity, status = 'completed'}: ActivityItemProps) {
+export const ActivityItem = memo(function ActivityItem({activity, status = 'completed', onChange}: ActivityItemProps) {
   const [open, setOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const config = getActivityConfig(activity);
   const Icon = config.icon;
@@ -397,7 +419,23 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
   const details = getDetails(activity);
   const eventData = getEventData(activity.metadata);
   const canPreview =
-    isEmailActivity(activity.type) && !!str(activity.metadata.subject) && !!str(activity.metadata.emailId);
+    (isEmailActivity(activity.type) || activity.type === SCHEDULED_EMAIL) &&
+    !!str(activity.metadata.subject) &&
+    !!str(activity.metadata.emailId);
+  const canCancel = activity.type === SCHEDULED_EMAIL && isUpcoming && !!str(activity.metadata.emailId);
+
+  const cancelScheduled = async () => {
+    try {
+      await network.fetch('POST', `/emails/${String(activity.metadata.emailId)}/cancel`);
+      toast.success('Scheduled email canceled');
+      onChange?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not cancel this email');
+      // It may have gone out meanwhile; reloading shows where it is now
+      onChange?.();
+      throw error;
+    }
+  };
   const detailsId = `activity-${activity.id}`;
 
   return (
@@ -516,17 +554,41 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
             </pre>
           )}
 
-          {canPreview && (
-            <Button variant="outline" size="sm" className="mt-3 h-7 text-xs" onClick={() => setShowPreview(true)}>
-              <Eye className="h-3 w-3" />
-              Preview email
-            </Button>
+          {(canPreview || canCancel) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {canPreview && (
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowPreview(true)}>
+                  <Eye className="h-3 w-3" />
+                  Preview email
+                </Button>
+              )}
+              {canCancel && (
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setConfirmCancel(true)}>
+                  <CalendarX className="h-3 w-3" />
+                  Cancel send
+                </Button>
+              )}
+            </div>
           )}
 
           {details.length === 0 && !eventData && !canPreview && (
             <p className="text-xs text-neutral-500">Nothing more was recorded for this activity.</p>
           )}
         </div>
+      )}
+
+      {canCancel && (
+        <ConfirmDialog
+          open={confirmCancel}
+          onOpenChange={setConfirmCancel}
+          onConfirm={cancelScheduled}
+          title="Cancel this scheduled email?"
+          description={`It will not be sent to ${activity.contactEmail ?? 'this contact'} and is not billed. To send it later, send it again from your code.`}
+          cancelText="Keep it scheduled"
+          confirmText="Cancel send"
+          icon={CalendarX}
+          variant="destructive"
+        />
       )}
 
       {showPreview && canPreview && (

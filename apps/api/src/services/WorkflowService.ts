@@ -1,16 +1,24 @@
 import type {Workflow, WorkflowExecution, WorkflowStep, WorkflowTransition} from '@plunk/db';
 import {Prisma, WorkflowExecutionStatus} from '@plunk/db';
-import type {PaginatedResponse, WorkflowExecutionWithDetails, WorkflowWithDetails} from '@plunk/types';
+import {formatDuration} from '@plunk/shared';
+import type {
+  PaginatedResponse,
+  WorkflowExecutionWithDetails,
+  WorkflowThrottle,
+  WorkflowThrottleOptions,
+  WorkflowWithDetails,
+} from '@plunk/types';
 import {toPrismaJson} from '@plunk/types';
 import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
-import {HttpException} from '../exceptions/index.js';
+import {BadRequest, ConflictError, HttpException} from '../exceptions/index.js';
 import type {ListSort} from '../utils/listSort.js';
 
 import {ContactService} from './ContactService.js';
 import {EventService} from './EventService.js';
 import {NtfyService} from './NtfyService.js';
+import {WorkflowEntryService} from './WorkflowEntryService.js';
 import {WorkflowExecutionService} from './WorkflowExecutionService.js';
 
 export class WorkflowService {
@@ -126,6 +134,47 @@ export class WorkflowService {
   }
 
   /**
+   * The workflow's entry throttle as the API shows it, or null when it has none
+   */
+  public static throttleOf(workflow: Pick<Workflow, 'throttleWindowSeconds' | 'throttleKey'>): WorkflowThrottle | null {
+    if (!WorkflowEntryService.isThrottled(workflow)) {
+      return null;
+    }
+
+    return {
+      window: workflow.throttleWindowSeconds === null ? null : formatDuration(workflow.throttleWindowSeconds),
+      key: workflow.throttleKey,
+    };
+  }
+
+  /**
+   * Resolve the entry columns from a create or update. A throttle implies re-entry, so it
+   * turns `allowReentry` on unless the caller turned it off in the same request; turning
+   * re-entry off clears the throttle.
+   */
+  private static entryRules(
+    currentAllowReentry: boolean,
+    allowReentry: boolean | undefined,
+    throttle: WorkflowThrottleOptions | null | undefined,
+  ): {allowReentry: boolean; throttleWindowSeconds?: number | null; throttleKey?: string | null} {
+    if (throttle) {
+      if (allowReentry === false) {
+        throw new BadRequest('A throttle needs re-entry: remove allowReentry: false or the throttle');
+      }
+
+      return {allowReentry: true, throttleWindowSeconds: throttle.windowSeconds, throttleKey: throttle.key};
+    }
+
+    const nextAllowReentry = allowReentry ?? currentAllowReentry;
+
+    if (throttle === null || !nextAllowReentry) {
+      return {allowReentry: nextAllowReentry, throttleWindowSeconds: null, throttleKey: null};
+    }
+
+    return {allowReentry: nextAllowReentry};
+  }
+
+  /**
    * Create a new workflow
    */
   public static async create(
@@ -136,11 +185,14 @@ export class WorkflowService {
       eventName: string;
       enabled?: boolean;
       allowReentry?: boolean;
+      throttle?: WorkflowThrottleOptions | null;
     },
   ): Promise<Workflow> {
     if (!data.eventName?.trim()) {
       throw new HttpException(400, 'Event name is required');
     }
+
+    const entry = this.entryRules(data.allowReentry ?? false, data.allowReentry, data.throttle);
 
     const workflow = await prisma.$transaction(async tx => {
       const newWorkflow = await tx.workflow.create({
@@ -151,7 +203,7 @@ export class WorkflowService {
           triggerType: 'EVENT',
           triggerConfig: {eventName: data.eventName.trim()},
           enabled: data.enabled ?? false,
-          allowReentry: data.allowReentry ?? false,
+          ...entry,
         },
       });
 
@@ -199,10 +251,15 @@ export class WorkflowService {
       triggerConfig?: Prisma.JsonValue;
       enabled?: boolean;
       allowReentry?: boolean;
+      throttle?: WorkflowThrottleOptions | null;
     },
   ): Promise<Workflow> {
     // Verify workflow exists and belongs to project
     const workflow = await this.get(projectId, workflowId);
+    const entry =
+      data.allowReentry !== undefined || data.throttle !== undefined
+        ? this.entryRules(workflow.allowReentry, data.allowReentry, data.throttle)
+        : undefined;
 
     // Check if workflow is enabled and has active executions
     if (workflow.enabled) {
@@ -234,7 +291,7 @@ export class WorkflowService {
         updateData.triggerConfig = data.triggerConfig === null ? Prisma.JsonNull : data.triggerConfig;
       }
       if (data.enabled !== undefined) updateData.enabled = data.enabled;
-      if (data.allowReentry !== undefined) updateData.allowReentry = data.allowReentry;
+      if (entry) Object.assign(updateData, entry);
 
       const updatedWorkflow = await tx.workflow.update({
         where: {id: workflowId},
@@ -452,6 +509,8 @@ export class WorkflowService {
               : (source.triggerConfig as Prisma.InputJsonValue),
           enabled: false,
           allowReentry: source.allowReentry,
+          throttleWindowSeconds: source.throttleWindowSeconds,
+          throttleKey: source.throttleKey,
         },
       });
 
@@ -1159,37 +1218,6 @@ export class WorkflowService {
       throw new HttpException(404, 'Contact not found');
     }
 
-    // Check re-entry rules
-    if (!workflow.allowReentry) {
-      // If re-entry is not allowed, check if contact has ANY execution (regardless of status)
-      const existingExecution = await prisma.workflowExecution.findFirst({
-        where: {
-          workflowId,
-          contactId,
-        },
-      });
-
-      if (existingExecution) {
-        throw new HttpException(
-          409,
-          `Workflow does not allow re-entry. Contact already has execution (${existingExecution.status})`,
-        );
-      }
-    } else {
-      // If re-entry is allowed, only check if there's a currently RUNNING execution
-      const runningExecution = await prisma.workflowExecution.findFirst({
-        where: {
-          workflowId,
-          contactId,
-          status: WorkflowExecutionStatus.RUNNING,
-        },
-      });
-
-      if (runningExecution) {
-        throw new HttpException(409, 'Workflow is already running for this contact');
-      }
-    }
-
     // Find the trigger step
     const triggerStep = workflow.steps.find(step => step.type === 'TRIGGER');
 
@@ -1197,16 +1225,18 @@ export class WorkflowService {
       throw new HttpException(400, 'Workflow has no trigger step');
     }
 
-    // Create workflow execution
-    const execution = await prisma.workflowExecution.create({
-      data: {
-        workflowId,
-        contactId,
-        status: WorkflowExecutionStatus.RUNNING,
-        currentStepId: triggerStep.id,
-        context: context ?? Prisma.JsonNull,
-      },
-    });
+    const entry = await WorkflowEntryService.enter(workflow, contactId, triggerStep.id, context);
+
+    if (!entry.entered) {
+      throw new ConflictError(
+        WorkflowEntryService.describe(entry.refusal),
+        entry.refusal.reason === 'throttled'
+          ? {nextAllowedAt: entry.refusal.nextAllowedAt?.toISOString() ?? null}
+          : undefined,
+      );
+    }
+
+    const {execution} = entry;
 
     // Start executing the workflow asynchronously
     // Don't await - let it run in background

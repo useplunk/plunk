@@ -11,7 +11,7 @@ export interface ActivityFeedProps {
   /** Comma-separated activity types; all types when omitted */
   typeFilter?: string;
   contactId?: string;
-  /** Show scheduled campaigns and workflow emails above the history */
+  /** Show scheduled campaigns, workflow emails and transactional emails above the history */
   showScheduled?: boolean;
   /** Shown when nothing matches; lets the page explain its own filters */
   emptyMessage?: string;
@@ -213,7 +213,7 @@ export function ActivityFeed({typeFilter, contactId, showScheduled = !contactId,
           {scheduledOpen && (
             <ul className="divide-y divide-neutral-100 border-t border-neutral-100">
               {scheduled.map(activity => (
-                <ActivityItem key={activity.id} activity={activity} status="upcoming" />
+                <ActivityItem key={activity.id} activity={activity} status="upcoming" onChange={() => void load()} />
               ))}
             </ul>
           )}

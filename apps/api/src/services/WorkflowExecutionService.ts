@@ -1345,7 +1345,7 @@ export class WorkflowExecutionService {
   /**
    * Helper: Resolve field value from object using dot notation
    */
-  private static resolveField(field: string, data: Record<string, unknown>): unknown {
+  public static resolveField(field: string, data: Record<string, unknown>): unknown {
     // Handle legacy "contact.data.X" format by converting to "data.X"
     // The UI historically showed examples like "contact.data.plan" but the field structure
     // has "data" as a top-level key, not nested under "contact"

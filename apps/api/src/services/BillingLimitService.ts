@@ -25,11 +25,11 @@ import {NtfyService} from './NtfyService.js';
  * - Usage mirrors what Stripe is actually metered for, so the limit a customer sees can never
  *   exceed the invoice they get. Stripe is metered in exactly two places: the send path, after
  *   SES accepted the message (`email-processor.ts`), and inbound receipt (`Webhooks.ts`).
- * - FAILED is therefore excluded: it is the one terminal state an email reaches without ever
- *   being metered -- a disabled project flipping its PENDING backlog, a workflow email to an
- *   unsubscribed contact, or SES rejecting the send. Counting those billed customers for mail
- *   that never left the building.
- * - PENDING and SENDING still count. The limit is checked before the rows exist, and a campaign
+ * - FAILED and CANCELLED are therefore excluded: they are the terminal states an email reaches
+ *   without ever being metered -- a disabled project flipping its PENDING backlog, a workflow
+ *   email to an unsubscribed contact, SES rejecting the send, or a scheduled email cancelled
+ *   before its time. Counting those billed customers for mail that never left the building.
+ * - SCHEDULED, PENDING and SENDING still count. The limit is checked before the rows exist, and a campaign
  *   is checked once for the whole batch, so in-flight mail must hold its own quota or a second
  *   campaign would sail past a cap the first one already consumed.
  *
@@ -63,7 +63,7 @@ export class BillingLimitService {
         where: {
           projectId,
           // Never metered, so never counted -- see WHAT COUNTS AS USAGE above.
-          status: {not: EmailStatus.FAILED},
+          status: {notIn: [EmailStatus.FAILED, EmailStatus.CANCELLED]},
           createdAt: {
             gte: start,
             lt: end,
@@ -109,7 +109,7 @@ export class BillingLimitService {
           projectId,
           sourceType,
           // Never metered, so never counted -- see WHAT COUNTS AS USAGE above.
-          status: {not: EmailStatus.FAILED},
+          status: {notIn: [EmailStatus.FAILED, EmailStatus.CANCELLED]},
           createdAt: {
             gte: start,
             lt: end,

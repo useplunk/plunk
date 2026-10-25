@@ -24,10 +24,16 @@ import {
   CommandItem,
   CommandList,
   IconSpinner,
-  Switch,
 } from '@plunk/ui';
 import type {Workflow, WorkflowExecution, WorkflowStep, WorkflowTransition} from '@plunk/db';
 import {DashboardLayout} from '../../components/DashboardLayout';
+import {
+  entryRuleError,
+  entryRuleOf,
+  entryRulePayload,
+  type EntryRulePayload,
+  WorkflowEntryRules,
+} from '../../components/WorkflowEntryRules';
 import {network} from '../../lib/network';
 import {
   AlertTriangle,
@@ -315,9 +321,8 @@ export default function WorkflowEditorPage() {
   const handleUpdateSettings = async (data: {
     name: string;
     description?: string;
-    allowReentry?: boolean;
     triggerConfig?: {eventName: string};
-  }) => {
+  } & EntryRulePayload) => {
     try {
       await network.fetch<Workflow, typeof WorkflowSchemas.update>('PATCH', `/workflows/${id}`, data);
       toast.success('Workflow updated');
@@ -736,16 +741,15 @@ interface SettingsDialogProps {
   onSave: (data: {
     name: string;
     description?: string;
-    allowReentry?: boolean;
     triggerConfig?: {eventName: string};
-  }) => Promise<void>;
+  } & EntryRulePayload) => Promise<void>;
 }
 
 function SettingsDialog({workflow, open, onOpenChange, onSave}: SettingsDialogProps) {
   const triggerConfig = workflow.triggerConfig as {eventName?: string} | null;
   const [name, setName] = useState(workflow.name);
   const [description, setDescription] = useState(workflow.description ?? '');
-  const [allowReentry, setAllowReentry] = useState(workflow.allowReentry ?? false);
+  const [entryRule, setEntryRule] = useState(() => entryRuleOf(workflow));
   const [eventName, setEventName] = useState(triggerConfig?.eventName ?? '');
   const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -755,7 +759,7 @@ function SettingsDialog({workflow, open, onOpenChange, onSave}: SettingsDialogPr
     if (open) {
       setName(workflow.name);
       setDescription(workflow.description ?? '');
-      setAllowReentry(workflow.allowReentry ?? false);
+      setEntryRule(entryRuleOf(workflow));
       const config = workflow.triggerConfig as {eventName?: string} | null;
       setEventName(config?.eventName ?? '');
     }
@@ -774,7 +778,7 @@ function SettingsDialog({workflow, open, onOpenChange, onSave}: SettingsDialogPr
       await onSave({
         name,
         description: description || undefined,
-        allowReentry,
+        ...entryRulePayload(entryRule),
         triggerConfig: eventName.trim() ? {eventName: eventName.trim()} : undefined,
       });
     } finally {
@@ -860,24 +864,13 @@ function SettingsDialog({workflow, open, onOpenChange, onSave}: SettingsDialogPr
             </p>
           </div>
 
-          <div className="flex items-start gap-3 p-4 bg-neutral-50 rounded-lg border border-neutral-200">
-            <Switch id="allowReentry" checked={allowReentry} onCheckedChange={setAllowReentry} />
-            <div className="flex-1">
-              <Label htmlFor="allowReentry" className="font-medium cursor-pointer">
-                Allow re-entry
-              </Label>
-              <p className="text-xs text-neutral-500 mt-1">
-                When enabled, contacts can enter this workflow multiple times. When disabled, contacts can only enter
-                once, ever.
-              </p>
-            </div>
-          </div>
+          <WorkflowEntryRules value={entryRule} onChange={setEntryRule} eventName={eventName} />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || entryRuleError(entryRule) !== null}>
               {isSubmitting ? 'Saving…' : 'Save Changes'}
             </Button>
           </DialogFooter>

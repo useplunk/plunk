@@ -64,7 +64,7 @@ export default function ActivityPage() {
   const types = resolveTypes(filters.type, filters.status);
   const filtered = types !== undefined || !!filters.contact;
 
-  // Scheduled sends are campaigns and workflow emails, so they belong with those filters
+  // Scheduled sends are campaign, workflow and transactional emails, so they belong with those filters
   const showScheduled =
     !filters.contact &&
     filters.status.length === 0 &&

@@ -39,7 +39,8 @@ export type ChangelogArtifact =
   | 'locales'
   | 'security'
   | 'analytics'
-  | 'opens';
+  | 'opens'
+  | 'delivery';
 
 interface BaseEntry {
   /** ISO date, `YYYY-MM-DD`. */
@@ -56,6 +57,15 @@ export type ChangelogEntry =
 
 export const CHANGELOG: ChangelogEntry[] = [
   // October 2026
+  {
+    kind: 'major',
+    date: '2026-10-24',
+    title: 'Schedule and throttle transactional email',
+    description:
+      'Add delivery to a send to email a contact later, up to 30 days ahead, or at most once per period. Send a usage warning from every request and the contact gets it once a day; throttled sends are never billed. Workflows take the same throttle, so an event tracked on every request starts them at most once per period. Move or cancel a scheduled email from the API, the MCP server, or Activity in the dashboard.',
+    href: '/features/scheduling-and-throttling',
+    artifact: 'delivery',
+  },
   {
     kind: 'major',
     date: '2026-10-24',

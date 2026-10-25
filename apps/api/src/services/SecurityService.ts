@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 
+import {EmailStatus} from '@plunk/db';
 import {ProjectDisabledEmail, sendPlatformEmail} from '@plunk/email';
 import React from 'react';
 import signale from 'signale';
@@ -515,6 +516,9 @@ export class SecurityService {
       // Nothing else changes for these emails -- the webhook fires, the activity feed
       // shows the bounce, the contact is still suppressed.
       simulated: false,
+      // A scheduled email has not been sent and a cancelled one never will be. Counting them
+      // would let a sender dilute a real bounce rate by scheduling mail it then cancels.
+      status: {notIn: [EmailStatus.SCHEDULED, EmailStatus.CANCELLED]},
       ...(startDate && {
         createdAt: {
           gte: startDate,

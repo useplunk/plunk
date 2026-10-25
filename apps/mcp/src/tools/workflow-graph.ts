@@ -75,6 +75,7 @@ export interface Workflow {
   name?: string;
   enabled?: boolean;
   allowReentry?: boolean;
+  throttle?: {window: string | null; key: string | null} | null;
   triggerConfig?: {eventName?: string} | null;
   steps?: WorkflowStep[];
 }

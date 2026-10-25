@@ -3,6 +3,11 @@ import React from 'react';
 
 const FEATURES = [
   {title: 'Transactional email', description: 'Send from your app with one API call', href: '/features/transactional-email'},
+  {
+    title: 'Scheduling and throttling',
+    description: 'Send later, or at most once a day',
+    href: '/features/scheduling-and-throttling',
+  },
   {title: 'Campaigns', description: 'Newsletters and product updates', href: '/features/campaigns'},
   {title: 'Workflows', description: 'Automate email from product events', href: '/features/workflows'},
   {title: 'Segments', description: 'Audiences that stay up to date', href: '/features/segments'},

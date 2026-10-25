@@ -36,6 +36,12 @@ import {
 } from '@tanstack/react-table';
 import {DashboardLayout} from '../../components/DashboardLayout';
 import {
+  DEFAULT_ENTRY_RULE,
+  entryRuleError,
+  entryRulePayload,
+  WorkflowEntryRules,
+} from '../../components/WorkflowEntryRules';
+import {
   BulkActionBar,
   DataTable,
   DataTableColumnHeader,
@@ -679,7 +685,7 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
   const [description, setDescription] = useState('');
   const [eventName, setEventName] = useState('');
   const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
-  const [allowReentry, setAllowReentry] = useState(false);
+  const [entryRule, setEntryRule] = useState(DEFAULT_ENTRY_RULE);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch available event names
@@ -696,7 +702,7 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
         name,
         description: description || undefined,
         eventName: eventName.trim(),
-        allowReentry,
+        ...entryRulePayload(entryRule),
         enabled: false,
       });
 
@@ -704,7 +710,7 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
       setName('');
       setDescription('');
       setEventName('');
-      setAllowReentry(false);
+      setEntryRule(DEFAULT_ENTRY_RULE);
       onOpenChange(false);
       onSuccess();
 
@@ -815,23 +821,7 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
             </p>
           </div>
 
-          <div className="flex items-start gap-3">
-            <input
-              id="allowReentry"
-              type="checkbox"
-              checked={allowReentry}
-              onChange={e => setAllowReentry(e.target.checked)}
-              className="mt-0.5 h-4 w-4 text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border-neutral-300 rounded"
-            />
-            <div className="flex-1">
-              <Label htmlFor="allowReentry" className="font-medium cursor-pointer">
-                Allow re-entry
-              </Label>
-              <p className="text-xs text-neutral-500 mt-0.5">
-                When enabled, contacts can enter this workflow multiple times.
-              </p>
-            </div>
-          </div>
+          <WorkflowEntryRules value={entryRule} onChange={setEntryRule} eventName={eventName} />
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
@@ -843,7 +833,11 @@ function CreateWorkflowDialog({open, onOpenChange, onSuccess}: CreateWorkflowDia
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+            <Button
+              type="submit"
+              disabled={isSubmitting || entryRuleError(entryRule) !== null}
+              className="w-full sm:w-auto"
+            >
               {isSubmitting ? 'Creating…' : 'Create Workflow'}
             </Button>
           </DialogFooter>

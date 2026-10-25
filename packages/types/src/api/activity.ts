@@ -21,6 +21,8 @@ export enum ActivityType {
   WORKFLOW_STARTED = 'workflow.started',
   WORKFLOW_COMPLETED = 'workflow.completed',
   WORKFLOW_EMAIL_SCHEDULED = 'workflow.email.scheduled',
+  // Not `email.*`: ActivityService reads that prefix as "history from email rows"
+  TRANSACTIONAL_SCHEDULED = 'transactional.scheduled',
 }
 
 /**

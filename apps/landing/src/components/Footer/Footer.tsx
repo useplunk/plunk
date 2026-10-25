@@ -143,6 +143,11 @@ export default function Footer() {
                     </Link>
                   </li>
                   <li>
+                    <Link href={'/features/scheduling-and-throttling'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
+                      Scheduling and throttling
+                    </Link>
+                  </li>
+                  <li>
                     <Link href={'/features/campaigns'} className="text-ui text-neutral-600 transition hover:text-neutral-900">
                       Campaigns
                     </Link>

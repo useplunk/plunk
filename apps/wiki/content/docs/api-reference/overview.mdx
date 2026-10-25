@@ -284,7 +284,7 @@ Each workflow consists of a **workflow** record, a graph of **steps**, **transit
 | GET    | `/workflows/fields`                               | Fields available to use in `CONDITION` step filters (contact + event fields).             |
 | POST   | `/workflows`                                      | Create a workflow. Always starts with `triggerType: EVENT` and `enabled: false`.         |
 | GET    | `/workflows/:id`                                  | Get a workflow with its steps and transitions.                                           |
-| PATCH  | `/workflows/:id`                                  | Update workflow metadata, trigger type / config, `enabled`, `allowReentry`.              |
+| PATCH  | `/workflows/:id`                                  | Update workflow metadata, trigger type / config, `enabled`, `allowReentry`, `throttle`.  |
 | DELETE | `/workflows/:id`                                  | Delete a workflow. Active executions must be cancelled or completed first.               |
 | **Steps** |                                                |                                                                                          |
 | POST   | `/workflows/:id/steps`                            | Add a step (`SEND_EMAIL`, `DELAY`, `WAIT_FOR_EVENT`, `CONDITION`, `WEBHOOK`, `UPDATE_CONTACT`, `EXIT`). |

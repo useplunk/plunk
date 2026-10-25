@@ -15,3 +15,4 @@ export * from './SnippetTile';
 export * from './TransactionalSnippets';
 export * from './WorkflowSnippets';
 export * from './OpenSourceSnippets';
+export * from './DeliverySnippets';
