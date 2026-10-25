@@ -1,5 +1,6 @@
 import {type Contact, Prisma} from '@plunk/db';
 import type {
+  BulkContactActionSelector,
   ContactSubscriptionStatus,
   CursorPaginatedResponse,
   FilterCondition,
@@ -30,7 +31,9 @@ export class ContactService {
   }
 
   /**
-   * Translate a subscription status into a where-clause fragment.
+   * Build the where-clause for the contacts list filters: the email search plus the
+   * subscription status. Shared by the list, the select-all bulk actions and the export so
+   * "all matching" always means exactly the rows the dashboard shows.
    *
    * `snoozed` is derived, not stored -- it is `subscribed = false` with a snooze date still
    * set. `unsubscribed` therefore has to exclude snoozed contacts explicitly, or the two
@@ -38,6 +41,32 @@ export class ContactService {
    *
    * Falls back to the legacy `subscribed` boolean when no status is given.
    */
+  public static buildFilterWhere(
+    projectId: string,
+    filter: {search?: string; status?: ContactSubscriptionStatus; subscribed?: boolean} = {},
+  ): Prisma.ContactWhereInput {
+    return {
+      projectId,
+      ...(filter.search ? {email: {contains: filter.search, mode: 'insensitive' as const}} : {}),
+      ...this.buildStatusWhere(filter.status, filter.subscribed),
+    };
+  }
+
+  /**
+   * Where-clause for a "select all matching" selector: the list filters, minus the rows the
+   * user unticked.
+   */
+  public static buildQueryWhere(
+    projectId: string,
+    selector: Extract<BulkContactActionSelector, {mode: 'query'}>,
+  ): Prisma.ContactWhereInput {
+    const excludeIds = selector.excludeIds ?? [];
+    return {
+      ...this.buildFilterWhere(projectId, selector.filter),
+      ...(excludeIds.length > 0 ? {id: {notIn: excludeIds}} : {}),
+    };
+  }
+
   private static buildStatusWhere(
     status?: ContactSubscriptionStatus,
     subscribed?: boolean,
@@ -80,18 +109,7 @@ export class ContactService {
       dir?: 'asc' | 'desc';
     },
   ): Promise<CursorPaginatedResponse<Contact>> {
-    const where: Prisma.ContactWhereInput = {
-      projectId,
-      ...(search
-        ? {
-            email: {
-              contains: search,
-              mode: 'insensitive' as const,
-            },
-          }
-        : {}),
-      ...this.buildStatusWhere(options?.status, options?.subscribed),
-    };
+    const where = this.buildFilterWhere(projectId, {search, status: options?.status, subscribed: options?.subscribed});
 
     // The chosen sort column leads; `id` is always the stable tiebreaker the
     // cursor (`{id}`) keys off, so keyset pagination stays correct under any
