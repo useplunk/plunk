@@ -375,9 +375,21 @@ describe('buildEmailHeaders with a sender one-click URL', () => {
     expect(headers.Precedence).toBe('bulk');
   });
 
-  it('takes precedence over the Plunk endpoint for marketing sends', () => {
-    const headers = buildEmailHeaders({emailClass: 'marketing', senderUnsubscribeUrl: url, unsubscribeId: 'c-1'});
+  it('takes precedence over a Plunk list-management link in a headless body', () => {
+    const headers = buildEmailHeaders({emailClass: 'headless', hasListManagementLink: true, senderUnsubscribeUrl: url, unsubscribeId: 'c-1'});
     expect(headers['List-Unsubscribe']).toBe(`<${url}>`);
+  });
+
+  it('keeps Plunk\'s URL for a marketing send with a marked link', () => {
+    const headers = buildEmailHeaders({emailClass: 'marketing', senderUnsubscribeUrl: url, unsubscribeId: 'c-1', sourceEmailId: 'e-1'});
+    expect(headers['List-Unsubscribe']).toBe(`<${API_URI}/unsubscribe/c-1?e=e-1>`);
+    expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+  });
+
+  it('ignores a marked link in a transactional send', () => {
+    const headers = buildEmailHeaders({emailClass: 'transactional', senderUnsubscribeUrl: url, unsubscribeId: 'c-1'});
+    expect(headers['List-Unsubscribe']).toBeUndefined();
+    expect(headers['List-Unsubscribe-Post']).toBeUndefined();
   });
 
   it('still yields to caller-supplied headers', () => {
