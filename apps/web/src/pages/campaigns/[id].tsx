@@ -202,7 +202,10 @@ export default function CampaignDetailsPage() {
     isLoading,
   } = useSWR<{data: Campaign}>(id ? `/campaigns/${id}` : null, {
     revalidateOnFocus: false,
-    refreshInterval: revertPending ? 5000 : 0,
+    // While sending, poll the campaign along with its stats: the status is what moves the
+    // page from the progress panel to the results, so without it a tab left open over the
+    // end of a send kept showing "Sending" and never showed what failed.
+    refreshInterval: revertPending ? 5000 : latest => (latest?.data.status === CampaignStatus.SENDING ? 15000 : 0),
   });
 
   // Stop polling the moment the cleanup promotes the campaign, and give up if it is
@@ -1296,8 +1299,8 @@ export default function CampaignDetailsPage() {
                   <div>
                     <h3 className="font-semibold text-neutral-900">
                       {`${s.failedCount.toLocaleString()} of ${(s.sentCount + s.failedCount).toLocaleString()} ${
-                        s.failedCount === 1 ? 'recipient was' : 'recipients were'
-                      } not sent`}
+                        s.sentCount + s.failedCount === 1 ? 'recipient' : 'recipients'
+                      } ${s.failedCount === 1 ? 'was' : 'were'} not sent`}
                     </h3>
                     <p className="mt-1 text-sm text-neutral-600">
                       Sending finished, but these emails failed before reaching your email provider. They are not
@@ -1386,7 +1389,10 @@ export default function CampaignDetailsPage() {
               <CardDescription>
                 {`Sent to ${s.sentCount.toLocaleString()} ${s.sentCount === 1 ? 'contact' : 'contacts'}`}
                 {c.sentAt ? ` on ${formatFullDateTime(new Date(c.sentAt))}` : ''}
-                {s.failedCount > 0 ? `, ${s.failedCount.toLocaleString()} not sent` : ''}.
+                {c.status === CampaignStatus.SENT && s.failedCount > 0
+                  ? `, ${s.failedCount.toLocaleString()} not sent`
+                  : ''}
+                .
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

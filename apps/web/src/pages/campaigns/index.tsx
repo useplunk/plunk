@@ -551,8 +551,9 @@ export default function CampaignsPage() {
       );
     }
     const count = campaign.status === 'SENT' ? campaign.sentCount : campaign.totalRecipients;
-    if (count === 0 && campaign.failedCount === 0) return <span className="text-sm text-neutral-300">—</span>;
-    if (campaign.status === 'SENT' && campaign.failedCount > 0) {
+    const showFailed = campaign.status === 'SENT' && campaign.failedCount > 0;
+    if (count === 0 && !showFailed) return <span className="text-sm text-neutral-300">—</span>;
+    if (showFailed) {
       return (
         <div className="text-sm tabular-nums">
           <span className="font-semibold text-neutral-900">{count.toLocaleString()}</span>

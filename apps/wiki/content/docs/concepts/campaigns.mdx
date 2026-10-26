@@ -87,11 +87,13 @@ Complaint rate deserves attention out of proportion to its size: mailbox provide
 
 ### Recipients that were not sent
 
-`failedCount` counts recipients whose email failed before your email provider accepted it, so it never reached them. The most common cause is running out of AWS SES sending quota partway through a send: once the 24-hour limit is used up, SES refuses every remaining email with `Daily message quota exceeded.`. A campaign with failures still finishes as `SENT` when nothing is left to process, so check `failedCount` before you treat a send as complete.
+`failedCount` counts recipients whose email failed before your email provider accepted it, so it never reached them. The most common cause is running out of AWS SES sending quota partway through a send: once the 24-hour limit is used up, SES refuses every remaining email with `Daily message quota exceeded.`. A campaign with failures still finishes as `SENT` when nothing is left to process, so check `failedCount` before you treat a send as complete. Emails you stopped yourself, by cancelling the campaign, are not counted.
 
-When `failedCount` is above zero and the campaign is no longer sending, the stats response also includes `failureReasons`. This lists the most common errors, each with the number of recipients it affected, so different causes stay separate (for example, a quota stop and two dropped connections). The campaign page shows the same breakdown.
+Once a campaign with failures finishes, the stats response also includes `failureReasons`. It lists the most common errors, each with the number of recipients it affected, so different causes stay separate (for example, a quota stop and two dropped connections). The campaign page shows the same breakdown.
 
-Failed emails are not retried automatically, and the failed recipients cannot be re-sent on their own yet. To reach them, wait for your quota to reset (or raise it), then send a new campaign to a segment that leaves out contacts who already received this one.
+Failed emails are not retried automatically, and there is not yet a way to re-send a campaign to only its failed recipients.
+
+Campaigns that finished before `failedCount` existed report `0` until something recounts them, even if some of their emails failed.
 
 ## Test sends
 

@@ -90,6 +90,25 @@ function deriveWorkerConcurrency(rateLimit: number): number {
 }
 
 /**
+ * Finalize the email's campaign if this was its last outstanding email, without ever
+ * throwing. Every caller has already decided the email's fate: on the success paths SES
+ * has the message, and an exception from here would land in the catch below and mark a
+ * delivered email FAILED; on the failure path it would replace the send error being
+ * rethrown. A finalization that fails here is picked up by the stalled-campaign sweep.
+ */
+async function finalizeCampaign(campaignId: string | null): Promise<void> {
+  if (!campaignId) {
+    return;
+  }
+
+  try {
+    await CampaignService.finalizeIfDone(campaignId);
+  } catch (error) {
+    signale.error(`[EMAIL-PROCESSOR] Failed to finalize campaign ${campaignId}:`, error);
+  }
+}
+
+/**
  * Send one email. Exported so it can be tested without a queue; the worker below is a thin
  * wrapper around it.
  */
@@ -161,7 +180,7 @@ export async function processEmailJob(emailId: string): Promise<void> {
       where: {id: emailId},
       data: {
         status: EmailStatus.FAILED,
-        error: `Campaign ${email.campaign.status.toLowerCase()}`,
+        error: CampaignService.skippedEmailError(email.campaign.status),
       },
     });
 
@@ -184,9 +203,7 @@ export async function processEmailJob(emailId: string): Promise<void> {
 
     // Cancelled emails are terminal for the campaign — finalize so it doesn't
     // stay stuck in SENDING forever waiting on emails that will never be sent.
-    if (email.campaignId) {
-      await CampaignService.finalizeIfDone(email.campaignId);
-    }
+    await finalizeCampaign(email.campaignId);
     return;
   }
 
@@ -349,9 +366,7 @@ export async function processEmailJob(emailId: string): Promise<void> {
     if (marked.count === 0) {
       signale.warn(`[EMAIL-PROCESSOR] Email ${emailId} was already marked sent, skipping duplicate side effects`);
 
-      if (email.campaignId) {
-        await CampaignService.finalizeIfDone(email.campaignId);
-      }
+      await finalizeCampaign(email.campaignId);
 
       return;
     }
@@ -385,9 +400,7 @@ export async function processEmailJob(emailId: string): Promise<void> {
       sentAt: new Date().toISOString(),
     });
 
-    if (email.campaignId) {
-      await CampaignService.finalizeIfDone(email.campaignId);
-    }
+    await finalizeCampaign(email.campaignId);
   } catch (error) {
     signale.error(`[EMAIL-PROCESSOR] Failed to send email ${emailId}:`, error);
 
@@ -408,14 +421,7 @@ export async function processEmailJob(emailId: string): Promise<void> {
     // the last chance to finalize it. When the tail of a send fails -- SES rejecting every
     // remaining email once the daily quota is spent is the usual case -- no success path
     // runs after the last failure, and without this the campaign stays SENDING forever.
-    // Guarded so a finalization error cannot mask the send error being rethrown below.
-    if (email.campaignId) {
-      try {
-        await CampaignService.finalizeIfDone(email.campaignId);
-      } catch (finalizeError) {
-        signale.error(`[EMAIL-PROCESSOR] Failed to finalize campaign ${email.campaignId}:`, finalizeError);
-      }
-    }
+    await finalizeCampaign(email.campaignId);
 
     throw error; // Re-throw to trigger retry
   }
