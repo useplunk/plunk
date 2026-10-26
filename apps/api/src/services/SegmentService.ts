@@ -660,33 +660,29 @@ export class SegmentService {
         throw new HttpException(400, `Referenced segment not found: ${segmentId}`);
       }
 
-      let memberIds: string[];
-
       if (referencedSegment.type === 'STATIC' || referencedSegment.trackMembership) {
-        // Use the membership table for static or tracked segments
-        const memberships = await prisma.segmentMembership.findMany({
-          where: {segmentId, exitedAt: null},
-          select: {contactId: true},
-        });
-        memberIds = memberships.map(m => m.contactId);
-      } else {
-        // For untracked dynamic segments, evaluate the condition recursively
-        const nestedCondition = fromPrismaJson<FilterCondition>(referencedSegment.condition);
-        const nextVisited = new Set(visitedSegments).add(segmentId);
-        const nestedWhere = await this.buildConditionClause(nestedCondition, nextVisited);
+        // Filter through the membership table of static or tracked segments rather than loading
+        // the members: a list of ids grows with the segment, and a query stops working past
+        // 32,767 bind variables.
+        const activeMembership = {segmentId, exitedAt: null};
 
         if (operator === 'memberOfSegment') {
-          return nestedWhere;
+          return {segmentMemberships: {some: activeMembership}};
         }
 
-        return {NOT: nestedWhere};
+        return {segmentMemberships: {none: activeMembership}};
       }
+
+      // For untracked dynamic segments, evaluate the condition recursively
+      const nestedCondition = fromPrismaJson<FilterCondition>(referencedSegment.condition);
+      const nextVisited = new Set(visitedSegments).add(segmentId);
+      const nestedWhere = await this.buildConditionClause(nestedCondition, nextVisited);
 
       if (operator === 'memberOfSegment') {
-        return {id: {in: memberIds}};
+        return nestedWhere;
       }
 
-      return {id: {notIn: memberIds}};
+      return {NOT: nestedWhere};
     }
 
     // Handle event-based filters (e.g., "event.upgrade", "event.purchase")
