@@ -83,7 +83,7 @@ describe('SegmentService - segment membership filters', () => {
       'builds a %s filter that does not grow with the segment',
       async operator => {
         const built = JSON.stringify(
-          await SegmentService.buildConditionClause(membershipCondition(segmentId, operator)),
+          await SegmentService.buildConditionClause(projectId, membershipCondition(segmentId, operator)),
         );
 
         for (const contactId of Object.values(contacts)) {
@@ -104,6 +104,15 @@ describe('SegmentService - segment membership filters', () => {
       expect(await matches(referenced.id, 'memberOfSegment')).toEqual([pro.id]);
       expect(await matches(referenced.id, 'notMemberOfSegment')).toEqual([free.id]);
     });
+  });
+
+  it('rejects a segment of another project', async () => {
+    const {project: other} = await factories.createUserWithProject();
+    const foreign = await prisma.segment.create({data: {projectId: other.id, name: 'Foreign', type: 'STATIC'}});
+
+    await expect(
+      SegmentService.create(projectId, {name: 'Filter', condition: membershipCondition(foreign.id, 'memberOfSegment')}),
+    ).rejects.toThrow(`Referenced segment not found: ${foreign.id}`);
   });
 
   it('counts the recipients of a filtered campaign', async () => {
