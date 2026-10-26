@@ -1059,7 +1059,7 @@ describe('SES header serialization', () => {
     const rawMessage = new TextDecoder().decode(callArgs.RawMessage.Data);
 
     expect(rawMessage).toContain(`Content-Disposition: attachment;\n filename*=UTF-8''Men%C3%BA%20oto%C3%B1o.pdf`);
-    expect(rawMessage).toMatch(/^[\x00-\x7F]*$/);
+    expect(rawMessage).toMatch(/^[\x20-\x7E\n]*$/);
   });
 });
 

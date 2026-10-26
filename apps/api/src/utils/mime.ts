@@ -200,6 +200,8 @@ const MAX_LINE_LENGTH = 998;
  * systems.
  */
 function sanitizeHeaderText(value: string): string {
+  // Matching control characters is the point of this pattern.
+  // eslint-disable-next-line no-control-regex
   return value.replace(/\r\n|[\r\n\t]/g, ' ').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 }
 
