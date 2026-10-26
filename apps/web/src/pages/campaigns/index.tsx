@@ -222,6 +222,15 @@ function CampaignCardStats({campaign}: {campaign: CampaignListItem}) {
         {stat(`${rate(campaign.openedCount, campaign.sentCount).toFixed(1)}%`, 'opened')}
         {divider}
         {stat(`${rate(campaign.clickedCount, campaign.sentCount).toFixed(1)}%`, 'clicked')}
+        {campaign.failedCount > 0 && (
+          <>
+            {divider}
+            <span className="text-amber-700">
+              <strong className="font-semibold tabular-nums">{campaign.failedCount.toLocaleString()}</strong>
+              <span className="ml-1 text-xs">not sent</span>
+            </span>
+          </>
+        )}
       </div>
     );
   }
@@ -542,7 +551,15 @@ export default function CampaignsPage() {
       );
     }
     const count = campaign.status === 'SENT' ? campaign.sentCount : campaign.totalRecipients;
-    if (count === 0) return <span className="text-sm text-neutral-300">—</span>;
+    if (count === 0 && campaign.failedCount === 0) return <span className="text-sm text-neutral-300">—</span>;
+    if (campaign.status === 'SENT' && campaign.failedCount > 0) {
+      return (
+        <div className="text-sm tabular-nums">
+          <span className="font-semibold text-neutral-900">{count.toLocaleString()}</span>
+          <div className="text-xs text-amber-700">{campaign.failedCount.toLocaleString()} not sent</div>
+        </div>
+      );
+    }
     return (
       <span
         className={

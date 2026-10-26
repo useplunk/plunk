@@ -31,7 +31,7 @@ import {
   StickySaveBar,
 } from '@plunk/ui';
 import type {Campaign, Segment} from '@plunk/db';
-import type {CampaignRecipientType} from '@plunk/types';
+import type {CampaignFailureReason, CampaignRecipientType} from '@plunk/types';
 import {CampaignAudienceType, CampaignStatus, TemplateType} from '@plunk/db';
 import {CampaignSchemas, detectUnsubscribeSignal} from '@plunk/shared';
 import {AnimatedNumber} from '../../components/AnimatedNumber';
@@ -77,6 +77,10 @@ interface CampaignStats {
   bouncedCount: number;
   complainedCount: number;
   unsubscribedCount: number;
+  /** Recipients the send never reached: their email failed before SES accepted it. */
+  failedCount: number;
+  /** Why, most common cause first. Empty while the campaign is still sending. */
+  failureReasons: CampaignFailureReason[];
   openRate: number;
   clickRate: number;
   bounceRate: number;
@@ -149,6 +153,35 @@ function figureTone(figure: SupportingFigure, s: CampaignStats): string {
   }
 
   return 'text-neutral-900';
+}
+
+/**
+ * Plain-language labels for the send errors a user can do something about. Matched on the
+ * error SES (or the send path) recorded, so anything unrecognised is shown verbatim rather
+ * than guessed at.
+ */
+const FAILURE_EXPLANATIONS: {match: RegExp; label: string; detail: string}[] = [
+  {
+    match: /daily message quota exceeded/i,
+    label: 'Daily sending quota reached',
+    detail:
+      'Your AWS SES account hit its 24-hour sending limit, so SES refused the rest of this send. These recipients were not emailed.',
+  },
+  {
+    match: /maximum sending rate exceeded/i,
+    label: 'Sending rate limit exceeded',
+    detail: 'SES refused these emails because they were sent faster than your account allows per second.',
+  },
+  {
+    match: /^project is disabled$/i,
+    label: 'Project disabled',
+    detail: 'The project was disabled while this campaign was sending, so the remaining emails were not sent.',
+  },
+];
+
+function explainFailure(error: string): {label: string; detail?: string} {
+  const known = FAILURE_EXPLANATIONS.find(explanation => explanation.match.test(error));
+  return known ? {label: known.label, detail: known.detail} : {label: error};
 }
 
 export default function CampaignDetailsPage() {
@@ -1250,6 +1283,51 @@ export default function CampaignDetailsPage() {
           </Card>
         )}
 
+        {/* A finished send that did not reach everyone. Without this a campaign that lost a
+            fifth of its audience to the SES daily quota read exactly like a clean send: SENT,
+            with a smaller number. Each cause is listed on its own, so a quota stop and a
+            couple of dropped connections are not merged into one figure. */}
+        {c.status === CampaignStatus.SENT && s && s.failedCount > 0 && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-neutral-900">
+                      {`${s.failedCount.toLocaleString()} of ${(s.sentCount + s.failedCount).toLocaleString()} ${
+                        s.failedCount === 1 ? 'recipient was' : 'recipients were'
+                      } not sent`}
+                    </h3>
+                    <p className="mt-1 text-sm text-neutral-600">
+                      Sending finished, but these emails failed before reaching your email provider. They are not
+                      retried automatically.
+                    </p>
+                  </div>
+                  {s.failureReasons.length > 0 && (
+                    <ul className="space-y-2 border-t border-amber-200 pt-3">
+                      {s.failureReasons.map(reason => {
+                        const {label, detail} = explainFailure(reason.error);
+                        return (
+                          <li key={reason.error} className="text-sm">
+                            <div className="flex items-baseline justify-between gap-4">
+                              <span className="font-medium text-neutral-900 break-words">{label}</span>
+                              <span className="shrink-0 tabular-nums text-neutral-600">
+                                {reason.count.toLocaleString()}
+                              </span>
+                            </div>
+                            {detail && <p className="mt-0.5 text-xs text-neutral-600">{detail}</p>}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Results. Only from the moment sending starts: a scheduled campaign has nothing to
             report yet, and its audience and send time are already in Campaign info below. */}
         {hasResults && statsError && !s && (
@@ -1307,7 +1385,8 @@ export default function CampaignDetailsPage() {
               <CardTitle>Results</CardTitle>
               <CardDescription>
                 {`Sent to ${s.sentCount.toLocaleString()} ${s.sentCount === 1 ? 'contact' : 'contacts'}`}
-                {c.sentAt ? ` on ${formatFullDateTime(new Date(c.sentAt))}` : ''}.
+                {c.sentAt ? ` on ${formatFullDateTime(new Date(c.sentAt))}` : ''}
+                {s.failedCount > 0 ? `, ${s.failedCount.toLocaleString()} not sent` : ''}.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

@@ -345,6 +345,10 @@ model Campaign {
   // unsubscribes only; bounce- and complaint-driven suppression is reported by
   // bouncedCount and complainedCount, and would otherwise be counted twice.
   unsubscribedCount Int @default(0)
+  // Recipients the send never reached: emails that ended FAILED without SES accepting them
+  // (sentAt null), e.g. once the account's daily sending quota ran out mid-send. Written by
+  // CampaignService.reconcileStats alongside the engagement counters.
+  failedCount       Int @default(0)
 
   // Hides a campaign from the default list without touching its data. Orthogonal to
   // `status` on purpose: a campaign is both SENT and archived, so this is not a sixth

@@ -404,6 +404,19 @@ export async function processEmailJob(emailId: string): Promise<void> {
     // reached the recipient, so it must not hold back the next send of its notification.
     await ThrottleService.releaseForEmail(emailId);
 
+    // Terminal for the campaign too, and for the same reason the retry cannot help: this is
+    // the last chance to finalize it. When the tail of a send fails -- SES rejecting every
+    // remaining email once the daily quota is spent is the usual case -- no success path
+    // runs after the last failure, and without this the campaign stays SENDING forever.
+    // Guarded so a finalization error cannot mask the send error being rethrown below.
+    if (email.campaignId) {
+      try {
+        await CampaignService.finalizeIfDone(email.campaignId);
+      } catch (finalizeError) {
+        signale.error(`[EMAIL-PROCESSOR] Failed to finalize campaign ${email.campaignId}:`, finalizeError);
+      }
+    }
+
     throw error; // Re-throw to trigger retry
   }
 }

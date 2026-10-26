@@ -77,3 +77,16 @@ export interface CampaignRecipient {
   /** ISO 8601. The bounce, complaint or opt-out timestamp, whichever list this is. */
   occurredAt: string;
 }
+
+/**
+ * One cause of a campaign's failed sends, with how many recipients it stopped.
+ *
+ * Grouped by the error the send path recorded on the email row, so distinct causes stay
+ * distinct: a run that hit the SES daily quota and also lost two sends to a dropped socket
+ * reports two reasons, not one.
+ */
+export interface CampaignFailureReason {
+  /** The error recorded on the failed emails, verbatim. */
+  error: string;
+  count: number;
+}
