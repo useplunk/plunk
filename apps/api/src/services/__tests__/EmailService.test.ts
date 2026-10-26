@@ -740,7 +740,7 @@ describe('SES MIME Boundary Structure', () => {
     const relatedBoundary = relatedBoundaryMatch ? relatedBoundaryMatch[1] : '';
 
     expect(rawMessage).toContain(`--${relatedBoundary}\nContent-Type: multipart/alternative`);
-    expect(rawMessage).toContain(`Content-Disposition: inline; filename="image.png"`);
+    expect(rawMessage).toContain(`Content-Disposition: inline;\n filename="image.png"`);
     expect(rawMessage).toContain(`--${relatedBoundary}--`);
   });
 
@@ -989,6 +989,77 @@ describe('SES header serialization', () => {
     // terminate it (which would push the Content-Type into the body).
     expect(headerSection.endsWith('\n')).toBe(false);
     expect(headerSection).toContain('Content-Type:');
+  });
+
+  it('sends non-ASCII subjects and names as ASCII encoded-words', async () => {
+    const {sendRawEmail: realSendRawEmail, ses} = await vi.importActual<typeof import('../SESService')>('../SESService');
+
+    await realSendRawEmail({
+      from: {name: 'Café Acmé', email: 'sender@example.com'},
+      to: [{name: 'Doe, Jane', email: 'jane@example.com'}],
+      content: {subject: '¡Novedades de otoño!', html: '<p>Hola</p>'},
+    });
+
+    const callArgs = (ses.sendRawEmail as Mock).mock.calls[0][0];
+    const rawMessage = new TextDecoder().decode(callArgs.RawMessage.Data);
+    const [headerSection] = rawMessage.split('\n\n');
+
+    expect(headerSection).toMatch(/^[\x20-\x7E\n]*$/);
+    expect(headerSection).toContain('From: =?UTF-8?Q?Caf=C3=A9_Acm=C3=A9?= <sender@example.com>');
+    expect(headerSection).toContain('To: "Doe, Jane" <jane@example.com>');
+    expect(headerSection).toContain('Subject: =?UTF-8?Q?=C2=A1Novedades_de_oto=C3=B1o!?=');
+    // The display name travels in the From header; Source is only the identity.
+    expect(callArgs.Source).toBe('sender@example.com');
+  });
+
+  it('keeps Source and every header line short with a long non-ASCII sender name', async () => {
+    const {sendRawEmail: realSendRawEmail, ses} = await vi.importActual<typeof import('../SESService')>('../SESService');
+
+    await realSendRawEmail({
+      from: {name: 'Café Acmé · Nutrición y bienestar para tu día a día', email: 'sender@example.com'},
+      to: [
+        {name: 'Pérez, Ana', email: 'ana@example.com'},
+        {name: 'Núñez, Íñigo', email: 'inigo@example.com'},
+      ],
+      content: {
+        subject: '🍂 ¡Novedades de otoño! Recetas, menús y una sorpresa especial para ti',
+        html: '<p>Hola</p>',
+      },
+    });
+
+    const callArgs = (ses.sendRawEmail as Mock).mock.calls[0][0];
+    const rawMessage = new TextDecoder().decode(callArgs.RawMessage.Data);
+    const [headerSection] = rawMessage.split('\n\n');
+
+    expect(callArgs.Source).toBe('sender@example.com');
+    // RFC 2047 §2 limits lines that carry encoded-words to 76 characters.
+    for (const line of headerSection.split('\n')) {
+      expect(line.length).toBeLessThanOrEqual(76);
+    }
+  });
+
+  it('encodes non-ASCII attachment filenames with RFC 2231', async () => {
+    const {sendRawEmail: realSendRawEmail, ses} = await vi.importActual<typeof import('../SESService')>('../SESService');
+
+    await realSendRawEmail({
+      from: {name: 'Sender', email: 'sender@example.com'},
+      to: ['recipient@example.com'],
+      content: {subject: 'Test Subject', html: '<p>Hello world</p>'},
+      attachments: [
+        {
+          filename: 'Menú otoño.pdf',
+          content: 'SGVsbG8=',
+          contentType: 'application/pdf',
+          disposition: 'attachment' as const,
+        },
+      ],
+    });
+
+    const callArgs = (ses.sendRawEmail as Mock).mock.calls[0][0];
+    const rawMessage = new TextDecoder().decode(callArgs.RawMessage.Data);
+
+    expect(rawMessage).toContain(`Content-Disposition: attachment;\n filename*=UTF-8''Men%C3%BA%20oto%C3%B1o.pdf`);
+    expect(rawMessage).toMatch(/^[\x00-\x7F]*$/);
   });
 });
 

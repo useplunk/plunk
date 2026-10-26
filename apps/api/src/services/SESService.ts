@@ -10,7 +10,13 @@ import {
   SES_CONFIGURATION_SET_NO_TRACKING,
   TRACKING_TOGGLE_ENABLED,
 } from '../app/constants.js';
-import {encodeQuotedPrintable, htmlToPlainText} from '../utils/mime.js';
+import {
+  encodeHeaderValue,
+  encodeQuotedPrintable,
+  formatFilenameParameter,
+  formatMailbox,
+  htmlToPlainText,
+} from '../utils/mime.js';
 
 /**
  * AWS SES Client
@@ -92,14 +98,8 @@ export async function sendRawEmail({
 
   // Format To header with names if provided
   const toHeader = to
-    .map(recipient => {
-      if (typeof recipient === 'string') {
-        return recipient;
-      } else {
-        return recipient.name ? `${recipient.name} <${recipient.email}>` : recipient.email;
-      }
-    })
-    .join(', ');
+    .map(recipient => (typeof recipient === 'string' ? recipient : formatMailbox(recipient.name, recipient.email)))
+    .join(',\n ');
 
   // Extract just email addresses for Destinations (SES requirement)
   const destinations = to.map(recipient => (typeof recipient === 'string' ? recipient : recipient.email));
@@ -120,10 +120,10 @@ export async function sendRawEmail({
   const extraHeaders = extraHeaderLines.length > 0 ? `\n${extraHeaderLines.join('\n')}` : '';
 
   // Build raw MIME message
-  let rawMessage = `From: ${from.name} <${from.email}>
+  let rawMessage = `From: ${formatMailbox(from.name, from.email)}
 To: ${toHeader}
 Reply-To: ${reply || from.email}
-Subject: ${content.subject}
+Subject: ${encodeHeaderValue(content.subject, 'Subject: '.length)}
 MIME-Version: 1.0
 Content-Type: ${rootContentType}${extraHeaders}
 
@@ -179,7 +179,8 @@ ${encodeQuotedPrintable(content.html)}
 Content-Type: ${attachment.contentType}
 Content-Transfer-Encoding: base64
 Content-ID: <${attachment.contentId || attachment.filename}>
-Content-Disposition: inline; filename="${attachment.filename}"
+Content-Disposition: inline;
+ ${formatFilenameParameter(attachment.filename)}
 
 ${breakLongLines(attachment.content, 76)}`;
     }
@@ -193,7 +194,8 @@ ${breakLongLines(attachment.content, 76)}`;
       rawMessage += `\n--${mixedBoundary}
 Content-Type: ${attachment.contentType}
 Content-Transfer-Encoding: base64
-Content-Disposition: attachment; filename="${attachment.filename}"
+Content-Disposition: attachment;
+ ${formatFilenameParameter(attachment.filename)}
 
 ${breakLongLines(attachment.content, 76)}`;
     }
@@ -212,7 +214,9 @@ ${breakLongLines(attachment.content, 76)}`;
     RawMessage: {
       Data: new TextEncoder().encode(rawMessage),
     },
-    Source: `${from.name} <${from.email}>`,
+    // The address alone: the display name travels in the From header above, and Source
+    // only names the sending identity and where bounces go.
+    Source: from.email,
   });
 
   if (!response.MessageId) {
