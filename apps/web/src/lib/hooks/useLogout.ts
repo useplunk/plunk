@@ -1,4 +1,3 @@
-import {useRouter} from 'next/router';
 import {useCallback} from 'react';
 
 import {network} from '../network';
@@ -12,7 +11,6 @@ import {useUser} from './useUser';
  * effect client-side.
  */
 export function useLogout() {
-  const router = useRouter();
   const {mutate: mutateUser} = useUser();
 
   return useCallback(async () => {
@@ -25,6 +23,9 @@ export function useLogout() {
     localStorage.removeItem('token');
     localStorage.removeItem('activeProjectId');
     await mutateUser(null, false);
-    await router.push('/auth/login');
-  }, [mutateUser, router]);
+    // A hard navigation, so no SWR state survives into the login page. Otherwise the next
+    // sign-in reuses the cached project list and the active project id is not stored again;
+    // another user signing in would also see this one's cached data at first.
+    window.location.href = '/auth/login';
+  }, [mutateUser]);
 }
