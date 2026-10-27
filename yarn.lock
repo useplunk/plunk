@@ -3469,7 +3469,7 @@ __metadata:
     "@types/node": "npm:^24.10.0"
     liquidjs: "npm:^10.27.2"
     typescript: "npm:^5.7.2"
-    zod: "npm:^3.23.8"
+    zod: "npm:^4.6.6"
   languageName: unknown
   linkType: soft
 
@@ -8273,7 +8273,7 @@ __metadata:
     stripe: "npm:^20.0.0"
     tldts: "npm:^7.4.16"
     tsx: "npm:^4.20.6"
-    zod: "npm:^3.23.8"
+    zod: "npm:^4.6.6"
   languageName: unknown
   linkType: soft
 
@@ -16145,7 +16145,7 @@ __metadata:
     typescript-eslint: "npm:^8.48.0"
     vitest: "npm:^4.1.11"
     vitest-mock-extended: "npm:^3.1.0"
-    zod: "npm:^3.23.8"
+    zod: "npm:^4.6.6"
   languageName: unknown
   linkType: soft
 
@@ -19904,7 +19904,7 @@ __metadata:
     tippy.js: "npm:^6.3.7"
     tw-animate-css: "npm:^1.4.0"
     typescript: "npm:^5.7.2"
-    zod: "npm:^3.23.8"
+    zod: "npm:^4.6.6"
   languageName: unknown
   linkType: soft
 
@@ -20293,17 +20293,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.23.8":
-  version: 3.25.76
-  resolution: "zod@npm:3.25.76"
-  checksum: 10c0/5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c
-  languageName: node
-  linkType: hard
-
 "zod@npm:^3.25.0 || ^4.0.0, zod@npm:^4.1.12, zod@npm:^4.2.0":
   version: 4.4.3
   resolution: "zod@npm:4.4.3"
   checksum: 10c0/7ea31b558e88f9faf44f31dd185e2e1cbf51fed3081787fb96cc2534749b50c0acfc6da7f0922a7353ed092dd358c7d50c28ea96c94d04af64191bd33152eca3
+  languageName: node
+  linkType: hard
+
+"zod@npm:^4.6.6":
+  version: 4.6.6
+  resolution: "zod@npm:4.6.6"
+  checksum: 10c0/447a3113bb743c54ab839213ff95e9e8c197cc1206f65270c18aac35aa70c47a5c8cab753be911b574df9a8a9801ea74ed6be776575232cae0084e51dab3e970
   languageName: node
   linkType: hard
 

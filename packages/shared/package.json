@@ -16,7 +16,7 @@
   "dependencies": {
     "@plunk/types": "*",
     "liquidjs": "^10.27.2",
-    "zod": "^3.23.8"
+    "zod": "^4.6.6"
   },
   "exports": {
     ".": "./dist/index.js"

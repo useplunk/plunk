@@ -45,7 +45,7 @@
     "signale": "^1.4.0",
     "stripe": "^20.0.0",
     "tldts": "^7.4.16",
-    "zod": "^3.23.8"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
