@@ -177,3 +177,8 @@ export function paginationHint(hasMore: boolean, cursor: string | null | undefin
     `if you do need the next page, pass cursor="${cursor}".`
   );
 }
+
+/** Next-page notice for the page-based lists (`page`/`pageSize` rather than a cursor). */
+export function pageHint(page: number, totalPages: number): string {
+  return page < totalPages ? `\n\nMore results exist. For the next page, pass page=${page + 1}.` : '';
+}
