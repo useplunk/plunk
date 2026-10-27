@@ -14,7 +14,7 @@ import {
   type MetricKey,
   thresholdTone,
 } from './metrics';
-import {ChartSkeleton, DeltaLabel, Panel, PanelEmpty, PanelError, RowsSkeleton} from './primitives';
+import {ChartSkeleton, DeltaLabel, Panel, PanelEmpty, PanelError, PeriodLegend, RowsSkeleton} from './primitives';
 import {type Column, RateTable} from './RateTable';
 
 const STREAM_LABEL: Record<AnalyticsStreamRow['stream'], string> = {
@@ -116,7 +116,7 @@ export function OverviewTab({filters}: {filters: AnalyticsFilters}) {
           <h2 className="text-sm font-medium text-neutral-900">
             {def.label} {series.data?.granularity === 'hour' ? 'by hour' : 'by day'}
           </h2>
-          <Legend />
+          <PeriodLegend />
         </div>
 
         {series.error && !series.data ? (
@@ -146,21 +146,6 @@ export function OverviewTab({filters}: {filters: AnalyticsFilters}) {
       </section>
 
       <StreamTable filters={filters} overview={overview.data} error={!!overview.error} retry={() => void overview.mutate()} />
-    </div>
-  );
-}
-
-function Legend() {
-  return (
-    <div className="flex items-center gap-4 text-xs text-neutral-500" aria-hidden>
-      <span className="inline-flex items-center gap-1.5">
-        <span className="h-0.5 w-3.5 rounded-full bg-neutral-900" />
-        This period
-      </span>
-      <span className="inline-flex items-center gap-1.5">
-        <span className="w-3.5 border-t border-dashed border-neutral-400" />
-        Previous period
-      </span>
     </div>
   );
 }
