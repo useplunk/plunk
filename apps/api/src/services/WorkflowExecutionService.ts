@@ -333,9 +333,9 @@ export class WorkflowExecutionService {
       return;
     }
 
-    // Mark step as completed with timeout
-    await prisma.workflowStepExecution.update({
-      where: {id: stepExecution.id},
+    // Mark step as completed with timeout, unless the event claimed the wait since it was read
+    const {count} = await prisma.workflowStepExecution.updateMany({
+      where: {id: stepExecution.id, status: StepExecutionStatus.WAITING},
       data: {
         status: StepExecutionStatus.COMPLETED,
         completedAt: new Date(),
@@ -350,6 +350,10 @@ export class WorkflowExecutionService {
         },
       },
     });
+
+    if (count === 0) {
+      return;
+    }
 
     // Continue workflow - find transitions with timeout/fallback logic
     const transitions = stepExecution.step.outgoingTransitions || [];
@@ -483,9 +487,12 @@ export class WorkflowExecutionService {
       const config = stepExecution.step.config;
 
       if (config && typeof config === 'object' && 'eventName' in config && config.eventName === eventName) {
-        // Event matches, resume execution
-        await prisma.workflowStepExecution.update({
-          where: {id: stepExecution.id},
+        // Event matches. Claim the wait before resuming it: the list above can be stale by now,
+        // as the same event may be delivered twice at once (SES notifications, repeated clicks)
+        // or tracked again while an earlier wait of this loop was resumed. Whoever moves the
+        // step out of WAITING resumes it; everyone else leaves it alone.
+        const {count} = await prisma.workflowStepExecution.updateMany({
+          where: {id: stepExecution.id, status: StepExecutionStatus.WAITING},
           data: {
             status: StepExecutionStatus.COMPLETED,
             completedAt: new Date(),
@@ -497,8 +504,18 @@ export class WorkflowExecutionService {
           },
         });
 
-        // Cancel any pending timeout job
-        await QueueService.cancelWorkflowTimeout(stepExecution.id);
+        if (count === 0) {
+          continue;
+        }
+
+        // Cancel any pending timeout job. Best effort: a timeout job that is already running
+        // cannot be removed, and it will find the wait claimed and stop. Failing here would
+        // leave the claimed execution with nobody to move it on.
+        try {
+          await QueueService.cancelWorkflowTimeout(stepExecution.id);
+        } catch (error) {
+          signale.warn(`[WORKFLOW] Could not cancel the timeout of step execution ${stepExecution.id}:`, error);
+        }
 
         // Continue workflow
         await this.processNextSteps(stepExecution.execution, stepExecution.step, {eventReceived: true});
