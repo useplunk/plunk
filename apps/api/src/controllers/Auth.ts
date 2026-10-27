@@ -21,7 +21,7 @@ import {
 import {prisma} from '../database/prisma.js';
 import {redis, REDIS_ONE_MINUTE} from '../database/redis.js';
 import {BadRequest, NotAuthenticated, RateLimitError} from '../exceptions/index.js';
-import {jwt, parseJwt} from '../middleware/auth.js';
+import {assertTrustedOrigin, jwt, parseJwt} from '../middleware/auth.js';
 import {AuthService} from '../services/AuthService.js';
 import {EmailVerificationService} from '../services/EmailVerificationService.js';
 import {NtfyService} from '../services/NtfyService.js';
@@ -156,8 +156,12 @@ export class Auth {
     });
   }
 
-  @Get('logout')
-  public logout(req: Request, res: Response) {
+  @Post('logout')
+  @CatchAsync
+  public async logout(req: Request, res: Response, _next: NextFunction) {
+    // Logout reads no session, so it bypasses parseJwt; check the origin here so other sites cannot sign users out
+    assertTrustedOrigin(req);
+
     res.cookie(UserService.COOKIE_NAME, '', UserService.cookieOptions(new Date()));
     return res.json(true);
   }

@@ -15,7 +15,7 @@ export function useLogout() {
 
   return useCallback(async () => {
     try {
-      await network.fetch('GET', '/auth/logout');
+      await network.fetch('POST', '/auth/logout');
     } catch {
       // The cookie may already be gone; the local teardown below still has to run.
     }
