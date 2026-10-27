@@ -621,15 +621,23 @@ function localBucket(column: Prisma.Sql, tz: string, granularity: AnalyticsGranu
  * Every local bucket in the range, so quiet hours and days come back as zeros instead of
  * gaps. Stops at the current bucket: a range that ends tomorrow does not draw a cliff
  * through hours that have not happened yet.
+ *
+ * Starts at the first whole bucket. A previous period across a DST change does not begin at
+ * local midnight (30 local days are 30 days and an hour long when the clocks go back), and
+ * flooring its start would add a one-hour bucket at the front, shifting every point of the
+ * previous series a day against the current one it is drawn under.
  */
 function bucketSeries(query: AnalyticsQuery, granularity: AnalyticsGranularity): Prisma.Sql {
   const end = new Date(Math.min(query.to.getTime(), Date.now() + 1000) - 1);
   const start = new Date(Math.min(query.from.getTime(), end.getTime()));
+  const localStart = Prisma.sql`(${start.toISOString()}::timestamptz AT TIME ZONE ${query.tz})`;
+  const step = Prisma.sql`CAST(${`1 ${granularity}`} AS interval)`;
   return Prisma.sql`
     SELECT generate_series(
-      date_trunc(${granularity}, ${start.toISOString()}::timestamptz AT TIME ZONE ${query.tz}),
+      date_trunc(${granularity}, ${localStart})
+        + CASE WHEN date_trunc(${granularity}, ${localStart}) < ${localStart} THEN ${step} ELSE INTERVAL '0' END,
       date_trunc(${granularity}, ${end.toISOString()}::timestamptz AT TIME ZONE ${query.tz}),
-      CAST(${`1 ${granularity}`} AS interval)
+      ${step}
     ) AS bucket
   `;
 }
