@@ -349,7 +349,7 @@ The dashboard authenticates with JWT cookies; these endpoints mostly aren't usef
 | ------ | ---------------------------------------------------------- | ------------------------------------------------------------ |
 | POST   | `/auth/login`                                              | Email + password login. Sets a JWT cookie.                   |
 | POST   | `/auth/signup`                                             | Sign up a new user (subject to `DISABLE_SIGNUPS`).           |
-| GET    | `/auth/logout`                                             | Clear the auth cookie.                                       |
+| POST   | `/auth/logout`                                             | Clear the auth cookie.                                       |
 | GET    | `/auth/oauth-config`                                       | Which OAuth providers are configured.                        |
 | POST   | `/auth/verify-email`                                       | Verify an email with a token from an email link.             |
 | POST   | `/auth/request-verification`                               | Resend the verification email.                               |
