@@ -6,7 +6,7 @@
 # Stage 1: Dependencies (All dependencies for building)
 # ============================================
 # Use build platform (AMD64) to install dependencies, avoiding QEMU issues
-FROM --platform=$BUILDPLATFORM node:20-slim AS deps
+FROM --platform=$BUILDPLATFORM node:24.22.1-slim AS deps
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 WORKDIR /app
@@ -62,7 +62,7 @@ RUN --mount=type=cache,target=/root/.yarn/berry/cache,sharing=locked \
 # Stage 1b: Production Dependencies for API/SMTP
 # ============================================
 # Install only production dependencies needed for API and SMTP services
-FROM --platform=$BUILDPLATFORM node:20-slim AS prod-deps
+FROM --platform=$BUILDPLATFORM node:24.22.1-slim AS prod-deps
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 WORKDIR /app
@@ -94,7 +94,7 @@ RUN --mount=type=cache,target=/root/.yarn/berry/cache,sharing=locked \
 # Stage 2: Builder
 # ============================================
 # Builder runs on target platform to generate platform-specific artifacts
-FROM node:20-slim AS builder
+FROM node:24.22.1-slim AS builder
 ARG TARGETPLATFORM
 
 # Build-time arguments for URL configuration
@@ -241,7 +241,7 @@ RUN mkdir -p \
 # ============================================
 # Stage 3: Production Runtime
 # ============================================
-FROM node:20-alpine AS runner
+FROM node:24.22.1-alpine AS runner
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 WORKDIR /app
