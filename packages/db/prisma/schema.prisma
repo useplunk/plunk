@@ -345,6 +345,15 @@ model Campaign {
   // unsubscribes only; bounce- and complaint-driven suppression is reported by
   // bouncedCount and complainedCount, and would otherwise be counted twice.
   unsubscribedCount Int @default(0)
+  // Recipients the send never reached: emails that ended FAILED without SES accepting them
+  // (sentAt null), e.g. once the account's daily sending quota ran out mid-send. Emails the
+  // user stopped by cancelling are not counted. Written at finalization and by
+  // CampaignService.reconcileStats alongside the engagement counters.
+  failedCount       Int @default(0)
+  // The most common errors behind failedCount, as [{error, count}], most common first.
+  // Computed once when the send finalizes -- failed rows cannot change after that -- so
+  // the stats endpoint never has to aggregate them. Null when nothing failed.
+  failureReasons    Json?
 
   // Hides a campaign from the default list without touching its data. Orthogonal to
   // `status` on purpose: a campaign is both SENT and archived, so this is not a sixth
@@ -364,6 +373,7 @@ model Campaign {
   updatedAt DateTime  @updatedAt
 
   @@index([projectId, status])
+  @@index([status, sentAt]) // finalizeStalled: every SENDING campaign, across projects
   // Serves the scoped campaign list (every list query filters projectId + archived and
   // defaults to `ORDER BY createdAt DESC`) and, via its projectId+archived prefix, the
   // archived-count query that drives the list's Archived toggle.
