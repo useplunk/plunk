@@ -10,7 +10,7 @@ Plunk supports bulk-importing contacts from a CSV file — useful for migrating 
 
 The CSV must have a header row. The only required column is `email`. Every other column becomes a custom field on the contact under `data.<columnname>`.
 
-Headers are lowercased on import, so a `firstName` column becomes the field `firstname`. Use lowercase names in your templates and segment filters, like `{{firstname}}`, or name the columns in lowercase to begin with.
+Headers are lowercased on import, so a `firstName` column becomes the field `firstname`. Use lowercase names in your templates and segment filters, like `{{firstname}}`, or name the columns in lowercase to begin with. Segment filters, workflow conditions and templates read a dot in a field name as nesting, so a dot in a column name is stored as `_` (`metafields.lastOpen` becomes `metafields_lastopen`), and a leading `data.` is dropped (`data.plan` fills `plan`).
 
 A minimal file:
 
