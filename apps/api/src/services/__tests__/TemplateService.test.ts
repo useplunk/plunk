@@ -298,6 +298,20 @@ describe('TemplateService', () => {
       expect(updated.type).toBe(TemplateType.TRANSACTIONAL);
     });
 
+    it('should set the tracking override, leave it alone when omitted, and clear it with null', async () => {
+      const template = await factories.createTemplate({projectId});
+      expect(template.tracking).toBeNull();
+
+      const off = await TemplateService.update(projectId, template.id, {tracking: false});
+      expect(off.tracking).toBe(false);
+
+      const renamed = await TemplateService.update(projectId, template.id, {name: 'Renamed'});
+      expect(renamed.tracking).toBe(false);
+
+      const cleared = await TemplateService.update(projectId, template.id, {tracking: null});
+      expect(cleared.tracking).toBeNull();
+    });
+
     it('should update template type to HEADLESS', async () => {
       const template = await factories.createTemplate({
         projectId,
@@ -490,6 +504,7 @@ describe('TemplateService', () => {
         fromName: 'Original Name',
         replyTo: 'reply@example.com',
         type: TemplateType.TRANSACTIONAL,
+        tracking: false,
       });
 
       const duplicate = await TemplateService.duplicate(projectId, original.id);
@@ -503,6 +518,7 @@ describe('TemplateService', () => {
       expect(duplicate.fromName).toBe(original.fromName);
       expect(duplicate.replyTo).toBe(original.replyTo);
       expect(duplicate.type).toBe(original.type);
+      expect(duplicate.tracking).toBe(false);
       expect(duplicate.projectId).toBe(projectId);
     });
 

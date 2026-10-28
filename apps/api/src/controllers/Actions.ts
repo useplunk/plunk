@@ -128,6 +128,7 @@ export class Actions {
    * - name: string (optional) - Sender name (alternative to from.name)
    * - from: string | object (optional) - Sender email or {name, email} object (must be from verified domain)
    * - reply: string (optional) - Reply-to email
+   * - tracking: boolean (optional) - Open/click tracking for this email, overriding the template's and the project's setting
    * - headers: object (optional) - Additional email headers
    * - data: object (optional) - Contact data and template variables
    *   - Simple values are saved to contact (persistent)
@@ -188,7 +189,7 @@ export class Actions {
     const auth = res.locals.auth;
 
     // Zod validation - errors automatically handled by global error handler
-    const {to, subject, body, subscribed, name, from, reply, headers, data, template, attachments, delivery} =
+    const {to, subject, body, subscribed, name, from, reply, tracking, headers, data, template, attachments, delivery} =
       ActionSchemas.send.parse(req.body);
     const scheduledFor = delivery?.at;
     const throttle = delivery?.throttle;
@@ -393,6 +394,7 @@ export class Actions {
           headers: headers || undefined,
           attachments: attachments || undefined,
           templateId: templateId,
+          tracking,
           scheduledFor,
         });
       } catch (error) {

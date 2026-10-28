@@ -56,6 +56,7 @@ export interface TemplateFactoryOptions {
   from?: string;
   fromName?: string;
   type?: TemplateType;
+  tracking?: boolean | null;
 }
 
 export interface CampaignFactoryOptions {
@@ -68,6 +69,7 @@ export interface CampaignFactoryOptions {
   scheduledFor?: Date | null;
   segmentId?: string | null;
   type?: TemplateType;
+  tracking?: boolean | null;
 }
 
 export interface WorkflowFactoryOptions {
@@ -209,6 +211,7 @@ export class TestFactories {
         from: options.from || 'test@example.com',
         fromName: options.fromName || 'Test Sender',
         type: options.type || TemplateType.MARKETING,
+        tracking: options.tracking,
       },
     });
   }
@@ -228,6 +231,7 @@ export class TestFactories {
         scheduledFor: options.scheduledFor,
         segmentId: options.segmentId,
         type: options.type || TemplateType.MARKETING,
+        tracking: options.tracking,
       },
     });
   }

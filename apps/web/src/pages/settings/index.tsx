@@ -459,7 +459,7 @@ export default function Settings() {
                                 </SelectContent>
                               </Select>
                               <FormDescription>
-                                Control how email opens and clicks are tracked for this project.
+                                Control how email opens and clicks are tracked for this project. Templates and campaigns can override it.
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
