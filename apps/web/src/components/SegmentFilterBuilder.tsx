@@ -14,8 +14,10 @@ import {
 } from '@plunk/ui';
 import type {FilterCondition, FilterGroup, SegmentFilter, SegmentFilterOperator} from '@plunk/types';
 import {Check, ChevronsUpDown, GripVertical, Plus, Search, Trash2} from 'lucide-react';
-import {memo, useCallback, useEffect, useMemo, useState} from 'react';
-import {network} from '../lib/network';
+import {memo, useCallback, useMemo, useState} from 'react';
+import useSWR from 'swr';
+
+import {useContactFields} from '../lib/hooks/useContacts';
 
 const STANDARD_OPERATORS: {value: SegmentFilterOperator; label: string; description: string}[] = [
   {value: 'equals', label: 'Equals', description: 'Exact match'},
@@ -67,84 +69,75 @@ interface FieldOption {
   category: 'Contact fields' | 'Custom data' | 'Events' | 'Email activity' | 'Segments';
 }
 
-// Hook to fetch available fields, events, and segments
+// Hook to fetch available fields, events, and segments. Through SWR so reopening the
+// builder reuses what an earlier mount loaded.
 function useAvailableOptions(currentSegmentId?: string) {
-  const [fields, setFields] = useState<FieldOption[]>([...STANDARD_FIELDS]);
-  const [loading, setLoading] = useState(true);
+  const {fieldDetails, isLoading: fieldsLoading} = useContactFields();
+  const {data: eventsData, isLoading: eventsLoading} = useSWR<{eventNames: string[]}>('/events/names', {
+    revalidateOnFocus: false,
+  });
+  const {data: segmentsData, isLoading: segmentsLoading} = useSWR<Array<{id: string; name: string; memberCount: number}>>(
+    '/segments',
+    {revalidateOnFocus: false},
+  );
 
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        // Fetch contact fields with types, event names, and segments in parallel
-        const [fieldsData, eventsData, segmentsData] = await Promise.all([
-          network.fetch<{
-            fields: Array<{field: string; type: 'string' | 'number' | 'boolean' | 'date'}>;
-          }>('GET', '/contacts/fields'),
-          network.fetch<{eventNames: string[]}>('GET', '/events/names'),
-          network.fetch<Array<{id: string; name: string; memberCount: number}>>('GET', '/segments'),
-        ]);
+  const fields = useMemo<FieldOption[]>(() => {
+    // Build field options from typed fields, falling back to the standard ones if the request failed
+    const typedFields: FieldOption[] =
+      fieldDetails.length > 0
+        ? fieldDetails.map(f => {
+            const isCustomData = f.field.startsWith('data.');
+            return {
+              value: f.field,
+              label: isCustomData ? f.field.replace('data.', '') : f.field,
+              type: f.type,
+              category: isCustomData ? ('Custom data' as const) : ('Contact fields' as const),
+            };
+          })
+        : [...STANDARD_FIELDS];
 
-        // Build field options from typed fields
-        const typedFields: FieldOption[] = (fieldsData.fields || []).map(f => {
-          const isCustomData = f.field.startsWith('data.');
-          return {
-            value: f.field,
-            label: isCustomData ? f.field.replace('data.', '') : f.field,
-            type: f.type,
-            category: isCustomData ? ('Custom data' as const) : ('Contact fields' as const),
-          };
+    // Build event options
+    const eventOptions: FieldOption[] = [];
+    const emailOptions: FieldOption[] = [];
+
+    (eventsData?.eventNames ?? []).forEach((name: string) => {
+      if (name.startsWith('email.')) {
+        emailOptions.push({
+          value: name,
+          label: name
+            .replace('email.', '')
+            .replace(/([A-Z])/g, ' $1')
+            .trim(),
+          type: 'event' as const,
+          category: 'Email activity' as const,
         });
-
-        // Build event options
-        const eventOptions: FieldOption[] = [];
-        const emailOptions: FieldOption[] = [];
-
-        (eventsData.eventNames || []).forEach((name: string) => {
-          if (name.startsWith('email.')) {
-            emailOptions.push({
-              value: name,
-              label: name
-                .replace('email.', '')
-                .replace(/([A-Z])/g, ' $1')
-                .trim(),
-              type: 'event' as const,
-              category: 'Email activity' as const,
-            });
-          } else {
-            // Ensure event has the 'event.' prefix for backend compatibility
-            const eventValue = name.startsWith('event.') ? name : `event.${name}`;
-            eventOptions.push({
-              value: eventValue,
-              label: name.replace(/^event\./, ''), // Remove prefix from label for display
-              type: 'event' as const,
-              category: 'Events' as const,
-            });
-          }
+      } else {
+        // Ensure event has the 'event.' prefix for backend compatibility
+        const eventValue = name.startsWith('event.') ? name : `event.${name}`;
+        eventOptions.push({
+          value: eventValue,
+          label: name.replace(/^event\./, ''), // Remove prefix from label for display
+          type: 'event' as const,
+          category: 'Events' as const,
         });
-
-        // Build segment options, excluding the current segment to prevent self-reference
-        const segmentOptions: FieldOption[] = (segmentsData || [])
-          .filter((s: {id: string; name: string; memberCount: number}) => s.id !== currentSegmentId)
-          .map((s: {id: string; name: string; memberCount: number}) => ({
-            value: `segment.${s.id}`,
-            label: s.name,
-            description: `${s.memberCount.toLocaleString()} ${s.memberCount === 1 ? 'person' : 'people'}`,
-            type: 'segment' as const,
-            category: 'Segments' as const,
-          }));
-
-        setFields([...typedFields, ...eventOptions, ...emailOptions, ...segmentOptions]);
-      } catch (error) {
-        console.error('Failed to fetch available fields and events:', error);
-      } finally {
-        setLoading(false);
       }
-    };
+    });
 
-    fetchOptions();
-  }, [currentSegmentId]);
+    // Build segment options, excluding the current segment to prevent self-reference
+    const segmentOptions: FieldOption[] = (segmentsData ?? [])
+      .filter(s => s.id !== currentSegmentId)
+      .map(s => ({
+        value: `segment.${s.id}`,
+        label: s.name,
+        description: `${s.memberCount.toLocaleString()} ${s.memberCount === 1 ? 'person' : 'people'}`,
+        type: 'segment' as const,
+        category: 'Segments' as const,
+      }));
 
-  return {fields, loading};
+    return [...typedFields, ...eventOptions, ...emailOptions, ...segmentOptions];
+  }, [fieldDetails, eventsData, segmentsData, currentSegmentId]);
+
+  return {fields, loading: fieldsLoading || eventsLoading || segmentsLoading};
 }
 
 interface FilterRowProps {

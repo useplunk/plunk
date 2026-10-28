@@ -8,6 +8,7 @@ import signale from 'signale';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {contactWriteRateLimit} from '../middleware/rateLimit.js';
 import {HttpException} from '../exceptions/index.js';
+import {ContactFieldService} from '../services/ContactFieldService.js';
 import {ContactService} from '../services/ContactService.js';
 import {QueueService} from '../services/QueueService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
@@ -92,12 +93,7 @@ export class Contacts {
     const auth = res.locals.auth;
 
     try {
-      const fieldsWithTypes = await ContactService.getAvailableFields(auth.projectId!);
-
-      return res.status(200).json({
-        fields: fieldsWithTypes,
-        count: fieldsWithTypes.length,
-      });
+      return res.status(200).json(await ContactFieldService.list(auth.projectId!));
     } catch (error) {
       signale.error('[CONTACTS] Failed to get available fields:', error);
       return res.status(500).json({

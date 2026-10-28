@@ -18,6 +18,7 @@ import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
 import {DASHBOARD_URI} from '../app/constants.js';
 
+import {ContactFieldService} from './ContactFieldService.js';
 import {EmailService} from './EmailService.js';
 import {NtfyService} from './NtfyService.js';
 import {QueueService} from './QueueService.js';
@@ -1245,6 +1246,10 @@ export class WorkflowExecutionService {
         where: {id: contact.id},
         data: updateData,
       });
+    }
+
+    if (hasDataUpdates) {
+      await ContactFieldService.recordKeys(execution.workflow.projectId, Object.keys(newData));
     }
 
     if (subscriptionChanging) {

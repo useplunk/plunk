@@ -13,6 +13,7 @@ import type {
   ContactImportJobData,
   DomainVerificationJobData,
   CampaignCancelCleanupJobData,
+  ContactFieldsJobData,
   EmailBodyCleanupJobData,
   IdempotencyKeyCleanupJobData,
   MeterEventJobData,
@@ -294,6 +295,24 @@ export const scheduledEmailSweepQueue = new Queue<ScheduledEmailSweepJobData>('s
     },
     removeOnComplete: 20,
     removeOnFail: 50,
+  },
+});
+
+/**
+ * Measures coverage and type of a project's custom contact fields. One job per project at a
+ * time: the job id is the project, so writes that discover new keys while a scan is queued
+ * collapse onto it. Completed and failed jobs are removed so the id frees up for the next one.
+ */
+export const contactFieldsQueue = new Queue<ContactFieldsJobData>('contact-fields', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: {
+      type: 'exponential',
+      delay: 30000,
+    },
+    removeOnComplete: true,
+    removeOnFail: true,
   },
 });
 

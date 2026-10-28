@@ -16,6 +16,7 @@ import {createBulkContactWorker} from './bulk-contact-processor.js';
 import {createCampaignCancelCleanupWorker} from './campaign-cancel-cleanup-processor.js';
 import {createCampaignWorker} from './campaign-processor.js';
 import {createCardVerificationWorker} from './card-verification-processor.js';
+import {createContactFieldsWorker} from './contact-fields-processor.js';
 import {createCampaignStatsSweepWorker} from './campaign-stats-sweep-processor.js';
 import {createScheduledEmailSweepWorker} from './scheduled-email-sweep-processor.js';
 import {createSnoozeSweepWorker} from './snooze-sweep-processor.js';
@@ -89,6 +90,11 @@ async function startWorkers() {
     const segmentCountWorker = createSegmentCountWorker();
     workers.push({name: 'segment-count', worker: segmentCountWorker});
     signale.success('[WORKER] Segment count worker started');
+
+    // Start contact fields worker
+    const contactFieldsWorker = createContactFieldsWorker();
+    workers.push({name: 'contact-fields', worker: contactFieldsWorker});
+    signale.success('[WORKER] Contact fields worker started');
 
     // Start domain verification worker
     const domainVerificationWorker = createDomainVerificationWorker();
