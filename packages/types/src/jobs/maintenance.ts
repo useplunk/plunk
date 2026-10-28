@@ -63,3 +63,11 @@ export interface SnoozeSweepJobData {
 export interface ScheduledEmailSweepJobData {
   // Empty - sweeps every email still SCHEDULED past its scheduledFor
 }
+
+/**
+ * Job data for measuring the coverage and type of a project's custom contact fields
+ * Used by: contactFieldsQueue worker
+ */
+export interface ContactFieldsJobData {
+  projectId: string;
+}

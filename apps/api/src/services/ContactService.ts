@@ -12,6 +12,7 @@ import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
+import {ContactFieldService} from './ContactFieldService.js';
 import {EventService} from './EventService.js';
 
 export class ContactService {
@@ -204,7 +205,7 @@ export class ContactService {
     data: {email: string; data?: Prisma.JsonValue; subscribed?: boolean},
   ): Promise<Contact> {
     try {
-      return await prisma.contact.create({
+      const contact = await prisma.contact.create({
         data: {
           projectId,
           email: this.normalizeEmail(data.email),
@@ -212,6 +213,10 @@ export class ContactService {
           subscribed: data.subscribed ?? true,
         },
       });
+
+      await ContactFieldService.recordKeys(projectId, ContactFieldService.keysOf(data.data));
+
+      return contact;
     } catch (error) {
       // Check if this is a unique constraint violation (P2002)
       if (error instanceof Error && 'code' in error && error.code === 'P2002') {
@@ -306,6 +311,10 @@ export class ContactService {
         data: updateData,
       });
 
+      if (data.data !== undefined) {
+        await ContactFieldService.recordKeys(projectId, ContactFieldService.keysOf(updated.data));
+      }
+
       // Track subscription event if status changed
       if (isSubscriptionChanging) {
         if (data.subscribed && !wasSubscribed) {
@@ -386,6 +395,8 @@ export class ContactService {
           },
         });
 
+        await ContactFieldService.recordKeys(projectId, Object.keys(mergedData));
+
         // Track subscription event if status changed
         if (isSubscriptionChanging) {
           if (subscribed && !wasSubscribed) {
@@ -405,7 +416,7 @@ export class ContactService {
       }
     } else {
       try {
-        return await prisma.contact.create({
+        const created = await prisma.contact.create({
           data: {
             projectId,
             email: normalizedEmail,
@@ -413,6 +424,10 @@ export class ContactService {
             subscribed: subscribed ?? defaultSubscribed,
           },
         });
+
+        await ContactFieldService.recordKeys(projectId, Object.keys(mergedData));
+
+        return created;
       } catch (error) {
         // Provide helpful error message for database/validation issues
         throw new HttpException(
@@ -807,109 +822,6 @@ export class ContactService {
   }
 
   /**
-   * Get all available contact fields for a project
-   * Returns both standard fields and custom fields from the data JSON column
-   * Now includes type information inferred from actual data
-   *
-   * @param projectId - The project ID to filter contacts
-   * @returns Array of field objects with name and type
-   */
-  public static async getAvailableFields(
-    projectId: string,
-  ): Promise<Array<{field: string; type: 'string' | 'number' | 'boolean' | 'date'; coverage: number}>> {
-    // Get total contact count for coverage calculation
-    const totalContacts = await prisma.contact.count({
-      where: {projectId},
-    });
-
-    // Standard fields with known types (always 100% coverage)
-    const standardFields = [
-      {field: 'email', type: 'string' as const, coverage: 100},
-      {field: 'subscribed', type: 'boolean' as const, coverage: 100},
-      {field: 'createdAt', type: 'date' as const, coverage: 100},
-      {field: 'updatedAt', type: 'date' as const, coverage: 100},
-    ];
-
-    // Get custom fields from the data JSON column with type inference and coverage
-    // Use raw SQL to extract all keys, sample values, and contact counts from the JSON data column
-    const result = await prisma.$queryRaw<
-      Array<{key: string; sample_value: string; json_type: string; contact_count: bigint}>
-    >`
-      WITH field_keys AS (
-        SELECT DISTINCT jsonb_object_keys(data) as key
-        FROM contacts
-        WHERE
-          "projectId" = ${projectId}
-          AND data IS NOT NULL
-          AND jsonb_typeof(data) = 'object'
-      ),
-      field_samples AS (
-        SELECT
-          fk.key,
-          jsonb_typeof(c.data->fk.key) as json_type,
-          (c.data->>fk.key) as sample_value
-        FROM field_keys fk
-        CROSS JOIN LATERAL (
-          SELECT data
-          FROM contacts
-          WHERE
-            "projectId" = ${projectId}
-            AND data ? fk.key
-            AND data->fk.key IS NOT NULL
-          LIMIT 1
-        ) c
-      ),
-      field_counts AS (
-        SELECT
-          fk.key,
-          COUNT(*) as contact_count
-        FROM field_keys fk
-        JOIN contacts c ON c."projectId" = ${projectId}
-          AND c.data ? fk.key
-          AND c.data->fk.key IS NOT NULL
-        GROUP BY fk.key
-      )
-      SELECT
-        fs.key,
-        fs.sample_value,
-        fs.json_type,
-        fc.contact_count
-      FROM field_samples fs
-      JOIN field_counts fc ON fc.key = fs.key
-    `;
-
-    // Infer types from JSON types and sample values, calculate coverage
-    const customFields = result.map(row => {
-      let type: 'string' | 'number' | 'boolean' | 'date' = 'string';
-
-      // PostgreSQL jsonb_typeof returns: "object", "array", "string", "number", "boolean", "null"
-      if (row.json_type === 'boolean') {
-        type = 'boolean';
-      } else if (row.json_type === 'number') {
-        type = 'number';
-      } else if (row.json_type === 'string' && row.sample_value) {
-        // Try to detect dates (ISO 8601 format)
-        const dateRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
-        if (dateRegex.test(row.sample_value)) {
-          type = 'date';
-        }
-      }
-
-      // Calculate coverage percentage
-      const contactCount = Number(row.contact_count);
-      const coverage = totalContacts > 0 ? Math.round((contactCount / totalContacts) * 100) : 0;
-
-      return {
-        field: `data.${row.key}`,
-        type,
-        coverage,
-      };
-    });
-
-    return [...standardFields, ...customFields].sort((a, b) => a.field.localeCompare(b.field));
-  }
-
-  /**
    * Get unique values for a contact field
    * Optimized for large datasets (1M+ contacts) - limits results and uses efficient queries
    *
@@ -1068,6 +980,8 @@ export class ContactService {
         "projectId" = ${projectId}
         AND data ? ${jsonField}
     `;
+
+    await ContactFieldService.forget(projectId, jsonField);
 
     return {deletedFrom: result};
   }

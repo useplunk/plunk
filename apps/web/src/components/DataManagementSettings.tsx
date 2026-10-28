@@ -17,17 +17,12 @@ import {
   TableRow,
   IconSpinner,
 } from '@plunk/ui';
+import type {ContactFieldsResponse} from '@plunk/types';
 import {Database, Trash2, Zap} from 'lucide-react';
 import {toast} from 'sonner';
 import useSWR from 'swr';
 import {useActiveProject} from '../lib/contexts/ActiveProjectProvider';
 import {network} from '../lib/network';
-
-interface FieldData {
-  field: string;
-  type: 'string' | 'number' | 'boolean' | 'date';
-  coverage: number;
-}
 
 interface FieldUsage {
   usedInSegments: Array<{id: string; name: string}>;
@@ -52,7 +47,7 @@ export function DataManagementSettings() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch contact fields
-  const {data: fieldsData, mutate: mutateFields} = useSWR<{fields: FieldData[]; count: number}>(
+  const {data: fieldsData, mutate: mutateFields} = useSWR<ContactFieldsResponse>(
     activeProject?.id ? `/contacts/fields` : null,
   );
 
@@ -169,7 +164,7 @@ export function DataManagementSettings() {
                       <Badge variant="secondary">{field.type}</Badge>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-neutral-500">{field.coverage}%</span>
+                      <span className="text-sm text-neutral-500">{field.coverage === null ? '—' : `${field.coverage}%`}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => openFieldDeleteDialog(field.field)}>
