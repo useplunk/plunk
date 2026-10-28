@@ -1,4 +1,4 @@
-import type {AnalyticsGranularity, AnalyticsTimeseriesPoint} from '@plunk/types';
+import type {AnalyticsGranularity, AnalyticsTimeseriesPoint, EmailMetricCounts} from '@plunk/types';
 import dayjs from 'dayjs';
 
 export type MetricKey =
@@ -21,20 +21,51 @@ export interface MetricDefinition {
   thresholds?: {warning: number; critical: number};
   /** Per-bucket value, null when there is nothing to measure against */
   fromPoint: (p: AnalyticsTimeseriesPoint) => number | null;
+  /**
+   * The volume that has to be above zero for the figure to mean anything: emails sent, or
+   * the emails sent with open and click tracking for the figures built on opens and clicks
+   */
+  volume: (counts: VolumeCounts) => number;
 }
 
+type VolumeCounts = Pick<EmailMetricCounts, 'sent' | 'tracked'>;
+
+const sent = (c: VolumeCounts) => c.sent;
+const tracked = (c: VolumeCounts) => c.tracked;
 const ratio = (part: number, whole: number) => (whole > 0 ? (part / whole) * 100 : null);
 
 export const METRICS: MetricDefinition[] = [
-  {key: 'sent', label: 'Sent', kind: 'count', better: 'up', fromPoint: p => p.sent},
-  {key: 'deliveryRate', label: 'Delivery rate', kind: 'rate', better: 'up', fromPoint: p => ratio(p.delivered, p.sent)},
-  {key: 'openRate', label: 'Open rate', kind: 'rate', better: 'up', fromPoint: p => ratio(p.opened, p.sent)},
-  {key: 'clickRate', label: 'Click rate', kind: 'rate', better: 'up', fromPoint: p => ratio(p.clicked, p.sent)},
+  {key: 'sent', label: 'Sent', kind: 'count', better: 'up', volume: sent, fromPoint: p => p.sent},
+  {
+    key: 'deliveryRate',
+    label: 'Delivery rate',
+    kind: 'rate',
+    better: 'up',
+    volume: sent,
+    fromPoint: p => ratio(p.delivered, p.sent),
+  },
+  {
+    key: 'openRate',
+    label: 'Open rate',
+    kind: 'rate',
+    better: 'up',
+    volume: tracked,
+    fromPoint: p => ratio(p.opened, p.tracked),
+  },
+  {
+    key: 'clickRate',
+    label: 'Click rate',
+    kind: 'rate',
+    better: 'up',
+    volume: tracked,
+    fromPoint: p => ratio(p.clicked, p.tracked),
+  },
   {
     key: 'clickToOpenRate',
     label: 'Click-to-open',
     kind: 'rate',
     better: 'up',
+    volume: tracked,
     fromPoint: p => ratio(p.clicked, p.opened),
   },
   {
@@ -43,6 +74,7 @@ export const METRICS: MetricDefinition[] = [
     kind: 'rate',
     better: 'down',
     thresholds: {warning: 5, critical: 10},
+    volume: sent,
     fromPoint: p => ratio(p.bounced, p.sent),
   },
   {
@@ -51,6 +83,7 @@ export const METRICS: MetricDefinition[] = [
     kind: 'rate',
     better: 'down',
     thresholds: {warning: 0.075, critical: 0.15},
+    volume: sent,
     fromPoint: p => ratio(p.complained, p.sent),
   },
   {
@@ -58,6 +91,7 @@ export const METRICS: MetricDefinition[] = [
     label: 'Unsubscribe rate',
     kind: 'rate',
     better: 'down',
+    volume: sent,
     fromPoint: p => ratio(p.unsubscribed, p.sent),
   },
 ];
