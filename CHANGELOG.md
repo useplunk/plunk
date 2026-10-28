@@ -1,5 +1,74 @@
 # Changelog
 
+## [0.18.0](https://github.com/useplunk/plunk/compare/v0.17.0...v0.18.0) (2026-10-28)
+
+
+### Features
+
+* Add throttle for transactional emails and workflows ([f228961](https://github.com/useplunk/plunk/commit/f228961320d802ef20cd6eb101cd6891b9eaca04))
+* **api:** let headless senders point List-Unsubscribe at their own one-click link ([50be3c9](https://github.com/useplunk/plunk/commit/50be3c9fa322511519301ce1965c079faf9fbcb1))
+* let headless senders point List-Unsubscribe at their own one-click link ([d5c5f89](https://github.com/useplunk/plunk/commit/d5c5f8905133c54e8ad8ddb79eef6f937e117e8d))
+* Verify SES configuration sets on startup ([2f3cb50](https://github.com/useplunk/plunk/commit/2f3cb509080b98e34165fb7f49895a0ab97283b5))
+
+
+### Bug Fixes
+
+* **api:** encode non-ASCII headers and attachment filenames ([ea3e7ae](https://github.com/useplunk/plunk/commit/ea3e7aee93200e42804fef6207d3cfa44b55e59d))
+* **api:** encode non-ASCII headers and attachment filenames ([de90dae](https://github.com/useplunk/plunk/commit/de90dae23aa5955d228c856ede777c9bdb1a21cf))
+* **api:** honour data-plunk-one-click for headless sends only ([6f9cebf](https://github.com/useplunk/plunk/commit/6f9cebf0a6cc5477f5534a8f75761cca2c1d0486))
+* **api:** verify request origin on session-authenticated routes ([00177cc](https://github.com/useplunk/plunk/commit/00177ccf819d6efa10ea21c4ad5574091665d813))
+* **api:** verify request origin on session-authenticated routes ([6eacbfc](https://github.com/useplunk/plunk/commit/6eacbfcead400135986dbe8519252ef281b43e7a))
+* Cancel workflow executions and scheduled campaigns when a project is disabled ([cf2d384](https://github.com/useplunk/plunk/commit/cf2d3844d9b90ab94681b53399580d09cc1f5c12))
+* **contacts:** honour the status filter in select-all bulk actions ([0fe3b07](https://github.com/useplunk/plunk/commit/0fe3b07a58b56da4d0e7703e14917784666f569c))
+* **contacts:** honour the status filter in select-all bulk actions ([d794c5a](https://github.com/useplunk/plunk/commit/d794c5a67280ba0ff05ad02bfe452f0592d817f5))
+* Correctly end job if last step of workflow is delay ([18f18c1](https://github.com/useplunk/plunk/commit/18f18c11cbef8ba37f329af63359cbc8a17771ec))
+* **landing:** Remove inbound attachment and threading claims ([beac2e3](https://github.com/useplunk/plunk/commit/beac2e3bba4c3bd50d7f7e1392516058e225a6f2))
+* **mcp:** page through campaigns and templates with page/pageSize ([e720913](https://github.com/useplunk/plunk/commit/e72091387ba5f52e2f7f7994b6eab8bab0941d5b))
+* **mcp:** page through campaigns and templates with page/pageSize ([28e0aa4](https://github.com/useplunk/plunk/commit/28e0aa4c018882c6b8f6e145e207fec378c24f04))
+* **mcp:** read the bare array GET /segments returns in plunk_list_segments ([3de3369](https://github.com/useplunk/plunk/commit/3de3369baba82703de15da19d879b131035bcbbc))
+* **mcp:** read the bare array GET /segments returns in plunk_list_segments ([674c2f5](https://github.com/useplunk/plunk/commit/674c2f5e6ed8cb904c642b278daa8e6498b65317))
+* Only accept SNS messages from topics in our own AWS account ([4c84f64](https://github.com/useplunk/plunk/commit/4c84f64b4ee4fd6fd99ba2f9946504b53df75ec3))
+* **segments:** filter by segment membership without loading members ([5848c60](https://github.com/useplunk/plunk/commit/5848c600e071510ea896d38d33c5728fedc9d4aa))
+* **segments:** filter by segment membership without loading members ([d44788f](https://github.com/useplunk/plunk/commit/d44788f5c21cf2f3d8941f654b7539bb2801c04f))
+* **segments:** scope referenced segments to the project ([ce58df5](https://github.com/useplunk/plunk/commit/ce58df59e2b9e70b9cf24315e2b650230948a599))
+* **templates:** only accept filters that keep the unsubscribe URL intact ([6f2508c](https://github.com/useplunk/plunk/commit/6f2508cfcfba81d7b4e2be40da8859ac187acdfd))
+* **templates:** recognise spaced unsubscribe placeholders in the headless warning ([3e7ee20](https://github.com/useplunk/plunk/commit/3e7ee20d6a6587221da2219068ee968441c6c3e4))
+* **templates:** recognise spaced unsubscribe variables in the headless warning ([dd2c6c0](https://github.com/useplunk/plunk/commit/dd2c6c09c2a1e87a38da372016dded1df41b471b))
+* **webhooks:** ignore opens SES marks as automated ([3c1af34](https://github.com/useplunk/plunk/commit/3c1af34b614da4a1e0aebf014e8f0ebddbbd51b0))
+* **webhooks:** ignore opens SES marks as automated ([032b868](https://github.com/useplunk/plunk/commit/032b868cf738005a0e3ddc9a541edcdd00d8970f)), closes [#531](https://github.com/useplunk/plunk/issues/531)
+* **web:** refetch project data once the active project is known ([537d5a4](https://github.com/useplunk/plunk/commit/537d5a489fcb7be4a7bc168fd3f02539ab184393))
+* **web:** refetch project data once the active project is known ([b7e1265](https://github.com/useplunk/plunk/commit/b7e1265bf2077fa95bedf94e02f07c3055c9f5b4))
+* **web:** start from an empty cache after signing out ([1097f0c](https://github.com/useplunk/plunk/commit/1097f0c00a54e4553af9eaa51075371d6c3f96b4))
+* **workflows:** keep cancelled executions from resuming ([189b907](https://github.com/useplunk/plunk/commit/189b9070577f8202db010d66dc467c0d7043c2b8))
+* **workflows:** keep cancelled executions from resuming ([7792d6b](https://github.com/useplunk/plunk/commit/7792d6b28e4bb3702cb393f6dc66fb1f1ff70ff6))
+* **workflows:** mark only the step that failed ([2c11c81](https://github.com/useplunk/plunk/commit/2c11c81eb8a32d5bc680b6a97b3d79925f692082))
+* **workflows:** mark only the step that failed ([ee8db3f](https://github.com/useplunk/plunk/commit/ee8db3f5ff0bf20cfd445cdcc2b436f5e40054cc))
+* **workflows:** resume a waiting step once ([d0f5471](https://github.com/useplunk/plunk/commit/d0f5471744996f10ff8e677fcb84a340b55ac0c7))
+* **workflows:** resume a waiting step once ([9c333bb](https://github.com/useplunk/plunk/commit/9c333bb046ca37e701418820e54a7fc84311317c))
+* **workflows:** treat a zero wait timeout as no limit ([0ab8bf9](https://github.com/useplunk/plunk/commit/0ab8bf94f300f3bb82eedb44b545588beb288bcd))
+* **workflows:** treat a zero wait timeout as no limit ([006cc4c](https://github.com/useplunk/plunk/commit/006cc4c7c8f0015105a89303b9a3cc5784ab7073))
+
+
+### Performance Improvements
+
+* **contacts:** serve the contact field list from Redis ([627f7e9](https://github.com/useplunk/plunk/commit/627f7e9cf3ed71ce7a6b2bab7bebf6ce1a2941e3))
+* **contacts:** serve the contact field list from Redis ([af0007f](https://github.com/useplunk/plunk/commit/af0007fd9ea0f3e33af6226adddb4b040f4167d1))
+
+
+### Code Refactoring
+
+* **web:** correct comments around the active project choice ([df2f38b](https://github.com/useplunk/plunk/commit/df2f38b3569f3cb85b07f066f1cf033b0670dcc8))
+
+
+### Documentation
+
+* Add open tracking and workflow improvements to the changelog ([1fe84b5](https://github.com/useplunk/plunk/commit/1fe84b5b23eac5b7dd426fdd87ace0a2b1c1813f))
+* document data-plunk-one-click for sender-hosted one-click unsubscribe ([77e85b8](https://github.com/useplunk/plunk/commit/77e85b8e3db6b03f1e68e88709c1c859ab806078))
+* **tracking:** explain how automatic opens are left out ([9805c18](https://github.com/useplunk/plunk/commit/9805c188ec4e9ffc44918cb1052dc0c754b74796)), closes [#531](https://github.com/useplunk/plunk/issues/531)
+* **workflows:** say what cancelling an execution stops ([cf264fa](https://github.com/useplunk/plunk/commit/cf264fa4b1f5d0fba977da44827c0daf8d1afec1))
+* **workflows:** suggest the email event names workflows receive ([bf6a6ef](https://github.com/useplunk/plunk/commit/bf6a6ef705673d80d8a07b644ab4267098ac7eb8))
+* **workflows:** suggest the email event names workflows receive ([2eac0dd](https://github.com/useplunk/plunk/commit/2eac0dd1ab99eb98a0ae47bc1bd9fdd52da56a47))
+
 ## [0.17.0](https://github.com/useplunk/plunk/compare/v0.16.0...v0.17.0) (2026-10-21)
 
 
