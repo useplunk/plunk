@@ -36,7 +36,7 @@ export interface AnalyticsQuery {
   stream: AnalyticsStream;
 }
 
-type CountRow = Record<keyof Omit<EmailMetricCounts, 'unsubscribed'>, bigint>;
+export type CountRow = Record<keyof Omit<EmailMetricCounts, 'unsubscribed'>, bigint>;
 
 const STREAMS: Exclude<AnalyticsStream, 'ALL'>[] = ['TRANSACTIONAL', 'CAMPAIGN', 'WORKFLOW'];
 
@@ -78,7 +78,7 @@ export class AnalyticsService {
    * finished yet (it ends at midnight tonight), the previous one is cut at the same point in
    * time: "today so far" compares with "yesterday up to this hour", not with all of yesterday.
    */
-  public static previousPeriod(query: AnalyticsQuery, now = Date.now()): AnalyticsQuery {
+  public static previousPeriod<Q extends Pick<AnalyticsQuery, 'from' | 'to'>>(query: Q, now = Date.now()): Q {
     const length = query.to.getTime() - query.from.getTime();
     const elapsed = Math.min(query.to.getTime(), now) - query.from.getTime();
     const from = query.from.getTime() - length;
@@ -608,12 +608,12 @@ export class AnalyticsService {
  * createdAt columns are `timestamp` holding UTC. Bounds are passed as UTC timestamps of
  * the same type so the comparison is a plain index range, independent of session timezone.
  */
-function utc(date: Date): Prisma.Sql {
+export function utc(date: Date): Prisma.Sql {
   return Prisma.sql`(${date.toISOString()}::timestamptz AT TIME ZONE 'UTC')`;
 }
 
 /** A UTC timestamp column truncated to the local hour or day in `tz` */
-function localBucket(column: Prisma.Sql, tz: string, granularity: AnalyticsGranularity): Prisma.Sql {
+export function localBucket(column: Prisma.Sql, tz: string, granularity: AnalyticsGranularity): Prisma.Sql {
   return Prisma.sql`date_trunc(${granularity}, (${column} AT TIME ZONE 'UTC') AT TIME ZONE ${tz})`;
 }
 
@@ -621,15 +621,26 @@ function localBucket(column: Prisma.Sql, tz: string, granularity: AnalyticsGranu
  * Every local bucket in the range, so quiet hours and days come back as zeros instead of
  * gaps. Stops at the current bucket: a range that ends tomorrow does not draw a cliff
  * through hours that have not happened yet.
+ *
+ * Starts at the first whole bucket. A previous period across a DST change does not begin at
+ * local midnight (30 local days are 30 days and an hour long when the clocks go back), and
+ * flooring its start would add a one-hour bucket at the front, shifting every point of the
+ * previous series a day against the current one it is drawn under.
  */
-function bucketSeries(query: AnalyticsQuery, granularity: AnalyticsGranularity): Prisma.Sql {
+export function bucketSeries(
+  query: Pick<AnalyticsQuery, 'from' | 'to' | 'tz'>,
+  granularity: AnalyticsGranularity,
+): Prisma.Sql {
   const end = new Date(Math.min(query.to.getTime(), Date.now() + 1000) - 1);
   const start = new Date(Math.min(query.from.getTime(), end.getTime()));
+  const localStart = Prisma.sql`(${start.toISOString()}::timestamptz AT TIME ZONE ${query.tz})`;
+  const step = Prisma.sql`CAST(${`1 ${granularity}`} AS interval)`;
   return Prisma.sql`
     SELECT generate_series(
-      date_trunc(${granularity}, ${start.toISOString()}::timestamptz AT TIME ZONE ${query.tz}),
+      date_trunc(${granularity}, ${localStart})
+        + CASE WHEN date_trunc(${granularity}, ${localStart}) < ${localStart} THEN ${step} ELSE INTERVAL '0' END,
       date_trunc(${granularity}, ${end.toISOString()}::timestamptz AT TIME ZONE ${query.tz}),
-      CAST(${`1 ${granularity}`} AS interval)
+      ${step}
     ) AS bucket
   `;
 }
@@ -671,11 +682,11 @@ function clickScope(query: AnalyticsQuery): Prisma.Sql {
 }
 
 /** Email events carry the email's sourceType in their data, so no join is needed */
-function eventStreamFilter(stream: AnalyticsStream): Prisma.Sql {
+export function eventStreamFilter(stream: AnalyticsStream): Prisma.Sql {
   return stream === 'ALL' ? Prisma.empty : Prisma.sql`AND ev."data"->>'sourceType' = ${stream}`;
 }
 
-const COUNT_COLUMNS = Prisma.sql`
+export const COUNT_COLUMNS = Prisma.sql`
   COUNT(e."sentAt") AS sent,
   COUNT(e."deliveredAt") AS delivered,
   COUNT(e."openedAt") AS opened,
@@ -688,11 +699,11 @@ const COUNT_COLUMNS = Prisma.sql`
 // HELPERS
 // =============================================================================
 
-function emptyCounts(): EmailMetricCounts {
+export function emptyCounts(): EmailMetricCounts {
   return {sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, complained: 0, unsubscribed: 0};
 }
 
-function addCounts(a: EmailMetricCounts, b: EmailMetricCounts): EmailMetricCounts {
+export function addCounts(a: EmailMetricCounts, b: EmailMetricCounts): EmailMetricCounts {
   return {
     sent: a.sent + b.sent,
     delivered: a.delivered + b.delivered,
@@ -704,7 +715,7 @@ function addCounts(a: EmailMetricCounts, b: EmailMetricCounts): EmailMetricCount
   };
 }
 
-function toCounts(row: CountRow): Omit<EmailMetricCounts, 'unsubscribed'> {
+export function toCounts(row: CountRow): Omit<EmailMetricCounts, 'unsubscribed'> {
   return {
     sent: Number(row.sent),
     delivered: Number(row.delivered),
