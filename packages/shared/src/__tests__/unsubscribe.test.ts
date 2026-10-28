@@ -19,7 +19,17 @@ describe('detectUnsubscribeSignal', () => {
     expect(detectUnsubscribeSignal('<a href="https://example.com/x">Unsubscribe</a>')).toBe(true);
   });
 
-  it.each(['', '<p>Hello {{ firstName }}</p>', '<p>{{ unsubscribeUrlText }}</p>', '<a href="{{ url }}">Read more</a>'])(
+  it.each([
+    '',
+    '<p>Hello {{ firstName }}</p>',
+    '<p>{{ unsubscribeUrlText }}</p>',
+    '<a href="{{ url }}">Read more</a>',
+    '<p>{{ unsubscribeUrl | truncate: 5 }}</p>',
+    '<p>{{ unsubscribeUrl | size }}</p>',
+    '<p>{{ unsubscribeUrl | replace: "unsubscribe", "home" }}</p>',
+    '<p>{{ unsubscribeUrl.foo }}</p>',
+    '<p>{{ unsubscribeUrl and x }}</p>',
+  ])(
     'reports no signal for %s',
     body => {
       expect(detectUnsubscribeSignal(body)).toBe(false);

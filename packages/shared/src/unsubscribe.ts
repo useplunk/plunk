@@ -13,8 +13,9 @@ export function detectUnsubscribeSignal(body: string): boolean {
   if (!body) return false;
 
   // Plunk's own managed unsubscribe variables, in any spacing Liquid accepts
-  // ({{unsubscribeUrl}}, {{ manageUrl }}, {{- unsubscribeUrl -}}, with or without filters)
-  if (/\{\{-?\s*(?:unsubscribeUrl|manageUrl)\b[^}]*\}\}/.test(body)) return true;
+  // ({{unsubscribeUrl}}, {{ manageUrl }}, {{- unsubscribeUrl -}}), optionally with
+  // filters that leave the URL intact
+  if (/\{\{-?\s*(?:unsubscribeUrl|manageUrl)\s*(?:\|\s*(?:strip|escape)\s*)*-?\}\}/.test(body)) return true;
 
   // href containing unsubscribe keywords
   if (/href=["'][^"']*(?:unsubscribe|opt[_-]?out|remove)[^"']*["']/i.test(body)) return true;
