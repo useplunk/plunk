@@ -1,6 +1,6 @@
 import {CampaignAudienceType, TemplateType, TrackingMode, WorkflowStepType, WorkflowTriggerType} from '@plunk/db';
 import type {FilterCondition, FilterGroup} from '@plunk/types';
-import {SNOOZE_DURATIONS} from '@plunk/types';
+import {CONTACT_SUBSCRIPTION_STATUSES, SNOOZE_DURATIONS} from '@plunk/types';
 import {z} from 'zod';
 
 import {
@@ -121,6 +121,7 @@ export const ContactSchemas = {
       filter: z
         .object({
           search: z.string().max(255).optional(),
+          status: z.enum(CONTACT_SUBSCRIPTION_STATUSES).optional(),
           subscribed: z.boolean().optional(),
         })
         .default({}),

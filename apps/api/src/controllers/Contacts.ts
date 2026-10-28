@@ -2,7 +2,8 @@ import {Controller, Delete, Get, Middleware, Patch, Post} from '@overnightjs/cor
 import type {NextFunction, Request, Response} from 'express';
 import multer from 'multer';
 import {ContactSchemas} from '@plunk/shared';
-import type {BulkContactActionSelector} from '@plunk/types';
+import type {BulkContactActionSelector, ContactSubscriptionStatus} from '@plunk/types';
+import {CONTACT_SUBSCRIPTION_STATUSES} from '@plunk/types';
 import signale from 'signale';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {contactWriteRateLimit} from '../middleware/rateLimit.js';
@@ -60,11 +61,8 @@ export class Contacts {
     // Two spellings of the facet: `?status=subscribed|snoozed|unsubscribed` is the current
     // one, and `?subscribed=true|false` is kept working for callers written before snoozing
     // existed. `status` wins when both are present.
-    const statusParam = req.query.status as string | undefined;
-    const status =
-      statusParam === 'subscribed' || statusParam === 'snoozed' || statusParam === 'unsubscribed'
-        ? statusParam
-        : undefined;
+    const statusParam = req.query.status as ContactSubscriptionStatus | undefined;
+    const status = statusParam && CONTACT_SUBSCRIPTION_STATUSES.includes(statusParam) ? statusParam : undefined;
     const subscribedParam = req.query.subscribed as string | undefined;
     const subscribed = subscribedParam === 'true' ? true : subscribedParam === 'false' ? false : undefined;
     const sortParam = req.query.sort as string | undefined;
