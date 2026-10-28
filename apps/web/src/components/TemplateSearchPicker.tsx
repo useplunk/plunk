@@ -54,7 +54,13 @@ export function TemplateSearchPicker({value, initialName, onChange}: TemplateSea
     : (value ? (data?.data.find(t => t.id === value)?.name ?? selectedName ?? initialName ?? '') : '');
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onBlur={event => {
+        // Keep the list mounted while focus moves from the input to an option.
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+    >
       <Input
         type="text"
         value={displayValue}
@@ -63,7 +69,6 @@ export function TemplateSearchPicker({value, initialName, onChange}: TemplateSea
           setOpen(true);
           setDebouncedQuery(query);
         }}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder="Search templates…"
         autoComplete="off"
         className="pr-8"
