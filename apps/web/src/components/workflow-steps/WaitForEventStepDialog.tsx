@@ -90,6 +90,12 @@ export function WaitForEventStepDialog({step, workflowId, open, onOpenChange, on
     // The scope only applies to email events an execution's own emails produce
     const scoped = onlyThisExecution && canScopeWaitToExecution(eventName);
 
+    // A scoped wait whose email is never sent or opened would otherwise wait forever
+    if (scoped && timeoutSeconds === 0) {
+      toast.error('Set a timeout when waiting only for emails from this run');
+      return;
+    }
+
     const ok = await update({
       name,
       config: {eventName, timeout: timeoutSeconds, ...(scoped ? {scope: 'execution'} : {})},
@@ -179,11 +185,11 @@ export function WaitForEventStepDialog({step, workflowId, open, onOpenChange, on
             <Switch id="editEventScope" checked={onlyThisExecution} onCheckedChange={setOnlyThisExecution} />
             <div className="flex-1">
               <Label htmlFor="editEventScope" className="font-medium cursor-pointer">
-                Only emails from this execution
+                Only emails from this run
               </Label>
               <p className="text-xs text-neutral-500 mt-1">
-                Count the event only for emails this workflow sent to the contact in this execution. Otherwise any email
-                the contact receives counts. Set a timeout too, in case the email is never sent or opened.
+                Count the event only for emails this workflow sent to the contact in this run. Otherwise any email the
+                contact receives counts. Requires a timeout, in case the email is never sent or opened.
               </p>
             </div>
           </div>
