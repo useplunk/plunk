@@ -15,7 +15,7 @@ import {prisma} from '../database/prisma.js';
 import {BadRequest, ConflictError, HttpException} from '../exceptions/index.js';
 import type {ListSort} from '../utils/listSort.js';
 
-import {ContactService} from './ContactService.js';
+import {ContactFieldService} from './ContactFieldService.js';
 import {EventService} from './EventService.js';
 import {NtfyService} from './NtfyService.js';
 import {WorkflowEntryService} from './WorkflowEntryService.js';
@@ -1397,7 +1397,7 @@ export class WorkflowService {
    */
   public static async getAvailableFields(projectId: string, eventName?: string) {
     // Get contact fields with types (standard + custom data fields)
-    const contactFieldsWithTypes = await ContactService.getAvailableFields(projectId);
+    const {fields: contactFieldsWithTypes} = await ContactFieldService.list(projectId);
 
     // Build typed field list with 'contact.' prefix
     const contactFields = contactFieldsWithTypes.map(f => ({

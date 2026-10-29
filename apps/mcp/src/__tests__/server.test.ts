@@ -178,6 +178,27 @@ describe('tool behaviour', () => {
     await close();
   });
 
+  it('lists segments from the bare array GET /segments returns', async () => {
+    const calls: string[] = [];
+
+    mockApi((url) => {
+      calls.push(url);
+      return json([{id: 'seg-1', name: 'VIP', type: 'DYNAMIC', memberCount: 12}]);
+    });
+
+    const {client, close} = await connect(baseConfig);
+
+    const result = await client.callTool({name: 'plunk_list_segments', arguments: {}});
+
+    expect(result.isError).toBeFalsy();
+    expect(JSON.stringify(result.content)).toContain('Found 1 segment(s).');
+    expect(JSON.stringify(result.content)).toContain('VIP');
+    // The endpoint is not paginated, so no limit/cursor should be sent.
+    expect(calls).toEqual(['https://api.example.com/segments']);
+
+    await close();
+  });
+
   it('turns an API failure into a readable tool error rather than throwing', async () => {
     mockApi(() => json({error: {code: 'NOT_FOUND', message: 'Contact not found'}}, 404));
 
@@ -359,6 +380,46 @@ describe('single-campaign envelope', () => {
 
     // The model must see the campaign, not a {success, data} wrapper around it.
     expect(result.structuredContent).toMatchObject({id: 'camp-1', name: 'Win-back', status: 'DRAFT'});
+
+    await close();
+  });
+});
+
+describe('page-based lists', () => {
+  // GET /campaigns and GET /templates take page/pageSize, unlike the cursor-paginated contact list.
+  it.each([
+    ['plunk_list_campaigns', '/campaigns', 'campaign'],
+    ['plunk_list_templates', '/templates', 'template'],
+  ])('%s pages by page/pageSize and points to the next page', async (tool, path, noun) => {
+    const calls: URL[] = [];
+
+    mockApi((url) => {
+      const target = new URL(url);
+      calls.push(target);
+      const page = Number(target.searchParams.get('page'));
+      const pageSize = Number(target.searchParams.get('pageSize'));
+      return json({data: [{id: `item-${page}`}], total: 12, page, pageSize, totalPages: Math.ceil(12 / pageSize)});
+    });
+
+    const {client, close} = await connect(baseConfig);
+
+    const first = await client.callTool({name: tool, arguments: {limit: 5}});
+    const middle = await client.callTool({name: tool, arguments: {limit: 5, page: 2}});
+    const last = await client.callTool({name: tool, arguments: {limit: 5, page: 3}});
+
+    expect(calls.map((c) => c.pathname)).toEqual([path, path, path]);
+    expect(calls.map((c) => Object.fromEntries(c.searchParams))).toEqual([
+      {page: '1', pageSize: '5'},
+      {page: '2', pageSize: '5'},
+      {page: '3', pageSize: '5'},
+    ]);
+    expect(JSON.stringify(first.content)).toContain('pass page=2');
+    expect(middle.isError).toBeFalsy();
+    expect(JSON.stringify(middle.content)).toContain(`Found 12 ${noun}(s); showing 1.`);
+    expect(JSON.stringify(middle.content)).toContain('pass page=3');
+    expect(last.isError).toBeFalsy();
+    expect(JSON.stringify(last.content)).toContain(`Found 12 ${noun}(s); showing 1.`);
+    expect(JSON.stringify(last.content)).not.toContain('More results exist');
 
     await close();
   });

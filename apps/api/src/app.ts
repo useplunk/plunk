@@ -9,7 +9,6 @@ import signale from 'signale';
 import {ZodError} from 'zod';
 
 import {
-  DASHBOARD_URI,
   GITHUB_OAUTH_ENABLED,
   GOOGLE_OAUTH_ENABLED,
   LANDING_URI,
@@ -24,8 +23,8 @@ import {
   SMTP_ENABLED,
   STRIPE_ENABLED,
   TRACKING_TOGGLE_ENABLED,
-  WIKI_URI,
 } from './app/constants.js';
+import {ALLOWED_ORIGINS, isAllowedOrigin} from './app/origins.js';
 import {Actions} from './controllers/Actions.js';
 import {Activity} from './controllers/Activity.js';
 import {Analytics} from './controllers/Analytics.js';
@@ -93,11 +92,7 @@ const server = new (class extends Server {
     // Log all requests to database for historical tracking and analytics
     this.app.use(databaseRequestLogger);
 
-    // Build allowed origins from environment variables
-    const allowedOrigins =
-      NODE_ENV === 'development'
-        ? [/.*\.localhost:1000/, 'http://localhost:3000', 'http://localhost:4000']
-        : [DASHBOARD_URI, LANDING_URI, WIKI_URI];
+    const allowedOrigins = ALLOWED_ORIGINS;
 
     // Public API endpoints that should allow all origins
     const publicApiPaths = ['/v1', '/v1/track', '/v1/send'];
@@ -136,15 +131,7 @@ const server = new (class extends Server {
             return callback(null, true);
           }
 
-          // Check if origin matches any allowed origin (string or regex)
-          const isAllowed = allowedOrigins.some(allowed => {
-            if (allowed instanceof RegExp) {
-              return allowed.test(origin);
-            }
-            return allowed === origin;
-          });
-
-          if (isAllowed) {
+          if (isAllowedOrigin(origin)) {
             callback(null, true);
           } else {
             // Log CORS rejection with helpful information

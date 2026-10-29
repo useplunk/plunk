@@ -30,9 +30,35 @@ export type SnoozeDuration = (typeof SNOOZE_DURATIONS)[number];
 export type SubscriptionChangeReason = 'bounce' | 'complaint' | 'snooze' | 'snooze_expired';
 
 /**
- * The subscription state the dashboard shows and filters on.
+ * The subscription states the dashboard shows and filters on.
  *
- * Derived, not stored: `snoozed` is `subscribed = false` with a `snoozedUntil` in the future.
+ * Derived, not stored: `snoozed` is `subscribed = false` with a `snoozedUntil` set.
  * Storing it would mean a third state every send path had to learn about.
  */
-export type ContactSubscriptionStatus = 'subscribed' | 'snoozed' | 'unsubscribed';
+export const CONTACT_SUBSCRIPTION_STATUSES = ['subscribed', 'snoozed', 'unsubscribed'] as const;
+
+export type ContactSubscriptionStatus = (typeof CONTACT_SUBSCRIPTION_STATUSES)[number];
+
+export type ContactFieldType = 'string' | 'number' | 'boolean' | 'date';
+
+/**
+ * A field the segment builder, workflow conditions and template editor can filter or
+ * interpolate on: a `Contact` column (`email`, `subscribed`, ...) or a key inside the
+ * `Contact.data` JSON, in which case `field` is `data.<key>`.
+ */
+export interface ContactField {
+  field: string;
+  type: ContactFieldType;
+  /**
+   * Rounded percentage of the project's contacts carrying this field. `null` for a key
+   * that was written after the last background scan and has not been measured yet.
+   */
+  coverage: number | null;
+}
+
+export interface ContactFieldsResponse {
+  fields: ContactField[];
+  count: number;
+  /** True while the project has never been scanned, so custom fields may still be missing. */
+  pending: boolean;
+}

@@ -5,7 +5,8 @@ import jsonwebtoken from 'jsonwebtoken';
 import type {AuthResponse} from '@plunk/types';
 
 import {JWT_SECRET, PLUNK_ENABLED} from '../app/constants.js';
-import {ErrorCode, HttpException, NotAuthenticated} from '../exceptions/index.js';
+import {isAllowedOrigin} from '../app/origins.js';
+import {ErrorCode, HttpException, NotAllowed, NotAuthenticated} from '../exceptions/index.js';
 import {MembershipService} from '../services/MembershipService.js';
 import {ProjectService} from '../services/ProjectService.js';
 import {UserService} from '../services/UserService.js';
@@ -58,11 +59,36 @@ export const jwt = {
   },
 };
 
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/**
+ * Reject state-changing requests sent by a browser from an origin outside the CORS allow-list.
+ *
+ * CORS only hides the response from other origins; the request itself still runs. Because the session
+ * cookie is attached to cross-site form submissions, any route trusting the cookie alone is open to CSRF
+ * without this check. Browsers always send `Origin` on non-GET requests, so a missing header means a
+ * non-browser client, which cannot carry a victim's cookie. `Origin: null` is rejected.
+ * @param request The express request object
+ */
+export function assertTrustedOrigin(request: Request): void {
+  if (SAFE_METHODS.has(request.method)) {
+    return;
+  }
+
+  const origin = request.headers.origin;
+
+  if (origin !== undefined && !isAllowedOrigin(origin)) {
+    throw new NotAllowed('Cross-origin requests are not allowed for this route');
+  }
+}
+
 /**
  * Parse a user's ID from the request JWT token
  * @param request The express request object
  */
 export function parseJwt(request: Request): string {
+  assertTrustedOrigin(request);
+
   const token: string | undefined = request.cookies.next_token;
 
   if (!token) {
