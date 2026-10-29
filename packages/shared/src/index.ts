@@ -5,3 +5,4 @@ export * from './i18n/index.js';
 export * from './mailbox-simulator.js';
 export * from './unsubscribe.js';
 export * from './delivery.js';
+export * from './workflow-events.js';

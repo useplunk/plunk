@@ -360,6 +360,8 @@ export const WorkflowStepConfigSchemas = {
       },
     ),
   waitForEvent: z.object({
+    // "execution": count only emails this execution sent, for the events canScopeWaitToExecution accepts
+    scope: z.enum(['contact', 'execution']).optional(),
     eventName: z.string().min(1),
     // 0 or omitted waits with no time limit
     timeout: z.number().nonnegative().max(31536000, 'Timeout cannot exceed 365 days (31,536,000 seconds)').optional(),

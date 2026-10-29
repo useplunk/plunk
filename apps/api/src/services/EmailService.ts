@@ -9,7 +9,7 @@ import {ConflictError, ErrorCode, HttpException, NotFound} from '../exceptions/i
 import {createTranslatorSync, renderTemplate} from '@plunk/shared';
 
 import {BillingLimitService} from './BillingLimitService.js';
-import {withSourceEmail} from './EmailHeaderService.js';
+import {RECIPIENT_OVERRIDE_HEADER, withSourceEmail} from './EmailHeaderService.js';
 import {QueueService} from './QueueService.js';
 import {ThrottleService} from './ThrottleService.js';
 
@@ -332,7 +332,7 @@ export class EmailService {
     // If custom recipient email is provided, store it in headers for later use
     const emailHeaders = params.headers ? {...params.headers} : {};
     if (params.recipientEmail) {
-      emailHeaders['X-Plunk-Recipient-Override'] = params.recipientEmail;
+      emailHeaders[RECIPIENT_OVERRIDE_HEADER] = params.recipientEmail;
     }
 
     const email = await prisma.email.create({
