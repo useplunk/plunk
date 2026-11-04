@@ -83,6 +83,9 @@ export const WORKFLOW_CONDITION_OPERATORS = [
  *    - Does NOT match missing fields (undefined/null)
  *    - Use notExists operator if you want to find missing fields
  *    - Use OR[notEquals, notExists] if you want both
+ *    - Segments: every data.* comparison but equals/notEquals null requires its key first, so it is
+ *      never NULL and a notMemberOfSegment of a dynamic segment counts contacts without the key as
+ *      outside it
  *
  * 3. CONTAINS (substring)
  *    - ONLY matches when field EXISTS and contains substring
