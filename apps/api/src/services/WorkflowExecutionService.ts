@@ -6,6 +6,7 @@ import type {
   WorkflowExecution,
   WorkflowStep,
   WorkflowStepExecution,
+  WorkflowTransition,
 } from '@plunk/db';
 import {StepExecutionStatus, WorkflowExecutionStatus} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
@@ -13,6 +14,7 @@ import {renderTemplate, WorkflowStepConfigSchemas} from '@plunk/shared';
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import signale from 'signale';
+import type {ZodTypeAny} from 'zod';
 
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
@@ -23,6 +25,20 @@ import {EmailService} from './EmailService.js';
 import {NtfyService} from './NtfyService.js';
 import {QueueService} from './QueueService.js';
 
+// Executions moved per statement when releasing or removing a HOLD, which can hold most of a project
+const HOLD_BATCH_SIZE = 500;
+const HOLD_BATCH_PAUSE_MS = 50;
+
+// What a step's configuration must parse as before contacts are released into it from a HOLD
+const STEP_CONFIG_SCHEMAS: Partial<Record<WorkflowStep['type'], ZodTypeAny>> = {
+  SEND_EMAIL: WorkflowStepConfigSchemas.sendEmail,
+  DELAY: WorkflowStepConfigSchemas.delay,
+  WAIT_FOR_EVENT: WorkflowStepConfigSchemas.waitForEvent,
+  CONDITION: WorkflowStepConfigSchemas.condition,
+  WEBHOOK: WorkflowStepConfigSchemas.webhook,
+  UPDATE_CONTACT: WorkflowStepConfigSchemas.updateContact,
+};
+
 // A step's error is rethrown through the catch of every step before it in the same run, which
 // had completed; the step it came from has handled it, so those pass it up untouched.
 const handledFailures = new WeakSet<object>();
@@ -31,6 +47,7 @@ type StepConfig = Prisma.JsonValue;
 type StepResult = Record<string, unknown>;
 type WorkflowExecutionWithRelations = WorkflowExecution & {contact: Contact; workflow: Workflow};
 type WorkflowStepWithTemplate = WorkflowStep & {template?: Template | null};
+type WorkflowStepWithGraph = WorkflowStep & {outgoingTransitions: WorkflowTransition[]};
 type WorkflowStepWithTransitions = WorkflowStep & {
   outgoingTransitions?: Array<{
     id: string;
@@ -464,6 +481,129 @@ export class WorkflowExecutionService {
   }
 
   /**
+   * Release the executions parked on a workflow's HOLD steps into the steps inserted on the
+   * transitions they arrived through. Called by BullMQ worker for hold-release jobs.
+   *
+   * An execution parks behind the transition it arrived through, which led to its HOLD until a step
+   * was inserted on it, so only transitions that no longer lead to a HOLD have anyone to release.
+   * Executions are claimed by moving them out of HELD, so a release running twice moves each once.
+   */
+  public static async processHoldRelease(workflowId: string): Promise<{released: number; skipped: string[]}> {
+    const workflow = await prisma.workflow.findUnique({
+      where: {id: workflowId},
+      include: {steps: {include: {outgoingTransitions: true}}},
+    });
+    const result = {released: 0, skipped: [] as string[]};
+
+    const holdIds = workflow?.steps.filter(s => s.type === 'HOLD').map(s => s.id) ?? [];
+
+    // A disabled workflow is being edited: its contacts are released when it is enabled again
+    if (!workflow?.enabled || holdIds.length === 0) {
+      return result;
+    }
+
+    const stepsById = new Map(workflow.steps.map(s => [s.id, s]));
+    const runId = Date.now();
+
+    for (const transition of workflow.steps.flatMap(s => s.outgoingTransitions)) {
+      const target = stepsById.get(transition.toStepId);
+      if (!target || target.type === 'HOLD') {
+        continue;
+      }
+
+      const where = {status: WorkflowExecutionStatus.HELD, holdTransitionId: transition.id};
+      const nextBatch = () => prisma.workflowExecution.findMany({where, select: {id: true}, take: HOLD_BATCH_SIZE});
+
+      let batch = await nextBatch();
+      if (batch.length === 0) {
+        continue;
+      }
+
+      // Every step the contacts would go through must be ready, not only the first: a branch of a
+      // condition leading to an email with no template would fail everyone who takes it
+      const unready = this.firstUnreadyStep(target, stepsById);
+      if (unready) {
+        result.skipped.push(unready.id);
+        continue;
+      }
+
+      while (batch.length > 0) {
+        const claimed = await prisma.$queryRaw<{id: string}[]>`
+          UPDATE "workflow_executions"
+          SET "status" = 'RUNNING', "currentStepId" = ${target.id}, "holdTransitionId" = NULL, "updatedAt" = NOW()
+          WHERE "id" = ANY(${batch.map(e => e.id)}) AND "status" = 'HELD'
+          RETURNING "id"
+        `;
+        const ids = claimed.map(e => e.id);
+
+        if (ids.length > 0) {
+          // Before queueing: a queued execution can be back on a HOLD, WAITING there again, before this runs
+          await prisma.workflowStepExecution.updateMany({
+            where: {executionId: {in: ids}, stepId: {in: holdIds}, status: StepExecutionStatus.WAITING},
+            data: {status: StepExecutionStatus.COMPLETED, completedAt: new Date(), output: {releasedTo: target.id}},
+          });
+
+          try {
+            await QueueService.queueWorkflowSteps(ids, target.id, runId);
+          } catch (error) {
+            // Put them back, or they would sit RUNNING with nothing to move them on; the retry releases them
+            await prisma.workflowExecution.updateMany({
+              where: {id: {in: ids}, status: WorkflowExecutionStatus.RUNNING, currentStepId: target.id},
+              data: {status: WorkflowExecutionStatus.HELD, holdTransitionId: transition.id},
+            });
+            throw error;
+          }
+
+          result.released += ids.length;
+        }
+
+        if (batch.length < HOLD_BATCH_SIZE) {
+          break;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, HOLD_BATCH_PAUSE_MS));
+        batch = await nextBatch();
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Complete every execution parked on the HOLD `stepId`, then delete the step: deleting it first
+   * would null their current step and leave them HELD for good. Called by BullMQ worker for
+   * hold-remove jobs.
+   */
+  public static async processHoldRemove(workflowId: string, stepId: string): Promise<{completed: number}> {
+    let completed = 0;
+
+    for (;;) {
+      // Served by the (status, currentStepId) index
+      const count = await prisma.$executeRaw`
+        UPDATE "workflow_executions"
+        SET "status" = 'COMPLETED', "completedAt" = NOW(), "exitReason" = 'Hold step removed',
+            "holdTransitionId" = NULL, "updatedAt" = NOW()
+        WHERE "id" IN (
+          SELECT "id" FROM "workflow_executions"
+          WHERE "status" = 'HELD' AND "currentStepId" = ${stepId}
+          LIMIT ${HOLD_BATCH_SIZE}
+        )
+      `;
+      completed += count;
+
+      if (count < HOLD_BATCH_SIZE) {
+        break;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, HOLD_BATCH_PAUSE_MS));
+    }
+
+    await prisma.workflowStep.deleteMany({where: {id: stepId, workflowId, type: 'HOLD'}});
+
+    return {completed};
+  }
+
+  /**
    * Handle event occurrence and resume waiting workflows
    */
   public static async handleEvent(
@@ -577,6 +717,9 @@ export class WorkflowExecutionService {
 
       case 'UPDATE_CONTACT':
         return await this.executeUpdateContact(step, execution, stepExecution, config);
+
+      case 'HOLD':
+        return await this.executeHold(step, execution, stepExecution);
 
       default:
         throw new Error(`Unknown step type: ${step.type}`);
@@ -732,6 +875,109 @@ export class WorkflowExecutionService {
       resumeAt: resumeAt.toISOString(),
       queued: true,
     };
+  }
+
+  /**
+   * HOLD step - End of a workflow that keeps growing: park the contact, with no time limit, until a
+   * step is inserted on the transition it arrived through (see processHoldRelease)
+   */
+  private static async executeHold(
+    step: WorkflowStep,
+    execution: WorkflowExecutionWithRelations,
+    stepExecution: WorkflowStepExecution,
+  ): Promise<StepResult> {
+    const arrival = await this.findArrivalTransition(execution.id, step.id);
+    const holdTransitionId = arrival?.id ?? null;
+
+    await prisma.workflowStepExecution.update({
+      where: {id: stepExecution.id},
+      data: {status: StepExecutionStatus.WAITING, output: {holdTransitionId}},
+    });
+
+    if (!(await this.updateUnlessCancelled(execution.id, {status: WorkflowExecutionStatus.HELD, holdTransitionId}))) {
+      return {held: false};
+    }
+
+    // One parked run per contact, or the next step inserted above a HOLD would reach them twice. Only
+    // re-entry makes a second run. The newest stays: a run gives way to a newer one already parked,
+    // and otherwise ends the older ones, so two runs parking at once never end each other.
+    if (execution.workflow.allowReentry) {
+      const sameContact = {
+        workflowId: execution.workflowId,
+        contactId: execution.contactId,
+        status: WorkflowExecutionStatus.HELD,
+      };
+      const superseded = {
+        status: WorkflowExecutionStatus.COMPLETED,
+        completedAt: new Date(),
+        exitReason: 'Superseded by a newer run',
+        holdTransitionId: null,
+      };
+      const newer = await prisma.workflowExecution.findFirst({
+        where: {
+          ...sameContact,
+          OR: [{startedAt: {gt: execution.startedAt}}, {startedAt: execution.startedAt, id: {gt: execution.id}}],
+        },
+        select: {id: true},
+      });
+
+      await prisma.workflowExecution.updateMany({
+        where: newer
+          ? {id: execution.id, status: WorkflowExecutionStatus.HELD}
+          : {
+              ...sameContact,
+              OR: [{startedAt: {lt: execution.startedAt}}, {startedAt: execution.startedAt, id: {lt: execution.id}}],
+            },
+        data: superseded,
+      });
+
+      if (newer) {
+        return {held: false};
+      }
+    }
+
+    // A step was inserted on that transition after the execution had passed it, so the release the
+    // insert queued may have run before it got here
+    if (arrival && arrival.toStepId !== step.id) {
+      await QueueService.queueWorkflowHoldRelease(execution.workflowId);
+    }
+
+    return {held: true, holdTransitionId};
+  }
+
+  /**
+   * The transition an execution took into `stepId`: the one out of the last step it completed (on the
+   * branch it took, after a condition). It may no longer lead to `stepId` when a step was inserted on
+   * it meanwhile. Null when there is none, which leaves the execution parked for good.
+   */
+  private static async findArrivalTransition(
+    executionId: string,
+    stepId: string,
+  ): Promise<{id: string; toStepId: string} | null> {
+    // Not a HOLD it was released from: what it came through is the step before that HOLD
+    const previous = await prisma.workflowStepExecution.findFirst({
+      where: {executionId, stepId: {not: stepId}, status: StepExecutionStatus.COMPLETED, step: {type: {not: 'HOLD'}}},
+      orderBy: [{completedAt: 'desc'}, {createdAt: 'desc'}],
+      select: {
+        output: true,
+        step: {
+          select: {
+            outgoingTransitions: {select: {id: true, condition: true, toStepId: true}, orderBy: {priority: 'asc'}},
+          },
+        },
+      },
+    });
+
+    if (!previous) {
+      return null;
+    }
+
+    const branch = (previous.output as {branch?: unknown} | null)?.branch;
+    const transitions = previous.step.outgoingTransitions.filter(
+      t => branch === undefined || (t.condition as {branch?: unknown} | null)?.branch === branch,
+    );
+
+    return transitions.find(t => t.toStepId === stepId) ?? transitions[0] ?? null;
   }
 
   /**
@@ -1338,6 +1584,44 @@ export class WorkflowExecutionService {
     // Process the next step
     // All steps are processed immediately - DELAY and WAIT_FOR_EVENT will pause the workflow internally
     await this.processStepExecution(execution.id, nextStep.id);
+  }
+
+  /**
+   * Helper: The first step a contact released into `start` would reach that is not ready to run.
+   * A step inserted above a HOLD is created before it is configured, and a condition also needs every
+   * branch connected: one leading nowhere would complete the workflow instead of coming back.
+   */
+  private static firstUnreadyStep(
+    start: WorkflowStepWithGraph,
+    stepsById: Map<string, WorkflowStepWithGraph>,
+  ): WorkflowStepWithGraph | null {
+    const seen = new Set([start.id]);
+    const queue = [start];
+
+    while (queue.length > 0) {
+      const step = queue.shift()!;
+      const branches = step.outgoingTransitions.map(t => (t.condition as {branch?: unknown} | null)?.branch);
+      const config = step.config as {mode?: string; branches?: {id: string}[]};
+      const expected = config.mode === 'multi' ? [...(config.branches ?? []).map(b => b.id), 'default'] : ['yes', 'no'];
+
+      if (
+        STEP_CONFIG_SCHEMAS[step.type]?.safeParse(step.config).success === false ||
+        (step.type === 'SEND_EMAIL' && step.templateId === null) ||
+        (step.type === 'CONDITION' && !expected.every(branch => branches.includes(branch)))
+      ) {
+        return step;
+      }
+
+      for (const {toStepId} of step.outgoingTransitions) {
+        const next = stepsById.get(toStepId);
+        if (next && !seen.has(next.id)) {
+          seen.add(next.id);
+          queue.push(next);
+        }
+      }
+    }
+
+    return null;
   }
 
   /**

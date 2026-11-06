@@ -11,6 +11,7 @@ vi.mock('../QueueService', () => ({
     queueEmail: vi.fn(async () => ({id: 'mock-email-job-id'})),
     queueWorkflowTimeout: vi.fn(async () => ({id: 'mock-timeout-job-id'})),
     cancelWorkflowTimeout: vi.fn(async () => true),
+    queueWorkflowHoldRelease: vi.fn(async () => undefined),
   },
 }));
 

@@ -1,6 +1,7 @@
 import {ConditionStepDialog} from './ConditionStepDialog';
 import {DelayStepDialog} from './DelayStepDialog';
 import {ExitStepDialog} from './ExitStepDialog';
+import {HoldStepDialog} from './HoldStepDialog';
 import {SendEmailStepDialog} from './SendEmailStepDialog';
 import {UpdateContactStepDialog} from './UpdateContactStepDialog';
 import {WaitForEventStepDialog} from './WaitForEventStepDialog';
@@ -23,6 +24,8 @@ export function EditStepDialog(props: EditStepDialogProps) {
       return <UpdateContactStepDialog {...props} />;
     case 'EXIT':
       return <ExitStepDialog {...props} />;
+    case 'HOLD':
+      return <HoldStepDialog {...props} />;
     default:
       return null;
   }

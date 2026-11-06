@@ -283,13 +283,13 @@ Each workflow consists of a **workflow** record, a graph of **steps**, **transit
 | GET    | `/workflows`                                      | List all workflows.                                                                      |
 | GET    | `/workflows/fields`                               | Fields available to use in `CONDITION` step filters (contact + event fields).             |
 | POST   | `/workflows`                                      | Create a workflow. Always starts with `triggerType: EVENT` and `enabled: false`.         |
-| GET    | `/workflows/:id`                                  | Get a workflow with its steps and transitions.                                           |
+| GET    | `/workflows/:id`                                  | Get a workflow with its steps and transitions, plus `heldCounts` (contacts waiting on each `HOLD` step). |
 | PATCH  | `/workflows/:id`                                  | Update workflow metadata, trigger type / config, `enabled`, `allowReentry`, `throttle`.  |
 | DELETE | `/workflows/:id`                                  | Delete a workflow. Active executions must be cancelled or completed first.               |
 | **Steps** |                                                |                                                                                          |
-| POST   | `/workflows/:id/steps`                            | Add a step (`SEND_EMAIL`, `DELAY`, `WAIT_FOR_EVENT`, `CONDITION`, `WEBHOOK`, `UPDATE_CONTACT`, `EXIT`). |
+| POST   | `/workflows/:id/steps`                            | Add a step (`SEND_EMAIL`, `DELAY`, `WAIT_FOR_EVENT`, `CONDITION`, `WEBHOOK`, `UPDATE_CONTACT`, `EXIT`, `HOLD`). |
 | PATCH  | `/workflows/:id/steps/:stepId`                    | Update a step's config.                                                                  |
-| DELETE | `/workflows/:id/steps/:stepId?splice=true`        | Delete a step. Pass `splice=true` to auto-reconnect surrounding transitions.             |
+| DELETE | `/workflows/:id/steps/:stepId?splice=true`        | Delete a step. Pass `splice=true` to auto-reconnect surrounding transitions. Returns `202 {completing}` when a `HOLD` being deleted still has contacts waiting; they are completed in the background. |
 | **Transitions** |                                          |                                                                                          |
 | POST   | `/workflows/:id/transitions`                      | Add a transition between two steps. For `CONDITION` steps, include `branch: "yes" \| "no"`. |
 | DELETE | `/workflows/:id/transitions/:transitionId`        | Delete a transition.                                                                     |
@@ -297,7 +297,7 @@ Each workflow consists of a **workflow** record, a graph of **steps**, **transit
 | POST   | `/workflows/:id/executions`                       | Manually start an execution for a contact. Optional `context` JSON for per-execution variables. |
 | GET    | `/workflows/:id/executions`                       | List executions, filterable by `status`.                                                 |
 | GET    | `/workflows/:id/executions/:executionId`          | Get a single execution.                                                                  |
-| DELETE | `/workflows/:id/executions/:executionId`          | Cancel a running or waiting execution.                                                   |
+| DELETE | `/workflows/:id/executions/:executionId`          | Cancel a running, waiting or held execution.                                             |
 | POST   | `/workflows/:id/executions/cancel-all`            | Cancel every active execution at once.                                                   |
 
 ### Events

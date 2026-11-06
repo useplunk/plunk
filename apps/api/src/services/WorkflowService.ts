@@ -18,6 +18,7 @@ import type {ListSort} from '../utils/listSort.js';
 import {ContactFieldService} from './ContactFieldService.js';
 import {EventService} from './EventService.js';
 import {NtfyService} from './NtfyService.js';
+import {QueueService} from './QueueService.js';
 import {WorkflowEntryService} from './WorkflowEntryService.js';
 import {WorkflowExecutionService} from './WorkflowExecutionService.js';
 
@@ -343,6 +344,11 @@ export class WorkflowService {
       await EventService.invalidateWorkflowCache(projectId);
     }
 
+    // Steps added above a HOLD while the workflow was disabled are released into once it is enabled
+    if (data.enabled && !workflow.enabled) {
+      await QueueService.queueWorkflowHoldRelease(workflowId);
+    }
+
     // Send notification if enabled status changed
     if (data.enabled !== undefined && data.enabled !== workflow.enabled) {
       if (data.enabled) {
@@ -599,7 +605,10 @@ export class WorkflowService {
     if (shouldAutoConnect && workflow.steps.length > 0) {
       // Find the last step that doesn't have any outgoing transitions (the "leaf" step)
       // This is typically the most recently added step
-      const stepsWithoutOutgoing = workflow.steps.filter(step => step.outgoingTransitions.length === 0);
+      // A HOLD ends its path, so nothing is ever connected after one
+      const stepsWithoutOutgoing = workflow.steps.filter(
+        step => step.outgoingTransitions.length === 0 && step.type !== 'HOLD',
+      );
 
       if (stepsWithoutOutgoing.length > 0) {
         // Connect from the last leaf step to the new step
@@ -646,9 +655,17 @@ export class WorkflowService {
       throw new HttpException(404, 'Workflow step not found');
     }
 
-    // Check if workflow is enabled and has active executions
+    // Check if workflow is enabled and has active executions on this step. A step reads its
+    // configuration when an execution reaches it, so one nobody is on can change safely: a step just
+    // inserted above a HOLD must be configurable while other contacts wait in the workflow's delays.
     if (workflow.enabled) {
-      const activeExecutions = await this.hasActiveExecutions(workflowId);
+      const activeExecutions = await prisma.workflowExecution.count({
+        where: {
+          workflowId,
+          currentStepId: stepId,
+          status: {in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING]},
+        },
+      });
 
       if (activeExecutions > 0) {
         // Only allow safe changes: name and position updates
@@ -657,7 +674,7 @@ export class WorkflowService {
         if (hasCriticalChanges) {
           throw new HttpException(
             409,
-            `Cannot modify step configuration while workflow has ${activeExecutions} active execution(s). ` +
+            `Cannot modify step configuration while ${activeExecutions} execution(s) are on this step. ` +
               'Please disable the workflow first or wait for executions to complete. ' +
               'You can still update the step name and position.',
           );
@@ -680,16 +697,31 @@ export class WorkflowService {
       }
     }
 
-    return prisma.workflowStep.update({
+    const updated = await prisma.workflowStep.update({
       where: {id: stepId},
       data: updateData,
     });
+
+    // A release skips steps not configured yet; configuring one lets the next release reach it
+    if (data.config !== undefined || data.templateId !== undefined) {
+      await QueueService.queueWorkflowHoldRelease(workflowId);
+    }
+
+    return updated;
   }
 
   /**
-   * Delete a workflow step
+   * Delete a workflow step and everything below it
+   *
+   * A HOLD in that set with contacts parked on it is not deleted here: its incoming transitions
+   * are removed so nobody else arrives, and a background job completes the parked executions
+   * before deleting it. `completing` is how many are parked across those HOLDs.
    */
-  public static async deleteStep(projectId: string, workflowId: string, stepId: string): Promise<void> {
+  public static async deleteStep(
+    projectId: string,
+    workflowId: string,
+    stepId: string,
+  ): Promise<{completing: number}> {
     const workflow = await this.get(projectId, workflowId);
 
     const step = await prisma.workflowStep.findUnique({
@@ -813,20 +845,36 @@ export class WorkflowService {
       }
     }
 
-    // Delete all affected steps (Prisma will cascade delete the transitions)
-    await prisma.workflowStep.deleteMany({
-      where: {
-        id: {in: Array.from(stepsToDelete)},
-        workflowId, // Safety check to ensure we only delete steps from this workflow
-      },
-    });
+    // HOLDs with contacts parked on them are left to the background job
+    const holdIds = allSteps.filter(s => s.type === 'HOLD' && stepsToDelete.has(s.id)).map(s => s.id);
+    const parked = holdIds.length > 0 ? await this.heldCounts(workflowId, holdIds) : {};
+    const parkedHoldIds = Object.keys(parked);
+
+    await prisma.$transaction([
+      prisma.workflowTransition.deleteMany({where: {toStepId: {in: parkedHoldIds}}}),
+      // Delete all affected steps (Prisma will cascade delete the transitions)
+      prisma.workflowStep.deleteMany({
+        where: {
+          id: {in: [...stepsToDelete].filter(id => !(id in parked))},
+          workflowId, // Safety check to ensure we only delete steps from this workflow
+        },
+      }),
+    ]);
+
+    await Promise.all(parkedHoldIds.map(holdId => QueueService.queueWorkflowHoldRemove(workflowId, holdId)));
+
+    return {completing: Object.values(parked).reduce((sum, count) => sum + count, 0)};
   }
 
   /**
    * Splice a step out of the flow: re-wire its parent(s) directly to its child,
    * then delete only the step itself. Not allowed for CONDITION or TRIGGER steps.
    */
-  public static async spliceStep(projectId: string, workflowId: string, stepId: string): Promise<void> {
+  public static async spliceStep(
+    projectId: string,
+    workflowId: string,
+    stepId: string,
+  ): Promise<{completing: number}> {
     await this.get(projectId, workflowId);
 
     const step = await prisma.workflowStep.findUnique({
@@ -847,6 +895,11 @@ export class WorkflowService {
 
     if (step.type === 'CONDITION') {
       throw new HttpException(400, 'Cannot splice a condition step out of the flow.');
+    }
+
+    // Nothing follows a HOLD, so splicing it out is deleting it
+    if (step.type === 'HOLD') {
+      return this.deleteStep(projectId, workflowId, stepId);
     }
 
     // Check for active executions on this step
@@ -880,6 +933,8 @@ export class WorkflowService {
 
     // Delete the step — cascades and removes its own transitions
     await prisma.workflowStep.delete({where: {id: stepId}});
+
+    return {completing: 0};
   }
 
   /**
@@ -899,6 +954,9 @@ export class WorkflowService {
    * unlike splice/delete this does not need to guard against in-flight executions.
    * An execution parked on A simply picks up the new step on its next hop, a DELAY
    * included, since it looks up its next step when the delay ends.
+   *
+   * When B is a HOLD, the executions parked on it that arrived through `t` are
+   * released into the new step right away, or once it is configured.
    */
   public static async insertStepOnTransition(
     projectId: string,
@@ -939,9 +997,18 @@ export class WorkflowService {
       );
     }
 
+    // A HOLD ends its path just like an exit
+    if (data.type === 'HOLD') {
+      throw new HttpException(
+        400,
+        'A hold step ends the flow and cannot be inserted between two steps. ' +
+          'Disconnect the steps first, then add the hold step.',
+      );
+    }
+
     await this.validateStepTemplate(projectId, data.templateId);
 
-    return prisma.$transaction(async tx => {
+    const inserted = await prisma.$transaction(async tx => {
       const newStep = await tx.workflowStep.create({
         data: {
           workflowId,
@@ -973,6 +1040,10 @@ export class WorkflowService {
 
       return newStep;
     });
+
+    await QueueService.queueWorkflowHoldRelease(workflowId);
+
+    return inserted;
   }
 
   /**
@@ -1048,6 +1119,11 @@ export class WorkflowService {
       throw new HttpException(400, 'An exit step ends the flow and cannot be connected to another step');
     }
 
+    // So does a HOLD: its contacts move on only into steps inserted above it
+    if (fromStep?.type === 'HOLD') {
+      throw new HttpException(400, 'A hold step ends the flow and cannot be connected to another step');
+    }
+
     // For CONDITION steps, validate that this branch doesn't already have a transition
     if (fromStep?.type === 'CONDITION' && data.condition) {
       const conditionObj =
@@ -1103,6 +1179,10 @@ export class WorkflowService {
       },
     });
 
+    // A release skips a condition until all its branches are connected; connecting the last one lets
+    // the next release reach it
+    await QueueService.queueWorkflowHoldRelease(workflowId);
+
     return newTransition;
   }
 
@@ -1130,6 +1210,23 @@ export class WorkflowService {
 
     if (!transition) {
       throw new HttpException(404, 'Transition not found');
+    }
+
+    // Contacts parked on a HOLD are released through the transition they arrived by. Without it they
+    // could never receive steps added above the HOLD.
+    if (transition.toStep.type === 'HOLD') {
+      const parked = await prisma.workflowExecution.count({
+        where: {status: WorkflowExecutionStatus.HELD, holdTransitionId: transitionId},
+      });
+
+      if (parked > 0) {
+        throw new HttpException(
+          409,
+          `Cannot delete the connection into "${transition.toStep.name}": ` +
+            `${parked} contact(s) parked there arrived through it. ` +
+            'Insert new steps on the connection instead, or delete the hold step to complete them.',
+        );
+      }
     }
 
     // Check if workflow is enabled and has active executions that could be affected
@@ -1375,7 +1472,8 @@ export class WorkflowService {
     // Verify workflow exists and belongs to project
     await this.get(projectId, workflowId);
 
-    // Cancel all running and waiting executions
+    // Cancel all running and waiting executions. Those HELD on a HOLD are not active: they are
+    // cancelled one by one, or completed by deleting the HOLD
     const result = await prisma.workflowExecution.updateMany({
       where: {
         workflowId,
@@ -1427,6 +1525,20 @@ export class WorkflowService {
       typedFields: allFields,
       count: allFields.length,
     };
+  }
+
+  /**
+   * How many executions are parked on each HOLD step of a workflow (or of `stepIds`), by step id.
+   * A HOLD nobody is parked on is left out.
+   */
+  public static async heldCounts(workflowId: string, stepIds?: string[]): Promise<Record<string, number>> {
+    const groups = await prisma.workflowExecution.groupBy({
+      by: ['currentStepId'],
+      where: {workflowId, status: WorkflowExecutionStatus.HELD, currentStepId: stepIds ? {in: stepIds} : {not: null}},
+      _count: {_all: true},
+    });
+
+    return Object.fromEntries(groups.map(g => [g.currentStepId!, g._count._all]));
   }
 
   /**
