@@ -423,18 +423,18 @@ export class WorkflowExecutionService {
   }
 
   /**
-   * End a DELAY step that had no step after it when the delay started
+   * End a DELAY step, moving on to whatever follows it now
    * Called by BullMQ worker when the delay-end job executes
    */
   public static async processDelayEnd(executionId: string, stepId: string): Promise<void> {
     const execution = await prisma.workflowExecution.findUnique({where: {id: executionId}});
 
     // Cancelled, deleted, or already moved on: nothing left to end
-    if (execution?.status !== WorkflowExecutionStatus.WAITING) {
+    if (execution?.status !== WorkflowExecutionStatus.WAITING || execution.currentStepId !== stepId) {
       return;
     }
 
-    // A step may have been connected after the delay while the contact was waiting
+    // Steps may have been inserted after the delay while the contact was waiting
     const firstTransition = await prisma.workflowTransition.findFirst({
       where: {fromStepId: stepId},
       orderBy: {priority: 'asc'},
@@ -722,23 +722,9 @@ export class WorkflowExecutionService {
     // Update workflow execution to waiting (a cancelled one stays cancelled; what is queued below then does nothing)
     await this.updateUnlessCancelled(_execution.id, {status: WorkflowExecutionStatus.WAITING});
 
-    // Find next steps to queue
-    const transitions = await prisma.workflowTransition.findMany({
-      where: {fromStepId: _step.id},
-      include: {toStep: true},
-      orderBy: {priority: 'asc'},
-    });
-
-    if (transitions.length > 0) {
-      const firstTransition = transitions[0];
-      if (firstTransition?.toStep) {
-        const nextStep = firstTransition.toStep;
-        await QueueService.queueWorkflowStep(_execution.id, nextStep.id, Math.max(0, delayMs));
-      }
-    } else {
-      // Nothing follows the delay: still schedule its end, or the execution would never leave WAITING
-      await QueueService.queueWorkflowDelayEnd(_execution.id, _step.id, stepExecution.id, Math.max(0, delayMs));
-    }
+    // The step after the delay is looked up when the delay ends, not now: one inserted after the
+    // delay while the contact waits must not be skipped
+    await QueueService.queueWorkflowDelayEnd(_execution.id, _step.id, stepExecution.id, Math.max(0, delayMs));
 
     return {
       delayAmount: amount,
