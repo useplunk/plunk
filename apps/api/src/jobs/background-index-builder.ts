@@ -80,6 +80,13 @@ const INDEXES: BackgroundIndex[] = [
     sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "workflow_executions_workflowId_startedAt_idx" ON "workflow_executions"("workflowId", "startedAt" DESC)`,
   },
   {
+    // HOLD release (WorkflowExecutionService.processHoldRelease): the executions parked on a HOLD
+    // that arrived through a given transition. Partial, so it only ever holds the HELD rows. The
+    // predicate must match `status = 'HELD'` in those queries, or the planner will not use it.
+    name: 'workflow_executions_holdTransitionId_held_idx',
+    sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "workflow_executions_holdTransitionId_held_idx" ON "workflow_executions"("holdTransitionId") WHERE "status" = 'HELD'`,
+  },
+  {
     // Campaign unsubscribe drill-down (CampaignService.listRecipients, type=unsubscribed).
     // Partial, so it holds only the opted-out rows and each page is a short ordered walk.
     // The predicate must match the list query's `"unsubscribedAt" IS NOT NULL`, or the

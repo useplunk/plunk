@@ -20,6 +20,7 @@ import {
   defaultAppendPoint,
   defaultStepName,
   DELAY_UNITS,
+  endsPath,
   findStep,
   reviewWorkflow,
   slotTransition,
@@ -59,7 +60,7 @@ interface Execution {
   currentStep?: {id: string; name?: string; type?: string} | null;
 }
 
-const EXECUTION_STATUSES = ['RUNNING', 'WAITING', 'COMPLETED', 'EXITED', 'FAILED', 'CANCELLED'] as const;
+const EXECUTION_STATUSES = ['RUNNING', 'WAITING', 'HELD', 'COMPLETED', 'EXITED', 'FAILED', 'CANCELLED'] as const;
 
 async function getWorkflow(client: PlunkClient, id: string): Promise<Workflow> {
   return client.request<Workflow>({path: `/workflows/${encodeURIComponent(id)}`});
@@ -327,12 +328,12 @@ async function addStep(client: PlunkClient, workflow: Workflow, spec: StepSpec):
   const target = findStep(workflow, occupied.toStepId);
   const targetLabel = target ? stepLabel(target) : occupied.toStepId;
 
-  if (spec.type === 'EXIT') {
+  if (endsPath(spec.type)) {
     return {
       error:
-        `${stepLabel(from)} already leads to ${targetLabel}, and an EXIT step cannot go in between because ` +
+        `${stepLabel(from)} already leads to ${targetLabel}, and an ${spec.type} step cannot go in between because ` +
         'everything after it would be cut off. Disconnect them first (plunk_disconnect_workflow_steps) or ' +
-        'add the EXIT at an open position.',
+        `add the ${spec.type} at an open position.`,
     };
   }
 
@@ -462,7 +463,7 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
         'For a compact view plus problems that would break it at run time, use `plunk_check_workflow`.',
         '',
         '**Returns:** A numbered outline of the flow, then the workflow with `steps[]`. Each step has',
-        '`type` (TRIGGER, SEND_EMAIL, DELAY, WAIT_FOR_EVENT, CONDITION, EXIT, WEBHOOK, UPDATE_CONTACT),',
+        '`type` (TRIGGER, SEND_EMAIL, DELAY, WAIT_FOR_EVENT, CONDITION, EXIT, WEBHOOK, UPDATE_CONTACT, HOLD),',
         '`config`, the linked `template`, and its `outgoingTransitions` / `incomingTransitions`. A',
         'transition out of a CONDITION carries `condition.branch`.',
         '',
@@ -858,6 +859,9 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
         '- `UPDATE_CONTACT` — `updates` (data fields to set) and/or `subscriptionAction`.',
         '- `WEBHOOK` — `url`, optional `method`, `headers`, `body`.',
         '- `EXIT` — ends the run, optional `reason`. Nothing can follow it.',
+        '- `HOLD` — ends the workflow without completing it: contacts wait there with no time limit.',
+        '  Steps later inserted on a connection into it reach the contacts who arrived through that',
+        '  connection. Nothing can follow it.',
         '',
         '**Placement:** by default the step goes after the only open end of the workflow. Pass `after`',
         '(a step ID) to place it elsewhere, plus `branch` when `after` is a CONDITION. If that position',
@@ -1149,18 +1153,28 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
           }
         }
 
-        await client.request({
-          method: 'DELETE',
-          path: workflowPath(workflowId, 'steps', stepId),
-          query: mode === 'reconnect' ? {splice: 'true'} : undefined,
-        });
+        // A HOLD with contacts waiting is kept until a background job completes them (202)
+        const {completing = 0} =
+          (await client.request<{completing?: number} | undefined>({
+            method: 'DELETE',
+            path: workflowPath(workflowId, 'steps', stepId),
+            query: mode === 'reconnect' ? {splice: 'true'} : undefined,
+          })) ?? {};
 
         const review = reviewWorkflow(await getWorkflow(client, workflowId));
-        const orphans = review.issues.filter((issue) => issue.code === 'unreachable');
-        const orphanNote = orphans.length > 0 ? `\n\n${orphans.map((issue) => `- ${issue.message}`).join('\n')}` : '';
+        const removedIds = new Set(removed.map((removedStep) => removedStep.id));
+        const notes = review.issues
+          .filter((issue) => issue.code === 'unreachable' && !removedIds.has(issue.stepId ?? ''))
+          .map((issue) => `- ${issue.message}`);
+        if (completing > 0) {
+          notes.unshift(`- ${completing} contact(s) waiting on a hold are being completed; it goes once they are.`);
+        }
 
-        return jsonResult(`Deleted ${removed.map(stepLabel).join(', ')}.${orphanNote}\n\n${review.outline}`, {
-          deleted: removed.map((removedStep) => removedStep.id),
+        const summary = [`Deleted ${removed.map(stepLabel).join(', ')}.`, notes.join('\n'), review.outline];
+
+        return jsonResult(summary.filter(Boolean).join('\n\n'), {
+          deleted: [...removedIds],
+          completing,
           outline: review.outline,
         });
       }),
@@ -1273,7 +1287,7 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
             return errorResult(`No step with id "${fromStepId}" in this workflow.`);
           }
 
-          const problem = from.type === 'EXIT' ? undefined : branchProblem(from, branch);
+          const problem = endsPath(from.type) ? undefined : branchProblem(from, branch);
 
           if (problem) {
             return errorResult(problem);
@@ -1469,7 +1483,7 @@ export function registerWorkflowTools(ctx: ToolContext, client: PlunkClient): vo
           // The API cancels whatever it is given, which would overwrite the outcome of a finished run.
           const current = await client.request<Execution>({path: workflowPath(id, 'executions', executionId)});
 
-          if (current.status !== 'RUNNING' && current.status !== 'WAITING') {
+          if (current.status !== 'RUNNING' && current.status !== 'WAITING' && current.status !== 'HELD') {
             return errorResult(`Execution ${executionId} is ${current.status ?? 'not active'}; nothing to cancel.`);
           }
 

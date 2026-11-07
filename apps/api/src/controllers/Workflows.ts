@@ -117,8 +117,9 @@ export class Workflows {
     }
 
     const workflow = await WorkflowService.get(auth.projectId!, workflowId);
+    const heldCounts = workflow.steps.some(s => s.type === 'HOLD') ? await WorkflowService.heldCounts(workflowId) : {};
 
-    return res.status(200).json(presentWorkflow(workflow));
+    return res.status(200).json({...presentWorkflow(workflow), heldCounts});
   }
 
   /**
@@ -299,10 +300,13 @@ export class Workflows {
       return res.status(400).json({error: 'Workflow ID and Step ID are required'});
     }
 
-    if (splice) {
-      await WorkflowService.spliceStep(auth.projectId!, workflowId, stepId);
-    } else {
-      await WorkflowService.deleteStep(auth.projectId!, workflowId, stepId);
+    const {completing} = splice
+      ? await WorkflowService.spliceStep(auth.projectId!, workflowId, stepId)
+      : await WorkflowService.deleteStep(auth.projectId!, workflowId, stepId);
+
+    // A HOLD with contacts parked on it is completed and deleted in the background
+    if (completing > 0) {
+      return res.status(202).json({completing});
     }
 
     return res.status(204).send();

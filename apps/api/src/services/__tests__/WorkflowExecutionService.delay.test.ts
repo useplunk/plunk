@@ -7,11 +7,11 @@ import {factories, getPrismaClient} from '../../../../../test/helpers';
 
 vi.mock('../QueueService', () => ({
   QueueService: {
-    queueWorkflowStep: vi.fn(async () => ({id: 'mock-job-id'})),
     queueWorkflowDelayEnd: vi.fn(async () => ({id: 'mock-delay-end-job-id'})),
     queueEmail: vi.fn(async () => ({id: 'mock-email-job-id'})),
     queueWorkflowTimeout: vi.fn(async () => ({id: 'mock-timeout-job-id'})),
     cancelWorkflowTimeout: vi.fn(async () => true),
+    queueWorkflowHoldRelease: vi.fn(async () => undefined),
   },
 }));
 
@@ -79,7 +79,6 @@ describe('WorkflowExecutionService - a delay with no step after it', () => {
       expect.any(String),
       60 * 60 * 1000,
     );
-    expect(QueueService.queueWorkflowStep).not.toHaveBeenCalled();
   });
 
   it('completes the run when the delay ends', async () => {
@@ -127,5 +126,75 @@ describe('WorkflowExecutionService - a delay with no step after it', () => {
     await prisma.workflowExecution.delete({where: {id: run.executionId}});
 
     await expect(run.endDelay()).resolves.toBeUndefined();
+  });
+});
+
+/**
+ * A delay used to pick the step after it when it started, so a step inserted after the delay while
+ * the contact waited was skipped. It now looks the step up when the delay ends.
+ */
+describe('WorkflowExecutionService - a step inserted after a delay while the contact waits', () => {
+  beforeEach(async () => {
+    const {project} = await factories.createUserWithProject();
+    projectId = project.id;
+    contactId = (await factories.createContact({projectId, subscribed: true})).id;
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  /** TRIGGER → DELAY → SEND_EMAIL, with the run waiting in the delay */
+  async function waitingRun() {
+    const run = await createRun();
+    const template = await factories.createTemplate({projectId});
+    const send = await factories.createWorkflowStep({
+      workflowId: run.workflowId,
+      type: WorkflowStepType.SEND_EMAIL,
+      templateId: template.id,
+    });
+    const afterDelay = await prisma.workflowTransition.create({data: {fromStepId: run.delayStepId, toStepId: send.id}});
+    await run.start();
+    return {...run, afterDelay};
+  }
+
+  it('runs the inserted step when the delay ends', async () => {
+    const run = await waitingRun();
+    const template = await factories.createTemplate({projectId});
+    await WorkflowService.insertStepOnTransition(projectId, run.workflowId, run.afterDelay.id, {
+      type: WorkflowStepType.SEND_EMAIL,
+      name: 'Inserted',
+      config: {templateId: template.id},
+      templateId: template.id,
+    });
+
+    // The delay queued its own end, not the step that followed it when it started
+    expect(QueueService.queueWorkflowDelayEnd).toHaveBeenCalledWith(
+      run.executionId,
+      run.delayStepId,
+      expect.any(String),
+      60 * 60 * 1000,
+    );
+
+    await run.endDelay();
+
+    expect(await outcome(run)).toEqual({status: WorkflowExecutionStatus.COMPLETED, emails: 2});
+  });
+
+  it('ignores the end of a delay the run has already left', async () => {
+    const run = await createRun();
+    const second = await factories.createWorkflowStep({workflowId: run.workflowId, ...DELAY});
+    await prisma.workflowTransition.create({data: {fromStepId: run.delayStepId, toStepId: second.id}});
+    await run.start();
+    await run.endDelay();
+
+    // Now waiting in the second delay; a late run of the first one's job must not move it on
+    await run.endDelay();
+
+    const execution = await prisma.workflowExecution.findUniqueOrThrow({where: {id: run.executionId}});
+    expect(execution).toMatchObject({status: WorkflowExecutionStatus.WAITING, currentStepId: second.id});
+    expect(await prisma.workflowStepExecution.count({where: {executionId: run.executionId, stepId: second.id}})).toBe(
+      1,
+    );
   });
 });
