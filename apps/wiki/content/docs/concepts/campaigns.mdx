@@ -52,7 +52,7 @@ The `from` address must be on a domain you've verified for sending. Creating or 
 | `DRAFT`     | Created but not yet scheduled or sent. Editable.                              |
 | `SCHEDULED` | Scheduled for a future time via `scheduledFor`. Cancellable.                  |
 | `SENDING`   | Send is in progress — the queue is processing recipients.                     |
-| `SENT`      | Send is complete. Stats are final.                                            |
+| `SENT`      | Send is complete: no recipient is left to process. Stats are final. Check `failedCount` — some recipients may not have been sent. |
 | `CANCELLED` | Cancelled before completion. Terminal state from `DRAFT`, `SCHEDULED`, or `SENDING`. |
 
 Once a campaign is `SENT` or `CANCELLED` it can't be edited or resent — duplicate it instead with `POST /campaigns/:id/duplicate` to create an editable copy.
@@ -84,6 +84,16 @@ Bounces and complaints flip the contact to unsubscribed as well, but they are re
 `unsubscribedCount` also excludes opt-outs it cannot attribute: a dashboard toggle, a CSV import, `PATCH /contacts/:id`, or a link from mail sent before the parameter existed belongs to no campaign, so it is counted against none. See [Unsubscribe pages](/guides/unsubscribe-pages#knowing-which-email-caused-it).
 
 Complaint rate deserves attention out of proportion to its size: mailbox providers measure it in fractions of a percent, and a sustained rate above roughly 0.1% puts sending at risk. A handful of complaints on one campaign is a signal worth acting on, which is why the dashboard leads that card with the count rather than the percentage.
+
+### Recipients that were not sent
+
+`failedCount` counts recipients whose email failed before your email provider accepted it, so it never reached them. The most common cause is running out of AWS SES sending quota partway through a send: once the 24-hour limit is used up, SES refuses every remaining email with `Daily message quota exceeded.`. A campaign with failures still finishes as `SENT` when nothing is left to process, so check `failedCount` before you treat a send as complete. Emails you stopped yourself, by cancelling the campaign, are not counted.
+
+Once a campaign with failures finishes, the stats response also includes `failureReasons`. It lists the most common errors, each with the number of recipients it affected, so different causes stay separate (for example, a quota stop and two dropped connections). The campaign page shows the same breakdown.
+
+Failed emails are not retried automatically, and there is not yet a way to re-send a campaign to only its failed recipients.
+
+Campaigns that finished before `failedCount` existed report `0` until something recounts them, even if some of their emails failed.
 
 ## Test sends
 
