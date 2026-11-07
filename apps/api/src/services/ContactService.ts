@@ -692,7 +692,7 @@ export class ContactService {
    *
    * The call sites that uphold this, all marked with a reference to this comment:
    * `update`, `upsert`, `subscribe`, `unsubscribe`, `bulkSubscribe`, `bulkUnsubscribe`,
-   * the three SES suppression branches in `Webhooks`, and the workflow `UPDATE_CONTACT` step.
+   * the SES suppression branches in `Webhooks` (bounce, complaint and account suppression), and the workflow `UPDATE_CONTACT` step.
    * `create` needs nothing -- a new contact's `snoozedUntil` is already null.
    *
    * Re-snoozing is allowed and simply moves the date; it does not re-count against the

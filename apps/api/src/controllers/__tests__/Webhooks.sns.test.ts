@@ -598,6 +598,119 @@ describe('Webhooks - SES event notifications', () => {
   });
 
   /**
+   * All projects share one SES account. An address on its suppression list makes SES drop every
+   * later send to it and answer with a Bounce or Complaint subtyped `OnAccountSuppressionList`.
+   * The recipient did nothing, so these must not read as new complaints: that is how a customer
+   * mailing their own inbox saw a "complaint" on every send.
+   */
+  describe('SES account suppression list', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('does not count a suppression-list complaint, but unsubscribes and explains it', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      const notify = vi.spyOn(NtfyService, 'notifyEmailComplaint').mockResolvedValue(undefined);
+      const email = await sentEmail('ses-suppressed-complaint');
+
+      const captured = await post(
+        notification('Complaint', 'ses-suppressed-complaint', {
+          complaint: {complaintSubType: 'OnAccountSuppressionList', complainedRecipients: []},
+        }),
+      );
+      expect(captured.status).toBe(200);
+
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.status).toBe(EmailStatus.SENT);
+      expect(updated?.complainedAt).toBeNull();
+
+      const contact = await prisma.contact.findUnique({where: {id: contactId}});
+      expect(contact?.subscribed).toBe(false);
+
+      const event = await prisma.event.findFirst({where: {emailId: email.id, name: 'email.complaint'}});
+      expect(event?.data).toMatchObject({complaintSubType: 'OnAccountSuppressionList', suppressedByProvider: true});
+
+      expect(enforce).not.toHaveBeenCalled();
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    it('does not count a suppression-list bounce toward the bounce rate', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      const notify = vi.spyOn(NtfyService, 'notifyEmailBounce').mockResolvedValue(undefined);
+      const email = await sentEmail('ses-suppressed-bounce');
+
+      await post(
+        notification('Bounce', 'ses-suppressed-bounce', {
+          bounce: {bounceType: 'Permanent', bounceSubType: 'OnAccountSuppressionList'},
+        }),
+      );
+
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.status).toBe(EmailStatus.SENT);
+      expect(updated?.bouncedAt).toBeNull();
+
+      const contact = await prisma.contact.findUnique({where: {id: contactId}});
+      expect(contact?.subscribed).toBe(false);
+
+      const event = await prisma.event.findFirst({where: {emailId: email.id, name: 'email.bounce'}});
+      expect(event?.data).toMatchObject({bounceSubType: 'OnAccountSuppressionList', suppressedByProvider: true});
+
+      expect(enforce).not.toHaveBeenCalled();
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    it('still counts a real complaint and keeps what the provider reported', async () => {
+      const enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits').mockResolvedValue();
+      const email = await sentEmail('ses-real-complaint');
+
+      await post(
+        notification('Complaint', 'ses-real-complaint', {
+          complaint: {
+            complaintSubType: null,
+            complaintFeedbackType: 'abuse',
+            userAgent: 'Microsoft Junk Mail Reporting Program',
+            feedbackId: 'feedback-1',
+            arrivalDate: '2026-11-07T10:00:00.000Z',
+          },
+        }),
+      );
+
+      const updated = await prisma.email.findUnique({where: {id: email.id}});
+      expect(updated?.status).toBe(EmailStatus.COMPLAINED);
+      expect(updated?.complainedAt).not.toBeNull();
+
+      const event = await prisma.event.findFirst({where: {emailId: email.id, name: 'email.complaint'}});
+      expect(event?.data).toMatchObject({
+        complaintSubType: null,
+        complaintFeedbackType: 'abuse',
+        userAgent: 'Microsoft Junk Mail Reporting Program',
+        feedbackId: 'feedback-1',
+        arrivalDate: '2026-11-07T10:00:00.000Z',
+      });
+      expect(event?.data).not.toHaveProperty('suppressedByProvider');
+
+      expect(enforce).toHaveBeenCalledWith(projectId, 'complaint');
+    });
+
+    it("keeps the receiving server's diagnostic on a hard bounce", async () => {
+      const email = await sentEmail('ses-diagnostic-bounce');
+
+      await post(
+        notification('Bounce', 'ses-diagnostic-bounce', {
+          bounce: {
+            bounceType: 'Permanent',
+            bounceSubType: 'General',
+            bouncedRecipients: [{emailAddress: 'x@example.test', diagnosticCode: 'smtp; 550 5.1.1 user unknown'}],
+          },
+        }),
+      );
+
+      const event = await prisma.event.findFirst({where: {emailId: email.id, name: 'email.bounce'}});
+      expect(event?.data).toMatchObject({bounceSubType: 'General', diagnosticCode: 'smtp; 550 5.1.1 user unknown'});
+    });
+  });
+
+  /**
    * Mail providers fetch the tracking pixel on their own, and SES marks those fetches. These are
    * the fetches measured against a Gmail inbox: Gmail's servers took the pixel about two seconds
    * after sending ("Likely"), and the reader's open came later through Google's image proxy, or
