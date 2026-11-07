@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/useplunk/plunk/compare/v0.18.0...v0.19.0) (2026-11-07)
+
+
+### Features
+
+* Store additional details on bounce and complaint events ([2bda149](https://github.com/useplunk/plunk/commit/2bda149c13f81c3c291e216dcb10d4161bb9bd35))
+
 ## [0.18.0](https://github.com/useplunk/plunk/compare/v0.17.0...v0.18.0) (2026-10-28)
 
 
