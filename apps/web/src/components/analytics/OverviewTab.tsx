@@ -32,13 +32,15 @@ export function OverviewTab({filters}: {filters: AnalyticsFilters}) {
   const current = overview.data?.current;
   const previous = overview.data?.previous;
   const empty = current?.sent === 0;
+  // Emails went out, but none with the tracking the selected figure is built on
+  const untracked = current !== undefined && !empty && def.volume(current) === 0;
 
   // Context that changes how the numbers should be read, shown only when it applies
   const notes: string[] = [];
   if (filters.range === 'today') {
     notes.push('Emails sent today are still being opened and clicked, so the rates above rise through the day.');
   }
-  if (selected === 'openRate' || selected === 'clickToOpenRate') {
+  if ((selected === 'openRate' || selected === 'clickToOpenRate') && !untracked) {
     notes.push(
       'Apple Mail and some corporate filters open every message on delivery, so open rates read high. Clicks are the more dependable signal of attention.',
     );
@@ -56,9 +58,10 @@ export function OverviewTab({filters}: {filters: AnalyticsFilters}) {
           {METRICS.map(m => {
             const active = m.key === selected;
             const value = current?.[m.key];
+            const measured = current !== undefined && m.volume(current) > 0;
             const delta =
               current && previous && value !== undefined
-                ? computeDelta(m, value, previous[m.key], previous.sent)
+                ? computeDelta(m, value, previous[m.key], m.volume(previous))
                 : null;
             return (
               <button
@@ -92,12 +95,16 @@ export function OverviewTab({filters}: {filters: AnalyticsFilters}) {
                     <span
                       className={cn(
                         'mt-1 block text-xl font-semibold tracking-tight tabular-nums',
-                        thresholdTone(m, value, current.sent),
+                        thresholdTone(m, value, m.volume(current)),
                       )}
                     >
-                      {empty && m.kind === 'rate' ? '—' : formatValue(m, value)}
+                      {m.kind === 'rate' && !measured ? '—' : formatValue(m, value)}
                     </span>
-                    <DeltaLabel delta={empty ? null : delta} className="mt-0.5 block" />
+                    <DeltaLabel
+                      delta={measured ? delta : null}
+                      fallback={!empty && !measured ? 'Not tracked' : undefined}
+                      className="mt-0.5 block"
+                    />
                   </>
                 ) : overview.error ? (
                   <span className="mt-1 block text-xl font-semibold text-neutral-300">—</span>
@@ -125,6 +132,8 @@ export function OverviewTab({filters}: {filters: AnalyticsFilters}) {
           <ChartSkeleton />
         ) : empty ? (
           <PanelEmpty height={260}>No emails were sent in this period.</PanelEmpty>
+        ) : untracked ? (
+          <PanelEmpty height={260}>None of these emails were sent with open and click tracking.</PanelEmpty>
         ) : (
           <div className="px-2 pb-3 sm:px-3">
             <MetricChart
@@ -179,8 +188,8 @@ function StreamTable({
   const rate = (key: MetricKey, header: string): Column<AnalyticsStreamRow> => ({
     key,
     label: header,
-    render: row => (row.sent > 0 ? formatRate(row[key]) : '—'),
-    tone: row => thresholdTone(metric(key), row[key], row.sent),
+    render: row => (metric(key).volume(row) > 0 ? formatRate(row[key]) : '—'),
+    tone: row => thresholdTone(metric(key), row[key], metric(key).volume(row)),
   });
 
   const columns: Column<AnalyticsStreamRow>[] = [

@@ -2,9 +2,11 @@
  * Analytics API types
  *
  * Every rate is a percentage (0-100) measured against emails sent in the period, except
- * click-to-open, which is measured against emails opened. Periods are cohorts: an email
- * belongs to the period it was created in, and its opens, clicks, bounces and complaints
- * count toward that period whenever they arrive.
+ * open and click rates, measured against the emails sent with open and click tracking under
+ * the project's current tracking mode (`tracked`), and click-to-open, measured against
+ * emails opened. Periods are cohorts: an email belongs to the period it was created in,
+ * and its opens, clicks, bounces and complaints count toward that period whenever they
+ * arrive.
  */
 
 /** Which emails a query covers. ALL is every outbound stream; inbound mail is never counted. */
@@ -14,8 +16,12 @@ export type AnalyticsGranularity = 'hour' | 'day';
 
 export interface EmailMetricCounts {
   sent: number;
+  /** Sent with open and click tracking: what open and click rates are measured against */
+  tracked: number;
   delivered: number;
+  /** Opened among the tracked emails; opens of emails a mode does not track are left out */
   opened: number;
+  /** Clicked among the tracked emails */
   clicked: number;
   bounced: number;
   complained: number;
@@ -50,6 +56,8 @@ export interface AnalyticsTimeseriesPoint {
   /** Bucket start in the requested timezone, as a local time without offset: 2026-10-09T14:00 */
   bucket: string;
   sent: number;
+  /** Sent with open and click tracking; `opened` and `clicked` count among these */
+  tracked: number;
   delivered: number;
   opened: number;
   clicked: number;
@@ -70,6 +78,7 @@ export interface AnalyticsMailboxProviderRow {
   /** Recipient domain, e.g. gmail.com */
   domain: string;
   sent: number;
+  tracked: number;
   deliveryRate: number;
   openRate: number;
   bounceRate: number;

@@ -5,6 +5,7 @@ import type {NextFunction, Request, Response} from 'express';
 import {type FieldError, ValidationError} from '../exceptions/index.js';
 import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {type AnalyticsQuery, AnalyticsService} from '../services/AnalyticsService.js';
+import {EmailService} from '../services/EmailService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
 const STREAMS: AnalyticsStream[] = ['ALL', 'TRANSACTIONAL', 'CAMPAIGN', 'WORKFLOW'];
@@ -20,8 +21,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *
  * Clients should send stable bounds (day boundaries rather than "now") so repeat loads hit
  * the cache; the server never draws buckets past the current time.
+ *
+ * The streams sent with open and click tracking come from the project's tracking mode.
  */
-function parseQuery(req: Request, res: Response): AnalyticsQuery {
+async function parseQuery(req: Request, res: Response): Promise<AnalyticsQuery> {
   const errors: FieldError[] = [];
 
   const parseDate = (field: 'from' | 'to'): Date | undefined => {
@@ -61,7 +64,8 @@ function parseQuery(req: Request, res: Response): AnalyticsQuery {
     throw new ValidationError(errors);
   }
 
-  return {projectId: res.locals.auth.projectId, from, to, tz, stream};
+  const projectId: string = res.locals.auth.projectId;
+  return {projectId, from, to, tz, stream, trackedStreams: await EmailService.trackedStreams(projectId)};
 }
 
 function isValidTimezone(tz: string): boolean {
@@ -83,7 +87,7 @@ export class Analytics {
   @Middleware([requireAuth, requireEmailVerified])
   @CatchAsync
   public async getOverview(req: Request, res: Response, _next: NextFunction) {
-    return res.status(200).json(await AnalyticsService.getOverview(parseQuery(req, res)));
+    return res.status(200).json(await AnalyticsService.getOverview(await parseQuery(req, res)));
   }
 
   /**
@@ -94,7 +98,7 @@ export class Analytics {
   @Middleware([requireAuth, requireEmailVerified])
   @CatchAsync
   public async getTimeseries(req: Request, res: Response, _next: NextFunction) {
-    return res.status(200).json(await AnalyticsService.getTimeseries(parseQuery(req, res)));
+    return res.status(200).json(await AnalyticsService.getTimeseries(await parseQuery(req, res)));
   }
 
   /**
@@ -105,7 +109,7 @@ export class Analytics {
   @Middleware([requireAuth, requireEmailVerified])
   @CatchAsync
   public async getDeliverability(req: Request, res: Response, _next: NextFunction) {
-    return res.status(200).json(await AnalyticsService.getDeliverability(parseQuery(req, res)));
+    return res.status(200).json(await AnalyticsService.getDeliverability(await parseQuery(req, res)));
   }
 
   /**
@@ -116,7 +120,7 @@ export class Analytics {
   @Middleware([requireAuth, requireEmailVerified])
   @CatchAsync
   public async getLeaderboard(req: Request, res: Response, _next: NextFunction) {
-    const query = parseQuery(req, res);
+    const query = await parseQuery(req, res);
     const kind = String(req.query.kind ?? 'campaigns') as AnalyticsLeaderboardKind;
 
     if (!LEADERBOARD_KINDS.includes(kind)) {
@@ -136,7 +140,7 @@ export class Analytics {
   @Middleware([requireAuth, requireEmailVerified])
   @CatchAsync
   public async getLinks(req: Request, res: Response, _next: NextFunction) {
-    return res.status(200).json(await AnalyticsService.getLinks(parseQuery(req, res)));
+    return res.status(200).json(await AnalyticsService.getLinks(await parseQuery(req, res)));
   }
 
   /**
@@ -147,7 +151,7 @@ export class Analytics {
   @Middleware([requireAuth, requireEmailVerified])
   @CatchAsync
   public async getHeatmap(req: Request, res: Response, _next: NextFunction) {
-    return res.status(200).json(await AnalyticsService.getHeatmap(parseQuery(req, res)));
+    return res.status(200).json(await AnalyticsService.getHeatmap(await parseQuery(req, res)));
   }
 
   /**
@@ -158,7 +162,7 @@ export class Analytics {
   @Middleware([requireAuth, requireEmailVerified])
   @CatchAsync
   public async getAudience(req: Request, res: Response, _next: NextFunction) {
-    return res.status(200).json(await AnalyticsService.getAudience(parseQuery(req, res)));
+    return res.status(200).json(await AnalyticsService.getAudience(await parseQuery(req, res)));
   }
 
   /**
@@ -169,6 +173,6 @@ export class Analytics {
   @Middleware([requireAuth, requireEmailVerified])
   @CatchAsync
   public async getTopEvents(req: Request, res: Response, _next: NextFunction) {
-    return res.status(200).json(await AnalyticsService.getTopEvents(parseQuery(req, res)));
+    return res.status(200).json(await AnalyticsService.getTopEvents(await parseQuery(req, res)));
   }
 }

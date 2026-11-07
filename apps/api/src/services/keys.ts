@@ -59,8 +59,8 @@ export const Keys = {
     },
   },
   Activity: {
-    stats(projectId: string, startTime: number | string, endTime: number | string): string {
-      return `activity:stats:${projectId}:${startTime}:${endTime}`;
+    stats(projectId: string, startTime: number | string, endTime: number | string, trackedStreams: string): string {
+      return `activity:stats:${projectId}:${startTime}:${endTime}:${trackedStreams}`;
     },
     recentCount(projectId: string, minutes: number): string {
       return `activity:recent-count:${projectId}:${minutes}`;
