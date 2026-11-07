@@ -199,6 +199,10 @@ model Template {
   // Type
   type TemplateType @default(MARKETING)
 
+  // Open and click tracking for emails sent with this template: null follows the
+  // project's TrackingMode, true/false overrides it
+  tracking Boolean?
+
   // Relations
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
@@ -320,6 +324,9 @@ model Campaign {
 
   // Campaign type
   type TemplateType @default(MARKETING)
+
+  // Open and click tracking: null follows the project's TrackingMode, true/false overrides it
+  tracking Boolean?
 
   // Audience selection
   audienceType      CampaignAudienceType @default(ALL)
@@ -599,6 +606,10 @@ model Email {
 
   workflowStepExecution   WorkflowStepExecution? @relation(fields: [workflowStepExecutionId], references: [id], onDelete: Cascade)
   workflowStepExecutionId String? // For WORKFLOW (specific step)
+
+  /// The `tracking` field of the `POST /v1/send` call that created this email. Null leaves the
+  /// decision to the template (or campaign), then the project's TrackingMode.
+  trackingOverride Boolean?
 
   // Delivery
   status EmailStatus @default(PENDING)

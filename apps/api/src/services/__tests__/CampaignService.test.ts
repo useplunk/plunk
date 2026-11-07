@@ -96,6 +96,17 @@ describe('CampaignService', () => {
       expect(updated.subject).toBe('Updated Subject');
     });
 
+    it('should set and clear the tracking override', async () => {
+      const campaign = await factories.createCampaign({projectId, status: CampaignStatus.DRAFT});
+      expect(campaign.tracking).toBeNull();
+
+      const off = await CampaignService.update(projectId, campaign.id, {tracking: false});
+      expect(off.tracking).toBe(false);
+
+      const cleared = await CampaignService.update(projectId, campaign.id, {tracking: null});
+      expect(cleared.tracking).toBeNull();
+    });
+
     it('should throw error when updating non-draft campaign', async () => {
       const campaign = await factories.createCampaign({
         projectId,
@@ -212,11 +223,13 @@ describe('CampaignService', () => {
       const original = await factories.createCampaign({
         projectId,
         name: 'Original Campaign',
+        tracking: false,
       });
 
       const duplicate = await CampaignService.duplicate(projectId, original.id);
 
       expect(duplicate.name).toBe('Original Campaign (Copy)');
+      expect(duplicate.tracking).toBe(false);
       expect(duplicate.subject).toBe(original.subject);
       expect(duplicate.body).toBe(original.body);
       expect(duplicate.status).toBe(CampaignStatus.DRAFT);
