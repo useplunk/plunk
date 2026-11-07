@@ -1,5 +1,6 @@
 import type {
   Contact,
+  Email,
   Prisma,
   Template,
   Workflow,
@@ -9,7 +10,7 @@ import type {
 } from '@plunk/db';
 import {StepExecutionStatus, WorkflowExecutionStatus} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
-import {renderTemplate, WorkflowStepConfigSchemas} from '@plunk/shared';
+import {canScopeWaitToExecution, renderTemplate, WorkflowStepConfigSchemas} from '@plunk/shared';
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import signale from 'signale';
@@ -19,6 +20,7 @@ import {HttpException} from '../exceptions/index.js';
 import {DASHBOARD_URI} from '../app/constants.js';
 
 import {ContactFieldService} from './ContactFieldService.js';
+import {RECIPIENT_OVERRIDE_HEADER} from './EmailHeaderService.js';
 import {EmailService} from './EmailService.js';
 import {NtfyService} from './NtfyService.js';
 import {QueueService} from './QueueService.js';
@@ -471,6 +473,7 @@ export class WorkflowExecutionService {
     eventName: string,
     contactId?: string,
     data?: Record<string, unknown>,
+    emailId?: string,
   ): Promise<void> {
     // Find workflows waiting for this event (a cancelled execution keeps its wait step WAITING)
     const waitingExecutions = await prisma.workflowStepExecution.findMany({
@@ -503,10 +506,29 @@ export class WorkflowExecutionService {
       },
     });
 
+    // The email behind the event, loaded at most once and only for a wait scoped to its execution
+    let sourceEmail: Pick<Email, 'workflowExecutionId' | 'headers'> | null | undefined;
+
     for (const stepExecution of waitingExecutions) {
       const config = stepExecution.step.config;
 
       if (config && typeof config === 'object' && 'eventName' in config && config.eventName === eventName) {
+        // A wait scoped to its execution counts only the emails that execution sent to the contact
+        if ('scope' in config && config.scope === 'execution' && canScopeWaitToExecution(eventName)) {
+          if (sourceEmail === undefined) {
+            sourceEmail = emailId
+              ? await prisma.email.findUnique({
+                  where: {id: emailId},
+                  select: {workflowExecutionId: true, headers: true},
+                })
+              : null;
+          }
+
+          if (!this.sentByExecution(sourceEmail, stepExecution.executionId)) {
+            continue;
+          }
+        }
+
         // Event matches. Claim the wait before resuming it: the list above can be stale by now,
         // as the same event may be delivered twice at once (SES notifications, repeated clicks)
         // or tracked again while an earlier wait of this loop was resumed. Whoever moves the
@@ -541,6 +563,24 @@ export class WorkflowExecutionService {
         await this.processNextSteps(stepExecution.execution, stepExecution.step, {eventReceived: true});
       }
     }
+  }
+
+  /**
+   * Whether an email was sent to the contact by the given execution. An email a step sent to a
+   * custom recipient is recorded under the contact too, but it is not the contact's engagement.
+   */
+  private static sentByExecution(
+    email: Pick<Email, 'workflowExecutionId' | 'headers'> | null,
+    executionId: string,
+  ): boolean {
+    if (email?.workflowExecutionId !== executionId) {
+      return false;
+    }
+
+    const headers =
+      email.headers && typeof email.headers === 'object' && !Array.isArray(email.headers) ? email.headers : {};
+
+    return !(RECIPIENT_OVERRIDE_HEADER in headers);
   }
 
   /**
