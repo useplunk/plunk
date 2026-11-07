@@ -155,3 +155,60 @@ export interface AnalyticsTopEvent {
 export interface AnalyticsTopEvents {
   events: AnalyticsTopEvent[];
 }
+
+// =============================================================================
+// GLOBAL (every project the signed-in user is a member of)
+// =============================================================================
+
+/** Delivery counts beyond the engagement funnel, used to judge a project's health */
+export interface GlobalDeliveryCounts {
+  /** Emails that never reached the provider */
+  failed: number;
+  /** Emails with at least one transient (soft) bounce */
+  softBounces: number;
+}
+
+export type GlobalMetrics = EmailMetrics & GlobalDeliveryCounts;
+
+export interface GlobalAnalyticsProjectRow {
+  id: string;
+  name: string;
+  disabled: boolean;
+  current: GlobalMetrics;
+  previous: GlobalMetrics;
+}
+
+export type GlobalAnalyticsAlertKind =
+  | 'project_disabled'
+  | 'high_bounce_rate'
+  | 'high_complaint_rate'
+  | 'failed_emails'
+  | 'volume_spike'
+  | 'no_activity';
+
+export type GlobalAnalyticsAlertSeverity = 'critical' | 'warning' | 'info';
+
+export interface GlobalAnalyticsAlert {
+  kind: GlobalAnalyticsAlertKind;
+  severity: GlobalAnalyticsAlertSeverity;
+  projectId: string;
+  projectName: string;
+  /** The figure that raised the alert: a rate in percent, a count, or a volume ratio */
+  value: number;
+}
+
+/**
+ * GET /analytics/global/overview
+ *
+ * Totals are summed from counts, never averaged from per-project rates, so a project that
+ * sent ten emails weighs ten times less than one that sent a hundred.
+ */
+export interface GlobalAnalyticsOverview {
+  current: GlobalMetrics;
+  previous: GlobalMetrics;
+  projects: GlobalAnalyticsProjectRow[];
+  alerts: GlobalAnalyticsAlert[];
+}
+
+/** GET /analytics/global/timeseries: the same shape as the per-project timeseries, summed over projects */
+export type GlobalAnalyticsTimeseries = AnalyticsTimeseries;
