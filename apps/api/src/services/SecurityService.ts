@@ -921,6 +921,7 @@ export class SecurityService {
 Criteria for phishing/dangerous content:
 - Credential theft attempts (fake login pages, password requests)
 - Financial scams (fake invoices, lottery scams, advance-fee fraud)
+- Unsolicited refunds, prizes, or money owed to the recipient that must be claimed or confirmed by replying, calling, or providing details. These need no links: the reply is the hook, and it is followed up with requests for bank or personal details
 - Malicious links or attachments references
 - Impersonation of banks, government, or well-known companies
 - Urgent threats or fear-based manipulation
@@ -930,7 +931,9 @@ Criteria for phishing/dangerous content:
 
 IMPORTANT - Use sender and project context when evaluating:
 - The sender project name and domain are provided, along with whether the domain has been verified (DKIM/DNS) by this project.
-- A VERIFIED sender domain means the sender proved ownership of the domain via DNS records. This is strong evidence of legitimacy.
+- A VERIFIED sender domain only proves the sender controls that domain. It does NOT prove who the sender is: anyone can register and verify a lookalike domain (e.g. "mybank-secure.com", "paypal-support.net"). Verification never outweighs scam content.
+- The project name is chosen freely by the sender, and the unsubscribe footer is added by the sending platform to every email. Neither is evidence of legitimacy, and a project name that matches a lookalike domain is not either.
+- A domain that resembles a known company, insurer, bank, government agency or service (brand name plus extra words, hyphens, country codes or typos) without being its official domain IS impersonation, even when verified.
 - If the verified sender domain is an institutional domain (e.g. .gov, .gov.uk, .gouv.fr, .gc.ca, .mil, .edu, .ac.*), treat the email as legitimate institutional communication. Government, military, and accredited education domains cannot be obtained by phishers — do NOT flag these as impersonation of government/banks/etc. just because the content mentions official topics, taxes, benefits, court notices, etc.
 - Impersonation rules only apply when the sender domain does NOT match the brand being referenced. A verified bank domain sending a banking email is not impersonating itself.
 - Links to the sender's own domain(s) are expected and NOT suspicious.
