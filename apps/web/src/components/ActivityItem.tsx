@@ -598,11 +598,15 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
           open={showPreview}
           onOpenChange={setShowPreview}
           subject={String(activity.metadata.subject)}
-          from={str(activity.metadata.from)}
-          fromName={str(activity.metadata.fromName)}
           replyTo={str(activity.metadata.replyTo)}
-          toName={str(activity.metadata.toName)}
-          toEmail={activity.contactEmail}
+          {...(activity.metadata.sourceType === 'INBOUND'
+            ? {from: activity.contactEmail, toEmail: str(activity.metadata.from)}
+            : {
+                from: str(activity.metadata.from),
+                fromName: str(activity.metadata.fromName),
+                toName: str(activity.metadata.toName),
+                toEmail: activity.contactEmail,
+              })}
         />
       )}
     </li>
