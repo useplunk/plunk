@@ -45,7 +45,7 @@ export function UnpaidInvoiceBanner({projectId, hasSubscription}: UnpaidInvoiceB
   const handlePayNow = () => {
     const firstInvoice = invoicesData.unpaidInvoices[0];
     if (firstInvoice?.hostedInvoiceUrl) {
-      window.open(firstInvoice.hostedInvoiceUrl, '_blank');
+      window.open(firstInvoice.hostedInvoiceUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
