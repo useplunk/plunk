@@ -1,3 +1,4 @@
+import type {EmailSourceType} from '@plunk/db';
 import {Prisma} from '@plunk/db';
 import type {
   AnalyticsAudience,
@@ -34,6 +35,11 @@ export interface AnalyticsQuery {
   /** IANA timezone used to bucket by local hour and day */
   tz: string;
   stream: AnalyticsStream;
+  /**
+   * Streams sent with open and click tracking under the project's current tracking mode,
+   * resolved by the controller from the project
+   */
+  trackedStreams: EmailSourceType[];
 }
 
 type CountRow = Record<keyof Omit<EmailMetricCounts, 'unsubscribed'>, bigint>;
@@ -87,8 +93,10 @@ export class AnalyticsService {
 
   /**
    * Rates are measured against emails sent, matching the campaign stats endpoint, so the
-   * same campaign shows the same open rate here and on its own page. Click-to-open is the
-   * one exception: it answers "of the people who opened, how many clicked".
+   * same campaign shows the same rates here and on its own page. Opens and clicks are
+   * measured against the emails sent with tracking, since no other email can record them,
+   * which keeps that match for every campaign the project tracks. Click-to-open answers
+   * "of the people who opened, how many clicked".
    */
   public static toMetrics(counts: EmailMetricCounts): EmailMetrics {
     const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 10000) / 100 : 0);
@@ -96,8 +104,8 @@ export class AnalyticsService {
     return {
       ...counts,
       deliveryRate: pct(counts.delivered, counts.sent),
-      openRate: pct(counts.opened, counts.sent),
-      clickRate: pct(counts.clicked, counts.sent),
+      openRate: pct(counts.opened, counts.tracked),
+      clickRate: pct(counts.clicked, counts.tracked),
       clickToOpenRate: pct(counts.clicked, counts.opened),
       bounceRate: pct(counts.bounced, counts.sent),
       complaintRate: pct(counts.complained, counts.sent),
@@ -142,7 +150,7 @@ export class AnalyticsService {
   private static async countsByStream(query: AnalyticsQuery): Promise<Map<string, EmailMetricCounts>> {
     const [counts, unsubscribes] = await Promise.all([
       prisma.$queryRaw<(CountRow & {stream: string})[]>`
-        SELECT e."sourceType"::text AS stream, ${COUNT_COLUMNS}
+        SELECT e."sourceType"::text AS stream, ${countColumns(query)}
         FROM "emails" e
         WHERE ${emailScope(query, 'ALL')}
         GROUP BY e."sourceType"
@@ -190,7 +198,7 @@ export class AnalyticsService {
     const rows = await prisma.$queryRaw<(CountRow & {bucket: string; unsubscribed: bigint})[]>`
       WITH buckets AS (${bucketSeries(query, granularity)}),
       counts AS (
-        SELECT ${bucket} AS bucket, ${COUNT_COLUMNS}
+        SELECT ${bucket} AS bucket, ${countColumns(query)}
         FROM "emails" e
         WHERE ${emailScope(query)}
         GROUP BY 1
@@ -203,7 +211,7 @@ export class AnalyticsService {
         GROUP BY 1
       )
       SELECT to_char(b.bucket, 'YYYY-MM-DD"T"HH24:MI') AS bucket,
-        COALESCE(c.sent, 0) AS sent, COALESCE(c.delivered, 0) AS delivered,
+        COALESCE(c.sent, 0) AS sent, COALESCE(c.tracked, 0) AS tracked, COALESCE(c.delivered, 0) AS delivered,
         COALESCE(c.opened, 0) AS opened, COALESCE(c.clicked, 0) AS clicked,
         COALESCE(c.bounced, 0) AS bounced, COALESCE(c.complained, 0) AS complained,
         COALESCE(u.unsubscribed, 0) AS unsubscribed
@@ -240,7 +248,7 @@ export class AnalyticsService {
             ${eventStreamFilter(query.stream)}
         `,
         prisma.$queryRaw<(CountRow & {domain: string})[]>`
-          SELECT lower(split_part(c."email", '@', 2)) AS domain, ${COUNT_COLUMNS}
+          SELECT lower(split_part(c."email", '@', 2)) AS domain, ${countColumns(query)}
           FROM "emails" e
           JOIN "contacts" c ON c."id" = e."contactId"
           WHERE ${emailScope(query)}
@@ -259,6 +267,7 @@ export class AnalyticsService {
           return {
             domain: row.domain,
             sent: metrics.sent,
+            tracked: metrics.tracked,
             deliveryRate: metrics.deliveryRate,
             openRate: metrics.openRate,
             bounceRate: metrics.bounceRate,
@@ -290,7 +299,10 @@ export class AnalyticsService {
 
   /**
    * Campaigns keep reconciled counters on their own row, so this reads those instead of
-   * recounting their emails, and the numbers match the campaign page exactly. A campaign
+   * recounting their emails, and the numbers match the campaign page exactly, except that a
+   * campaign the current tracking mode does not track has no open or click rate here. Its
+   * type sets the stream of every email it sends (CampaignService passes it as
+   * isTransactional), so the current mode tracks a campaign whole or not at all. A campaign
    * belongs to the period it started sending in.
    */
   private static async campaignLeaderboard(query: AnalyticsQuery): Promise<AnalyticsLeaderboardRow[]> {
@@ -303,6 +315,7 @@ export class AnalyticsService {
       select: {
         id: true,
         name: true,
+        type: true,
         sentAt: true,
         sentCount: true,
         deliveredCount: true,
@@ -316,27 +329,32 @@ export class AnalyticsService {
       take: this.LEADERBOARD_LIMIT,
     });
 
-    return campaigns.map(c => ({
-      id: c.id,
-      name: c.name,
-      sentAt: c.sentAt?.toISOString() ?? null,
-      ...this.toMetrics({
-        sent: c.sentCount,
-        delivered: c.deliveredCount,
-        opened: c.openedCount,
-        clicked: c.clickedCount,
-        bounced: c.bouncedCount,
-        complained: c.complainedCount,
-        unsubscribed: c.unsubscribedCount,
-      }),
-    }));
+    return campaigns.map(c => {
+      const stream: EmailSourceType = c.type === 'TRANSACTIONAL' ? 'TRANSACTIONAL' : 'CAMPAIGN';
+      const tracked = query.trackedStreams.includes(stream);
+      return {
+        id: c.id,
+        name: c.name,
+        sentAt: c.sentAt?.toISOString() ?? null,
+        ...this.toMetrics({
+          sent: c.sentCount,
+          tracked: tracked ? c.sentCount : 0,
+          delivered: c.deliveredCount,
+          opened: tracked ? c.openedCount : 0,
+          clicked: tracked ? c.clickedCount : 0,
+          bounced: c.bouncedCount,
+          complained: c.complainedCount,
+          unsubscribed: c.unsubscribedCount,
+        }),
+      };
+    });
   }
 
   private static async templateLeaderboard(query: AnalyticsQuery): Promise<AnalyticsLeaderboardRow[]> {
     const scoped = {...query, stream: 'TRANSACTIONAL' as const};
     const [counts, unsubscribes] = await Promise.all([
       prisma.$queryRaw<(CountRow & {id: string | null})[]>`
-        SELECT e."templateId" AS id, ${COUNT_COLUMNS}
+        SELECT e."templateId" AS id, ${countColumns(scoped)}
         FROM "emails" e
         WHERE ${emailScope(scoped)}
         GROUP BY 1
@@ -365,7 +383,7 @@ export class AnalyticsService {
     const scoped = {...query, stream: 'WORKFLOW' as const};
     const [counts, unsubscribes] = await Promise.all([
       prisma.$queryRaw<(CountRow & {id: string})[]>`
-        SELECT we."workflowId" AS id, ${COUNT_COLUMNS}
+        SELECT we."workflowId" AS id, ${countColumns(scoped)}
         FROM "emails" e
         JOIN "workflow_executions" we ON we."id" = e."workflowExecutionId"
         WHERE ${emailScope(scoped)}
@@ -585,7 +603,7 @@ export class AnalyticsService {
     const key = Keys.Analytics.query(
       query.projectId,
       kind,
-      `${query.from.toISOString()}:${query.to.toISOString()}:${query.tz}:${query.stream}`,
+      `${query.from.toISOString()}:${query.to.toISOString()}:${query.tz}:${query.stream}:${query.trackedStreams.join(',')}`,
     );
 
     const hit = await redis.get(key);
@@ -675,26 +693,54 @@ function eventStreamFilter(stream: AnalyticsStream): Prisma.Sql {
   return stream === 'ALL' ? Prisma.empty : Prisma.sql`AND ev."data"->>'sourceType' = ${stream}`;
 }
 
-const COUNT_COLUMNS = Prisma.sql`
-  COUNT(e."sentAt") AS sent,
-  COUNT(e."deliveredAt") AS delivered,
-  COUNT(e."openedAt") AS opened,
-  COUNT(e."clickedAt") AS clicked,
-  COUNT(e."bouncedAt") AS bounced,
-  COUNT(e."complainedAt") AS complained
-`;
+/**
+ * Opens and clicks only count on the streams the project tracks, the same streams that
+ * make up `tracked`, so neither rate can pass 100% after the tracking mode changes
+ */
+function countColumns(query: AnalyticsQuery): Prisma.Sql {
+  const tracked = trackedFilter(query);
+  return Prisma.sql`
+    COUNT(e."sentAt") AS sent,
+    COUNT(e."sentAt") FILTER (WHERE ${tracked}) AS tracked,
+    COUNT(e."deliveredAt") AS delivered,
+    COUNT(e."openedAt") FILTER (WHERE ${tracked}) AS opened,
+    COUNT(e."clickedAt") FILTER (WHERE ${tracked}) AS clicked,
+    COUNT(e."bouncedAt") AS bounced,
+    COUNT(e."complainedAt") AS complained
+  `;
+}
+
+/**
+ * Each stream as a SQL literal rather than a bound parameter: Postgres casts a literal to
+ * "EmailSourceType" once, while a parameter cast to it is cast again on every row counted
+ */
+const STREAM_SQL: Record<EmailSourceType, Prisma.Sql> = {
+  TRANSACTIONAL: Prisma.sql`'TRANSACTIONAL'`,
+  CAMPAIGN: Prisma.sql`'CAMPAIGN'`,
+  WORKFLOW: Prisma.sql`'WORKFLOW'`,
+  INBOUND: Prisma.sql`'INBOUND'`,
+};
+
+/** Emails in a stream sent with open and click tracking; none when tracking is disabled */
+function trackedFilter(query: AnalyticsQuery): Prisma.Sql {
+  if (query.trackedStreams.length === 0) {
+    return Prisma.sql`FALSE`;
+  }
+  return Prisma.sql`e."sourceType" IN (${Prisma.join(query.trackedStreams.map(stream => STREAM_SQL[stream]))})`;
+}
 
 // =============================================================================
 // HELPERS
 // =============================================================================
 
 function emptyCounts(): EmailMetricCounts {
-  return {sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, complained: 0, unsubscribed: 0};
+  return {sent: 0, tracked: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, complained: 0, unsubscribed: 0};
 }
 
 function addCounts(a: EmailMetricCounts, b: EmailMetricCounts): EmailMetricCounts {
   return {
     sent: a.sent + b.sent,
+    tracked: a.tracked + b.tracked,
     delivered: a.delivered + b.delivered,
     opened: a.opened + b.opened,
     clicked: a.clicked + b.clicked,
@@ -707,6 +753,7 @@ function addCounts(a: EmailMetricCounts, b: EmailMetricCounts): EmailMetricCount
 function toCounts(row: CountRow): Omit<EmailMetricCounts, 'unsubscribed'> {
   return {
     sent: Number(row.sent),
+    tracked: Number(row.tracked),
     delivered: Number(row.delivered),
     opened: Number(row.opened),
     clicked: Number(row.clicked),

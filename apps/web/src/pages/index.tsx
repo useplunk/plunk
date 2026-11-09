@@ -256,7 +256,7 @@ function CompactActivityRow({activity}: {activity: Activity}) {
 
 export default function Index() {
   const {activeProject} = useActiveProject();
-  const {totalContacts, totalEmailsSent, totalCampaigns, openRate, isLoading} = useDashboardStats();
+  const {totalContacts, totalEmailsSent, totalEmailsTracked, totalCampaigns, openRate, isLoading} = useDashboardStats();
   const {setupState, isLoading: isLoadingSetupState} = useProjectSetupState(activeProject?.id);
   const {securityMetrics} = useProjectSecurity(activeProject?.id);
   const {data: config} = useConfig();
@@ -287,9 +287,11 @@ export default function Index() {
     () => computeTrend(totalEmailsSent, previousStats?.totalEmailsSent ?? 0),
     [totalEmailsSent, previousStats?.totalEmailsSent],
   );
-  const openRateTrend = useMemo(
-    () => computeTrend(openRate, previousStats?.openRate ?? 0),
-    [openRate, previousStats?.openRate],
+  // Emails went out, but none with open and click tracking: there is no open rate to show
+  const openRateNotTracked = totalEmailsSent > 0 && totalEmailsTracked === 0;
+  const openRateTrend = useMemo<TrendInfo>(
+    () => (openRateNotTracked ? {direction: 'none', pct: 0} : computeTrend(openRate, previousStats?.openRate ?? 0)),
+    [openRateNotTracked, openRate, previousStats?.openRate],
   );
 
   // Live pulse — refresh every 30s. This is the actual real-time signal, so it
@@ -360,7 +362,7 @@ export default function Index() {
       name: 'Open rate',
       value: openRate,
       icon: TrendingUp,
-      format: (n: number) => `${n.toFixed(1)}%`,
+      format: (n: number) => (openRateNotTracked ? '—' : `${n.toFixed(1)}%`),
     },
   ];
 
@@ -453,7 +455,9 @@ export default function Index() {
                         )}
                       </CardTitle>
                       {isEmails && !isLoading && previousStats && <TrendChip trend={emailsTrend} />}
-                      {isOpenRate && !isLoading && previousStats && <TrendChip trend={openRateTrend} />}
+                      {isOpenRate && !isLoading && (previousStats || openRateNotTracked) && (
+                        <TrendChip trend={openRateTrend} label={openRateNotTracked ? 'Not tracked' : undefined} />
+                      )}
                     </CardHeader>
                   </Card>
                 </motion.div>
