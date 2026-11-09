@@ -735,6 +735,7 @@ export class ActivityService {
 
       if (
         email.deliveredAt &&
+        email.sourceType !== 'INBOUND' &&
         (!types || types.includes(ActivityType.EMAIL_DELIVERED)) &&
         isInDateRange(email.deliveredAt)
       ) {
