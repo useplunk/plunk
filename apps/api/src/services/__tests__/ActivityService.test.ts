@@ -295,3 +295,48 @@ describe('ActivityService - workflow activity', () => {
     expect(seen).toEqual(started.map(execution => `${execution.id}_started`));
   });
 });
+
+describe('delivered filter with newer inbound rows', () => {
+  const prisma = getPrismaClient();
+  let projectId: string;
+  let contactId: string;
+
+  beforeEach(async () => {
+    const {project} = await factories.createUserWithProject();
+    projectId = project.id;
+    contactId = (await factories.createContact({projectId})).id;
+  });
+
+  it('still returns an outbound delivery when the newest emails are inbound', async () => {
+    const outbound = await prisma.email.create({
+      data: {
+        projectId,
+        contactId,
+        subject: 'Outbound',
+        body: '<p>x</p>',
+        from: 'a@plunk.test',
+        sourceType: 'TRANSACTIONAL',
+        status: 'DELIVERED',
+        sentAt: new Date(Date.now() - 120000),
+        deliveredAt: new Date(Date.now() - 120000),
+        createdAt: new Date(Date.now() - 120000),
+      },
+    });
+    for (let i = 0; i < 3; i++) {
+      await prisma.email.create({
+        data: {
+          projectId,
+          contactId,
+          subject: `Inbound ${i}`,
+          body: '<p>x</p>',
+          from: 'inbox@plunk.test',
+          sourceType: 'INBOUND',
+          status: 'RECEIVED',
+          deliveredAt: new Date(),
+        },
+      });
+    }
+    const {data} = await ActivityService.getActivities(projectId, 2, undefined, [ActivityType.EMAIL_DELIVERED]);
+    expect(data.map(a => a.id)).toEqual([`${outbound.id}_delivered`]);
+  });
+});
