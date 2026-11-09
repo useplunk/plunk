@@ -145,6 +145,38 @@ describe('ActivityService - email activity', () => {
     });
   }
 
+  it('shows an inbound email only as received, including when filtering by delivery', async () => {
+    const email = await prisma.email.create({
+      data: {
+        projectId,
+        contactId,
+        subject: 'Inbound message',
+        body: '<p>Hello</p>',
+        from: 'inbox@plunk.test',
+        sourceType: 'INBOUND',
+        status: 'RECEIVED',
+        deliveredAt: new Date(),
+      },
+    });
+
+    const {data} = await ActivityService.getActivities(projectId);
+    const emailActivities = data.filter(activity => activity.metadata.emailId === email.id);
+    expect(emailActivities.map(activity => activity.type)).toEqual([ActivityType.EMAIL_RECEIVED]);
+    expect(emailActivities[0]?.metadata.from).toBe('inbox@plunk.test');
+
+    const delivered = await ActivityService.getActivities(projectId, 50, undefined, [ActivityType.EMAIL_DELIVERED]);
+    expect(delivered.data).toHaveLength(0);
+
+    const received = await ActivityService.getActivities(projectId, 50, undefined, [ActivityType.EMAIL_RECEIVED]);
+    expect(received.data.map(activity => activity.id)).toEqual([`${email.id}_received`]);
+  });
+
+  it('keeps delivered activities for outbound emails', async () => {
+    const email = await createEmail({});
+    const {data} = await ActivityService.getActivities(projectId, 50, undefined, [ActivityType.EMAIL_DELIVERED]);
+    expect(data.map(activity => activity.id)).toEqual([`${email.id}_delivered`]);
+  });
+
   it("leaves Plunk's own email events out of the feed", async () => {
     const email = await createEmail({clickedAt: new Date()});
     await prisma.event.createMany({
@@ -261,5 +293,50 @@ describe('ActivityService - workflow activity', () => {
     } while (cursor);
 
     expect(seen).toEqual(started.map(execution => `${execution.id}_started`));
+  });
+});
+
+describe('delivered filter with newer inbound rows', () => {
+  const prisma = getPrismaClient();
+  let projectId: string;
+  let contactId: string;
+
+  beforeEach(async () => {
+    const {project} = await factories.createUserWithProject();
+    projectId = project.id;
+    contactId = (await factories.createContact({projectId})).id;
+  });
+
+  it('still returns an outbound delivery when the newest emails are inbound', async () => {
+    const outbound = await prisma.email.create({
+      data: {
+        projectId,
+        contactId,
+        subject: 'Outbound',
+        body: '<p>x</p>',
+        from: 'a@plunk.test',
+        sourceType: 'TRANSACTIONAL',
+        status: 'DELIVERED',
+        sentAt: new Date(Date.now() - 120000),
+        deliveredAt: new Date(Date.now() - 120000),
+        createdAt: new Date(Date.now() - 120000),
+      },
+    });
+    for (let i = 0; i < 3; i++) {
+      await prisma.email.create({
+        data: {
+          projectId,
+          contactId,
+          subject: `Inbound ${i}`,
+          body: '<p>x</p>',
+          from: 'inbox@plunk.test',
+          sourceType: 'INBOUND',
+          status: 'RECEIVED',
+          deliveredAt: new Date(),
+        },
+      });
+    }
+    const {data} = await ActivityService.getActivities(projectId, 2, undefined, [ActivityType.EMAIL_DELIVERED]);
+    expect(data.map(a => a.id)).toEqual([`${outbound.id}_delivered`]);
   });
 });

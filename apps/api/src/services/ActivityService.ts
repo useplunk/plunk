@@ -605,7 +605,7 @@ export class ActivityService {
       orConditions.push({sentAt: {not: null, ...dateFilter}});
     }
     if (!types || types.includes(ActivityType.EMAIL_DELIVERED)) {
-      orConditions.push({deliveredAt: {not: null, ...dateFilter}});
+      orConditions.push({deliveredAt: {not: null, ...dateFilter}, sourceType: {not: 'INBOUND'}});
     }
     if (!types || types.includes(ActivityType.EMAIL_RECEIVED)) {
       orConditions.push({deliveredAt: {not: null, ...dateFilter}, sourceType: 'INBOUND'});
@@ -735,6 +735,7 @@ export class ActivityService {
 
       if (
         email.deliveredAt &&
+        email.sourceType !== 'INBOUND' &&
         (!types || types.includes(ActivityType.EMAIL_DELIVERED)) &&
         isInDateRange(email.deliveredAt)
       ) {

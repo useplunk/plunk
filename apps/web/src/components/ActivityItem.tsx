@@ -197,7 +197,7 @@ function getActivityConfig(activity: Activity): ActivityConfig {
         tile: TILE.neutral,
         title: subject ?? 'Email received',
         badge: {label: 'Received', variant: 'default'},
-        detail: str(metadata.from) ? `From ${str(metadata.from)}` : 'Inbound email',
+        detail: activity.contactEmail ? `From ${activity.contactEmail}` : 'Inbound email',
       };
 
     case 'email.opened': {
@@ -333,8 +333,9 @@ function getDetails(activity: Activity): {label: string; value: ReactNode}[] {
     add('Subject', str(metadata.subject));
     const fromName = str(metadata.fromName);
     const from = str(metadata.from);
-    add('From', from && (fromName ? `${fromName} <${from}>` : from));
-    add('To', activity.contactEmail);
+    const isInbound = metadata.sourceType === 'INBOUND';
+    add('From', isInbound ? activity.contactEmail : from && (fromName ? `${fromName} <${from}>` : from));
+    add('To', isInbound ? from : activity.contactEmail);
     add('Reply-to', str(metadata.replyTo));
   }
 
@@ -597,11 +598,15 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
           open={showPreview}
           onOpenChange={setShowPreview}
           subject={String(activity.metadata.subject)}
-          from={str(activity.metadata.from)}
-          fromName={str(activity.metadata.fromName)}
           replyTo={str(activity.metadata.replyTo)}
-          toName={str(activity.metadata.toName)}
-          toEmail={activity.contactEmail}
+          {...(activity.metadata.sourceType === 'INBOUND'
+            ? {from: activity.contactEmail, toEmail: str(activity.metadata.from)}
+            : {
+                from: str(activity.metadata.from),
+                fromName: str(activity.metadata.fromName),
+                toName: str(activity.metadata.toName),
+                toEmail: activity.contactEmail,
+              })}
         />
       )}
     </li>
