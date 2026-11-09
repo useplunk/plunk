@@ -7,6 +7,7 @@ import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
 import {redis} from '../database/redis.js';
+import {extractVisibleEmailText, truncateForAnalysis} from '../utils/emailContent.js';
 import {Keys} from './keys.js';
 import {MembershipService} from './MembershipService.js';
 import {NtfyService} from './NtfyService.js';
@@ -75,6 +76,13 @@ const SECURITY_THRESHOLDS = {
  * Tracks timestamp and confidence of recent phishing detections
  * Uses sorted sets for efficient time-based filtering
  */
+/**
+ * Characters of visible email text sent to the LLM. Applies to text that has already
+ * been stripped of markup, so nearly every real email fits; longer ones keep both their
+ * start and their end (see truncateForAnalysis).
+ */
+const PHISHING_BODY_MAX_LENGTH = 4000;
+
 interface PhishingDetection {
   timestamp: number;
   confidence: number;
@@ -847,11 +855,11 @@ export class SecurityService {
 
       signale.info(`[PHISHING] Checking email for project ${projectId} (sampled)`);
 
-      // Strip HTML tags for content analysis (basic HTML removal)
-      const strippedBody = body
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+      // Reduce the HTML to what the recipient actually reads. Layout, CSS and hidden
+      // elements say nothing about phishing, and leaving them in let the editor's
+      // stylesheet (or deliberate padding) push the real message out of the window.
+      const {text: visibleText, hiddenTextLength} = extractVisibleEmailText(body);
+      const analysedBody = truncateForAnalysis(visibleText, PHISHING_BODY_MAX_LENGTH);
 
       // Extract URLs from the original HTML body for domain analysis
       const urlMatches = body.match(/https?:\/\/[^\s"'<>]+/g) ?? [];
@@ -918,6 +926,7 @@ Criteria for phishing/dangerous content:
 - Urgent threats or fear-based manipulation
 - Suspicious cryptocurrency or investment schemes
 - Requests for sensitive personal information
+- Large amounts of hidden text (reported separately), a known technique for evading content filters
 
 IMPORTANT - Use sender and project context when evaluating:
 - The sender project name and domain are provided, along with whether the domain has been verified (DKIM/DNS) by this project.
@@ -940,11 +949,12 @@ Sender domain: ${senderDomain}
 Sender domain verified (DKIM/DNS confirmed by project): ${isDomainVerified ? 'yes' : 'no'}
 Sender domain is an institutional TLD (gov/mil/edu/ac/etc.): ${isInstitutionalDomain ? 'yes' : 'no'}
 ${uniqueUrls.length > 0 ? `URLs found in email: ${uniqueUrls.join(', ')}` : ''}
+${hiddenTextLength > 0 ? `Hidden text removed (invisible to the recipient): ${hiddenTextLength} characters` : ''}
 
 Subject: ${subject}
 
-Body:
-${strippedBody.substring(0, 2000)}`,
+Body (visible text only, layout and styling removed):
+${analysedBody || '(no visible text)'}`,
             },
           ],
           temperature: 0.1,
