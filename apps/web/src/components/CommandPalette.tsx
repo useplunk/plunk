@@ -430,7 +430,7 @@ export function CommandPalette() {
                 <CommandItem
                   value="open-documentation-docs-wiki-help"
                   onSelect={() => {
-                    window.open(WIKI_URI, '_blank');
+                    window.open(WIKI_URI, '_blank', 'noopener,noreferrer');
                     setOpen(false);
                   }}
                 >
