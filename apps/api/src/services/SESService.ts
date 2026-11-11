@@ -123,6 +123,14 @@ export async function sendRawEmail({
   attachments,
   tracking = true,
 }: SendRawEmailParams): Promise<{messageId: string}> {
+  // The API schema already refuses these, but attachments are stored and sent later by the
+  // worker, so rows written before that check (or by another caller) are checked here too.
+  for (const attachment of attachments ?? []) {
+    if ([attachment.filename, attachment.contentType, attachment.contentId ?? ''].some(v => /[\r\n]/.test(v))) {
+      throw new Error('Attachment header fields cannot contain line breaks');
+    }
+  }
+
   // Generate unique boundaries for multipart messages
   const altBoundary = `----=_AltPart_${Math.random().toString(36).substring(2)}`;
   const mixedBoundary = attachments?.some(a => (a.disposition ?? 'attachment') === 'attachment')

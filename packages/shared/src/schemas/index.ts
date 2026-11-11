@@ -681,7 +681,12 @@ export const ActionSchemas = {
           z.object({
             filename: z.string().min(1).max(255).regex(/^[^\r\n"]+$/, 'Filename contains invalid characters'),
             content: z.string().min(1), // Base64 encoded file content
-            contentType: z.string().min(1).max(255),
+            // Goes verbatim into the part's Content-Type header, so a line break would inject headers
+            contentType: z
+              .string()
+              .min(1)
+              .max(255)
+              .regex(/^[^\x00-\x1f\x7f]+$/, 'Content type contains invalid characters'),
             contentId: z
               .string()
               .min(1)
