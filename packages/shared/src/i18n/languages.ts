@@ -23,6 +23,9 @@ export const SUPPORTED_LANGUAGES: Language[] = [
   {code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵'},
   {code: 'sv', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪'},
   {code: 'cy', name: 'Welsh', nativeName: 'Cymraeg', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿'},
+  {code: 'lt', name: 'Lithuanian', nativeName: 'Lietuvių', flag: '🇱🇹'},
+  {code: 'lv', name: 'Latvian', nativeName: 'Latviešu', flag: '🇱🇻'},
+  {code: 'et', name: 'Estonian', nativeName: 'Eesti', flag: '🇪🇪'},
 ];
 
 export const DEFAULT_LANGUAGE = 'en';
