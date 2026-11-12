@@ -1,3 +1,4 @@
+import {WorkflowStepConfigSchemas} from '@plunk/shared';
 import {Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@plunk/ui';
 import {ChevronDown, Plus, Trash2} from 'lucide-react';
 import Link from 'next/link';
@@ -46,9 +47,12 @@ export function WebhookStepDialog({step, workflowId, open, onOpenChange, onSucce
     });
 
     const responseKey = saveResponseAs.trim();
-    if (responseKey && !/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(responseKey)) {
-      toast.error('Response name may only contain letters, digits and underscores');
-      return;
+    if (responseKey) {
+      const check = WorkflowStepConfigSchemas.webhook.shape.saveResponseAs.safeParse(responseKey);
+      if (!check.success) {
+        toast.error(`Save response as: ${check.error.issues[0]?.message ?? 'invalid name'}`);
+        return;
+      }
     }
 
     const ok = await update({

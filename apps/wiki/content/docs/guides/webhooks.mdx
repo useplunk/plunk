@@ -147,7 +147,7 @@ For example, a webhook step that asks your shop for a one-time coupon, with `sav
 
 The next email can then use `{{event.coupon.code}}` and `{{event.coupon.validUntil}}`.
 
-- The name may contain letters, digits and underscores (max 64 characters). `id`, `email`, `data`, `event`, `unsubscribeUrl`, `subscribeUrl` and `manageUrl` are reserved.
+- The name may contain letters, digits and underscores (max 64 characters) and must not start with a digit. `id`, `email`, `data`, `event`, `unsubscribeUrl`, `subscribeUrl` and `manageUrl` are reserved.
 - The response is saved only for a 2xx status and when it is at most 64 KB. A non-JSON response is saved as a string.
 - Saving under a name that already exists in the trigger event data replaces that value for the rest of the execution.
 
