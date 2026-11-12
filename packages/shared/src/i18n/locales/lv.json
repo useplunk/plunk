@@ -1,0 +1,62 @@
+{
+  "pages": {
+    "unsubscribe": {
+      "title": "Atteikties no abonēšanas",
+      "description": "Vai pārtraukt saņemt {projectName} e-pastus uz {email}?",
+      "button": "Atteikties",
+      "buttonLoading": "Notiek atteikšanās...",
+      "managePreferences": "Labāk pārvaldīt iestatījumus",
+      "successTitle": "Jūs esat atteicies no abonēšanas",
+      "successDescription": "{email} vairs nesaņems e-pastus no {projectName}.",
+      "changedMind": "Pārdomājāt?",
+      "subscribeAgain": "Abonēt atkārtoti"
+    },
+    "subscribe": {
+      "title": "Abonēt jaunumus",
+      "description": "Vai saņemt {projectName} e-pastus uz {email}?",
+      "button": "Abonēt",
+      "buttonLoading": "Notiek abonēšana...",
+      "successTitle": "Abonēšana aktivizēta!",
+      "successDescription": "{email} tagad saņems e-pastus no {projectName}."
+    },
+    "manage": {
+      "title": "Abonēšanas iestatījumi",
+      "description": "Pārvaldiet e-pastus, ko {projectName} sūta uz {email}.",
+      "subscriptionLabel": "E-pasta abonements",
+      "subscribedStatus": "Pašlaik jūs saņemat e-pastus",
+      "unsubscribedStatus": "Pašlaik jūs nesaņemat e-pastus",
+      "subscribedSuccess": "Abonēšana veiksmīga!",
+      "unsubscribedSuccess": "Atteikšanās veiksmīga!",
+      "unsubscribeCompletely": "Atteikties pilnībā",
+      "subscribeToEmails": "Abonēt e-pastus",
+      "disclaimer": "Šajā lapā varat pārvaldīt savus e-pasta iestatījumus. Abonēšanas statuss tiek atjaunināts uzreiz."
+    },
+    "snooze": {
+      "cta": "Labāk īslaicīgi apturēt e-pastus",
+      "prompt": "Uz cik ilgu laiku apturēt e-pastus?",
+      "duration_2_weeks": "2 nedēļas",
+      "duration_1_month": "1 mēnesi",
+      "duration_6_months": "6 mēnešus",
+      "duration_1_year": "1 gadu",
+      "buttonLoading": "Notiek apturēšana...",
+      "cancel": "Atcelt",
+      "successTitle": "E-pasti īslaicīgi apturēti",
+      "successDescription": "{email} nesaņems e-pastus no {projectName} līdz {date}. Pēc tam tie atsāksies automātiski.",
+      "status": "Apturēts līdz {date}",
+      "resume": "Atsākt e-pastus tagad"
+    },
+    "common": {
+      "loading": "Ielādē...",
+      "error": "Kļūda",
+      "loadFailed": "Neizdevās ielādēt jūsu e-pasta iestatījumus. Pārbaudiet saiti un mēģiniet vēlreiz.",
+      "actionFailed": "Kaut kas nogāja greizi. Lūdzu, mēģiniet vēlreiz.",
+      "sentWith": "Nosūtīts ar {provider}"
+    }
+  },
+  "email": {
+    "footer": {
+      "unsubscribeText": "Jūs saņēmāt šo e-pastu, jo piekritāt saņemt e-pastus no {projectName}. Ja vairs nevēlaties saņemt šādus e-pastus, lūdzu,",
+      "updatePreferences": "mainiet iestatījumus"
+    }
+  }
+}
