@@ -135,6 +135,22 @@ https://api.example.com/users/{{id}}/events
 
 <Step>
 
+### Use the response in later steps (optional)
+
+Set **Save response as** (`saveResponseAs` in the step config) to store the JSON response of a successful (2xx) request in the execution context. Later steps read it under that name, the same way as trigger event data: in a `SEND_EMAIL` template, a `CONDITION`, or another `WEBHOOK`.
+
+For example, a webhook step that asks your shop for a one-time coupon, with `saveResponseAs` set to `coupon`:
+
+```json
+{ "code": "WELCOME-7Q2K", "validUntil": "2026-12-01" }
+```
+
+The next email can then use `{{event.coupon.code}}` and `{{event.coupon.validUntil}}`.
+
+- The name may contain letters, digits and underscores (max 64 characters). `id`, `email`, `data`, `event`, `unsubscribeUrl`, `subscribeUrl` and `manageUrl` are reserved.
+- The response is saved only for a 2xx status and when it is at most 64 KB. A non-JSON response is saved as a string.
+- Saving under a name that already exists in the trigger event data replaces that value for the rest of the execution.
+
 ### Enable the workflow
 
 Once configured, enable the workflow. It will start sending webhook requests whenever the trigger event occurs.

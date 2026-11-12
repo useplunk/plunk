@@ -415,6 +415,18 @@ export const WorkflowStepConfigSchemas = {
     method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']).default('POST'),
     headers: z.record(z.string()).optional(),
     body: jsonSchema.optional(),
+    /**
+     * Store the parsed response body in the execution context under this key, so later steps
+     * can read it as `{{event.<key>}}` (e.g. a coupon code returned by the shop).
+     */
+    saveResponseAs: z
+      .string()
+      .regex(/^[A-Za-z_][A-Za-z0-9_]{0,63}$/, 'Use letters, digits and underscores (max 64), not starting with a digit')
+      .refine(
+        value => !['id', 'email', 'data', 'event', 'unsubscribeUrl', 'subscribeUrl', 'manageUrl'].includes(value),
+        'This name is reserved',
+      )
+      .optional(),
   }),
   updateContact: z
     .object({

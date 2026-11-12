@@ -25,6 +25,7 @@ export function WebhookStepDialog({step, workflowId, open, onOpenChange, onSucce
   const [webhookUrl, setWebhookUrl] = useState(String(config.url ?? ''));
   const [webhookMethod, setWebhookMethod] = useState(String(config.method ?? 'POST'));
   const [webhookHeaders, setWebhookHeaders] = useState<HeaderEntry[]>(initialHeaders);
+  const [saveResponseAs, setSaveResponseAs] = useState(String(config.saveResponseAs ?? ''));
   const [showWebhookInfo, setShowWebhookInfo] = useState(false);
 
   const {update, isSubmitting} = useStepUpdate(workflowId, step.id);
@@ -44,9 +45,15 @@ export function WebhookStepDialog({step, workflowId, open, onOpenChange, onSucce
       }
     });
 
+    const responseKey = saveResponseAs.trim();
+    if (responseKey && !/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(responseKey)) {
+      toast.error('Response name may only contain letters, digits and underscores');
+      return;
+    }
+
     const ok = await update({
       name,
-      config: {url: webhookUrl, method: webhookMethod, headers},
+      config: {url: webhookUrl, method: webhookMethod, headers, ...(responseKey ? {saveResponseAs: responseKey} : {})},
     });
 
     if (ok) {
@@ -168,6 +175,21 @@ export function WebhookStepDialog({step, workflowId, open, onOpenChange, onSucce
               </div>
             ))}
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="editWebhookSaveResponseAs">Save response as (optional)</Label>
+          <Input
+            className="font-mono mt-1.5"
+            id="editWebhookSaveResponseAs"
+            value={saveResponseAs}
+            onChange={e => setSaveResponseAs(e.target.value)}
+            placeholder="e.g., coupon"
+          />
+          <p className="text-xs text-neutral-500 mt-1.5">
+            Stores the JSON response of a successful request so later steps can use it, e.g.{' '}
+            <code className="font-mono">{'{{event.coupon.code}}'}</code>.
+          </p>
         </div>
       </div>
     </StepDialogShell>
