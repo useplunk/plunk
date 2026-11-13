@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.19.0](https://github.com/useplunk/plunk/compare/v0.18.0...v0.19.0) (2026-11-13)
+
+
+### Features
+
+* **i18n:** add Lithuanian, Latvian and Estonian translations ([571375a](https://github.com/useplunk/plunk/commit/571375a86129e2851bd21b3e8a421981ab463f60))
+* **i18n:** add Lithuanian, Latvian and Estonian translations ([626c5bb](https://github.com/useplunk/plunk/commit/626c5bb857d124a46a2484341f2b5de410a765c8))
+* Store additional details on bounce and complaint events ([2bda149](https://github.com/useplunk/plunk/commit/2bda149c13f81c3c291e216dcb10d4161bb9bd35))
+
+
+### Bug Fixes
+
+* correct inbound email activity and address direction ([37e5f81](https://github.com/useplunk/plunk/commit/37e5f818e8087fc5947ecdc399b7f59efed0b342))
+* correct inbound email activity and addresses ([84c2dac](https://github.com/useplunk/plunk/commit/84c2dace4519c93abab1aaf35f37aaa740b5bbd9))
+* exclude inbound emails before delivered activity pagination ([43e0951](https://github.com/useplunk/plunk/commit/43e09515dcbae46be2757c92a10a9a3e5634f363))
+* preserve inbound addresses in email preview ([c2ccc3a](https://github.com/useplunk/plunk/commit/c2ccc3aa68199a56c7ea105d88d2b863018822d8))
+* **security:** analyse the visible email text in phishing checks ([30dd39a](https://github.com/useplunk/plunk/commit/30dd39a121ec2175240b8f758685267a5e6b46c8))
+* **security:** reject line breaks in attachment content types ([b7eafde](https://github.com/useplunk/plunk/commit/b7eafdef4f7569ad6bbe7617a9a8dee756fba8c4))
+* **security:** stop treating domain verification as proof of legitimacy ([dac0c7b](https://github.com/useplunk/plunk/commit/dac0c7bafce04756bb27474b811637e13191aa3f))
+* **web:** add noopener,noreferrer to window.open calls ([876179a](https://github.com/useplunk/plunk/commit/876179a575c4ae453f4fbd189a2f90bd77b4b9c8))
+* **web:** add noopener,noreferrer to window.open calls ([2dbd3a2](https://github.com/useplunk/plunk/commit/2dbd3a2f3e05e2f174a3e061dff79e9f21282d68))
+
 ## [0.18.0](https://github.com/useplunk/plunk/compare/v0.17.0...v0.18.0) (2026-10-28)
 
 
