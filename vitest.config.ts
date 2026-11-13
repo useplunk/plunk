@@ -43,6 +43,9 @@ export default defineConfig({
     projects: [
       {
         resolve: {alias},
+        // apps/web inherits `jsx: "preserve"` (Next.js compiles the JSX), which would leave .tsx
+        // imports untransformed here. Compile it for tests.
+        oxc: {jsx: {runtime: 'automatic'}},
         test: {
           name: 'plunk',
           globals: true,
