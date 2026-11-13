@@ -42,7 +42,7 @@ export class EventService {
     await this.triggerWorkflows(projectId, eventName, contactId, data);
 
     // Resume workflows waiting for this event
-    await WorkflowExecutionService.handleEvent(projectId, eventName, contactId, data);
+    await WorkflowExecutionService.handleEvent(projectId, eventName, contactId, data, emailId);
 
     return event;
   }

@@ -28,6 +28,7 @@ import {
   bodyHasListManagementLink,
   buildEmailHeaders,
   classifyEmail,
+  RECIPIENT_OVERRIDE_HEADER,
   senderOneClickUrl,
   withSourceEmail,
 } from '../services/EmailHeaderService.js';
@@ -242,12 +243,12 @@ export async function processEmailJob(emailId: string): Promise<void> {
         : undefined;
 
     // Check for custom recipient override in headers
-    const recipientEmail = customHeaders?.['X-Plunk-Recipient-Override'] || email.contact.email;
+    const recipientEmail = customHeaders?.[RECIPIENT_OVERRIDE_HEADER] || email.contact.email;
 
     // Remove internal headers before sending
     const publicHeaders = customHeaders ? {...customHeaders} : undefined;
-    if (publicHeaders && 'X-Plunk-Recipient-Override' in publicHeaders) {
-      delete publicHeaders['X-Plunk-Recipient-Override'];
+    if (publicHeaders && RECIPIENT_OVERRIDE_HEADER in publicHeaders) {
+      delete publicHeaders[RECIPIENT_OVERRIDE_HEADER];
     }
 
     // Build the outbound headers: standards-based defaults for the email class

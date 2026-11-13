@@ -4,6 +4,13 @@ import {EmailSourceType} from '@plunk/db';
 import {API_URI} from '../app/constants.js';
 
 /**
+ * Internal header on an email that a workflow step sends to a custom recipient instead of the
+ * contact. The email is still recorded under the contact; the email processor addresses it to this
+ * header's value and strips the header before sending.
+ */
+export const RECIPIENT_OVERRIDE_HEADER = 'X-Plunk-Recipient-Override';
+
+/**
  * Classification of an outbound email, derived by the caller from the email's
  * source type and template/campaign type. This is the single axis that decides
  * which standards-based headers a message carries:
