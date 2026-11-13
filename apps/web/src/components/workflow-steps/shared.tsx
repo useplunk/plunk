@@ -15,6 +15,7 @@ export const STEP_TYPE_LABELS: Record<WorkflowStep['type'], string> = {
   EXIT:           'Exit',
   WEBHOOK:        'Webhook',
   UPDATE_CONTACT: 'Update Contact',
+  HOLD:           'Hold',
 };
 
 export const STEP_TYPE_DESCRIPTIONS: Record<WorkflowStep['type'], string> = {
@@ -26,6 +27,7 @@ export const STEP_TYPE_DESCRIPTIONS: Record<WorkflowStep['type'], string> = {
   EXIT:           'Ends the workflow for the contact.',
   WEBHOOK:        "Makes an HTTP request to an external URL with the contact's data.",
   UPDATE_CONTACT: "Sets or updates fields on the contact's profile.",
+  HOLD:           'Ends the workflow without completing it. Contacts wait here with no time limit, and receive the steps you add above it later.',
 };
 
 export type StepWithTemplate = WorkflowStep & {
@@ -42,7 +44,8 @@ export interface EditStepDialogProps {
 
 export interface UpdateStepInput {
   name: string;
-  config: Record<string, unknown>;
+  /** Left out to rename a step without touching its configuration */
+  config?: Record<string, unknown>;
   templateId?: string;
 }
 

@@ -17,9 +17,15 @@ export const STEP_TYPES = [
   'UPDATE_CONTACT',
   'WEBHOOK',
   'EXIT',
+  'HOLD',
 ] as const;
 
 export type BuildableStepType = (typeof STEP_TYPES)[number];
+
+/** Steps that end their path: nothing can be connected after an EXIT or a HOLD. */
+export function endsPath(type: string | undefined): boolean {
+  return type === 'EXIT' || type === 'HOLD';
+}
 
 export const CONDITION_OPERATORS = [
   'equals',
@@ -78,6 +84,8 @@ export interface Workflow {
   throttle?: {window: string | null; key: string | null} | null;
   triggerConfig?: {eventName?: string} | null;
   steps?: WorkflowStep[];
+  /** Contacts waiting on each HOLD step, by step id */
+  heldCounts?: Record<string, number>;
 }
 
 /*
@@ -155,6 +163,7 @@ const STEP_CONFIG_SCHEMAS: Record<BuildableStepType, z.ZodType> = {
     body: z.unknown().optional(),
   }),
   EXIT: z.object({reason: z.string().optional()}),
+  HOLD: z.object({}),
 };
 
 function isBuildable(type: string): type is BuildableStepType {
@@ -214,6 +223,7 @@ const PARAMS_BY_TYPE: Record<BuildableStepType, (keyof StepParams)[]> = {
   UPDATE_CONTACT: ['updates', 'subscriptionAction'],
   WEBHOOK: ['url', 'method', 'headers', 'body'],
   EXIT: ['reason'],
+  HOLD: [],
 };
 
 const ALL_PARAMS = [...new Set(Object.values(PARAMS_BY_TYPE).flat())];
@@ -564,8 +574,8 @@ export function slotTransition(step: WorkflowStep, branch?: string): WorkflowTra
  * the agent can act on, or undefined.
  */
 export function branchProblem(step: WorkflowStep, branch: string | undefined): string | undefined {
-  if (step.type === 'EXIT') {
-    return `"${step.name ?? step.id}" is an EXIT step; it ends the flow and cannot lead to another step.`;
+  if (endsPath(step.type)) {
+    return `"${step.name ?? step.id}" is an ${step.type} step; it ends the flow and cannot lead to another step.`;
   }
 
   const branches = stepBranches(step);
@@ -599,7 +609,7 @@ export function branchProblem(step: WorkflowStep, branch: string | undefined): s
  */
 export function defaultAppendPoint(workflow: Workflow): {step: WorkflowStep} | {error: string} {
   const steps = workflow.steps ?? [];
-  const leaves = steps.filter((step) => step.type !== 'EXIT' && (step.outgoingTransitions ?? []).length === 0);
+  const leaves = steps.filter((step) => !endsPath(step.type) && (step.outgoingTransitions ?? []).length === 0);
 
   if (leaves.length === 1 && leaves[0]!.type !== 'CONDITION') {
     return {step: leaves[0]!};
@@ -625,7 +635,7 @@ export function openSlots(workflow: Workflow): {step: WorkflowStep; branch?: str
   const slots: {step: WorkflowStep; branch?: string}[] = [];
 
   for (const step of workflow.steps ?? []) {
-    if (step.type === 'EXIT') {
+    if (endsPath(step.type)) {
       continue;
     }
 
@@ -689,6 +699,8 @@ export function stepSummary(step: WorkflowStep): string {
       return `${String(config.method ?? 'POST')} ${String(config.url ?? '?')}`;
     case 'EXIT':
       return `exit${config.reason ? ` (${String(config.reason)})` : ''}`;
+    case 'HOLD':
+      return 'hold until steps are added above it';
     default:
       return '';
   }
@@ -785,7 +797,7 @@ export function reviewWorkflow(workflow: Workflow): WorkflowReview {
     const branches = stepBranches(step);
     let exits: string;
 
-    if (step.type === 'EXIT') {
+    if (endsPath(step.type)) {
       exits = '';
     } else if (branches) {
       exits = branches
@@ -799,7 +811,9 @@ export function reviewWorkflow(workflow: Workflow): WorkflowReview {
     }
 
     const label = step.name && step.name !== stepSummary(step) ? ` "${step.name}"` : '';
-    lines.push(`#${n} ${step.type}${label}: ${stepSummary(step)}${exits ? `  ${exits}` : ''}  [id ${step.id}]`);
+    const waiting = step.type === 'HOLD' ? `, ${workflow.heldCounts?.[step.id] ?? 0} contact(s) waiting` : '';
+    const summary = `${stepSummary(step)}${waiting}${exits ? `  ${exits}` : ''}`;
+    lines.push(`#${n} ${step.type}${label}: ${summary}  [id ${step.id}]`);
 
     checkStep(step, issues, n);
   }
@@ -846,12 +860,12 @@ function checkStep(step: WorkflowStep, issues: WorkflowIssue[], n: number): void
     });
   }
 
-  if (step.type === 'EXIT' && outgoing.length > 0) {
+  if (endsPath(step.type) && outgoing.length > 0) {
     issues.push({
       severity: 'error',
       code: 'bad_connection',
       stepId: step.id,
-      message: `${name} is an EXIT step but leads to another step.`,
+      message: `${name} is an ${step.type} step but leads to another step.`,
     });
   }
 

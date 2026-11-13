@@ -416,6 +416,8 @@ export const WorkflowStepConfigSchemas = {
     headers: z.record(z.string()).optional(),
     body: jsonSchema.optional(),
   }),
+  // A HOLD has nothing to configure: contacts wait on it until a step is added above it
+  hold: z.object({}).passthrough(),
   updateContact: z
     .object({
       updates: z.record(z.any()).optional(),

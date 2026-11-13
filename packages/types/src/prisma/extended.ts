@@ -26,6 +26,8 @@ export interface WorkflowWithDetails extends Workflow {
       incomingTransitions: WorkflowTransition[];
     }
   >;
+  /** Executions parked on each HOLD step, by step id (GET /workflows/:id only) */
+  heldCounts?: Record<string, number>;
 }
 
 /**
