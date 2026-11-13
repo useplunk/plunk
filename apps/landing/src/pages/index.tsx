@@ -148,12 +148,16 @@ const competitors = [
   {name: 'Mailgun', slug: 'mailgun'},
 ];
 
-const customers: {name: string; url: string; logo: string; imgClassName?: string}[] = [
-  {name: 'Krumzi', url: 'https://krumzi.com', logo: '/assets/krumzi.svg'},
-  {name: 'Waidwissen', url: 'https://waidwissen.com', logo: '/assets/waidwissen.svg'},
-  {name: 'Dodo Payments', url: 'https://dodopayments.com', logo: '/assets/dodo.svg'},
-  {name: 'SnowSEO', url: 'https://snowseo.com', logo: '/assets/snowseo.svg', imgClassName: 'h-8'},
-  {name: 'Viral', url: 'https://viral.app', logo: '/assets/viral.svg', imgClassName: 'h-8'},
+// Heights give each mark roughly equal visual area (height ∝ 1/√aspect ratio,
+// from each SVG's viewBox), so wide wordmarks don't outweigh compact ones.
+// Krumzi and Dodo are then nudged by eye for their solid / thin strokes.
+const customers: {name: string; url: string; logo: string; imgClassName: string}[] = [
+  {name: 'Krumzi', url: 'https://krumzi.com', logo: '/assets/krumzi.svg', imgClassName: 'h-[26px]'},
+  {name: 'Waidwissen', url: 'https://waidwissen.com', logo: '/assets/waidwissen.svg', imgClassName: 'h-[23.5px]'},
+  {name: 'Dodo Payments', url: 'https://dodopayments.com', logo: '/assets/dodo.svg', imgClassName: 'h-[25px]'},
+  {name: 'SnowSEO', url: 'https://snowseo.com', logo: '/assets/snowseo.svg', imgClassName: 'h-[31px]'},
+  {name: 'Viral', url: 'https://viral.app', logo: '/assets/viral.svg', imgClassName: 'h-[33px]'},
+  {name: 'Superblog', url: 'https://superblog.ai', logo: '/assets/superblog.svg', imgClassName: 'h-[29.5px]'},
 ];
 
 /** The homepage agent: a campaign drafted, then held for approval. */
@@ -350,10 +354,11 @@ export default function Index() {
           </section>
 
           {/* ========== CUSTOMER LOGO STRIP ==========
-              Resting opacity was 40%, which read as a placeholder row rather
-              than as customers. The logos are also normalised on cap-height
-              now: `h-7` on a wordmark and `h-9` on a lockup made the same
-              brand look twice the size of its neighbour. */}
+              A 3×2 hairline grid (2×3 on mobile) so six logos never leave an
+              orphan row. Resting opacity stays at 60%: 40% read as a
+              placeholder row rather than as customers. Logo heights are set
+              per mark in `customers`; the mobile scale keeps the widest marks
+              inside their cells without changing their relative balance. */}
           <section aria-label="Customers">
             <div className={'mx-auto max-w-[88rem] px-6 pb-16 pt-4 sm:px-10 sm:pb-20'}>
               <motion.div
@@ -364,24 +369,29 @@ export default function Index() {
                 className={'flex flex-col items-center gap-6'}
               >
                 <p className={'text-ui text-neutral-500'}>Built into products at</p>
-                <div className={'flex flex-wrap items-center justify-center gap-x-12 gap-y-8 sm:gap-x-16'}>
+                <ul
+                  className={
+                    'grid w-full max-w-4xl grid-cols-2 gap-px border-y border-neutral-200 bg-neutral-200 sm:grid-cols-3'
+                  }
+                >
                   {customers.map(c => (
-                    <a
-                      key={c.name}
-                      href={c.url}
-                      target={'_blank'}
-                      rel={'noopener noreferrer'}
-                      className={'group'}
-                      aria-label={c.name}
-                    >
-                      <img
-                        src={c.logo}
-                        alt={c.name}
-                        className={`${c.imgClassName ?? 'h-7'} w-auto max-w-none opacity-60 grayscale transition-all duration-300 group-hover:opacity-100 group-hover:grayscale-0`}
-                      />
-                    </a>
+                    <li key={c.name} className={'flex h-24 items-center justify-center bg-white px-4 sm:h-28'}>
+                      <a
+                        href={c.url}
+                        target={'_blank'}
+                        rel={'noopener noreferrer'}
+                        className={'group'}
+                        aria-label={c.name}
+                      >
+                        <img
+                          src={c.logo}
+                          alt={c.name}
+                          className={`${c.imgClassName} w-auto max-w-none opacity-60 max-sm:scale-[0.82] grayscale transition-all duration-300 group-hover:opacity-100 group-hover:grayscale-0`}
+                        />
+                      </a>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </motion.div>
             </div>
           </section>
