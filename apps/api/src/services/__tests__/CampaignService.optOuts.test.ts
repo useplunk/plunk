@@ -146,6 +146,104 @@ describe('CampaignService - opt-outs and complaints', () => {
     expect((await CampaignService.getStats(projectId, other.id)).unsubscribedCount).toBe(1);
   });
 
+  describe('the unsubscribe list', () => {
+    const listed = async () => {
+      const result = await CampaignService.listRecipients(projectId, campaignId, 'unsubscribed');
+      return {emails: result.data.map(r => r.email), total: result.total};
+    };
+
+    /**
+     * The drill-down is only worth opening if it agrees with the figure it is opened from.
+     * The stamp and the counter move in one transaction, so the two can never drift.
+     */
+    it('lists exactly the recipients the counter counts', async () => {
+      const first = await sendTo('listed-one@example.com');
+      const second = await sendTo('listed-two@example.com');
+
+      await ContactService.unsubscribe(first.contact.id, {emailId: first.email.id});
+      await ContactService.unsubscribe(second.contact.id, {emailId: second.email.id});
+
+      const {emails, total} = await listed();
+      expect(emails.sort()).toEqual(['listed-one@example.com', 'listed-two@example.com']);
+      expect(total).toBe(2);
+      expect(await storedCount()).toBe(2);
+    });
+
+    /**
+     * The hosted page's unsubscribe endpoint has no already-unsubscribed guard, so a second
+     * click reaches ContactService again. It must not count the same recipient twice.
+     */
+    it('counts and lists a repeat opt-out from the same email once', async () => {
+      const {contact, email} = await sendTo('twice@example.com');
+
+      await ContactService.unsubscribe(contact.id, {emailId: email.id});
+      await ContactService.unsubscribe(contact.id, {emailId: email.id});
+
+      expect(await storedCount()).toBe(1);
+      expect((await listed()).emails).toEqual(['twice@example.com']);
+    });
+
+    it('keeps the first opt-out time on a repeat', async () => {
+      const {contact, email} = await sendTo('first-time@example.com');
+
+      await ContactService.unsubscribe(contact.id, {emailId: email.id});
+      const {unsubscribedAt: first} = await prisma.email.findUniqueOrThrow({where: {id: email.id}});
+      await ContactService.unsubscribe(contact.id, {emailId: email.id});
+      const {unsubscribedAt: second} = await prisma.email.findUniqueOrThrow({where: {id: email.id}});
+
+      expect(first).not.toBeNull();
+      expect(second).toEqual(first);
+    });
+
+    it('does not stamp a bounced email', async () => {
+      const {contact, email} = await sendTo('bounced-list@example.com');
+      await bounce(email.id);
+
+      await ContactService.unsubscribe(contact.id, {emailId: email.id});
+
+      expect((await prisma.email.findUniqueOrThrow({where: {id: email.id}})).unsubscribedAt).toBeNull();
+      expect((await listed()).emails).toEqual([]);
+    });
+
+    it('does not stamp anything for an unattributed opt-out', async () => {
+      const {contact, email} = await sendTo('unattributed@example.com');
+
+      await ContactService.unsubscribe(contact.id);
+
+      expect((await prisma.email.findUniqueOrThrow({where: {id: email.id}})).unsubscribedAt).toBeNull();
+      expect((await listed()).emails).toEqual([]);
+    });
+
+    it('lists a snooze as an opt-out', async () => {
+      const {contact, email} = await sendTo('snoozer@example.com');
+
+      await ContactService.snooze(contact.id, '1_month', {emailId: email.id});
+
+      expect(await storedCount()).toBe(1);
+      expect((await listed()).emails).toEqual(['snoozer@example.com']);
+    });
+
+    it('counts and lists a re-snooze from the same email once', async () => {
+      const {contact, email} = await sendTo('resnoozer@example.com');
+
+      await ContactService.snooze(contact.id, '2_weeks', {emailId: email.id});
+      await ContactService.snooze(contact.id, '1_year', {emailId: email.id});
+
+      expect(await storedCount()).toBe(1);
+      expect((await listed()).emails).toEqual(['resnoozer@example.com']);
+    });
+
+    it('counts an unsubscribe after a snooze from the same email once', async () => {
+      const {contact, email} = await sendTo('snooze-then-leave@example.com');
+
+      await ContactService.snooze(contact.id, '1_month', {emailId: email.id});
+      await ContactService.unsubscribe(contact.id, {emailId: email.id});
+
+      expect(await storedCount()).toBe(1);
+      expect((await listed()).emails).toEqual(['snooze-then-leave@example.com']);
+    });
+  });
+
   /**
    * getStats reads the stored counters and does not recount. Deriving them per
    * request meant scanning the campaign's emails — and, for unsubscribes, the whole

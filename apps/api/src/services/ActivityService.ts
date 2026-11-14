@@ -1,4 +1,4 @@
-import {Prisma} from '@plunk/db';
+import {EmailSourceType, EmailStatus, Prisma} from '@plunk/db';
 import type {Activity, ActivityStats, CursorPaginatedResponse} from '@plunk/types';
 import {ActivityType} from '@plunk/types';
 import signale from 'signale';
@@ -352,8 +352,8 @@ export class ActivityService {
   /**
    * Get upcoming scheduled activities for a project
    *
-   * Fetches scheduled campaigns and workflow step executions that are
-   * scheduled to send emails in the future.
+   * Fetches scheduled campaigns, workflow step executions and transactional
+   * emails (`delivery.at`) that are scheduled to send in the future.
    *
    * @param projectId - Project ID
    * @param limit - Max number of items to return (default 50)
@@ -374,13 +374,14 @@ export class ActivityService {
     };
 
     // Fetch scheduled items in parallel
-    const [scheduledCampaigns, scheduledWorkflowSteps] = await Promise.all([
+    const [scheduledCampaigns, scheduledWorkflowSteps, scheduledEmails] = await Promise.all([
       this.fetchScheduledCampaigns(projectId, effectiveLimit, dateFilter),
       this.fetchScheduledWorkflowSteps(projectId, effectiveLimit, dateFilter),
+      this.fetchScheduledTransactionalEmails(projectId, effectiveLimit, dateFilter),
     ]);
 
     // Merge all scheduled activities
-    const allActivities = [...scheduledCampaigns, ...scheduledWorkflowSteps];
+    const allActivities = [...scheduledCampaigns, ...scheduledWorkflowSteps, ...scheduledEmails];
 
     // Sort by timestamp ascending (earliest first for upcoming items)
     allActivities.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
@@ -668,7 +669,7 @@ export class ActivityService {
       orConditions.push({sentAt: {not: null, ...dateFilter}});
     }
     if (!types || types.includes(ActivityType.EMAIL_DELIVERED)) {
-      orConditions.push({deliveredAt: {not: null, ...dateFilter}});
+      orConditions.push({deliveredAt: {not: null, ...dateFilter}, sourceType: {not: 'INBOUND'}});
     }
     if (!types || types.includes(ActivityType.EMAIL_RECEIVED)) {
       orConditions.push({deliveredAt: {not: null, ...dateFilter}, sourceType: 'INBOUND'});
@@ -798,6 +799,7 @@ export class ActivityService {
 
       if (
         email.deliveredAt &&
+        email.sourceType !== 'INBOUND' &&
         (!types || types.includes(ActivityType.EMAIL_DELIVERED)) &&
         isInDateRange(email.deliveredAt)
       ) {
@@ -1104,6 +1106,54 @@ export class ActivityService {
         totalRecipients: campaign.totalRecipients,
         segmentName: campaign.segment?.name,
         audienceType: campaign.audienceType,
+      },
+    }));
+  }
+
+  /**
+   * Fetch scheduled transactional emails (`delivery.at` on POST /v1/send). Served by the
+   * partial index on SCHEDULED emails, which holds only the ones still waiting.
+   */
+  private static async fetchScheduledTransactionalEmails(
+    projectId: string,
+    limit: number,
+    dateFilter: Prisma.DateTimeFilter,
+  ): Promise<Activity[]> {
+    const emails = await prisma.email.findMany({
+      where: {
+        projectId,
+        status: EmailStatus.SCHEDULED,
+        scheduledFor: dateFilter,
+      },
+      orderBy: {scheduledFor: 'asc'},
+      take: limit,
+      select: {
+        id: true,
+        subject: true,
+        from: true,
+        fromName: true,
+        toName: true,
+        templateId: true,
+        scheduledFor: true,
+        contactId: true,
+        contact: {select: {email: true}},
+      },
+    });
+
+    return emails.map(email => ({
+      id: `transactional_${email.id}_scheduled`,
+      type: ActivityType.TRANSACTIONAL_SCHEDULED,
+      timestamp: email.scheduledFor!,
+      contactEmail: email.contact.email,
+      contactId: email.contactId,
+      metadata: {
+        emailId: email.id,
+        subject: email.subject,
+        from: email.from,
+        fromName: email.fromName,
+        toName: email.toName,
+        templateId: email.templateId,
+        sourceType: EmailSourceType.TRANSACTIONAL,
       },
     }));
   }

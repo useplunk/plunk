@@ -8,6 +8,8 @@
     "recipient-suppression",
     "mcp-server",
     "idempotency",
+    "scheduling",
+    "throttling",
     "localization",
     "webhooks",
     "template-language",

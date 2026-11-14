@@ -3,8 +3,7 @@
  * Processes bulk subscribe, unsubscribe, and delete operations
  */
 
-import {Prisma} from '@plunk/db';
-import type {BulkContactActionJobData, BulkContactActionSelector} from '@plunk/types';
+import type {BulkContactActionJobData} from '@plunk/types';
 import {type Job, Worker} from 'bullmq';
 import signale from 'signale';
 
@@ -24,18 +23,6 @@ interface BulkActionResult {
   /** Contacts that errored or weren't found (e.g. wrong project). */
   failureCount: number;
   errors: {contactId: string; email: string; error: string}[];
-}
-
-function buildQueryWhere(projectId: string, selector: Extract<BulkContactActionSelector, {mode: 'query'}>): Prisma.ContactWhereInput {
-  const search = selector.filter?.search;
-  const subscribed = selector.filter?.subscribed;
-  const excludeIds = selector.excludeIds ?? [];
-  return {
-    projectId,
-    ...(search ? {email: {contains: search, mode: 'insensitive' as const}} : {}),
-    ...(subscribed !== undefined ? {subscribed} : {}),
-    ...(excludeIds.length > 0 ? {id: {notIn: excludeIds}} : {}),
-  };
 }
 
 async function applyBatch(
@@ -102,7 +89,7 @@ export function createBulkContactWorker() {
           await job.updateProgress(Math.round(((i + batchIds.length) / contactIds.length) * 100));
         }
       } else {
-        const where = buildQueryWhere(projectId, selector);
+        const where = ContactService.buildQueryWhere(projectId, selector);
         const total = await prisma.contact.count({where});
         result.totalRequested = total;
 

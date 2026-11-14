@@ -1,209 +1,117 @@
-import {
-  AlertCircle,
-  AlertTriangle,
-  CheckCircle,
-  Forward,
-  Info,
-  Mail,
-  Server,
-  Shield,
-  Trash2,
-  User,
-  XCircle,
-} from 'lucide-react';
 import type {EmailVerificationResult as VerificationResult} from '@plunk/types';
+
+import {ToolPill, ToolResult, ToolVerdict} from './ToolPage';
+import type {ToolTone} from './ToolPage';
 
 interface EmailVerificationResultProps {
   result: VerificationResult;
 }
 
+interface Check {
+  label: string;
+  detail: string;
+  tone: ToolTone | 'neutral';
+  state: string;
+}
+
+function getChecks(result: VerificationResult): Check[] {
+  return [
+    {
+      label: 'Domain exists',
+      detail: 'The domain has nameservers (NS records)',
+      tone: result.domainExists ? 'ok' : 'err',
+      state: result.domainExists ? 'Yes' : 'No',
+    },
+    {
+      label: 'MX records',
+      detail: 'A mail server is configured to receive email',
+      tone: result.hasMxRecords ? 'ok' : 'err',
+      state: result.hasMxRecords ? 'Found' : 'Missing',
+    },
+    {
+      label: 'Website',
+      detail: 'DNS A/AAAA records found (not required for email)',
+      tone: result.hasWebsite ? 'ok' : 'neutral',
+      state: result.hasWebsite ? 'Found' : 'None',
+    },
+    {
+      label: 'Disposable address',
+      detail: 'A temporary email service',
+      tone: result.isDisposable ? 'warn' : 'ok',
+      state: result.isDisposable ? 'Disposable' : 'No',
+    },
+    {
+      label: 'Personal address',
+      detail: 'A free email provider, like Gmail or Hotmail',
+      tone: 'neutral',
+      state: result.isPersonalEmail ? 'Yes' : 'No',
+    },
+    {
+      label: 'Forwarding service',
+      detail: 'An alias or forwarding address',
+      tone: result.isAlias ? 'neutral' : 'ok',
+      state: result.isAlias ? 'Yes' : 'No',
+    },
+    {
+      label: 'Typo check',
+      detail: 'Common misspellings of popular domains',
+      tone: result.isTypo ? 'warn' : 'ok',
+      state: result.isTypo ? 'Likely typo' : 'None found',
+    },
+    {
+      label: 'Plus addressing',
+      detail: 'Uses a + tag, like user+tag@domain.com',
+      tone: 'neutral',
+      state: result.isPlusAddressed ? 'Yes' : 'No',
+    },
+  ];
+}
+
+function getVerdict(result: VerificationResult): {tone: ToolTone; title: string} {
+  if (!result.valid) return {tone: 'err', title: 'This address is invalid'};
+  if (result.isDisposable || result.isTypo) return {tone: 'warn', title: 'This address is risky'};
+  return {tone: 'ok', title: 'This address looks valid'};
+}
+
 export function EmailVerificationResult({result}: EmailVerificationResultProps) {
+  const verdict = getVerdict(result);
+
   return (
-    <div className="space-y-6">
-      {/* Overall Status */}
-      <div
-        className={`rounded-lg border-2 p-6 ${
-          result.valid ? 'border-ok/25 bg-ok-surface' : 'border-err/25 bg-err-surface'
-        }`}
-      >
-        <div className="flex items-center gap-3">
-          {result.valid ? (
-            <CheckCircle className="h-8 w-8 text-ok" />
-          ) : (
-            <XCircle className="h-8 w-8 text-err" />
-          )}
-          <div>
-            <h3 className={`text-xl font-semibold ${result.valid ? 'text-ok' : 'text-err'}`}>
-              {result.valid ? 'Valid Email' : 'Invalid Email'}
-            </h3>
-            <p className={`text-ui ${result.valid ? 'text-ok' : 'text-err'}`}>{result.email}</p>
-          </div>
-        </div>
-      </div>
+    <div className={'flex flex-col gap-4'}>
+      <ToolVerdict
+        tone={verdict.tone}
+        title={verdict.title}
+        detail={<span className={'break-all font-code text-ui'}>{result.email}</span>}
+      />
 
-      {/* Detailed Checks */}
-      <div className="rounded-lg border border-neutral-200 bg-white">
-        <div className="border-b border-neutral-200 bg-neutral-50 px-6 py-4">
-          <h4 className="font-semibold text-neutral-900">Verification Details</h4>
-        </div>
-        <div className="divide-y divide-neutral-200">
-          {/* Domain Exists */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <Server className="h-5 w-5 text-neutral-600" />
-              <div>
-                <p className="font-medium text-neutral-900">Domain Exists</p>
-                <p className="text-ui text-neutral-600">Domain has nameservers (NS records)</p>
-              </div>
-            </div>
-            {result.domainExists ? (
-              <CheckCircle className="h-5 w-5 text-ok" />
-            ) : (
-              <XCircle className="h-5 w-5 text-err" />
-            )}
-          </div>
-
-          {/* MX Records */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <Mail className="h-5 w-5 text-neutral-600" />
-              <div>
-                <p className="font-medium text-neutral-900">MX Records</p>
-                <p className="text-ui text-neutral-600">Mail server configured</p>
-              </div>
-            </div>
-            {result.hasMxRecords ? (
-              <CheckCircle className="h-5 w-5 text-ok" />
-            ) : (
-              <XCircle className="h-5 w-5 text-err" />
-            )}
-          </div>
-
-          {/* Website/A Records */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <Server className="h-5 w-5 text-neutral-600" />
-              <div>
-                <p className="font-medium text-neutral-900">Has Website</p>
-                <p className="text-ui text-neutral-600">DNS A/AAAA records found</p>
-              </div>
-            </div>
-            {result.hasWebsite ? (
-              <CheckCircle className="h-5 w-5 text-ok" />
-            ) : (
-              <Info className="h-5 w-5 text-neutral-500" />
-            )}
-          </div>
-
-          {/* Disposable Email */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <Trash2 className="h-5 w-5 text-neutral-600" />
-              <div>
-                <p className="font-medium text-neutral-900">Disposable Email</p>
-                <p className="text-ui text-neutral-600">Temporary email service</p>
-              </div>
-            </div>
-            {result.isDisposable ? (
-              <AlertTriangle className="h-5 w-5 text-warn" />
-            ) : (
-              <CheckCircle className="h-5 w-5 text-ok" />
-            )}
-          </div>
-
-          {/* Personal Email */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <User className="h-5 w-5 text-neutral-600" />
-              <div>
-                <p className="font-medium text-neutral-900">Personal Email</p>
-                <p className="text-ui text-neutral-600">Free email provider (Gmail, Hotmail, etc.)</p>
-              </div>
-            </div>
-            {result.isPersonalEmail ? (
-              <Info className="h-5 w-5 text-neutral-900" />
-            ) : (
-              <span className="text-ui text-neutral-500">No</span>
-            )}
-          </div>
-
-          {/* Alias/Forwarding Email */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <Forward className="h-5 w-5 text-neutral-600" />
-              <div>
-                <p className="font-medium text-neutral-900">Forwarding Service</p>
-                <p className="text-ui text-neutral-600">Email alias/forwarding detected</p>
-              </div>
-            </div>
-            {result.isAlias ? (
-              <Info className="h-5 w-5 text-neutral-900" />
-            ) : (
-              <CheckCircle className="h-5 w-5 text-ok" />
-            )}
-          </div>
-
-          {/* Typo Detection */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-neutral-600" />
-              <div>
-                <p className="font-medium text-neutral-900">Typo Check</p>
-                <p className="text-ui text-neutral-600">Common spelling errors</p>
-              </div>
-            </div>
-            {result.isTypo ? (
-              <AlertTriangle className="h-5 w-5 text-warn" />
-            ) : (
-              <CheckCircle className="h-5 w-5 text-ok" />
-            )}
-          </div>
-
-          {/* Plus Addressing */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <Shield className="h-5 w-5 text-neutral-600" />
-              <div>
-                <p className="font-medium text-neutral-900">Plus Addressing</p>
-                <p className="text-ui text-neutral-600">Uses + tag (user+tag@domain.com)</p>
-              </div>
-            </div>
-            {result.isPlusAddressed ? (
-              <Info className="h-5 w-5 text-neutral-900" />
-            ) : (
-              <span className="text-ui text-neutral-500">No</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Suggested Email (if typo detected) */}
       {result.suggestedEmail && (
-        <div className="rounded-lg border border-warn/25 bg-warn-surface p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-warn mt-0.5" />
-            <div>
-              <p className="font-medium text-warn">Did you mean?</p>
-              <p className="text-ui text-warn mt-1">
-                <span className="font-mono bg-warn-surface px-2 py-0.5 rounded">{result.suggestedEmail}</span>
-              </p>
-            </div>
-          </div>
-        </div>
+        <ToolResult title={'Did you mean'}>
+          <p className={'break-all font-code text-ui font-medium text-neutral-900'}>{result.suggestedEmail}</p>
+        </ToolResult>
       )}
 
-      {/* Reasons */}
+      <ToolResult title={'Checks'}>
+        <ul className={'divide-y divide-neutral-100'}>
+          {getChecks(result).map(check => (
+            <li key={check.label} className={'flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0'}>
+              <div className={'min-w-0'}>
+                <p className={'text-ui font-semibold text-neutral-900'}>{check.label}</p>
+                <p className={'mt-0.5 text-ui text-neutral-600'}>{check.detail}</p>
+              </div>
+              <ToolPill tone={check.tone}>{check.state}</ToolPill>
+            </li>
+          ))}
+        </ul>
+      </ToolResult>
+
       {result.reasons && result.reasons.length > 0 && (
-        <div className="rounded-lg border border-neutral-200 bg-white p-6">
-          <h4 className="font-semibold text-neutral-900 mb-3">Analysis</h4>
-          <ul className="space-y-2">
+        <ToolResult title={'What we found'}>
+          <ul className={'flex list-disc flex-col gap-2 pl-5 text-ui text-neutral-700'}>
             {result.reasons.map((reason, index) => (
-              <li key={index} className="flex items-start gap-2 text-ui text-neutral-700 list-disc list-inside">
-                <span>{reason}</span>
-              </li>
+              <li key={index}>{reason}</li>
             ))}
           </ul>
-        </div>
+        </ToolResult>
       )}
     </div>
   );

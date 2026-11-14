@@ -1,6 +1,12 @@
 import {describe, expect, it} from 'vitest';
 
-import {encodeQuotedPrintable, htmlToPlainText} from '../mime.js';
+import {
+  encodeHeaderValue,
+  encodeQuotedPrintable,
+  formatFilenameParameter,
+  formatMailbox,
+  htmlToPlainText,
+} from '../mime.js';
 
 /**
  * Decode quoted-printable back to a string, so the encoder can be checked on the
@@ -160,5 +166,215 @@ describe('encodeQuotedPrintable', () => {
 
   it('handles empty input', () => {
     expect(encodeQuotedPrintable('')).toBe('');
+  });
+});
+
+/**
+ * Decode RFC 2047 "Q" encoded-words back to a string, the way a mail client does:
+ * unfold, drop the whitespace between adjacent words, then decode each one.
+ */
+function decodeEncodedWords(input: string): string {
+  return input
+    .replace(/\n /g, ' ')
+    .replace(/\?=\s+=\?/g, '?==?')
+    .replace(/=\?UTF-8\?Q\?([^?]*)\?=/g, (_, payload: string) => decodeQuotedPrintable(payload.replace(/_/g, '=20')));
+}
+
+describe('encodeHeaderValue', () => {
+  it('leaves plain ASCII untouched', () => {
+    expect(encodeHeaderValue('Your order has shipped!')).toBe('Your order has shipped!');
+  });
+
+  it('encodes non-ASCII so the header is pure ASCII on the wire', () => {
+    const encoded = encodeHeaderValue('¡Novedades de otoño! 🍂');
+
+    expect(encoded).toMatch(/^[\x20-\x7E\n]*$/);
+    expect(encoded.startsWith('=?UTF-8?Q?')).toBe(true);
+    expect(decodeEncodedWords(encoded)).toBe('¡Novedades de otoño! 🍂');
+  });
+
+  it('keeps header lines within the 76 characters RFC 2047 allows, header name included', () => {
+    const subject = 'Ñandú '.repeat(40) + '👨‍👩‍👧 fin';
+    const header = `Subject: ${encodeHeaderValue(subject, 'Subject: '.length)}`;
+
+    for (const line of header.split('\n')) {
+      expect(line.length).toBeLessThanOrEqual(76);
+    }
+    for (const word of header.match(/=\?UTF-8\?Q\?[^?]*\?=/g) ?? []) {
+      expect(word.length).toBeLessThanOrEqual(75);
+    }
+    expect(decodeEncodedWords(header.slice('Subject: '.length))).toBe(subject);
+  });
+
+  it('folds a long ASCII subject at spaces without changing the text', () => {
+    const subject = Array.from({length: 40}, (_, i) => `word${i}`).join(' ');
+    const header = `Subject: ${encodeHeaderValue(subject, 'Subject: '.length)}`;
+
+    for (const line of header.split('\n')) {
+      expect(line.length).toBeLessThanOrEqual(78);
+    }
+    // Unfolding removes only the line break (RFC 5322 §2.2.3).
+    expect(header.replace(/\n/g, '')).toBe(`Subject: ${subject}`);
+  });
+
+  it('never folds into a line of nothing but spaces', () => {
+    const subjects = [
+      'a'.repeat(69) + ' ',
+      'a'.repeat(70) + ' '.repeat(20),
+      'a'.repeat(69) + '   ' + 'b'.repeat(80),
+      'a' + ' '.repeat(150) + 'b',
+      'word '.repeat(30),
+    ];
+
+    for (const subject of subjects) {
+      const header = `Subject: ${encodeHeaderValue(subject, 'Subject: '.length)}`;
+
+      for (const line of header.split('\n')) {
+        expect(line.trim().length).toBeGreaterThan(0);
+        expect(line.length).toBeLessThanOrEqual(998);
+      }
+      for (const line of header.split('\n').slice(1)) {
+        expect(line.startsWith(' ')).toBe(true);
+      }
+      expect(header.replace(/\n/g, '')).toBe(`Subject: ${subject}`);
+    }
+  });
+
+  it('encodes an ASCII run too long for one line instead of exceeding 998 characters', () => {
+    const subject = `Hello ${'x'.repeat(1200)}`;
+    const header = `Subject: ${encodeHeaderValue(subject, 'Subject: '.length)}`;
+
+    for (const line of header.split('\n')) {
+      expect(line.length).toBeLessThanOrEqual(76);
+    }
+    expect(decodeEncodedWords(header.slice('Subject: '.length))).toBe(subject);
+  });
+
+  it('leaves a short ASCII subject on one line', () => {
+    expect(encodeHeaderValue('Short subject', 'Subject: '.length)).toBe('Short subject');
+  });
+
+  it('never splits the bytes of one character across two encoded-words', () => {
+    const encoded = encodeHeaderValue('é'.repeat(30));
+
+    for (const word of encoded.split('\n ')) {
+      // Each word must decode on its own, without U+FFFD replacement characters.
+      expect(decodeEncodedWords(word)).toMatch(/^é+$/);
+    }
+  });
+
+  it('turns line breaks into spaces so the value cannot start a new header', () => {
+    expect(encodeHeaderValue('Hello\r\nBcc: victim@example.com')).toBe('Hello Bcc: victim@example.com');
+    expect(decodeEncodedWords(encodeHeaderValue('Olá\nmundo'))).toBe('Olá mundo');
+  });
+
+  it('turns tabs into spaces and drops other control characters', () => {
+    expect(encodeHeaderValue('Hello\tWorld')).toBe('Hello World');
+    expect(encodeHeaderValue('A\t\tB\r\nC')).toBe('A  B C');
+    expect(encodeHeaderValue('Hi\x00the\x7Fre')).toBe('Hithere');
+    expect(decodeEncodedWords(encodeHeaderValue('Olá\x00\x1Fmundo'))).toBe('Olámundo');
+  });
+
+  it('encodes ASCII that a client could misread as an encoded-word', () => {
+    const encoded = encodeHeaderValue('Literal =?UTF-8?Q?x?= text');
+
+    expect(encoded.startsWith('=?UTF-8?Q?')).toBe(true);
+    expect(encoded).not.toContain('?Q?x?=');
+    expect(decodeEncodedWords(encoded)).toBe('Literal =?UTF-8?Q?x?= text');
+  });
+});
+
+describe('formatMailbox', () => {
+  it('returns the bare address when there is no name', () => {
+    expect(formatMailbox('', 'a@example.com')).toBe('a@example.com');
+    expect(formatMailbox(undefined, 'a@example.com')).toBe('a@example.com');
+    expect(formatMailbox('   ', 'a@example.com')).toBe('a@example.com');
+  });
+
+  it('leaves a simple name unquoted', () => {
+    expect(formatMailbox('Acme Support', 'a@example.com')).toBe('Acme Support <a@example.com>');
+  });
+
+  it('quotes a name with specials, so a comma is not read as a second address', () => {
+    expect(formatMailbox('Jane, from Acme', 'a@example.com')).toBe('"Jane, from Acme" <a@example.com>');
+    expect(formatMailbox('Acme Inc.', 'a@example.com')).toBe('"Acme Inc." <a@example.com>');
+  });
+
+  it('escapes quotes and backslashes inside a quoted name', () => {
+    expect(formatMailbox('The "Best" \\ Shop', 'a@example.com')).toBe('"The \\"Best\\" \\\\ Shop" <a@example.com>');
+  });
+
+  it('encodes a non-ASCII name, specials included', () => {
+    const formatted = formatMailbox('Café, Acmé', 'a@example.com');
+
+    expect(formatted).toMatch(/^=\?UTF-8\?Q\?[^,]*\?= <a@example\.com>$/);
+    expect(decodeEncodedWords(formatted)).toBe('Café, Acmé <a@example.com>');
+  });
+});
+
+/**
+ * Decode an RFC 2231 `filename` parameter the way a mail client does: join the
+ * numbered segments in order, then percent-decode the UTF-8 bytes.
+ */
+function decodeFilenameParameter(parameter: string): string {
+  const unfolded = parameter.replace(/;\n /g, ';');
+  const single = unfolded.match(/^filename\*=UTF-8''(.*)$/);
+  const encoded = single
+    ? (single[1] as string)
+    : unfolded
+        .split(';')
+        .map(part => part.replace(/^filename\*\d+\*=(UTF-8'')?/, ''))
+        .join('');
+  return decodeURIComponent(encoded);
+}
+
+describe('formatFilenameParameter', () => {
+  it('quotes an ASCII filename and escapes backslashes', () => {
+    expect(formatFilenameParameter('invoice 2026.pdf')).toBe('filename="invoice 2026.pdf"');
+    expect(formatFilenameParameter('a\\b.txt')).toBe('filename="a\\\\b.txt"');
+  });
+
+  it('encodes a short non-ASCII filename as a single RFC 2231 parameter', () => {
+    expect(formatFilenameParameter('Menú otoño 🍂.pdf')).toBe(
+      "filename*=UTF-8''Men%C3%BA%20oto%C3%B1o%20%F0%9F%8D%82.pdf",
+    );
+  });
+
+  it('escapes the characters encodeURIComponent would leave alone', () => {
+    expect(formatFilenameParameter("Café (l'été)*.pdf")).toBe(
+      "filename*=UTF-8''Caf%C3%A9%20%28l%27%C3%A9t%C3%A9%29%2A.pdf",
+    );
+  });
+
+  it('sends an ASCII filename that looks like an encoded-word through RFC 2231', () => {
+    const parameter = formatFilenameParameter('=?UTF-8?Q?x.exe?=');
+
+    expect(parameter.startsWith("filename*=UTF-8''")).toBe(true);
+    expect(decodeFilenameParameter(parameter)).toBe('=?UTF-8?Q?x.exe?=');
+  });
+
+  it('splits a long filename into short numbered segments on character boundaries', () => {
+    const filename = 'ñ'.repeat(250) + '.pdf';
+    const parameter = formatFilenameParameter(filename);
+    // Continuation lines start with the folding space.
+    const lines = parameter.split('\n').map(line => line.replace(/^ /, ''));
+
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines[0]).toMatch(/^filename\*0\*=UTF-8''/);
+    lines.forEach((line, index) => {
+      // Each line follows `Content-Disposition: attachment;` and is folded with a space.
+      expect(` ${line}`.length).toBeLessThanOrEqual(78);
+      if (index > 0) {
+        expect(line).toMatch(new RegExp(`^filename\\*${index}\\*=`));
+      }
+      // Every segment decodes on its own: no character is split across two.
+      const segment = line.replace(/^filename\*\d+\*=(UTF-8'')?/, '').replace(/;$/, '');
+      expect(() => decodeURIComponent(segment)).not.toThrow();
+    });
+    expect(decodeFilenameParameter(parameter)).toBe(filename);
+  });
+
+  it('turns line breaks in a filename into spaces', () => {
+    expect(formatFilenameParameter('a\r\nb.txt')).toBe('filename="a b.txt"');
   });
 });

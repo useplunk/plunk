@@ -3,21 +3,15 @@ import * as z from 'zod';
 import type {PlunkClient} from '../client.js';
 import {EMAIL_TYPES, FILTER_HELP, filterCondition} from '../schemas.js';
 
-import {
-  errorResult,
-  jsonResult,
-  paginationHint,
-  register,
-  requireConfirmation,
-  runTool,
-  type ToolContext,
-} from './shared.js';
+import {errorResult, jsonResult, pageHint, register, requireConfirmation, runTool, type ToolContext} from './shared.js';
 
+/** `GET /campaigns` is page-based, like `GET /workflows`. */
 interface CampaignList {
   data: unknown[];
-  cursor: string | null;
-  hasMore: boolean;
   total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 interface Campaign {
@@ -75,19 +69,20 @@ export function registerCampaignTools(ctx: ToolContext, client: PlunkClient): vo
         search: z.string().optional().describe('Substring match on campaign name.'),
         status: z.string().optional().describe('Filter by status, e.g. DRAFT or SENT.'),
         limit: z.number().int().min(1).max(100).default(20).describe('Items per page (max 100).'),
-        cursor: z.string().optional().describe('Cursor from a previous page.'),
+        page: z.number().int().min(1).default(1).describe('Page number, starting at 1.'),
       }),
       annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true},
     },
-    async ({search, status, limit, cursor}) =>
+    async ({search, status, limit, page}) =>
       runTool(async () => {
         const result = await client.request<CampaignList>({
           path: '/campaigns',
-          query: {search, status, limit, cursor},
+          query: {search, status, page, pageSize: limit},
         });
 
         return jsonResult(
-          `Found ${result.data.length} campaign(s).${paginationHint(result.hasMore, result.cursor)}`,
+          `Found ${result.total} campaign(s); showing ${result.data.length}.` +
+            pageHint(result.page, result.totalPages),
           result,
         );
       }),

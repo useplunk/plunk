@@ -20,6 +20,12 @@ const COPY: Record<CampaignRecipientType, {title: string; empty: string; describ
     describe: total =>
       `${total.toLocaleString()} ${total === 1 ? 'recipient' : 'recipients'} moved this to spam. Each one is now unsubscribed.`,
   },
+  unsubscribed: {
+    title: 'Unsubscribed',
+    empty: 'Nobody unsubscribed from this campaign.',
+    describe: total =>
+      `${total.toLocaleString()} ${total === 1 ? 'recipient' : 'recipients'} opted out from this campaign, including any who snoozed.`,
+  },
 };
 
 const PAGE_SIZE = 50;

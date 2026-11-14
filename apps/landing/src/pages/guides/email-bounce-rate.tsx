@@ -1,463 +1,374 @@
-import React from 'react';
-import {GuideLayout, InfoBox} from '../../components/guides';
-import {CodeBlock} from '../../components/CodeBlock';
 import Link from 'next/link';
+import React from 'react';
+
 import type {FAQ} from '../../components/FAQSection';
+import {
+  GuideCode,
+  GuideCompare,
+  GuideFigure,
+  GuideLayout,
+  GuidePoints,
+  GuideSection,
+  GuideTable,
+  InfoBox,
+  RateFragment,
+} from '../../components/guides';
+import {Avatar, SnippetRow, SnippetTile, StatusPill, TimeAgo, UICard} from '../../components/snippets';
 
 const faqs: FAQ[] = [
   {
     question: 'What is a good email bounce rate?',
     answer:
-      'A bounce rate below 2% is considered excellent. Between 2–5% is concerning and needs attention. Above 5% is critical and will seriously damage your sender reputation and deliverability. For hard bounces specifically, keep this below 0.5% per campaign. Most reputable email platforms will suspend accounts or pause sending if hard bounce rates exceed 5–10%.',
+      'Below 2% is good. Between 2% and 5% points to list quality problems that need attention. Above 5% is critical and will damage your sender reputation and deliverability. Keep hard bounces below 0.5% per campaign. Most email platforms pause sending or suspend accounts when hard bounces pass 5 to 10%.',
   },
   {
     question: 'What is the difference between a hard bounce and a soft bounce?',
     answer:
-      'A hard bounce is a permanent delivery failure—the email address does not exist, the domain is invalid, or the receiving server has permanently blocked delivery. Remove hard bounce addresses immediately and never send to them again. A soft bounce is a temporary failure—the mailbox is full, the server is temporarily down, or the email is too large. Email platforms typically retry soft bounces automatically for 24–72 hours.',
+      'A hard bounce is a permanent failure: the address does not exist, the domain is invalid, or the receiving server has permanently blocked delivery. Remove those addresses right away and never send to them again. A soft bounce is temporary: the mailbox is full, the server is down, or the message is too large. Email platforms usually retry soft bounces for 24 to 72 hours.',
   },
   {
     question: 'How do I reduce email bounce rates?',
     answer:
-      'Key strategies to reduce bounces: (1) Use double opt-in to confirm email addresses at signup, (2) Validate email addresses in real-time on forms to catch typos and invalid formats, (3) Remove hard bounces immediately and automatically, (4) Clean your list every 6–12 months to remove stale addresses (15–20% of email addresses go invalid per year), (5) Never purchase email lists—they have 20–40% invalid addresses, and (6) Maintain consistent sending to prevent addresses going stale.',
+      'Use double opt-in to confirm addresses at signup, validate addresses on your forms to catch typos and invalid formats, remove hard bounces automatically, clean your list every 6 to 12 months (15 to 20% of addresses go invalid each year), never buy lists (they carry 20 to 40% invalid addresses), and send regularly so addresses do not go stale.',
   },
   {
     question: 'Do bounces affect my email deliverability?',
     answer:
-      'Yes, high bounce rates directly damage your sender reputation. Email providers like Gmail and Outlook track bounce rates as a signal of list quality and sending practices. High bounce rates cause more of your emails—even to valid addresses—to land in spam. Persistent high bounce rates can lead to your sending IP being blacklisted, making it extremely difficult to deliver any emails.',
+      'Yes. Gmail, Outlook and other providers track bounce rates as a signal of list quality. A high rate sends more of your mail to spam, including mail to valid addresses. If it stays high, your sending IP or domain can end up on a blocklist, which makes almost any email hard to deliver.',
   },
   {
     question: 'Why are my emails bouncing suddenly?',
     answer:
-      'Sudden increases in bounce rates can be caused by: sending to an old list that has gone stale (addresses expire over time), sending to a purchased list, a domain or server configuration change, your sending IP or domain being blacklisted, or reaching inbox provider sending limits. Identify the pattern—are bounces happening on specific domains or across all recipients?—then investigate the root cause.',
+      'Common causes: sending to an old list that has gone stale, sending to a purchased list, a domain or server configuration change, your IP or domain being blocklisted, or hitting a provider’s sending limits. Check whether the bounces cluster on specific domains or hit all recipients, then work back to the cause.',
   },
 ];
 
 export default function EmailBounceRate() {
   return (
     <GuideLayout
-      title="Email Bounce Rate: Hard vs Soft Bounces & How to Reduce Them"
+      slug={'email-bounce-rate'}
+      title="Email Bounce Rate: Hard vs Soft Bounces Explained"
+      heading={'Email bounce rate'}
       description="Understand email bounce rates, the difference between hard and soft bounces, and proven strategies to reduce bounces and protect your sender reputation."
+      lead={
+        'Bounce rate is the share of your emails that receiving servers rejected. Keep it under 2%: above that, inboxes start treating the rest of your mail as suspect.'
+      }
       lastUpdated="2025-12-20"
-      readTime="9 min"
+      readTime="6 min"
       canonical="https://www.useplunk.com/guides/email-bounce-rate"
       faqs={faqs}
-    >
-      {/* Introduction */}
-      <section id="introduction" className="mb-12">
-        <p className="text-neutral-700 leading-relaxed">
-          Email bounce rate measures the percentage of emails that couldn't be delivered to recipients' inboxes. Bounces
-          occur for various reasons—some temporary, others permanent—and high bounce rates seriously damage your sender
-          reputation and deliverability.
-        </p>
-        <p className="mt-4 text-neutral-700 leading-relaxed">
-          Understanding the types of bounces and how to minimize them is essential for maintaining a healthy email
-          program.
-        </p>
-      </section>
-
-      {/* What is Bounce Rate */}
-      <section id="what-is-bounce-rate" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">What is Email Bounce Rate?</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Bounce rate is the percentage of sent emails that were rejected by receiving mail servers and couldn't be
-          delivered.
-        </p>
-
-        <div className="rounded-xl border-2 border-neutral-900 bg-neutral-50 p-8 mb-8">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-neutral-900 mb-4">Bounce Rate Formula</div>
-            <CodeBlock
-              language="text"
-              code={`Bounce Rate = (Bounced Emails ÷ Sent Emails) × 100
-
-Example:
-- Sent: 10,000 emails
-- Bounced: 150 emails
-
-Bounce Rate = (150 ÷ 10,000) × 100 = 1.5%`}
-              showCopy={false}
+      cta={'Keep bounces off your sender record.'}
+      figure={
+        <SnippetTile align={'bleed-right'} className={'min-h-[26rem] py-10'}>
+          <div className={'flex flex-col gap-3'}>
+            <BouncedMessage
+              name={'Ana Ruiz'}
+              address={'ana.ruiz@acme-old.com'}
+              subject={'Your receipt from Acme'}
+              pill={{tone: 'err', label: 'Hard bounce'}}
+              reason={'Mailbox does not exist'}
+              code={'550 5.1.1'}
+              className={'w-full max-w-lg'}
+            />
+            <RateFragment
+              label={'Bounce rate, last 30 days'}
+              value={'1.4%'}
+              fill={28}
+              tone={'ok'}
+              marker={{at: 40, label: '2% limit'}}
+              note={'Healthy'}
+              className={'ml-10 w-full max-w-xs'}
             />
           </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-3 mb-8">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <div className="text-3xl font-bold text-green-600 mb-2">&lt;2%</div>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Excellent</h3>
-            <p className="text-ui text-neutral-700">Healthy list with good hygiene practices</p>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <div className="text-3xl font-bold text-amber-600 mb-2">2-5%</div>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Concerning</h3>
-            <p className="text-ui text-neutral-700">List quality issues need attention</p>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <div className="text-3xl font-bold text-red-600 mb-2">&gt;5%</div>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Critical</h3>
-            <p className="text-ui text-neutral-700">Serious problems damaging sender reputation</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Types of Bounces */}
-      <section id="types-of-bounces" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Hard Bounces vs Soft Bounces</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Not all bounces are the same. Understanding the difference between hard and soft bounces is crucial for
-          managing your email list.
+        </SnippetTile>
+      }
+    >
+      <GuideSection id={'what-is-bounce-rate'} title={'What bounce rate measures'}>
+        <p>
+          A bounce is an email the receiving server refused to deliver. Bounce rate is the number of bounces divided by
+          the number of emails you sent.
         </p>
+        <GuideCode
+          title={'Bounce rate formula'}
+          copy={false}
+          code={`Bounce rate = (bounced emails ÷ sent emails) × 100
 
-        <div className="grid gap-8 md:grid-cols-2">
-          <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
-            <h3 className="text-2xl font-semibold text-red-900 mb-4">Hard Bounces (Permanent)</h3>
-            <p className="text-neutral-700 mb-4">
-              Hard bounces occur when an email can't be delivered for permanent reasons. These addresses will never
-              receive your emails.
-            </p>
-            <div className="space-y-3 mb-4">
-              <div>
-                <h4 className="font-semibold text-neutral-900 mb-2">Common Causes:</h4>
-                <ul className="space-y-1 text-ui text-neutral-700">
-                  <li>• Email address doesn't exist</li>
-                  <li>• Domain name doesn't exist</li>
-                  <li>• Email server has completely blocked delivery</li>
-                  <li>• Invalid email address format</li>
-                </ul>
-              </div>
-            </div>
-            <div className="rounded-lg bg-red-100 border border-red-200 p-4">
-              <p className="text-ui font-semibold text-red-900 mb-2">Action Required:</p>
-              <p className="text-ui text-neutral-700">
-                <strong>Remove immediately.</strong> Never send to hard bounce addresses again. Continuing to send to
-                them damages your sender reputation.
-              </p>
-            </div>
+Sent: 10,000   Bounced: 150
+Bounce rate = (150 ÷ 10,000) × 100 = 1.5%`}
+        />
+        <GuideTable
+          head={['Bounce rate', 'Status', 'What it means']}
+          rows={[
+            ['Below 2%', <StatusPill key={'s'} tone={'ok'}>Good</StatusPill>, 'A healthy list with good hygiene.'],
+            ['2% to 5%', <StatusPill key={'s'} tone={'warn'}>Concerning</StatusPill>, 'List quality problems that need attention.'],
+            ['Above 5%', <StatusPill key={'s'} tone={'err'}>Critical</StatusPill>, 'Actively damaging your sender reputation.'],
+          ]}
+        />
+      </GuideSection>
+
+      <GuideSection id={'hard-vs-soft-bounces'} title={'Hard and soft bounces'}>
+        <p>Bounces come in two kinds, and each needs a different response.</p>
+        <GuideCompare
+          items={[
+            {
+              title: 'Hard bounce',
+              badge: <StatusPill tone={'err'}>Permanent</StatusPill>,
+              body: 'The address will never accept your mail. Remove it immediately; sending again hurts your reputation.',
+              points: [
+                'The address does not exist',
+                'The domain does not exist',
+                'The server has blocked delivery for good',
+                'The address format is invalid',
+              ],
+            },
+            {
+              title: 'Soft bounce',
+              badge: <StatusPill tone={'warn'}>Temporary</StatusPill>,
+              body: 'The address is valid but delivery failed this time. Most platforms retry for 24 to 72 hours.',
+              points: [
+                'The mailbox is full',
+                'The server is down or busy',
+                'The message is too large',
+                'The receiving server has a temporary problem',
+              ],
+            },
+          ]}
+        />
+        <p>
+          After 3 to 5 consecutive soft bounces across several campaigns, treat the address as a hard bounce and remove
+          it.
+        </p>
+        <GuideFigure caption={'A hard bounce is final and the address is suppressed. A soft bounce is retried.'}>
+          <div className={'grid w-full max-w-2xl gap-3 sm:grid-cols-2'}>
+            <BouncedMessage
+              name={'Ana Ruiz'}
+              address={'ana.ruiz@acme-old.com'}
+              subject={'Your receipt from Acme'}
+              pill={{tone: 'err', label: 'Suppressed'}}
+              reason={'Mailbox does not exist'}
+              code={'550 5.1.1'}
+            />
+            <BouncedMessage
+              name={'Tom Becker'}
+              address={'tom@northwind.io'}
+              subject={'Your receipt from Acme'}
+              pill={{tone: 'warn', label: 'Retry 2 of 5'}}
+              reason={'Mailbox full'}
+              code={'452 4.2.2'}
+            />
           </div>
-
-          <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-6">
-            <h3 className="text-2xl font-semibold text-amber-900 mb-4">Soft Bounces (Temporary)</h3>
-            <p className="text-neutral-700 mb-4">
-              Soft bounces are temporary delivery failures. The email address is valid, but delivery failed for a
-              temporary reason.
-            </p>
-            <div className="space-y-3 mb-4">
-              <div>
-                <h4 className="font-semibold text-neutral-900 mb-2">Common Causes:</h4>
-                <ul className="space-y-1 text-ui text-neutral-700">
-                  <li>• Recipient's mailbox is full</li>
-                  <li>• Email server is temporarily down or busy</li>
-                  <li>• Email message is too large</li>
-                  <li>• Recipient's server is experiencing issues</li>
-                </ul>
-              </div>
-            </div>
-            <div className="rounded-lg bg-amber-100 border border-amber-200 p-4">
-              <p className="text-ui font-semibold text-amber-900 mb-2">Action Required:</p>
-              <p className="text-ui text-neutral-700">
-                <strong>Retry automatically.</strong> Most platforms retry for 24-72 hours. After 3-5 consecutive soft
-                bounces, treat as a hard bounce and remove.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <InfoBox type="info" title="Bounce vs Block" className="mt-6">
+        </GuideFigure>
+        <InfoBox title={'Bounces and blocks are different problems'}>
           <p>
-            A <strong>block</strong> occurs when the receiving server actively rejects your email due to reputation or
-            content issues. Unlike bounces (address problems), blocks indicate deliverability problems that affect all
-            your emails to that domain.
+            A block is when the receiving server rejects your email because of your reputation or content, not the
+            address. Bounces point to bad addresses; blocks point to a{' '}
+            <Link href={'/guides/email-deliverability'}>deliverability</Link> problem that affects every email you send
+            to that domain.
           </p>
         </InfoBox>
-      </section>
+      </GuideSection>
 
-      {/* Common Bounce Reasons */}
-      <section id="bounce-reasons" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Common Bounce Reasons & Error Codes</h2>
-
-        <div className="rounded-xl border border-neutral-200 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Error Type</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Reason</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Type</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200 bg-white">
-              <tr>
-                <td className="px-6 py-4 font-mono text-ui text-neutral-900">550</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Mailbox unavailable</td>
-                <td className="px-6 py-4 text-ui text-red-600">Hard</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Remove</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 font-mono text-ui text-neutral-900">551</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">User not local/Invalid address</td>
-                <td className="px-6 py-4 text-ui text-red-600">Hard</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Remove</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 font-mono text-ui text-neutral-900">552</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Mailbox full</td>
-                <td className="px-6 py-4 text-ui text-amber-600">Soft</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Retry</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 font-mono text-ui text-neutral-900">553</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Mailbox name invalid</td>
-                <td className="px-6 py-4 text-ui text-red-600">Hard</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Remove</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 font-mono text-ui text-neutral-900">554</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Transaction failed</td>
-                <td className="px-6 py-4 text-ui text-neutral-600">Varies</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Investigate</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 font-mono text-ui text-neutral-900">421</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Service not available</td>
-                <td className="px-6 py-4 text-ui text-amber-600">Soft</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Retry</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 font-mono text-ui text-neutral-900">450</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Mailbox busy</td>
-                <td className="px-6 py-4 text-ui text-amber-600">Soft</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Retry</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* How to Reduce Bounces */}
-      <section id="reduce-bounces" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How to Reduce Email Bounce Rates</h2>
-
-        <div className="space-y-4">
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              1
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Use Double Opt-In</h3>
-              <p className="text-neutral-700">
-                Require new subscribers to confirm their email address by clicking a verification link. This ensures the
-                address is valid, active, and belongs to the person who submitted it. Double opt-in reduces bounce rates
-                by 50-70%.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              2
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Validate Email Addresses</h3>
-              <p className="text-neutral-700 mb-3">
-                Use real-time email validation on signup forms to catch typos and invalid formats. Validate:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-ui text-neutral-700">
-                <li>Email format (contains @ and valid domain)</li>
-                <li>Domain has valid MX records</li>
-                <li>Catch common typos (gmial.com → gmail.com)</li>
-                <li>Block disposable email addresses (if needed)</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              3
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Remove Hard Bounces Immediately</h3>
-              <p className="text-neutral-700">
-                Automate removal of hard bounce addresses from your list. Never send to them again. Continued sending to
-                invalid addresses signals poor list hygiene to email providers.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              4
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Clean Your List Regularly</h3>
-              <p className="text-neutral-700">
-                Remove or re-engage inactive subscribers every 6-12 months. Email addresses become invalid over time
-                (15- 20% per year). Regular list cleaning prevents bounce accumulation.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              5
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Never Buy Email Lists</h3>
-              <p className="text-neutral-700">
-                Purchased lists have 20-40% invalid addresses and zero engagement. They'll destroy your bounce rate and
-                sender reputation. Build your list organically—it's slower but dramatically more effective.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              6
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Monitor Soft Bounces</h3>
-              <p className="text-neutral-700">
-                Track addresses that repeatedly soft bounce. After 3-5 consecutive soft bounces over multiple campaigns,
-                treat them as hard bounces and remove them.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              7
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Optimize Email Size</h3>
-              <p className="text-neutral-700">
-                Keep email size under 100KB to avoid soft bounces from size limits. Compress images, minimize code, and
-                avoid large attachments (link to downloads instead).
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              8
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Maintain Consistent Sending</h3>
-              <p className="text-neutral-700">
-                Send regularly to maintain list freshness. Long gaps between sends (3+ months) increase bounce rates as
-                addresses become invalid or subscribers forget about you.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Impact on Deliverability */}
-      <section id="impact" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How Bounce Rate Affects Deliverability</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Bounce rates directly impact your sender reputation and ability to reach the inbox:
+      <GuideSection id={'bounce-error-codes'} title={'Bounce error codes'}>
+        <p>
+          Every bounce comes with an SMTP code. Codes starting with 5 are permanent, codes starting with 4 are temporary.
         </p>
+        <GuideTable
+          mono
+          head={['Code', 'Reason', 'Type', 'Action']}
+          rows={[
+            ['550', 'Mailbox unavailable', 'Hard', 'Remove'],
+            ['551', 'User not local or invalid address', 'Hard', 'Remove'],
+            ['552', 'Mailbox full', 'Soft', 'Retry'],
+            ['553', 'Mailbox name invalid', 'Hard', 'Remove'],
+            ['554', 'Transaction failed', 'Varies', 'Investigate'],
+            ['421', 'Service not available', 'Soft', 'Retry'],
+            ['450', 'Mailbox busy', 'Soft', 'Retry'],
+          ]}
+        />
+      </GuideSection>
 
-        <div className="space-y-6">
-          <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
-            <h3 className="text-xl font-semibold text-red-900 mb-3">Damaged Sender Reputation</h3>
-            <p className="text-neutral-700">
-              Email providers track bounce rates. High rates signal poor list quality and careless email practices,
-              damaging your reputation score. This causes more emails—even to valid addresses—to land in spam.
-            </p>
-          </div>
+      <GuideSection id={'reduce-bounces'} title={'How to reduce bounce rate'}>
+        <p>Most bounces trace back to how addresses got on the list. Fix that and the rate follows.</p>
+        <GuidePoints
+          tone={'do'}
+          items={[
+            {
+              title: 'Use double opt-in',
+              body: 'A confirmation link proves the address is real, active and belongs to whoever signed up. It cuts bounces by 50 to 70%.',
+            },
+            {
+              title: 'Validate addresses on signup',
+              body: (
+                <>
+                  Check the format, confirm the domain has MX records, catch typos like gmial.com and block disposable
+                  addresses if you need to. Try it with the <Link href={'/tools/verify-email'}>email verifier</Link>.
+                </>
+              ),
+            },
+            {
+              title: 'Remove hard bounces immediately',
+              body: 'Automate it. Sending to dead addresses again tells providers your list is not maintained.',
+            },
+            {
+              title: 'Clean your list regularly',
+              body: '15 to 20% of addresses go invalid every year. Remove or re-engage inactive subscribers every 6 to 12 months.',
+            },
+            {
+              title: 'Never buy lists',
+              body: 'Purchased lists carry 20 to 40% invalid addresses and no engagement. Build your list yourself.',
+            },
+            {
+              title: 'Watch repeat soft bounces',
+              body: 'Remove addresses after 3 to 5 consecutive soft bounces over multiple campaigns.',
+            },
+            {
+              title: 'Keep emails under 100KB',
+              body: 'Compress images, trim the code and link to large files instead of attaching them.',
+            },
+            {
+              title: 'Send consistently',
+              body: 'Gaps of 3 months or more let addresses go stale and subscribers forget you.',
+            },
+          ]}
+        />
+        <GuideFigure caption={'A typo caught on the form never becomes a bounce.'}>
+          <SignupTypoCatch />
+        </GuideFigure>
+      </GuideSection>
 
-          <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-6">
-            <h3 className="text-xl font-semibold text-amber-900 mb-3">Spam Trap Hits</h3>
-            <p className="text-neutral-700">
-              Invalid addresses can be recycled as spam traps—addresses used to catch senders with poor list hygiene.
-              Sending to spam traps can get you blacklisted, severely impacting deliverability across all recipients.
-            </p>
-          </div>
-
-          <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
-            <h3 className="text-xl font-semibold text-blue-900 mb-3">IP/Domain Blacklisting</h3>
-            <p className="text-neutral-700">
-              Consistently high bounce rates can lead to your sending IP or domain being blacklisted by email providers
-              or third-party blacklist services, making it extremely difficult to deliver emails.
-            </p>
-          </div>
-
-          <div className="rounded-xl border-2 border-neutral-200 bg-neutral-50 p-6">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-3">Reduced Engagement</h3>
-            <p className="text-neutral-700">
-              High bounce rates correlate with low engagement. Email providers notice when large portions of your list
-              aren't valid, reducing trust in your remaining emails.
-            </p>
-          </div>
-        </div>
-
-        <InfoBox type="warning" title="Recovery Takes Time" className="mt-6">
+      <GuideSection id={'impact-on-deliverability'} title={'How bounces hurt deliverability'}>
+        <GuidePoints
+          columns={2}
+          items={[
+            {
+              title: 'Lower sender reputation',
+              body: (
+                <>
+                  Providers read a high bounce rate as careless sending, so more of your mail goes to spam. See{' '}
+                  <Link href={'/guides/email-sender-reputation'}>sender reputation</Link>.
+                </>
+              ),
+            },
+            {
+              title: 'Spam trap hits',
+              body: 'Abandoned addresses can be recycled as spam traps, and hitting them can get you blocklisted.',
+            },
+            {
+              title: 'IP and domain blocklisting',
+              body: 'A rate that stays high can put your IP or domain on blocklists, which blocks delivery almost everywhere.',
+            },
+            {
+              title: 'Less trust in the rest',
+              body: 'When much of a list is invalid, providers trust your mail to the valid addresses less too.',
+            },
+          ]}
+        />
+        <InfoBox type={'warning'} title={'Recovery takes weeks'}>
           <p>
-            Once your sender reputation is damaged by high bounce rates, recovery can take weeks or months of
-            consistently good sending behavior. Prevention is far easier than recovery.
+            Once bounces have damaged your reputation, it can take weeks or months of clean sending to recover.
+            Preventing bounces is far easier.
           </p>
         </InfoBox>
-      </section>
+      </GuideSection>
 
-      {/* Monitoring Bounces */}
-      <section id="monitoring" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Monitoring & Managing Bounces</h2>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">What to Track</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>• Overall bounce rate (target: &lt;2%)</li>
-              <li>• Hard bounce rate specifically</li>
-              <li>• Soft bounce rate and retry success</li>
-              <li>• Bounce rate by campaign</li>
-              <li>• Bounce rate trends over time</li>
-              <li>• Specific bounce reasons/error codes</li>
-            </ul>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Automated Actions</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>• Auto-remove hard bounces immediately</li>
-              <li>• Retry soft bounces 3-5 times over 72 hours</li>
-              <li>• Remove persistent soft bouncers</li>
-              <li>• Alert when bounce rate exceeds threshold</li>
-              <li>• Weekly bounce rate reports</li>
-              <li>• Validate emails at signup</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Related Guides */}
-      <section id="related-guides" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Related Email Guides</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link
-            href="/guides/email-deliverability"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-            <p className="text-ui text-neutral-600">Complete guide to reaching the inbox.</p>
-          </Link>
-          <Link
-            href="/guides/email-sender-reputation"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Sender Reputation</h3>
-            <p className="text-ui text-neutral-600">Build and maintain sender reputation.</p>
-          </Link>
-          <Link
-            href="/guides/email-marketing-best-practices"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Marketing Best Practices</h3>
-            <p className="text-ui text-neutral-600">Complete email marketing guide.</p>
-          </Link>
-        </div>
-      </section>
+      <GuideSection id={'monitoring-bounces'} title={'Monitoring bounces'}>
+        <h3>What to track</h3>
+        <ul>
+          <li>Overall bounce rate, with a target below 2%</li>
+          <li>Hard and soft bounce rates separately, and how many soft bounces succeed on retry</li>
+          <li>Bounce rate per campaign and over time</li>
+          <li>Bounce reasons and error codes</li>
+        </ul>
+        <h3>What to automate</h3>
+        <ul>
+          <li>Remove hard bounces immediately</li>
+          <li>Retry soft bounces 3 to 5 times over 72 hours, then remove persistent ones</li>
+          <li>Alert when the bounce rate passes your threshold, and send a weekly report</li>
+          <li>Validate addresses at signup</li>
+        </ul>
+        <GuideFigure caption={'When bounces cluster on one domain, look for a block rather than bad addresses.'}>
+          <BounceLog />
+        </GuideFigure>
+      </GuideSection>
     </GuideLayout>
+  );
+}
+
+type Tone = 'neutral' | 'ok' | 'warn' | 'err';
+
+/** One bounced message as the activity log shows it: who, what, the state, and the server's reply. */
+function BouncedMessage({
+  name,
+  address,
+  subject,
+  pill,
+  reason,
+  code,
+  className = 'w-full',
+}: {
+  name: string;
+  address: string;
+  subject: string;
+  pill: {tone: Tone; label: string};
+  reason: string;
+  code: string;
+  className?: string;
+}) {
+  return (
+    <UICard className={`p-4 ${className}`}>
+      <SnippetRow
+        leading={<Avatar name={name} />}
+        label={address}
+        title={subject}
+        labelPosition={'below'}
+        trailing={<StatusPill tone={pill.tone}>{pill.label}</StatusPill>}
+      />
+      <div className={'mt-4 flex items-center justify-between gap-3 border-t border-neutral-100 pt-3'}>
+        <span className={'truncate text-ui text-neutral-700'}>{reason}</span>
+        <span className={'flex-shrink-0 rounded-md bg-neutral-50 px-1.5 py-0.5 font-code text-label text-neutral-700'}>
+          {code}
+        </span>
+      </div>
+    </UICard>
+  );
+}
+
+/** A signup field with a typo and the suggestion that fixes it. */
+function SignupTypoCatch() {
+  return (
+    <UICard className={'w-full max-w-xs p-4'}>
+      <p className={'text-ui font-semibold text-neutral-900'}>Join the Acme newsletter</p>
+      <p className={'mt-3 text-label text-neutral-500'}>Email</p>
+      <div className={'mt-1 rounded-lg border border-neutral-300 px-3 py-2 text-ui text-neutral-900'}>ana@gmial.com</div>
+      <p className={'mt-2 text-label text-neutral-600'}>
+        Did you mean <span className={'font-semibold text-neutral-900'}>ana@gmail.com</span>?
+      </p>
+      <div className={'mt-4 rounded-lg bg-neutral-900 px-3 py-2 text-center text-ui font-medium text-white'}>Subscribe</div>
+    </UICard>
+  );
+}
+
+/** Recent bounces, where one domain stands out. */
+function BounceLog() {
+  const rows: {address: string; reason: string; pill: {tone: Tone; label: string}; time: string}[] = [
+    {address: 'j.lee@contoso.com', reason: 'Blocked by recipient server', pill: {tone: 'err', label: 'Blocked'}, time: '2m'},
+    {address: 'mia@contoso.com', reason: 'Blocked by recipient server', pill: {tone: 'err', label: 'Blocked'}, time: '2m'},
+    {address: 'sam.ortiz@contoso.com', reason: 'Blocked by recipient server', pill: {tone: 'err', label: 'Blocked'}, time: '3m'},
+    {address: 'tom@northwind.io', reason: 'Mailbox full', pill: {tone: 'warn', label: 'Soft bounce'}, time: '1h'},
+  ];
+
+  return (
+    <UICard className={'w-full max-w-md divide-y divide-neutral-100'}>
+      {rows.map(row => (
+        <div key={row.address} className={'flex items-center gap-3 px-4 py-3'}>
+          <div className={'min-w-0 flex-1'}>
+            <p className={'truncate text-ui font-semibold text-neutral-900'}>{row.address}</p>
+            <p className={'truncate text-label text-neutral-500'}>{row.reason}</p>
+          </div>
+          <StatusPill tone={row.pill.tone}>{row.pill.label}</StatusPill>
+          <TimeAgo>{row.time}</TimeAgo>
+        </div>
+      ))}
+    </UICard>
   );
 }

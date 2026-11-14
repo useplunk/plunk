@@ -1,474 +1,330 @@
-import React from 'react';
-import {GuideLayout, InfoBox} from '../../components/guides';
-import {CodeBlock} from '../../components/CodeBlock';
 import Link from 'next/link';
+import React from 'react';
+
+import {
+  GuideCode,
+  GuideCompare,
+  GuideFigure,
+  GuideLayout,
+  GuidePoints,
+  GuideSection,
+  GuideTable,
+  InfoBox,
+  RateFragment,
+  CampaignStatsFragment,
+} from '../../components/guides';
+import {Avatar, SnippetRow, SnippetTile, StatusPill, UICard} from '../../components/snippets';
 
 export default function EmailClickThroughRate() {
   return (
     <GuideLayout
-      title="Email Click-Through Rate: How to Optimize CTAs & Increase Clicks"
+      slug={'email-click-through-rate'}
+      title="Email Click-Through Rate: Benchmarks & How to Improve"
+      heading={'Email click-through rate'}
       description="Learn what affects email click-through rates, industry benchmarks, and proven tactics to optimize CTAs and boost engagement."
+      lead={
+        'Click-through rate is the share of delivered emails that get at least one click. Most industries average 2-5%, and it shows how well your content and calls to action work.'
+      }
       lastUpdated="2025-12-20"
-      readTime="10 min"
+      readTime="7 min"
       canonical="https://www.useplunk.com/guides/email-click-through-rate"
+      cta={'Send email people click.'}
+      figure={
+        <SnippetTile align={'bleed-right'} className={'min-h-[26rem] py-10'}>
+          <div className={'flex flex-col gap-3'}>
+            <CampaignStatsFragment highlight={'Clicked'} className={'w-full max-w-lg'} />
+            <RateFragment
+              label={'Click rate'}
+              value={'4.2%'}
+              fill={42}
+              marker={{at: 25, label: 'Industry average 2-3%'}}
+              className={'ml-10 w-full max-w-xs'}
+            />
+          </div>
+        </SnippetTile>
+      }
     >
-      {/* Introduction */}
-      <section id="introduction" className="mb-12">
-        <p className="text-neutral-700 leading-relaxed">
-          Email click-through rate (CTR) measures the percentage of recipients who clicked a link in your email. While
-          open rates show subject line effectiveness, CTR reveals how compelling your email content and calls-to-action
-          are.
+      <GuideSection id={'what-is-ctr'} title={'How click-through rate is calculated'}>
+        <p>
+          Divide unique clicks by the number of emails delivered, then multiply by 100. Where{' '}
+          <Link href={'/guides/email-open-rate'}>open rate</Link> shows whether the subject line worked, click-through
+          rate (CTR) shows whether the email itself did.
         </p>
-        <p className="mt-4 text-neutral-700 leading-relaxed">
-          High CTR indicates engaged subscribers who find value in your emails and are moving toward conversion. This
-          guide covers everything you need to optimize CTAs and maximize clicks.
-        </p>
-      </section>
+        <GuideCode
+          title={'Click-through rate'}
+          copy={false}
+          code={`CTR = (Unique clicks ÷ Emails delivered) × 100
 
-      {/* What is CTR */}
-      <section id="what-is-ctr" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">What is Email Click-Through Rate?</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Click-through rate is the percentage of delivered emails that received at least one click on a link.
-        </p>
-
-        <div className="rounded-xl border-2 border-neutral-900 bg-neutral-50 p-8 mb-8">
-          <div className="text-center mb-6">
-            <div className="text-3xl font-bold text-neutral-900 mb-4">CTR Formula</div>
-            <CodeBlock
-              language="text"
-              code={`CTR = (Unique Clicks ÷ Delivered Emails) × 100
-
-Example:
-- Sent: 10,000 emails
-- Delivered: 9,800 emails
-- Unique Clicks: 294
-
+Sent: 10,000   Delivered: 9,800   Unique clicks: 294
 CTR = (294 ÷ 9,800) × 100 = 3.0%`}
-              showCopy={false}
-            />
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-neutral-900 mb-4">CTOR Formula</div>
-            <CodeBlock
-              language="text"
-              code={`CTOR (Click-to-Open Rate) = (Unique Clicks ÷ Unique Opens) × 100
+        />
+        <p>Click-to-open rate (CTOR) divides the same clicks by unique opens instead.</p>
+        <GuideCode
+          title={'Click-to-open rate'}
+          copy={false}
+          code={`CTOR = (Unique clicks ÷ Unique opens) × 100
 
-Example:
-- Unique Opens: 2,450
-- Unique Clicks: 294
-
+Unique opens: 2,450   Unique clicks: 294
 CTOR = (294 ÷ 2,450) × 100 = 12.0%`}
-              showCopy={false}
+        />
+        <GuideFigure caption={'Same 524 clicks, two rates. CTOR leaves out everyone who never opened.'}>
+          <div className={'grid w-full max-w-xl gap-3 sm:grid-cols-2'}>
+            <RateFragment
+              label={'Click rate'}
+              value={'4.2%'}
+              fill={42}
+              note={'524 of 12,480 delivered'}
+              className={'w-full'}
+            />
+            <RateFragment
+              label={'Click-to-open rate'}
+              value={'9.1%'}
+              fill={91}
+              note={'524 of 5,741 opened'}
+              className={'w-full'}
+            />
+          </div>
+        </GuideFigure>
+        <GuideCompare
+          items={[
+            {
+              title: 'CTR',
+              body: 'Overall campaign performance, including deliverability and opens.',
+              points: ['Clicks ÷ delivered', 'Use it to judge the whole campaign'],
+            },
+            {
+              title: 'CTOR',
+              body: 'Content quality alone, measured only among people who opened.',
+              points: ['Clicks ÷ opens', 'Use it to improve the content'],
+            },
+          ]}
+        />
+      </GuideSection>
+
+      <GuideSection id={'benchmarks'} title={'Click-through rate benchmarks by industry'}>
+        <GuideTable
+          head={['Industry', 'Average CTR', 'Good CTR', 'Average CTOR']}
+          rows={[
+            ['SaaS / Technology', '2-3%', '4%+', '10-15%'],
+            ['E-commerce / Retail', '3-5%', '6%+', '12-18%'],
+            ['Media / Publishing', '4-6%', '7%+', '15-20%'],
+            ['Financial services', '2-4%', '5%+', '10-14%'],
+            ['Non-profit', '2-4%', '5%+', '10-16%'],
+            ['Education', '3-5%', '6%+', '12-17%'],
+          ]}
+        />
+        <InfoBox type={'tip'} title={'Compare the same kind of email'}>
+          <p>
+            CTR depends heavily on the type of email: promotional 2-3%, newsletters 4-6%, transactional 10-15% and
+            triggered emails 15-30%. Benchmark each type separately.
+          </p>
+        </InfoBox>
+      </GuideSection>
+
+      <GuideSection id={'factors'} title={'What affects click-through rate'}>
+        <GuidePoints
+          columns={2}
+          items={[
+            {
+              title: 'CTA design',
+              body: 'Placement, design and copy all matter. Clear, prominent, action-led CTAs beat “Click here”.',
+            },
+            {
+              title: 'Relevance',
+              body: 'Targeted, personalized content gets 2-3x the CTR of generic blasts.',
+            },
+            {
+              title: 'Value proposition',
+              body: 'Exclusive content, limited offers or a solved problem give people a reason to click.',
+            },
+            {
+              title: 'Mobile',
+              body: 'Over 60% of email is read on mobile. Small links and broken layouts see 50% lower CTR there.',
+            },
+            {
+              title: 'Scannability',
+              body: 'Most people skim. Headers, bullet points and whitespace help them find the CTA.',
+            },
+            {
+              title: 'Number of CTAs',
+              body: 'Emails with one primary CTA convert 371% better than those with several competing ones.',
+            },
+          ]}
+        />
+      </GuideSection>
+
+      <GuideSection id={'improve-ctr'} title={'How to increase click-through rate'}>
+        <GuidePoints
+          tone={'do'}
+          items={[
+            {
+              title: 'Write specific CTA copy',
+              body: 'Say what happens on click: “Download your free guide”, “Start your 14-day free trial”, “Get 20% off today only”. Not “Click here” or “Learn more”.',
+            },
+            {
+              title: 'Make the button stand out',
+              body: 'Use a contrasting color, at least 44×44px to tap, whitespace around it, and live text rather than an image. Repeat it at the bottom of long emails.',
+            },
+            {
+              title: 'Give each email one goal',
+              body: 'Competing CTAs reduce total clicks. Point readers at one action.',
+            },
+            {
+              title: 'Personalize the content',
+              body: 'Go beyond “Hi Name” with behavior, purchase history or preferences. Personalized CTAs see 202% higher CTR.',
+            },
+            {
+              title: 'Design for mobile',
+              body: 'Responsive, single column, concise copy, large tappable buttons instead of text links, and a CTA above the fold.',
+            },
+            {
+              title: 'Use real urgency',
+              body: '“Sale ends tonight” or “Only 5 spots remaining” work when they are true. False urgency costs trust.',
+            },
+            {
+              title: 'Segment your audience',
+              body: 'Target by behavior, interests or demographics. Segmented campaigns see 3x the CTR of untargeted ones.',
+            },
+            {
+              title: 'Tease, don’t tell everything',
+              body: 'A product image, a stat or an excerpt creates curiosity. “Read the full article” beats a bare headline.',
+            },
+            {
+              title: 'A/B test your CTAs',
+              body: 'Test copy (“Get started” or “Start free trial”), color, placement, number of CTAs, and size and shape.',
+            },
+            {
+              title: 'Match the landing page',
+              body: 'If the email says 20% off, the page it opens should show 20% off, not the homepage.',
+            },
+          ]}
+        />
+        <GuideFigure caption={'One primary button takes most of the clicks. Secondary links split what is left.'}>
+          <LinkClicksFragment />
+        </GuideFigure>
+      </GuideSection>
+
+      <GuideSection id={'cta-placement'} title={'Where to put the CTA'}>
+        <p>How many CTAs an email needs, and where, depends on its length.</p>
+        <GuideTable
+          head={['Email length', 'CTAs', 'Layout']}
+          rows={[
+            ['Short (under 200 words)', 'One, in the middle or at the end', 'Intro, value, CTA'],
+            ['Medium (200-500 words)', 'At the start and the end', 'Intro and CTA, content, final CTA'],
+            ['Long (over 500 words)', 'Several throughout', 'CTA, content, CTA, more content, final CTA'],
+          ]}
+        />
+        <GuideFigure caption={'The button sits above the fold, so readers who never scroll can still click.'}>
+          <EmailPreviewFragment />
+        </GuideFigure>
+        <InfoBox title={'Put one CTA above the fold'}>
+          <p>
+            Many readers never scroll, especially on mobile. Make sure at least one CTA is visible without scrolling.
+          </p>
+        </InfoBox>
+      </GuideSection>
+
+      <GuideSection id={'common-mistakes'} title={'Common mistakes'}>
+        <GuidePoints
+          tone={'dont'}
+          items={[
+            {title: 'Too many CTAs', body: 'Competing actions confuse readers and lower total clicks. Pick one.'},
+            {
+              title: 'Vague CTA copy',
+              body: '“Click here” and “Learn more” say nothing. “Start 14-day trial” says exactly what they get.',
+            },
+            {
+              title: 'Image-only buttons',
+              body: 'Many clients block images by default, so the CTA disappears. Use HTML buttons with text.',
+            },
+            {
+              title: 'Small links',
+              body: 'Tiny text links are hard to tap on a phone. Use buttons of at least 44×44px.',
+            },
+            {
+              title: 'No reason to click',
+              body: 'People will not click if they do not know why. State the benefit before asking for the click.',
+            },
+          ]}
+        />
+      </GuideSection>
+    </GuideLayout>
+  );
+}
+
+/** Clicks per link in one campaign, most clicked first. */
+function LinkClicksFragment() {
+  const links = [
+    {label: 'Start your 14-day free trial', kind: 'Button', clicks: 377},
+    {label: 'Read the full changelog', kind: 'Link', clicks: 91},
+    {label: 'See pricing', kind: 'Link', clicks: 44},
+    {label: 'Follow us on X', kind: 'Footer', clicks: 12},
+  ];
+  const total = links.reduce((sum, l) => sum + l.clicks, 0);
+
+  return (
+    <UICard className={'w-full max-w-md divide-y divide-neutral-100'}>
+      <div className={'flex items-center justify-between gap-3 px-4 py-3'}>
+        <p className={'text-ui font-semibold text-neutral-900'}>Clicks by link</p>
+        <span className={'text-label tabular-nums text-neutral-500'}>{total} clicks</span>
+      </div>
+      {links.map((l, i) => (
+        <div key={l.label} className={'px-4 py-3'}>
+          <div className={'flex items-center gap-3'}>
+            <p
+              className={`min-w-0 flex-1 truncate text-ui ${i === 0 ? 'font-semibold text-neutral-900' : 'text-neutral-700'}`}
+            >
+              {l.label}
+            </p>
+            <StatusPill>{l.kind}</StatusPill>
+            <span className={'w-10 flex-shrink-0 text-right text-ui font-semibold tabular-nums text-neutral-900'}>
+              {l.clicks}
+            </span>
+          </div>
+          <div className={'mt-2 h-1.5 rounded-full bg-neutral-100'}>
+            <div
+              className={`h-full rounded-full ${i === 0 ? 'bg-neutral-900' : 'bg-neutral-300'}`}
+              style={{width: `${Math.round((l.clicks / total) * 100)}%`}}
             />
           </div>
         </div>
+      ))}
+    </UICard>
+  );
+}
 
-        <InfoBox type="info" title="CTR vs CTOR">
-          <p>
-            <strong>CTR</strong> measures overall campaign effectiveness (including deliverability and opens).{' '}
-            <strong>CTOR</strong> isolates content quality by measuring engagement from those who opened. Use both—CTR
-            for overall performance, CTOR for content optimization.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* Benchmarks */}
-      <section id="benchmarks" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">CTR Benchmarks by Industry</h2>
-
-        <div className="rounded-xl border border-neutral-200 overflow-hidden mb-8">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Industry</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Average CTR</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Good CTR</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Average CTOR</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200 bg-white">
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">SaaS / Technology</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">2-3%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">4%+</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">10-15%</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">E-commerce / Retail</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">3-5%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">6%+</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">12-18%</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Media / Publishing</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">4-6%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">7%+</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">15-20%</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Financial Services</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">2-4%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">5%+</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">10-14%</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Non-Profit</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">2-4%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">5%+</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">10-16%</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Education</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">3-5%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">6%+</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">12-17%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <InfoBox type="tip" title="Context Matters">
-          <p>
-            CTR varies dramatically by email type: promotional emails (2-3%), newsletters (4-6%), transactional emails
-            (10-15%), and triggered emails (15-30%). Compare similar email types, not all campaigns together.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* Factors Affecting CTR */}
-      <section id="factors" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">What Affects Click-Through Rates?</h2>
-
-        <div className="space-y-6">
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">1. Call-to-Action (CTA) Design</h3>
-            <p className="text-neutral-700">
-              Your CTA's design, placement, and copy directly impact clicks. Clear, prominent, action-oriented CTAs
-              significantly outperform generic "Click here" links.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">2. Email Relevance</h3>
-            <p className="text-neutral-700">
-              Targeted, personalized content generates 2-3x higher CTR than generic blasts. Segmentation and
-              personalization ensure emails match subscriber interests.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">3. Value Proposition</h3>
-            <p className="text-neutral-700">
-              Recipients need a clear reason to click. Compelling value propositions—exclusive content, limited offers,
-              solutions to problems—drive clicks.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">4. Mobile Optimization</h3>
-            <p className="text-neutral-700">
-              60%+ of emails are read on mobile. Unoptimized emails with small links or poorly formatted content see 50%
-              lower CTR on mobile devices.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">5. Content Scannability</h3>
-            <p className="text-neutral-700">
-              Most people skim emails. Clear structure with headers, bullet points, and whitespace helps readers find
-              and click CTAs quickly.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">6. Number of CTAs</h3>
-            <p className="text-neutral-700">
-              More CTAs = divided attention. Emails with one primary CTA convert 371% better than those with multiple
-              competing CTAs.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* How to Improve CTR */}
-      <section id="improve-ctr" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How to Increase Email Click-Through Rates</h2>
-
-        <div className="space-y-4">
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              1
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Use Clear, Action-Oriented CTA Copy</h3>
-              <p className="text-neutral-700 mb-3">
-                Be specific about what happens when users click. Action verbs + value = higher CTR.
-              </p>
-              <div className="rounded-lg bg-neutral-100 p-4 space-y-2">
-                <div className="flex items-start gap-2">
-                  <span className="text-green-600 font-bold">✓</span>
-                  <span className="text-ui text-neutral-700">"Download your free guide"</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-green-600 font-bold">✓</span>
-                  <span className="text-ui text-neutral-700">"Start your 14-day free trial"</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-green-600 font-bold">✓</span>
-                  <span className="text-ui text-neutral-700">"Get 20% off today only"</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-red-600 font-bold">✗</span>
-                  <span className="text-ui text-neutral-700">"Click here"</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-red-600 font-bold">✗</span>
-                  <span className="text-ui text-neutral-700">"Learn more"</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              2
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Design Prominent CTA Buttons</h3>
-              <p className="text-neutral-700 mb-3">Button best practices:</p>
-              <ul className="list-disc list-inside space-y-1 text-ui text-neutral-700">
-                <li>Use contrasting colors that stand out from email design</li>
-                <li>Make buttons large enough to tap on mobile (44x44px minimum)</li>
-                <li>Add white space around buttons for visual prominence</li>
-                <li>Use button text, not images (better for accessibility and loading)</li>
-                <li>Repeat primary CTA if email is long (top and bottom)</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              3
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Create a Single, Clear Focus</h3>
-              <p className="text-neutral-700">
-                Each email should have one primary goal. Multiple CTAs competing for attention reduce overall clicks.
-                Guide readers toward one clear action.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              4
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Personalize Content</h3>
-              <p className="text-neutral-700">
-                Go beyond "Hi [Name]". Use behavioral data, purchase history, browsing activity, or preferences to send
-                highly relevant emails. Personalized CTAs see 202% higher CTR.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              5
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Optimize for Mobile</h3>
-              <p className="text-neutral-700 mb-3">Mobile optimization is critical:</p>
-              <ul className="list-disc list-inside space-y-1 text-ui text-neutral-700">
-                <li>Responsive design that adapts to screen size</li>
-                <li>Large, tappable buttons (not small text links)</li>
-                <li>Single-column layout for easy scrolling</li>
-                <li>Concise copy (mobile users scan quickly)</li>
-                <li>Place CTAs above the fold when possible</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              6
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Use Urgency and Scarcity (Authentically)</h3>
-              <p className="text-neutral-700">
-                Genuine limited-time offers or limited quantity create urgency that drives clicks. Be authentic—false
-                urgency damages trust. "Sale ends tonight" or "Only 5 spots remaining" work when true.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              7
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Segment Your Audience</h3>
-              <p className="text-neutral-700">
-                Send targeted emails to specific groups based on behavior, interests, or demographics. Segmented
-                campaigns see 3x higher CTR than non-segmented blasts.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              8
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Include Preview/Teaser Content</h3>
-              <p className="text-neutral-700">
-                Show just enough value to create curiosity. Product images, stat highlights, or content snippets
-                encourage clicks to see more. "Read the full article" works better than just a headline.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              9
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">A/B Test CTAs</h3>
-              <p className="text-neutral-700 mb-3">Test systematically:</p>
-              <ul className="list-disc list-inside space-y-1 text-ui text-neutral-700">
-                <li>Button copy ("Get started" vs "Start free trial")</li>
-                <li>Button color (brand color vs high-contrast color)</li>
-                <li>Button placement (top, middle, bottom)</li>
-                <li>Number of CTAs (one vs multiple)</li>
-                <li>Button size and shape</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              10
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Improve Email-Landing Page Match</h3>
-              <p className="text-neutral-700">
-                Ensure landing pages match email promises. Mismatched expectations cause immediate bounces. Email says
-                "20% off"? Landing page should show 20% off, not a generic homepage.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Placement */}
-      <section id="cta-placement" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">CTA Placement Best Practices</h2>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Short Emails (&lt;200 words)</h3>
-            <p className="text-ui text-neutral-700 mb-3">One CTA in the middle or at the end.</p>
-            <div className="rounded-lg bg-neutral-50 p-3 text-xs text-neutral-600">Intro → Value prop → CTA</div>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Medium Emails (200-500 words)</h3>
-            <p className="text-ui text-neutral-700 mb-3">CTAs at the beginning and end.</p>
-            <div className="rounded-lg bg-neutral-50 p-3 text-xs text-neutral-600">
-              Intro + CTA → Content → Final CTA
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Long Emails (&gt;500 words)</h3>
-            <p className="text-ui text-neutral-700 mb-3">Multiple CTAs throughout.</p>
-            <div className="rounded-lg bg-neutral-50 p-3 text-xs text-neutral-600">
-              CTA → Content → CTA → More content → Final CTA
-            </div>
-          </div>
-        </div>
-
-        <InfoBox type="tip" title="Above the Fold" className="mt-6">
-          <p>
-            Place at least one CTA above the fold (visible without scrolling) on mobile. Many readers won't scroll, so
-            give them an early opportunity to click.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* Common Mistakes */}
-      <section id="common-mistakes" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Common CTR Mistakes to Avoid</h2>
-
-        <div className="space-y-6">
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Too Many CTAs</h3>
-            <p className="text-neutral-700">
-              Multiple competing CTAs confuse readers and reduce overall clicks. Focus on one primary action per email.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Vague CTA Copy</h3>
-            <p className="text-neutral-700">
-              "Click here" and "Learn more" don't communicate value. Be specific: "Download free guide" or "Start 14-day
-              trial" tell readers exactly what they'll get.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Image-Only CTAs</h3>
-            <p className="text-neutral-700">
-              Many email clients block images by default. If your CTA is an image, users won't see it. Use HTML buttons
-              with text.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Small, Hard-to-Tap Links</h3>
-            <p className="text-neutral-700">
-              Tiny text links are difficult to tap on mobile. Use large buttons (minimum 44x44px) for easy tapping.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ No Clear Value Proposition</h3>
-            <p className="text-neutral-700">
-              Readers won't click if they don't know why they should. Clearly communicate the benefit of clicking before
-              asking them to act.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Related Guides */}
-      <section id="related-guides" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Related Email Guides</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link
-            href="/guides/email-open-rate"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Open Rates</h3>
-            <p className="text-ui text-neutral-600">Improve opens to get more clicks.</p>
-          </Link>
-          <Link
-            href="/guides/email-marketing-best-practices"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Marketing Best Practices</h3>
-            <p className="text-ui text-neutral-600">Complete email marketing guide.</p>
-          </Link>
-          <Link
-            href="/guides/email-deliverability"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-            <p className="text-ui text-neutral-600">Reach the inbox for better engagement.</p>
-          </Link>
-        </div>
-      </section>
-    </GuideLayout>
+/** The top of an email on a phone: one clear button before the fold. */
+function EmailPreviewFragment() {
+  return (
+    <UICard className={'w-full max-w-sm overflow-hidden'}>
+      <div className={'border-b border-neutral-100 p-4'}>
+        <SnippetRow
+          leading={<Avatar name={'Ana Ruiz'} />}
+          label={'Ana from Acme'}
+          title={'Your trial ends in 3 days'}
+        />
+      </div>
+      <div className={'p-5'}>
+        <p className={'font-display text-lg font-bold tracking-[-0.01em] text-neutral-900'}>
+          Keep your projects running
+        </p>
+        <p className={'mt-2 text-ui text-neutral-600'}>
+          Your Acme trial ends on Friday. Upgrade now and everything you set up stays exactly where it is.
+        </p>
+        <span className={'mt-4 inline-flex rounded-lg bg-neutral-900 px-4 py-2.5 text-ui font-semibold text-white'}>
+          Upgrade to keep your projects
+        </span>
+      </div>
+      <div className={'flex items-center gap-3 px-5'}>
+        <span aria-hidden className={'h-px flex-1 border-t border-dashed border-neutral-300'} />
+        <span className={'text-label text-neutral-500'}>Fold on most phones</span>
+        <span aria-hidden className={'h-px flex-1 border-t border-dashed border-neutral-300'} />
+      </div>
+      <div aria-hidden className={'flex flex-col gap-2 p-5 opacity-50'}>
+        <span className={'h-2 w-full rounded-full bg-neutral-200'} />
+        <span className={'h-2 w-5/6 rounded-full bg-neutral-200'} />
+        <span className={'h-2 w-2/3 rounded-full bg-neutral-200'} />
+      </div>
+    </UICard>
   );
 }

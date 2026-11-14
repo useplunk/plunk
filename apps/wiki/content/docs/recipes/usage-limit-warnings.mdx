@@ -1,0 +1,110 @@
+---
+title: Usage limit warnings
+description: Warn users who are close to their plan limit from every request, while they get the email at most once a day
+icon: Gauge
+---
+
+Your app knows a customer is close to their plan limit on every request that counts towards it. That is exactly where you want to warn them, and exactly why a plain send would email them hundreds of times a day.
+
+With [`delivery.throttle`](/guides/throttling) you send from that hot path anyway. Plunk delivers the warning once per window and skips the rest, so your app keeps no record of who was warned when.
+
+## Setup
+
+import {Step, Steps} from 'fumadocs-ui/components/steps';
+
+<Steps>
+
+<Step>
+
+### Create the warning template
+
+In **Templates → New template**, create a **Transactional** template, so it reaches users whatever their newsletter preference:
+
+```text
+Subject: You've used {{percent}}% of your {{plan}} plan
+
+Hi {{firstName}}, {{organisation}} has used {{used}} of its {{limit}} emails this month.
+Upgrade before you reach the limit to keep sending without interruption.
+```
+
+</Step>
+
+<Step>
+
+### Send it where the usage is counted
+
+Wherever your app records usage, check the threshold and send. Don't worry about how often this runs:
+
+```javascript
+async function recordUsage(org, user) {
+  const used = await incrementUsage(org.id);
+  const percent = Math.floor((used / org.limit) * 100);
+
+  if (percent >= 80) {
+    await fetch('https://next-api.useplunk.com/v1/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.PLUNK_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: user.email,
+        template: process.env.PLUNK_USAGE_WARNING_TEMPLATE,
+        data: {percent, used, limit: org.limit, plan: org.plan, organisation: org.name},
+        delivery: {throttle: {window: '24h', key: org.id}},
+      }),
+    });
+  }
+}
+```
+
+The `key` is the organisation, so someone who belongs to two organisations near their limit is warned about each one.
+
+</Step>
+
+<Step>
+
+### Read the result, if you want to
+
+Every call returns `200`. The recipient's `status` is `queued` when the warning went out and `throttled` when it was skipped, with `nextAllowedAt` telling you when it can go out again. A throttled call creates no email, does not touch the contact and is not billed.
+
+</Step>
+
+</Steps>
+
+## Variations
+
+**Once per billing period instead of once a day.** Drop the window and put the period in the key. The warning goes out once, and the new key next month lets it go out again:
+
+```json
+{ "delivery": { "throttle": { "key": "org_123:2026-10" } } }
+```
+
+**One warning per threshold.** Use a different key for 80% and 100%, so crossing the second threshold still sends even if the first went out an hour ago:
+
+```json
+{ "delivery": { "throttle": { "window": "24h", "key": "org_123:100" } } }
+```
+
+**Tell the whole team, once.** Send to every admin with `scope: "project"` and the first one who triggers it gets the email, while nobody is told twice within the window. More often you want each admin told, which is the default.
+
+## Without code
+
+Prefer to keep the email in a workflow? Track an event where the usage is counted and let the workflow throttle itself:
+
+```javascript
+await fetch('https://next-api.useplunk.com/v1/track', {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${process.env.PLUNK_SECRET_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    event: 'usage.high',
+    email: user.email,
+    data: {orgId: org.id, percent, used, limit: org.limit},
+  }),
+});
+```
+
+Then create a workflow triggered by `usage.high` with a **Send email** step, and under **Who can enter** pick **At most once per period**: every **24 hours**, counted separately for each **event.orgId**. Every tracked event is stored as usual, but only the first one per organisation per day starts the workflow.

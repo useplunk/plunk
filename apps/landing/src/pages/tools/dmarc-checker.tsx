@@ -1,34 +1,23 @@
-import {FAQSection, Footer, Navbar, SectionHeader} from '../../components';
+import {
+  FAQSection,
+  FeatureCTA,
+  Footer,
+  MoreTools,
+  Navbar,
+  ToolExplainer,
+  ToolFinding,
+  ToolHero,
+  ToolPanel,
+  ToolPill,
+  ToolRecord,
+  ToolResult,
+  ToolVerdict,
+} from '../../components';
+import type {FAQ, ToolTone} from '../../components';
 import {motion} from 'framer-motion';
-import {DASHBOARD_URI} from '../../lib/constants';
 import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
-import {AlertTriangle, ArrowRight, CheckCircle, ShieldCheck, XCircle} from 'lucide-react';
 import {Button, Input} from '@plunk/ui';
-import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
-import Link from 'next/link';
-import type {FAQ} from '../../components/FAQSection';
-
-const display = Funnel_Display({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const body = Funnel_Sans({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
-});
-
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-  weight: ['400', '500'],
-});
 
 interface DmarcIssue {
   type: 'error' | 'warning' | 'pass';
@@ -66,7 +55,7 @@ function analyzeDmarc(tags: Record<string, string>): DmarcAnalysis {
   } else if (policy === 'quarantine') {
     issues.push({type: 'warning', label: 'Policy is p=quarantine', detail: 'Failing messages are sent to spam/junk. Consider upgrading to p=reject for full protection.'});
   } else if (policy === 'reject') {
-    issues.push({type: 'pass', label: 'Policy is p=reject — maximum protection', detail: 'Failing messages are rejected outright. This is the strongest DMARC policy.'});
+    issues.push({type: 'pass', label: 'Policy is p=reject, the strongest protection', detail: 'Failing messages are rejected outright. This is the strongest DMARC policy.'});
   }
 
   // Percentage
@@ -96,34 +85,27 @@ function analyzeDmarc(tags: Record<string, string>): DmarcAnalysis {
   return {policy, subPolicy, pct, hasRua, hasRuf, adkim, aspf, issues, grade};
 }
 
-function PolicyBadge({policy}: {policy: string}) {
-  if (policy === 'reject') {
-    return <span className={'rounded-full bg-ok-surface px-3 py-1 text-xs font-bold text-ok border border-ok/25'}>reject</span>;
-  }
-  if (policy === 'quarantine') {
-    return <span className={'rounded-full bg-warn-surface px-3 py-1 text-xs font-bold text-warn border border-warn/25'}>quarantine</span>;
-  }
-  if (policy === 'none') {
-    return <span className={'rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600 border border-neutral-300'}>none</span>;
-  }
-  return <span className={'rounded-full bg-err-surface px-3 py-1 text-xs font-bold text-err border border-err/25'}>missing</span>;
+function policyLabel(policy: string): {label: string; tone: ToolTone | 'neutral'} {
+  if (policy === 'reject') return {label: 'Reject', tone: 'ok'};
+  if (policy === 'quarantine') return {label: 'Quarantine', tone: 'warn'};
+  if (policy === 'none') return {label: 'None', tone: 'neutral'};
+  return {label: 'Missing', tone: 'err'};
 }
 
-function GradeBadge({grade, policy}: {grade: 'pass' | 'warning' | 'fail'; policy: string}) {
-  const map = {
-    pass: {cls: 'bg-ok-surface border-ok/25 text-ok', label: 'Valid'},
-    warning: {cls: 'bg-warn-surface border-warn/25 text-warn', label: 'Needs attention'},
-    fail: {cls: 'bg-err-surface border-err/25 text-err', label: 'Action required'},
-  };
-  const {cls, label} = map[grade];
-  const sub = policy === 'reject' ? 'Full DMARC protection' : policy === 'quarantine' ? 'Partial protection' : policy === 'none' ? 'Monitoring only — no enforcement' : 'DMARC not enforcing';
-  return (
-    <div className={`flex flex-col items-center gap-1 rounded-2xl border-2 px-8 py-5 ${cls}`}>
-      <span style={{fontFamily: 'var(--font-display)'}} className={'text-2xl font-extrabold'}>{label}</span>
-      <span className={'text-xs font-medium opacity-80'}>{sub}</span>
-    </div>
-  );
+function policySummary(policy: string): string {
+  if (policy === 'reject') return 'Full DMARC protection';
+  if (policy === 'quarantine') return 'Partial protection';
+  if (policy === 'none') return 'Monitoring only, no enforcement';
+  return 'DMARC not enforcing';
 }
+
+const GRADES = {
+  pass: {tone: 'ok', title: 'DMARC is fully enforced'},
+  warning: {tone: 'warn', title: 'DMARC needs attention'},
+  fail: {tone: 'err', title: 'DMARC has critical errors'},
+} as const;
+
+const ISSUE_TONE = {pass: 'ok', warning: 'warn', error: 'err'} as const;
 
 const TAG_DESCRIPTIONS: Record<string, string> = {
   v: 'DMARC version',
@@ -138,6 +120,21 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
   rf: 'Forensic report format',
   ri: 'Reporting interval (seconds)',
 };
+
+const explainer = [
+  {
+    title: 'Monitor with p=none',
+    body: 'Start here. DMARC is active but no action is taken on failures. Add rua= to receive aggregate reports and identify all your sending sources.',
+  },
+  {
+    title: 'Quarantine with p=quarantine',
+    body: "Once you're confident all legitimate senders pass, move to quarantine. Failing messages are sent to spam, reducing spoofing impact.",
+  },
+  {
+    title: 'Reject with p=reject',
+    body: 'Full enforcement. Failing messages are rejected by receiving servers. This is the goal — it completely prevents domain spoofing.',
+  },
+];
 
 const faqs: FAQ[] = [
   {
@@ -243,339 +240,140 @@ export default function DmarcCheckerPage() {
 
       <Navbar />
 
-      <div className={`${display.variable} ${body.variable} ${mono.variable}`}>
+      <div>
         <main className={'text-neutral-800'}>
-          {/* ========== HERO ========== */}
-          <section className={'relative overflow-hidden'}>
-            <div
-              aria-hidden
-              className={'absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#eeeeee_1px,transparent_1px),linear-gradient(to_bottom,#eeeeee_1px,transparent_1px)] bg-[size:6rem_6rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_95%)]'}
-            />
+          <ToolHero
+            title={'DMARC record checker'}
+            subtitle={
+              'Look up any domain’s DMARC policy, check its reporting setup, and see how close it is to full enforcement.'
+            }
+          >
+            <ToolPanel>
+              <form onSubmit={handleCheck} className={'flex flex-col gap-3 sm:flex-row'}>
+                <label htmlFor="domain" className={'sr-only'}>
+                  Domain name
+                </label>
+                <Input
+                  id="domain"
+                  type="text"
+                  value={domain}
+                  onChange={e => setDomain(e.target.value)}
+                  placeholder="example.com"
+                  required
+                  className={'h-11 flex-1'}
+                />
+                <Button type="submit" className={'h-11 px-6'} disabled={loading}>
+                  {loading ? 'Checking…' : 'Check DMARC'}
+                </Button>
+              </form>
+            </ToolPanel>
 
-            <div className={'mx-auto max-w-[88rem] px-6 pb-24 pt-20 sm:px-10 sm:pt-28 lg:pb-36'}>
+            {result && (
               <motion.div
-                initial={{opacity: 0, y: 8}}
+                initial={{opacity: 0, y: 12}}
                 animate={{opacity: 1, y: 0}}
-                transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
-                style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'}
+                transition={{duration: 0.4, ease: [0.22, 1, 0.36, 1]}}
+                className={'mt-6 flex flex-col gap-4'}
               >
-                <span className={'font-medium text-neutral-900'}>§ T-05 &nbsp;— &nbsp;Tool</span>
-                <Link href="/tools" className={'text-neutral-500 transition hover:text-neutral-900'}>
-                  ← All tools
-                </Link>
-              </motion.div>
-
-              <motion.div
-                initial={{opacity: 0, y: 16}}
-                animate={{opacity: 1, y: 0}}
-                transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
-                className={'mx-auto max-w-5xl text-center'}
-              >
-                <h1
-                  style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
-                >
-                  DMARC record
-                  <br />
-                  checker
-                </h1>
-                <p className={'mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-neutral-600 sm:text-xl'}>
-                  Look up and validate your domain&apos;s DMARC record. Understand your current policy, reporting
-                  configuration, and get clear advice to progress toward full enforcement.
-                </p>
-              </motion.div>
-            </div>
-          </section>
-
-          {/* ========== TOOL ========== */}
-          <section className={'mx-auto max-w-[88rem] px-6 py-16 sm:px-10 sm:py-20'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mx-auto max-w-2xl'}
-            >
-              <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
-                <div className={'border-b border-neutral-200 px-8 py-5'}>
-                  <div className={'flex items-center gap-3'}>
-                    <ShieldCheck className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
-                    <span
-                      style={{fontFamily: 'var(--font-mono)'}}
-                      className={'text-label text-neutral-500'}
-                    >
-                      DMARC record lookup
-                    </span>
-                  </div>
-                </div>
-
-                <form onSubmit={handleCheck} className={'p-8'}>
-                  <div className={'space-y-4'}>
-                    <div>
-                      <label htmlFor="domain" className={'mb-2 block text-ui font-medium text-neutral-900'}>
-                        Domain name <span className={'text-err'}>*</span>
-                      </label>
-                      <Input
-                        id="domain"
-                        type="text"
-                        value={domain}
-                        onChange={e => setDomain(e.target.value)}
-                        placeholder="example.com"
-                        required
-                        className={'w-full'}
-                      />
-                      <p className={'mt-1.5 text-xs text-neutral-500'}>Enter the domain without http:// or www.</p>
-                    </div>
-                    <Button type="submit" className={'w-full gap-2'} disabled={loading}>
-                      <ShieldCheck className={'h-4 w-4'} />
-                      {loading ? 'Looking up DMARC record…' : 'Check DMARC record'}
-                    </Button>
-                  </div>
-                </form>
-              </div>
-
-              {result && (
-                <motion.div
-                  initial={{opacity: 0, y: 16}}
-                  animate={{opacity: 1, y: 0}}
-                  transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
-                  className={'mt-6 space-y-4'}
-                >
-                  {!result.found ? (
-                    <div className={'rounded-card border border-err/25 bg-err-surface p-8'}>
-                      <div className={'flex items-start gap-3'}>
-                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
-                        <div>
-                          <p className={'font-semibold text-err'}>No DMARC record found</p>
-                          <p className={'mt-1 text-ui text-err'}>
-                            {result.error
-                              ? 'DNS lookup failed. Please check the domain and try again.'
-                              : `No DMARC record was found at _dmarc.${result.domain}. Without DMARC, your domain has no enforcement policy and you won't receive authentication reports.`}
-                          </p>
-                          <p className={'mt-3 text-ui font-medium text-err'}>
-                            Add a TXT record to <span style={{fontFamily: 'var(--font-mono)'}}>_dmarc.{result.domain}</span>:
-                          </p>
-                          <code
-                            style={{fontFamily: 'var(--font-mono)'}}
-                            className={'mt-2 block rounded-lg bg-err-surface px-4 py-3 text-xs text-err break-all'}
-                          >
-                            {`v=DMARC1; p=none; rua=mailto:dmarc@${result.domain}`}
-                          </code>
-                          <p className={'mt-2 text-xs text-err'}>Start with p=none to monitor, then progress to quarantine and reject.</p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Raw record */}
-                      <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
-                        <p
-                          style={{fontFamily: 'var(--font-mono)'}}
-                          className={'mb-2 text-label text-neutral-500'}
-                        >
-                          Raw record — _dmarc.{result.domain}
+                {!result.found ? (
+                  <>
+                    <ToolVerdict
+                      tone={'err'}
+                      title={result.error ? 'The lookup failed' : 'No DMARC record found'}
+                      detail={
+                        result.error
+                          ? 'Check the domain and try again.'
+                          : `Without DMARC, ${result.domain} has no enforcement policy and you won't receive authentication reports.`
+                      }
+                    />
+                    {!result.error && (
+                      <ToolResult title={`Add a TXT record to _dmarc.${result.domain}`}>
+                        <ToolRecord>{`v=DMARC1; p=none; rua=mailto:dmarc@${result.domain}`}</ToolRecord>
+                        <p className={'mt-3 text-ui text-neutral-600'}>
+                          Start with p=none to monitor, then progress to quarantine and reject.
                         </p>
-                        <code
-                          style={{fontFamily: 'var(--font-mono)'}}
-                          className={'block break-all rounded-lg bg-neutral-50 px-4 py-3 text-xs text-neutral-700'}
-                        >
-                          {result.record}
-                        </code>
-                      </div>
+                      </ToolResult>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {analysis && (
+                      <ToolVerdict
+                        tone={GRADES[analysis.grade].tone}
+                        title={GRADES[analysis.grade].title}
+                        detail={`${result.domain}: ${policySummary(analysis.policy)}`}
+                      />
+                    )}
 
-                      {analysis && (
-                        <>
-                          {/* Grade */}
-                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
-                            <div className={'flex flex-col items-center gap-4 text-center'}>
-                              <GradeBadge grade={analysis.grade} policy={analysis.policy} />
-                            </div>
-                          </div>
+                    <ToolResult title={'Record'}>
+                      <ToolRecord>{result.record}</ToolRecord>
+                    </ToolResult>
 
-                          {/* Tags */}
-                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
-                            <h3
-                              style={{fontFamily: 'var(--font-display)'}}
-                              className={'mb-6 text-lg font-bold text-neutral-900'}
-                            >
-                              Record tags
-                            </h3>
-                            <div className={'space-y-2'}>
-                              {Object.entries(result.tags).map(([key, value]) => (
-                                <div key={key} className={'flex items-start gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3'}>
-                                  <div className={'flex min-w-0 flex-1 items-center gap-3'}>
-                                    <span style={{fontFamily: 'var(--font-mono)'}} className={'shrink-0 text-xs font-bold text-neutral-700'}>
-                                      {key}=
-                                    </span>
-                                    {key === 'p' || key === 'sp' ? (
-                                      <PolicyBadge policy={value} />
-                                    ) : (
-                                      <span style={{fontFamily: 'var(--font-mono)'}} className={'truncate text-xs text-neutral-500'}>
-                                        {value}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {TAG_DESCRIPTIONS[key] && (
-                                    <span className={'shrink-0 text-xs text-neutral-500'}>{TAG_DESCRIPTIONS[key]}</span>
+                    {analysis && (
+                      <>
+                        <ToolResult title={'Tags'}>
+                          <ul className={'divide-y divide-neutral-100'}>
+                            {Object.entries(result.tags).map(([key, value]) => (
+                              <li
+                                key={key}
+                                className={'flex flex-col gap-1 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4'}
+                              >
+                                <div className={'flex min-w-0 flex-1 items-center gap-2'}>
+                                  <span className={'flex-shrink-0 font-code text-ui font-medium text-neutral-900'}>
+                                    {key}=
+                                  </span>
+                                  {key === 'p' || key === 'sp' ? (
+                                    <ToolPill tone={policyLabel(value).tone}>{policyLabel(value).label}</ToolPill>
+                                  ) : (
+                                    <span className={'truncate font-code text-ui text-neutral-500'}>{value}</span>
                                   )}
                                 </div>
-                              ))}
-                            </div>
-                          </div>
+                                {TAG_DESCRIPTIONS[key] && (
+                                  <span className={'flex-shrink-0 text-ui text-neutral-500'}>{TAG_DESCRIPTIONS[key]}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </ToolResult>
 
-                          {/* Analysis */}
-                          <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
-                            <h3
-                              style={{fontFamily: 'var(--font-display)'}}
-                              className={'mb-6 text-lg font-bold text-neutral-900'}
-                            >
-                              Analysis &amp; recommendations
-                            </h3>
-                            <ul className={'space-y-3'}>
-                              {analysis.issues.map((issue, i) => (
-                                <li key={i} className={'flex items-start gap-3'}>
-                                  {issue.type === 'pass' ? (
-                                    <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-ok'} />
-                                  ) : issue.type === 'warning' ? (
-                                    <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-warn'} />
-                                  ) : (
-                                    <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
-                                  )}
-                                  <div>
-                                    <p className={'text-ui font-medium text-neutral-900'}>{issue.label}</p>
-                                    <p className={'mt-0.5 text-xs text-neutral-500'}>{issue.detail}</p>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-                </motion.div>
-              )}
-            </motion.div>
-          </section>
+                        <ToolResult title={'What we found'}>
+                          <ul className={'flex flex-col gap-4'}>
+                            {analysis.issues.map((issue, i) => (
+                              <ToolFinding
+                                key={i}
+                                tone={ISSUE_TONE[issue.type]}
+                                label={issue.label}
+                                detail={issue.detail}
+                              />
+                            ))}
+                          </ul>
+                        </ToolResult>
+                      </>
+                    )}
+                  </>
+                )}
+              </motion.div>
+            )}
+          </ToolHero>
 
-          {/* ========== EDUCATION ========== */}
-          <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
-            <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
-              <SectionHeader
-                title={'From monitoring to full enforcement.'}
-                subtitle={'DMARC is a journey. Start with none, build confidence, then enforce.'}
-              />
+          <ToolExplainer
+            title={'From monitoring to full enforcement'}
+            subtitle={'DMARC is a journey: start with none, build confidence, then enforce.'}
+            items={explainer}
+          />
 
-              <div className={'mt-20 grid gap-6 sm:grid-cols-3'}>
-                {[
-                  {
-                    step: '01',
-                    policy: 'p=none',
-                    title: 'Monitor',
-                    body: 'Start here. DMARC is active but no action is taken on failures. Add rua= to receive aggregate reports and identify all your sending sources.',
-                    cls: 'border-neutral-300',
-                  },
-                  {
-                    step: '02',
-                    policy: 'p=quarantine',
-                    title: 'Quarantine',
-                    body: 'Once you\'re confident all legitimate senders pass, move to quarantine. Failing messages are sent to spam, reducing spoofing impact.',
-                    cls: 'border-warn/25',
-                  },
-                  {
-                    step: '03',
-                    policy: 'p=reject',
-                    title: 'Reject',
-                    body: 'Full enforcement. Failing messages are rejected by receiving servers. This is the goal — it completely prevents domain spoofing.',
-                    cls: 'border-ok/25',
-                  },
-                ].map((item, i) => (
-                  <motion.div
-                    key={item.step}
-                    initial={{opacity: 0, y: 16}}
-                    whileInView={{opacity: 1, y: 0}}
-                    viewport={{once: true}}
-                    transition={{duration: 0.5, delay: i * 0.08, ease: [0.22, 1, 0.36, 1]}}
-                    className={`flex flex-col gap-5 rounded-card border-2 bg-white p-8 ${item.cls}`}
-                  >
-                    <div className={'flex items-center justify-between'}>
-                      <span
-                        style={{fontFamily: 'var(--font-mono)'}}
-                        className={'text-label text-neutral-500'}
-                      >
-                        Step {item.step}
-                      </span>
-                      <code
-                        style={{fontFamily: 'var(--font-mono)'}}
-                        className={'rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700'}
-                      >
-                        {item.policy}
-                      </code>
-                    </div>
-                    <h3
-                      style={{fontFamily: 'var(--font-display)'}}
-                      className={'text-2xl font-bold tracking-[-0.02em] text-neutral-900'}
-                    >
-                      {item.title}
-                    </h3>
-                    <p className={'text-ui leading-relaxed text-neutral-600'}>{item.body}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
+          <MoreTools current={'dmarc-checker'} />
 
-          {/* ========== CTA ========== */}
-          <section className={'relative overflow-hidden border-t border-neutral-900 bg-neutral-900 text-white'}>
-            <div className={'mx-auto max-w-[88rem] px-6 py-32 sm:px-10 sm:py-40'}>
-              <div className={'flex flex-col items-start gap-12 lg:flex-row lg:items-end lg:justify-between'}>
-                <motion.h2
-                  initial={{opacity: 0, y: 16}}
-                  whileInView={{opacity: 1, y: 0}}
-                  viewport={{once: true}}
-                  transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
-                  style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
-                >
-                  Email that reaches the inbox.
-                </motion.h2>
+          <FAQSection faqs={faqs} schemaId="faq-dmarc-checker" />
 
-                <motion.div
-                  initial={{opacity: 0, y: 16}}
-                  whileInView={{opacity: 1, y: 0}}
-                  viewport={{once: true}}
-                  transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
-                  className={'flex max-w-md flex-col gap-6'}
-                >
-                  <p className={'text-lead text-neutral-300'}>
-                    Plunk walks you through SPF, DKIM, and DMARC setup and monitors your sending reputation over time.
-                  </p>
-                  <div className={'flex flex-wrap gap-3'}>
-                    <motion.a
-                      whileHover={{scale: 1.015}}
-                      whileTap={{scale: 0.985}}
-                      href={`${DASHBOARD_URI}/auth/signup`}
-                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
-                    >
-                      Start with Plunk
-                      <ArrowRight className={'h-4 w-4'} />
-                    </motion.a>
-                    <Link
-                      href="/guides/what-is-dmarc"
-                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
-                    >
-                      What is DMARC?
-                    </Link>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </section>
+          <FeatureCTA
+            title={'Email that reaches the inbox.'}
+            body={'Plunk walks you through SPF, DKIM, and DMARC setup and monitors your sending reputation over time.'}
+            secondary={{href: '/guides/what-is-dmarc', label: 'What is DMARC?'}}
+          />
         </main>
       </div>
 
-      <FAQSection faqs={faqs} schemaId="faq-dmarc-checker" />
       <Footer />
     </>
   );

@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {StepExecutionStatus, WorkflowExecutionStatus, WorkflowStepType} from '@plunk/db';
 import {toPrismaJson} from '@plunk/types';
+import {QueueService} from '../QueueService';
 import {WorkflowExecutionService} from '../WorkflowExecutionService';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
 
@@ -511,6 +512,53 @@ describe('WorkflowExecutionService - Integration Tests', () => {
 
       // Step should be completed after event arrives
       expect(waitStepExecution?.status).toBe(StepExecutionStatus.COMPLETED);
+    });
+
+    it('should wait with no time limit when the timeout is 0', async () => {
+      const contact = await factories.createContact({projectId});
+      const workflow = await factories.createWorkflow({projectId});
+      const triggerStep = await prisma.workflowStep.findFirstOrThrow({
+        where: {workflowId: workflow.id, type: WorkflowStepType.TRIGGER},
+      });
+
+      // The step dialog saves an emptied timeout as 0
+      const waitStep = await prisma.workflowStep.create({
+        data: {
+          workflowId: workflow.id,
+          type: WorkflowStepType.WAIT_FOR_EVENT,
+          name: 'Wait for verification',
+          position: {x: 100, y: 0},
+          config: toPrismaJson({eventName: 'user.verified', timeout: 0}),
+        },
+      });
+
+      await prisma.workflowTransition.create({
+        data: {fromStepId: triggerStep.id, toStepId: waitStep.id},
+      });
+
+      const execution = await prisma.workflowExecution.create({
+        data: {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          status: WorkflowExecutionStatus.RUNNING,
+          currentStepId: triggerStep.id,
+          context: toPrismaJson({}),
+        },
+      });
+
+      await WorkflowExecutionService.processStepExecution(execution.id, triggerStep.id);
+
+      const waiting = await prisma.workflowStepExecution.findFirstOrThrow({
+        where: {executionId: execution.id, stepId: waitStep.id},
+      });
+      expect(waiting.status).toBe(StepExecutionStatus.WAITING);
+      expect(waiting.executeAfter).toBeNull();
+      expect(QueueService.queueWorkflowTimeout).not.toHaveBeenCalled();
+
+      await WorkflowExecutionService.handleEvent(projectId, 'user.verified', contact.id, {verified: true});
+
+      const resumed = await prisma.workflowStepExecution.findUniqueOrThrow({where: {id: waiting.id}});
+      expect(resumed.status).toBe(StepExecutionStatus.COMPLETED);
     });
   });
 

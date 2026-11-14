@@ -2,15 +2,21 @@ import {
   FAQSection,
   FeatureCTA,
   FeatureHero,
+  FeatureHighlights,
   FeatureSection,
   FilterBuilder,
   Footer,
+  MoreFeatures,
   Navbar,
-  SpecList,
-  Surface,
+  SegmentCampaignFragment,
+  SegmentSnippets,
+  SegmentStaticFragment,
+  SegmentTriggerFragment,
+  SnippetTile,
+  UICard,
 } from '../../components';
 import type {FAQ} from '../../components';
-import type {Condition, Spec} from '../../components';
+import type {ChecklistItem, Claim, Condition} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
@@ -31,9 +37,9 @@ const examples: Example[] = [
     summary: 'Recent signups who are still opening what you send.',
     total: 12480,
     conditions: [
-      {label: 'signed up < 30 days', remaining: 4902},
-      {label: 'opened < 7 days', remaining: 2870},
-      {label: 'plan = pro', remaining: 1146},
+      {label: 'Signed up in the last 30 days', remaining: 4902},
+      {label: 'Opened an email this week', remaining: 2870},
+      {label: 'Plan is Pro', remaining: 1146},
     ],
   },
   {
@@ -42,9 +48,9 @@ const examples: Example[] = [
     summary: 'Contacts who received the last campaign and never opened it.',
     total: 12480,
     conditions: [
-      {label: 'no activity > 60 days', remaining: 5311},
-      {label: 'delivered, not opened', remaining: 2984},
-      {label: 'still subscribed', remaining: 2431},
+      {label: 'No activity for 60 days', remaining: 5311},
+      {label: 'Delivered, not opened', remaining: 2984},
+      {label: 'Still subscribed', remaining: 2431},
     ],
   },
   {
@@ -53,38 +59,41 @@ const examples: Example[] = [
     summary: 'Customers worth treating differently from the rest of the list.',
     total: 12480,
     conditions: [
-      {label: 'spent > 1000', remaining: 906},
-      {label: 'purchased before', remaining: 742},
+      {label: 'Spent over $1,000', remaining: 906},
+      {label: 'Purchased before', remaining: 742},
     ],
   },
 ];
 
-const capabilities: Spec[] = [
+/**
+ * The examples above show what a segment matches. These show what you can do
+ * with one once it exists.
+ */
+const claims: Claim[] = [
   {
-    title: 'Filters on anything you store',
-    description:
-      'Build conditions from the standard contact fields, from custom data you have attached, and from email activity, combined with AND or OR.',
+    title: 'Joining can start a workflow',
+    copy: 'When someone enters or leaves a segment, a sequence can start on its own.',
+    fragment: <SegmentTriggerFragment />,
   },
   {
-    title: 'Membership that keeps itself current',
-    description:
-      'A dynamic segment is a query, not a copy. When a contact stops matching they leave, and when someone starts matching they join, with no rebuild step.',
+    title: 'Send to just the people it fits',
+    copy: 'Aim a campaign at a segment instead of the whole list. Fewer unsubscribes, a better sending reputation.',
+    fragment: <SegmentCampaignFragment />,
   },
   {
-    title: 'Entry and exit as triggers',
-    description:
-      'Joining or leaving a segment can start a workflow, so a change in what someone does can begin a sequence on its own.',
+    title: 'Hand-picked when you want',
+    copy: 'Some groups are a judgement call. Beta testers and VIPs can be a static list you manage yourself.',
+    fragment: <SegmentStaticFragment />,
   },
-  {
-    title: 'Campaigns aimed at a subset',
-    description:
-      'Send to a segment instead of the whole list, so the people who would not care never receive it and your sending reputation stays intact.',
-  },
-  {
-    title: 'Static lists when you want control',
-    description:
-      'Some groups are a judgement call rather than a query. Beta testers and VIPs can be picked by hand, and membership stays put until you change it.',
-  },
+];
+
+const extras: ChecklistItem[] = [
+  {title: 'Any field you store', description: 'Standard fields and your own custom data.'},
+  {title: 'Email activity', description: 'Filter on opens, clicks and tracked events.'},
+  {title: 'AND and OR together', description: 'Group conditions to say exactly who you mean.'},
+  {title: 'Always current', description: 'A query, not a copy. Nothing to refresh.'},
+  {title: 'Workflow branches', description: 'The same segment can split a workflow.'},
+  {title: 'Subscription aware', description: 'Unsubscribed contacts are never mailed.'},
 ];
 
 const faqs: FAQ[] = [
@@ -145,6 +154,7 @@ export default function SegmentsFeature() {
           }
           docsHref={`${WIKI_URI}/guides/segment-filters`}
           docsLabel={'Segment docs'}
+          artifact={<SegmentSnippets />}
         />
 
         {/* The builder itself. The old page described AND/OR logic in prose and
@@ -152,7 +162,7 @@ export default function SegmentsFeature() {
             picture a query builder from a description of one. Showing the query
             answers the question that description kept dodging: is this a UI I
             click, or an API I have to write against? */}
-        <FeatureSection tone={'muted'} title={'Three you could build today'}>
+        <FeatureSection title={'Three you could build today'}>
           <div className={'grid gap-10 lg:grid-cols-12'}>
             <div className={'lg:col-span-4'}>
               <ul className={'flex flex-col gap-2'}>
@@ -165,16 +175,16 @@ export default function SegmentsFeature() {
                         aria-pressed={on}
                         className={
                           on
-                            ? 'w-full rounded-card border border-neutral-900 bg-neutral-900 p-5 text-left text-white transition'
-                            : 'w-full rounded-card border border-neutral-200 bg-white p-5 text-left transition hover:border-neutral-900'
+                            ? 'w-full rounded-card bg-tile p-5 text-left transition'
+                            : 'w-full rounded-card p-5 text-left transition hover:bg-neutral-50'
                         }
                       >
                         <div
-                          className={`font-display font-bold tracking-[-0.01em] ${on ? 'text-white' : 'text-neutral-900'}`}
+                          className={'font-display font-bold tracking-[-0.01em] text-neutral-900'}
                         >
                           {example.name}
                         </div>
-                        <p className={`mt-1 ${on ? 'text-neutral-300' : 'text-neutral-600'}`}>{example.summary}</p>
+                        <p className={'mt-1 text-neutral-600'}>{example.summary}</p>
                       </button>
                     </li>
                   );
@@ -183,21 +193,22 @@ export default function SegmentsFeature() {
             </div>
 
             <div className={'min-w-0 lg:col-span-8'}>
-              <Surface label={'segment'} meta={<span>{active.name}</span>} bodyClassName={'p-6 sm:p-8'}>
-                <FilterBuilder total={active.total} conditions={active.conditions} />
-              </Surface>
+              <SnippetTile className={'h-full p-6 sm:p-10'}>
+                <UICard className={'w-full p-6 sm:p-8'}>
+                  <FilterBuilder total={active.total} conditions={active.conditions} />
+                </UICard>
+              </SnippetTile>
             </div>
           </div>
         </FeatureSection>
 
-        {/* Capabilities */}
-        <FeatureSection title={'How they behave'}>
-          <SpecList specs={capabilities} />
-        </FeatureSection>
+        <FeatureHighlights title={'What you can do with one'} claims={claims} extras={extras} />
 
         <FAQSection faqs={faqs} schemaId={'faq-segments'} />
 
         <FeatureCTA title={'Build your first segment.'} />
+
+        <MoreFeatures current={'/features/segments'} />
       </main>
 
       <Footer />

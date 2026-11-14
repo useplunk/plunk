@@ -92,19 +92,31 @@ volumes:
   - /path/to/acme.json:/certs/acme.json:ro
 ```
 
-Plunk automatically extracts the certificate for `SMTP_DOMAIN` from acme.json.
+Plunk automatically extracts the certificate for `SMTP_DOMAIN` from acme.json. Traefik rewrites `acme.json` in place, so mounting the single file picks up renewals.
 
 ### PEM Files
 
-Mount certificate files directly:
+Mount the directory that holds `privkey.pem` and `fullchain.pem`, not the files themselves: a single-file bind mount keeps pointing at the old file once a renewal replaces it.
 
 ```yaml
 volumes:
-  - /path/to/privkey.pem:/certs/privkey.pem:ro
-  - /path/to/fullchain.pem:/certs/fullchain.pem:ro
+  - /path/to/certs:/certs:ro
 ```
 
+### Certbot
+
+Certbot's `live/<domain>/` files are relative symlinks into `archive/`, and certbot makes both directories readable by root only, while the Plunk container runs as UID 1001. Have certbot copy the files into a certificates directory after every issuance and renewal with a deploy hook, and mount that directory as in [PEM Files](#pem-files):
+
+```bash
+certbot certonly -d smtp.yourdomain.com --deploy-hook \
+  'install -m 644 "$RENEWED_LINEAGE/fullchain.pem" /path/to/certs/ && install -m 600 -o 1001 "$RENEWED_LINEAGE/privkey.pem" /path/to/certs/'
+```
+
+For a certificate certbot already manages, add the hook with `certbot reconfigure --cert-name smtp.yourdomain.com --deploy-hook '...'`.
+
 If no certificates are mounted, SMTP runs without TLS.
+
+Certificates issued or renewed while Plunk is running are picked up within about a minute, without restarting the container.
 
 ## Building from Source
 

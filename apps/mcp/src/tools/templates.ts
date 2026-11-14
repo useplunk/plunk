@@ -3,13 +3,15 @@ import * as z from 'zod';
 import type {PlunkClient} from '../client.js';
 import {EMAIL_TYPES} from '../schemas.js';
 
-import {jsonResult, paginationHint, register, runTool, type ToolContext} from './shared.js';
+import {jsonResult, pageHint, register, runTool, type ToolContext} from './shared.js';
 
+/** `GET /templates` is page-based, like `GET /workflows`. */
 interface TemplateList {
   data: unknown[];
-  cursor: string | null;
-  hasMore: boolean;
   total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export function registerTemplateTools(ctx: ToolContext, client: PlunkClient): void {
@@ -34,19 +36,20 @@ export function registerTemplateTools(ctx: ToolContext, client: PlunkClient): vo
         search: z.string().optional().describe('Substring match on the template name.'),
         type: z.enum(EMAIL_TYPES).optional().describe('Filter by template type.'),
         limit: z.number().int().min(1).max(100).default(20).describe('Items per page (max 100).'),
-        cursor: z.string().optional().describe('Cursor from a previous page.'),
+        page: z.number().int().min(1).default(1).describe('Page number, starting at 1.'),
       }),
       annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true},
     },
-    async ({search, type, limit, cursor}) =>
+    async ({search, type, limit, page}) =>
       runTool(async () => {
         const result = await client.request<TemplateList>({
           path: '/templates',
-          query: {search, type, limit, cursor},
+          query: {search, type, page, pageSize: limit},
         });
 
         return jsonResult(
-          `Found ${result.data.length} template(s).${paginationHint(result.hasMore, result.cursor)}`,
+          `Found ${result.total} template(s); showing ${result.data.length}.` +
+            pageHint(result.page, result.totalPages),
           result,
         );
       }),

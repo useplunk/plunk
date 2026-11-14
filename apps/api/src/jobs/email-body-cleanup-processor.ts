@@ -6,6 +6,7 @@ import signale from 'signale';
 
 import {REDIS_URL} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
+import {parseRedisUrl} from '../utils/redis.js';
 
 /**
  * Email Body Cleanup Worker
@@ -40,6 +41,9 @@ async function processCleanup(job: Job<EmailBodyCleanupJobData>): Promise<{clear
           SELECT "id" FROM "emails"
           WHERE "createdAt" < ${cutoffDate}
             AND "body" <> ''
+            -- A scheduled email still has to be sent with its body. The scheduling horizon is
+            -- far shorter than the retention window, so this only guards that invariant.
+            AND "status" <> 'SCHEDULED'
           ORDER BY "createdAt"
           LIMIT ${BATCH_SIZE}
         )
@@ -97,14 +101,4 @@ export function createEmailBodyCleanupWorker(): Worker<EmailBodyCleanupJobData> 
   });
 
   return worker;
-}
-
-function parseRedisUrl(url: string): {host: string; port: number; password?: string; db?: number} {
-  const urlObj = new URL(url);
-  return {
-    host: urlObj.hostname,
-    port: parseInt(urlObj.port || '6379', 10),
-    password: urlObj.password || undefined,
-    db: parseInt(urlObj.pathname.slice(1) || '0', 10),
-  };
 }

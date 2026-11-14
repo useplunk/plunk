@@ -16,7 +16,9 @@ import {createBulkContactWorker} from './bulk-contact-processor.js';
 import {createCampaignCancelCleanupWorker} from './campaign-cancel-cleanup-processor.js';
 import {createCampaignWorker} from './campaign-processor.js';
 import {createCardVerificationWorker} from './card-verification-processor.js';
+import {createContactFieldsWorker} from './contact-fields-processor.js';
 import {createCampaignStatsSweepWorker} from './campaign-stats-sweep-processor.js';
+import {createScheduledEmailSweepWorker} from './scheduled-email-sweep-processor.js';
 import {createSnoozeSweepWorker} from './snooze-sweep-processor.js';
 import {createCardVerificationSweepWorker} from './card-verification-sweep-processor.js';
 import {createDomainVerificationWorker} from './domain-verification-processor.js';
@@ -59,6 +61,11 @@ async function startWorkers() {
     workers.push({name: 'snooze-sweep', worker: snoozeSweepWorker});
     signale.success('[WORKER] Snooze sweep worker started');
 
+    // Start scheduled email sweep worker
+    const scheduledEmailSweepWorker = createScheduledEmailSweepWorker();
+    workers.push({name: 'scheduled-email-sweep', worker: scheduledEmailSweepWorker});
+    signale.success('[WORKER] Scheduled email sweep worker started');
+
     // Start scheduled campaign worker
     const scheduledWorker = createScheduledCampaignWorker();
     workers.push({name: 'scheduled', worker: scheduledWorker});
@@ -83,6 +90,11 @@ async function startWorkers() {
     const segmentCountWorker = createSegmentCountWorker();
     workers.push({name: 'segment-count', worker: segmentCountWorker});
     signale.success('[WORKER] Segment count worker started');
+
+    // Start contact fields worker
+    const contactFieldsWorker = createContactFieldsWorker();
+    workers.push({name: 'contact-fields', worker: contactFieldsWorker});
+    signale.success('[WORKER] Contact fields worker started');
 
     // Start domain verification worker
     const domainVerificationWorker = createDomainVerificationWorker();

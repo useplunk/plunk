@@ -8,9 +8,9 @@ import {DASHBOARD_URI} from '../../lib/constants';
 /**
  * The top of every feature page.
  *
- * All six pages hand-rolled this: the same dot-grid background string, the same
- * two-column grid, the same primary/secondary button pair. Copy-paste kept them
- * looking alike but not identical, and the differences were all accidents —
+ * All six pages hand-rolled this: the same background, the same two-column
+ * grid, the same primary/secondary button pair. Copy-paste kept them looking
+ * alike but not identical, and the differences were all accidents —
  * `text-base` on the buttons of four pages and missing on two, hero subtitles
  * clamped to `max-w-2xl` on four, `max-w-[55ch]` on one and `max-w-[60ch]` on
  * another. None of that was a decision anybody made.
@@ -19,6 +19,11 @@ import {DASHBOARD_URI} from '../../lib/constants';
  * beside the headline (workflows, segments) read as products, and the ones that
  * do not read as documentation. When it is omitted the headline column runs
  * full width rather than leaving half the fold empty.
+ *
+ * The title uses --text-hero, not --text-display: beside a graphic the column
+ * is about 600px wide, and display size broke two-line titles into one word
+ * per line. The graphic only sits beside the title from xl up; below that the
+ * column is too narrow for both and they stack.
  */
 export function FeatureHero({
   title,
@@ -36,22 +41,10 @@ export function FeatureHero({
 }) {
   return (
     <section className={'relative overflow-hidden'}>
-      <div
-        aria-hidden
-        className={
-          'absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#eeeeee_1px,transparent_1px),linear-gradient(to_bottom,#eeeeee_1px,transparent_1px)] bg-[size:6rem_6rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_95%)]'
-        }
-      />
-
       <div className={'mx-auto max-w-[88rem] px-6 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-28'}>
-        <div className={`grid items-center gap-16 ${artifact ? 'lg:grid-cols-12' : ''}`}>
-          <motion.div
-            initial={{opacity: 0, y: 16}}
-            animate={{opacity: 1, y: 0}}
-            transition={{duration: 0.7, ease: [0.23, 1, 0.32, 1]}}
-            className={artifact ? 'lg:col-span-6' : 'max-w-4xl'}
-          >
-            <h1 className={'font-display text-display font-extrabold tracking-[-0.035em] text-neutral-900'}>{title}</h1>
+        <div className={`grid items-center gap-16 ${artifact ? 'xl:grid-cols-12' : ''}`}>
+          <div className={`hero-enter max-w-4xl ${artifact ? 'xl:col-span-7 xl:max-w-none' : ''}`}>
+            <h1 className={'font-display text-hero font-extrabold tracking-[-0.035em] text-neutral-900'}>{title}</h1>
             <p className={'mt-6 max-w-[55ch] text-lead text-neutral-600'}>{subtitle}</p>
 
             <div className={'mt-10 flex flex-wrap gap-3'}>
@@ -77,17 +70,12 @@ export function FeatureHero({
                 {docsLabel}
               </Link>
             </div>
-          </motion.div>
+          </div>
 
           {artifact && (
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.8, delay: 0.15, ease: [0.23, 1, 0.32, 1]}}
-              className={'min-w-0 lg:col-span-6'}
-            >
+            <div className={'hero-enter min-w-0 xl:col-span-5'} style={{animationDelay: '0.15s'}}>
               {artifact}
-            </motion.div>
+            </div>
           )}
         </div>
       </div>

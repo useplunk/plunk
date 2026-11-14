@@ -2,7 +2,7 @@ import type {ProjectWithRole} from '@plunk/types';
 import dayjs from 'dayjs';
 import {getDomain} from 'tldts';
 
-import {API_URI, NODE_ENV} from '../app/constants.js';
+import {API_URI, DASHBOARD_URI, NODE_ENV} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {wrapRedis} from '../database/redis.js';
 
@@ -36,6 +36,29 @@ function getCookieDomain(): string | undefined {
     return domain ? `.${domain}` : undefined;
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * Whether the dashboard and API are the same site (same scheme and registrable domain), as browsers define it
+ * for SameSite. When they are, the session cookie can be `Lax`, which stops browsers from attaching it to
+ * cross-site form submissions. Only split-domain deployments need `None`.
+ */
+function isDashboardSameSite(): boolean {
+  try {
+    const api = new URL(API_URI);
+    const dashboard = new URL(DASHBOARD_URI);
+
+    if (api.protocol !== dashboard.protocol) {
+      return false;
+    }
+
+    const apiSite = getDomain(api.hostname, {allowPrivateDomains: true}) ?? api.hostname;
+    const dashboardSite = getDomain(dashboard.hostname, {allowPrivateDomains: true}) ?? dashboard.hostname;
+
+    return apiSite === dashboardSite;
+  } catch {
+    return false;
   }
 }
 
@@ -93,7 +116,7 @@ export class UserService {
       httpOnly: true,
       expires: expires ?? dayjs().add(7, 'days').toDate(),
       secure: isHttps,
-      sameSite: isHttps ? 'none' : 'lax',
+      sameSite: isHttps && !isDashboardSameSite() ? 'none' : 'lax',
       path: '/',
       domain: getCookieDomain(),
     } as const;

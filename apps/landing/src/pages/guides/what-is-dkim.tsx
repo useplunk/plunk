@@ -1,475 +1,412 @@
-import React from 'react';
-import {GuideLayout, InfoBox} from '../../components/guides';
-import {CodeBlock} from '../../components/CodeBlock';
 import Link from 'next/link';
+import React from 'react';
+
 import type {FAQ} from '../../components/FAQSection';
+import {
+  AuthResultsFragment,
+  DnsRecordFragment,
+  GuideCode,
+  GuideCompare,
+  GuideFigure,
+  GuideLayout,
+  GuidePoints,
+  GuideSection,
+  GuideSteps,
+  GuideTable,
+  InfoBox,
+} from '../../components/guides';
+import {SnippetTile, StatusPill, UICard} from '../../components/snippets';
 
 const faqs: FAQ[] = [
   {
     question: 'What is DKIM?',
     answer:
-      'DKIM (DomainKeys Identified Mail) is an email authentication method that adds a cryptographic digital signature to your outgoing emails. It allows receiving mail servers to verify that an email was genuinely sent from your domain and that its content was not altered in transit, improving deliverability and protecting against email spoofing.',
+      'DKIM (DomainKeys Identified Mail) is an email authentication method that adds a cryptographic signature to every message you send. Receiving servers use it to confirm the email really came from your domain and was not changed in transit, which improves deliverability and protects against spoofing.',
   },
   {
     question: 'What is a DKIM key?',
     answer:
-      'A DKIM key is a cryptographic key pair used to sign and verify emails. The private key is stored securely on your mail server and used to sign outgoing emails. The public key is published as a TXT record in your domain\'s DNS under selector._domainkey.yourdomain.com and is used by receiving servers to verify the signature. You should never share or expose your DKIM private key.',
+      'A DKIM key is a pair of cryptographic keys. The private key stays on your mail server and signs outgoing email. The public key is published as a TXT record in DNS at selector._domainkey.yourdomain.com, where receiving servers fetch it to verify the signature. Never share or expose the private key.',
   },
   {
     question: 'How do I set up DKIM?',
     answer:
-      'Setting up DKIM involves three steps: (1) Generate a DKIM key pair for your domain—most email providers do this automatically, (2) Publish the public key as a TXT record in your DNS at selector._domainkey.yourdomain.com, and (3) Configure your mail server or email service provider to sign outgoing emails with the private key. Platforms like Plunk handle all of this automatically when you add your domain.',
+      'There are three steps: generate a DKIM key pair for your domain (most email providers do this for you), publish the public key in DNS at selector._domainkey.yourdomain.com, and have your mail server or email provider sign outgoing email with the private key. Plunk handles the keys and signing when you add your domain; you only add the DNS records.',
   },
   {
     question: 'What is the difference between DKIM and SPF?',
     answer:
-      'SPF (Sender Policy Framework) verifies that the sending mail server is authorized to send email for your domain by checking its IP address against your DNS record. DKIM adds a cryptographic signature to the email that verifies the content has not been altered in transit. They are complementary: SPF validates the server identity, DKIM validates the message integrity. Using both together—along with DMARC—provides the strongest email authentication.',
+      'SPF checks that the sending server is allowed to send for your domain, by comparing its IP address with your DNS record. DKIM adds a cryptographic signature that proves the content was not changed in transit. SPF validates the server; DKIM validates the message. Use both, together with DMARC, for the strongest authentication.',
   },
   {
     question: 'What happens if DKIM fails?',
     answer:
-      'If DKIM verification fails, the receiving mail server may treat the email as suspicious. Depending on your DMARC policy, failed DKIM emails might be delivered normally (p=none), sent to spam (p=quarantine), or completely rejected (p=reject). Persistent DKIM failures damage your sender reputation and reduce email deliverability. Common causes include misconfigured DNS records, expired keys, or email modification during forwarding.',
+      'The receiving server may treat the email as suspicious. Depending on your DMARC policy, it is delivered normally (p=none), sent to spam (p=quarantine) or rejected (p=reject). Repeated failures hurt your sender reputation. Common causes are a wrong DNS record, an expired or rotated key, or a message changed during forwarding.',
   },
 ];
+
+const KEY = 'v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu3QEKyU1fSma0axspqYK5iAj+54lsAg4qRRCnpKK68hawSJ';
 
 export default function WhatIsDKIM() {
   return (
     <GuideLayout
+      slug={'what-is-dkim'}
       title="What is DKIM? Email Authentication Explained"
+      heading={'What is DKIM?'}
       description="Learn how DKIM (DomainKeys Identified Mail) works, what a DKIM key is, and how to set it up to protect your emails from spoofing and improve deliverability."
+      lead={
+        'DKIM adds a cryptographic signature to every email you send. Inboxes check it against a public key in your DNS to confirm the message came from your domain and was not changed on the way.'
+      }
       lastUpdated="2025-12-20"
-      readTime="10 min"
+      readTime="7 min"
       canonical="https://www.useplunk.com/guides/what-is-dkim"
       faqs={faqs}
+      cta={'Every email signed, from the first send.'}
+      figure={
+        <SnippetTile align={'bleed-right'} className={'min-h-[26rem] py-10'}>
+          <div className={'flex flex-col gap-3'}>
+            <DnsRecordFragment
+              type={'TXT'}
+              name={'s1._domainkey.acme.com'}
+              value={`${KEY}…`}
+              status={{tone: 'ok', label: 'Verified'}}
+              className={'w-full max-w-lg'}
+            />
+            <AuthResultsFragment
+              subject={'Your receipt from Acme'}
+              from={'billing@acme.com'}
+              results={[
+                {label: 'Signed by', value: 'acme.com', tone: 'neutral'},
+                {label: 'DKIM', value: 'Pass', tone: 'ok'},
+              ]}
+              className={'ml-10 w-full max-w-xs'}
+            />
+          </div>
+        </SnippetTile>
+      }
     >
-      {/* Introduction */}
-      <section id="introduction" className="mb-12">
-        <p className="text-neutral-700 leading-relaxed">
-          DKIM (DomainKeys Identified Mail) is an email authentication method that allows receiving mail servers to
-          verify that an email was actually sent by the domain it claims to be from and that the message wasn't altered
-          in transit.
+      <GuideSection id={'how-dkim-works'} title={'How DKIM works'}>
+        <p>
+          DKIM uses a key pair. The private key stays on the sending server and signs each message; the public key sits
+          in your DNS where anyone can use it to check the signature. Only the holder of the private key can produce a
+          signature that verifies.
         </p>
-        <p className="mt-4 text-neutral-700 leading-relaxed">
-          Think of DKIM as a digital signature for your emails—like a wax seal on a letter that proves it's authentic
-          and hasn't been tampered with.
+        <GuideSteps
+          steps={[
+            {
+              title: 'The sending server signs the email',
+              body: 'It hashes the body and selected headers (from, subject, date) and signs the result with your private key.',
+            },
+            {
+              title: 'The signature goes in the headers',
+              body: 'It is added as a DKIM-Signature header, which names your domain and the selector of the key used.',
+            },
+            {
+              title: 'The receiving server verifies',
+              body: 'It fetches your public key from DNS, recomputes the hashes and checks them against the signature.',
+            },
+            {
+              title: 'Pass or fail',
+              body: 'A match passes DKIM and builds trust in your domain. A missing or failed signature can send the message to spam.',
+            },
+          ]}
+        />
+        <GuideFigure caption={'Same signature, two messages. Change one character in transit and DKIM fails.'}>
+          <div className={'grid w-full max-w-xl gap-3 sm:grid-cols-2'}>
+            <AuthResultsFragment
+              subject={'Your receipt from Acme'}
+              from={'billing@acme.com'}
+              results={[
+                {label: 'Body', value: 'Unchanged', tone: 'neutral'},
+                {label: 'DKIM', value: 'Pass', tone: 'ok'},
+              ]}
+              className={'w-full'}
+            />
+            <AuthResultsFragment
+              subject={'Your receipt from Acme'}
+              from={'billing@acme.com'}
+              results={[
+                {label: 'Body', value: 'Modified', tone: 'neutral'},
+                {label: 'DKIM', value: 'Fail', tone: 'err'},
+              ]}
+              className={'w-full'}
+            />
+          </div>
+        </GuideFigure>
+      </GuideSection>
+
+      <GuideSection id={'dkim-record'} title={'Reading a DKIM record'}>
+        <p>
+          A DKIM record is a TXT record that holds your public key. It lives under a selector, not at the root of your
+          domain.
         </p>
-      </section>
-
-      {/* How DKIM Works */}
-      <section id="how-dkim-works" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How DKIM Works</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          DKIM uses cryptographic authentication to validate emails. Here's the process:
+        <GuideCode title={'TXT record on s1._domainkey.acme.com'} code={`${KEY}...`} />
+        <GuideTable
+          mono
+          head={['Part', 'What it means']}
+          rows={[
+            ['s1._domainkey', 'Where the record lives. s1 is the selector; _domainkey is fixed.'],
+            ['v=DKIM1', 'The DKIM version.'],
+            ['k=rsa', 'The key type. RSA is the most common.'],
+            ['p=MIIBIj...', 'The public key, base64 encoded.'],
+          ]}
+        />
+        <p>
+          The selector lets one domain have several keys: one per sending service, or a new one while you rotate the old
+          one out. Each signature names its selector, so the receiver knows which record to fetch.
         </p>
+        <GuideFigure caption={'One domain, several keys. The selector in each signature says which one to use.'}>
+          <SelectorsFragment />
+        </GuideFigure>
+      </GuideSection>
 
-        <div className="space-y-6 mb-8">
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">1. The Sending Server Signs the Email</h3>
-            <p className="text-neutral-700">
-              When you send an email, your email server adds a DKIM signature to the email header. This signature is
-              created using a private key that only your server knows.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">2. The Signature is Added to Headers</h3>
-            <p className="text-neutral-700">
-              The DKIM signature includes a hash of specific email components (like the subject, body, and sender) and
-              is added to the email headers as a "DKIM-Signature" field.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">3. The Receiving Server Verifies</h3>
-            <p className="text-neutral-700">
-              When the email arrives, the receiving server looks up your domain's public DKIM key in DNS, then uses it
-              to verify the signature. If everything matches, the email passes DKIM authentication.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">4. Delivery Decision</h3>
-            <p className="text-neutral-700">
-              Passing DKIM verification improves your sender reputation and deliverability. Failing or missing DKIM may
-              result in emails being flagged as suspicious or sent to spam.
-            </p>
-          </div>
-        </div>
-
-        <InfoBox type="tip" title="Technical Detail">
-          <p>
-            DKIM uses asymmetric cryptography (public/private key pairs). The private key stays secure on your mail
-            server, while the public key is published in your DNS records for anyone to verify.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* DKIM Record Example */}
-      <section id="dkim-record-example" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">What Does a DKIM Record Look Like?</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          A DKIM record is a TXT record in your DNS that contains your public key. Here's an example:
-        </p>
-
-        <div className="w-full max-w-full overflow-x-auto">
-          <CodeBlock
-            language="dns"
-            title="Example DKIM DNS Record"
-            code={`default._domainkey.yourdomain.com  IN  TXT  "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC3QEKyU1fSma0axspqYK5iAj+54lsAg4qRRCnpKK68hawSJfliq9vKD6czJ..."
-
-# Breaking down the components:
-# v=DKIM1          -> DKIM version
-# k=rsa            -> Key type (RSA encryption)
-# p=MIGfMA0...     -> Public key (base64 encoded)`}
-          />
-        </div>
-
-        <InfoBox type="info" title="Selector Names">
-          <p>
-            The "default" in <code>default._domainkey</code> is called a selector. You can use different selectors to
-            rotate keys or separate different email streams (e.g., marketing, transactional).
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* Why DKIM Matters */}
-      <section id="why-dkim-matters" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Why DKIM Matters for Email Deliverability</h2>
-
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <div className="w-full max-w-full wrap-break-word">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-3">Prevents Email Spoofing</h3>
-              <p className="text-neutral-700">
-                DKIM makes it nearly impossible for spammers to forge emails from your domain. The cryptographic
-                signature can't be replicated without your private key.
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <div className="w-full max-w-full wrap-break-word">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-3">Improves Deliverability</h3>
-              <p className="text-neutral-700">
-                Major email providers (Gmail, Outlook, Yahoo) use DKIM as a trust signal. Emails with valid DKIM
-                signatures are more likely to reach the inbox.
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <div className="w-full max-w-full wrap-break-word">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-3">Protects Brand Reputation</h3>
-              <p className="text-neutral-700">
-                By preventing domain spoofing, DKIM protects your brand from being used in phishing attacks that could
-                damage your reputation.
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <div className="w-full max-w-full wrap-break-word">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-3">Enables DMARC</h3>
-              <p className="text-neutral-700">
-                DKIM is a prerequisite for implementing DMARC, which provides even stronger email authentication and
-                reporting capabilities.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <InfoBox type="warning" title="Gmail & Yahoo Requirements">
-          <p>
-            As of February 2024, Gmail and Yahoo require DKIM authentication for bulk senders (5,000+ emails/day). Even
-            if you send less, implementing DKIM is considered a best practice.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* DKIM Signature Example */}
-      <section id="dkim-signature-example" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">What Does a DKIM Signature Look Like?</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          When you send an email, the DKIM signature is added to the email headers. Here's what it looks like:
-        </p>
-
-        <CodeBlock
-          language="text"
-          title="DKIM-Signature Header Example"
+      <GuideSection id={'dkim-signature'} title={'Reading a DKIM signature'}>
+        <p>The signature is a header on every message you send. You can see it in the raw source of any email.</p>
+        <GuideCode
+          title={'DKIM-Signature header'}
           code={`DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-  d=yourdomain.com; s=default;
+  d=acme.com; s=s1;
   h=from:subject:date:message-id:to;
   bh=frcCV1k9oG9oKj3dpUqdJg1PxRT2RSN/XKdLCPjaYaY=;
-  b=GJwP3Qr8KqKKKNT5HL8j3fjXvLEm9KmZs6YdO2KqEqr...
-
-# Key components:
-# v=1                -> DKIM version
-# d=yourdomain.com   -> Signing domain
-# s=default          -> Selector (matches DNS record)
-# h=from:subject...  -> Headers included in signature
-# bh=frcCV1...       -> Hash of email body
-# b=GJwP3Q...        -> The actual signature`}
+  b=GJwP3Qr8KqKKKNT5HL8j3fjXvLEm9KmZs6YdO2KqEqr...`}
         />
-      </section>
+        <GuideTable
+          mono
+          head={['Tag', 'What it means']}
+          rows={[
+            ['v=1', 'The DKIM version.'],
+            ['a=rsa-sha256', 'The signing algorithm.'],
+            ['d=acme.com', 'The signing domain. DMARC compares it with the From address.'],
+            ['s=s1', 'The selector. Points to s1._domainkey.acme.com.'],
+            ['h=from:subject...', 'The headers covered by the signature.'],
+            ['bh=frcCV1...', 'A hash of the message body.'],
+            ['b=GJwP3Q...', 'The signature itself.'],
+          ]}
+        />
+      </GuideSection>
 
-      {/* How Plunk Handles DKIM */}
-      <section id="plunk-dkim" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How Plunk Simplifies DKIM</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Setting up DKIM manually can be complex, but Plunk makes it automatic:
-        </p>
-
-        <div className="space-y-4 mb-8">
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              1
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Automatic Key Generation</h3>
-              <p className="text-neutral-700">
-                Plunk automatically generates secure DKIM key pairs for your domain when you add it to your account.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              2
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Simple DNS Setup</h3>
-              <p className="text-neutral-700">
-                We provide the exact DNS records you need to add—just copy and paste into your DNS provider.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              3
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Automatic Signing</h3>
-              <p className="text-neutral-700">
-                Every email you send through Plunk is automatically signed with DKIM. No configuration needed.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              4
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Verification & Monitoring</h3>
-              <p className="text-neutral-700">
-                Plunk verifies your DKIM setup and monitors authentication status for all your emails.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <InfoBox type="success" title="Ready in Minutes">
+      <GuideSection id={'why-dkim-matters'} title={'Why DKIM matters'}>
+        <GuidePoints
+          columns={2}
+          items={[
+            {
+              title: 'Stops spoofing',
+              body: 'Nobody can produce a valid signature for your domain without your private key.',
+            },
+            {title: 'Helps you reach the inbox', body: 'Gmail, Outlook and Yahoo use a valid signature as a trust signal.'},
+            {title: 'Protects your brand', body: 'Phishing that uses your domain is easier for inboxes to catch.'},
+            {
+              title: 'Needed for DMARC',
+              body: (
+                <>
+                  <Link href={'/guides/what-is-dmarc'}>DMARC</Link> builds on DKIM and SPF results.
+                </>
+              ),
+            },
+          ]}
+        />
+        <InfoBox type={'warning'} title={'Required by Gmail and Yahoo'}>
           <p>
-            Most Plunk users have DKIM fully configured and working within 5-10 minutes. Our dashboard guides you
-            through every step.
+            Since February 2024, Gmail and Yahoo require DKIM for bulk senders (5,000+ emails a day). Below that it is
+            still expected as standard practice.
           </p>
         </InfoBox>
-      </section>
+      </GuideSection>
 
-      {/* DKIM Best Practices */}
-      <section id="dkim-best-practices" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">DKIM Best Practices</h2>
-
-        <div className="space-y-6">
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✓ Use 2048-bit Keys</h3>
-            <p className="text-neutral-700">
-              While 1024-bit keys still work, 2048-bit keys provide better security and are recommended by Gmail and
-              other providers.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✓ Implement SPF and DMARC Too</h3>
-            <p className="text-neutral-700">
-              DKIM works best when combined with SPF and DMARC for comprehensive email authentication. Use all three for
-              maximum protection.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✓ Monitor DKIM Status</h3>
-            <p className="text-neutral-700">
-              Regularly check that your DKIM signatures are passing. Most email platforms provide authentication
-              reports.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✓ Rotate Keys Periodically</h3>
-            <p className="text-neutral-700">
-              For enhanced security, rotate your DKIM keys every 6-12 months. Plan key rotation carefully to avoid
-              delivery disruptions.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Don't Share Private Keys</h3>
-            <p className="text-neutral-700">
-              Your DKIM private key should never be shared or stored insecurely. Treat it like a password.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Don't Use the Same Key Across Domains</h3>
-            <p className="text-neutral-700">
-              Each domain should have its own unique DKIM key pair for security and proper authentication.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* DKIM vs SPF */}
-      <section id="dkim-vs-spf" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">DKIM vs SPF: What's the Difference?</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          DKIM and SPF are both email authentication protocols, but they work differently and check different things:
+      <GuideSection id={'dkim-vs-spf'} title={'DKIM vs SPF'}>
+        <p>
+          Both are authentication checks, but they look at different things. Use both: each covers a case the other
+          misses.
         </p>
+        <GuideCompare
+          items={[
+            {
+              title: 'DKIM',
+              body: 'Checks the message was not changed.',
+              points: [
+                'Cryptographic signature in the headers',
+                'Survives forwarding if the content is unchanged',
+                'TXT record at selector._domainkey',
+                'Counts toward DMARC',
+              ],
+            },
+            {
+              title: 'SPF',
+              body: 'Checks the server is allowed to send.',
+              points: [
+                'IP address compared with a DNS list',
+                'Breaks on forwarding, because the server changes',
+                'TXT record at the root domain',
+                'Counts toward DMARC',
+              ],
+            },
+          ]}
+        />
+        <p>
+          SPF catches mail from servers you never listed; DKIM keeps forwarded mail authenticated where SPF breaks. Read
+          the <Link href={'/guides/what-is-spf'}>SPF guide</Link> for the other half.
+        </p>
+      </GuideSection>
 
-        <div className="rounded-xl border border-neutral-200 overflow-hidden mb-8">
-          <table className="w-full">
-            <thead className="bg-neutral-50">
-              <tr>
-                <th className="px-6 py-4 text-left text-ui font-semibold text-neutral-900">Feature</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold text-neutral-900">DKIM</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold text-neutral-900">SPF</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200 bg-white">
-              <tr>
-                <td className="px-6 py-4 text-ui font-medium text-neutral-900">What it validates</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Email content integrity</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Sending server authorization</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui font-medium text-neutral-900">How it works</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Cryptographic signature in headers</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">IP address check against DNS list</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui font-medium text-neutral-900">Survives forwarding</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Yes (if content unchanged)</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">No (forwarded IP changes)</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui font-medium text-neutral-900">DNS record type</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">TXT at selector._domainkey.*</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">TXT at root domain</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui font-medium text-neutral-900">Required for DMARC</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Yes (one of SPF/DKIM required)</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">Yes (one of SPF/DKIM required)</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <InfoBox type="tip" title="Use Both for Maximum Protection">
+      <GuideSection id={'setting-up-dkim'} title={'How to set up DKIM'}>
+        <GuideSteps
+          steps={[
+            {
+              title: 'Generate a key pair',
+              body: 'Most email providers create the keys for you when you add a domain. Use 2048-bit keys where you can.',
+            },
+            {
+              title: 'Publish the public key',
+              body: 'Add the record your provider gives you at selector._domainkey.yourdomain.com. Some providers, Plunk included, give you CNAME records that point to keys they host, so they can rotate them for you.',
+            },
+            {
+              title: 'Sign outgoing email',
+              body: 'Your provider signs every message with the private key once the record is in place.',
+            },
+            {
+              title: 'Check it',
+              body: (
+                <>
+                  Look up your selector with the <Link href={'/tools/dkim-checker'}>DKIM checker</Link> to confirm the key
+                  is published and valid.
+                </>
+              ),
+            },
+          ]}
+        />
+        <InfoBox type={'success'} title={'Plunk signs every email for you'}>
           <p>
-            DKIM and SPF complement each other. SPF covers scenarios where DKIM can't (like forged server IPs), and DKIM
-            covers forwarding scenarios where SPF breaks. Implementing both—plus DMARC—gives you complete email
-            authentication coverage.
+            When you add a domain, Plunk generates the keys, shows the exact records to add and verifies them. Every
+            email you send through Plunk is then signed with DKIM, with nothing to configure.
           </p>
         </InfoBox>
-      </section>
+      </GuideSection>
 
-      {/* How to Test DKIM */}
-      <section id="test-dkim" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How to Test Your DKIM Setup</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          After setting up DKIM, verify it's working correctly using these methods:
-        </p>
+      <GuideSection id={'testing-dkim'} title={'How to test DKIM'}>
+        <GuideSteps
+          steps={[
+            {
+              title: 'Send yourself a test and open the original',
+              body: 'In Gmail, open the message, click the three-dot menu and choose Show original. The summary at the top says whether DKIM passed.',
+            },
+            {
+              title: 'Read the headers',
+              body: (
+                <>
+                  The Authentication-Results header shows the verdict per check. Paste raw headers into the{' '}
+                  <Link href={'/tools/email-headers'}>email header analyzer</Link> to read them more easily.
+                </>
+              ),
+              children: (
+                <GuideCode
+                  code={`Authentication-Results: mx.google.com;
+  dkim=pass header.i=@acme.com header.s=s1 header.b=GJwP3Qr8;
+  spf=pass (google.com: domain of billing@acme.com designates 54.240.8.1 as permitted sender);
+  dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=acme.com`}
+                />
+              ),
+            },
+            {
+              title: 'Query DNS',
+              body: 'Confirm the public key is published under the right selector.',
+              children: <GuideCode code={'dig TXT s1._domainkey.acme.com'} />,
+            },
+          ]}
+        />
+        <GuideFigure caption={'What a passing message looks like in Gmail’s Show original.'}>
+          <OriginalMessageFragment />
+        </GuideFigure>
+        <p>If DKIM fails, check that:</p>
+        <ul>
+          <li>The record uses the selector your provider signs with.</li>
+          <li>Your DNS provider has not truncated the key. Long keys sometimes need to be split into several strings.</li>
+          <li>DNS has propagated, which can take up to 48 hours.</li>
+          <li>Your email service signs with the private key that matches the published record.</li>
+        </ul>
+      </GuideSection>
 
-        <div className="space-y-6">
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-3">1. Check the Email Headers</h3>
-            <p className="text-neutral-700 mb-4">
-              Send a test email and view the raw message headers. Look for the <code>DKIM-Signature</code> header and the{' '}
-              <code>Authentication-Results</code> header which shows whether DKIM passed or failed:
-            </p>
-            <CodeBlock
-              language="text"
-              title="Example Authentication-Results Header"
-              code={`Authentication-Results: mx.google.com;
-  dkim=pass header.i=@yourdomain.com header.s=default header.b=GJwP3Qr8;
-  spf=pass (google.com: domain of you@yourdomain.com designates 1.2.3.4 as permitted sender);
-  dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=yourdomain.com`}
-            />
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-3">2. Use DNS Lookup Tools</h3>
-            <p className="text-neutral-700">
-              Verify your DKIM public key is correctly published in DNS by querying your DKIM TXT record:
-            </p>
-            <CodeBlock
-              language="bash"
-              title="DNS Lookup Command"
-              code={`# Check your DKIM record via DNS
-dig TXT default._domainkey.yourdomain.com
-
-# Or using nslookup
-nslookup -type=TXT default._domainkey.yourdomain.com`}
-            />
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-3">3. Send to Gmail and Check</h3>
-            <p className="text-neutral-700">
-              Send a test email to a Gmail address, then click the three-dot menu and select "Show original". The
-              "Summary" at the top will show DKIM: PASS or DKIM: FAIL, confirming your setup is working.
-            </p>
-          </div>
-        </div>
-
-        <InfoBox type="info" title="Common DKIM Issues">
-          <p>
-            If DKIM fails, check that: (1) The DNS record uses the correct selector name, (2) The record hasn't been
-            truncated by your DNS provider (long keys may need to be split), (3) DNS propagation is complete (can take
-            up to 48 hours), and (4) Your email service is configured to sign with the correct private key.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* Related Guides */}
-      <section id="related-guides" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Related Email Authentication Guides</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link
-            href="/guides/what-is-spf"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is SPF?</h3>
-            <p className="text-ui text-neutral-600">Learn about SPF records and how they complement DKIM.</p>
-          </Link>
-          <Link
-            href="/guides/what-is-dmarc"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is DMARC?</h3>
-            <p className="text-ui text-neutral-600">Complete guide to DMARC policies and email security.</p>
-          </Link>
-          <Link
-            href="/guides/email-deliverability"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability Guide</h3>
-            <p className="text-ui text-neutral-600">Improve your email deliverability with best practices.</p>
-          </Link>
-        </div>
-      </section>
+      <GuideSection id={'best-practices'} title={'Best practices'}>
+        <GuidePoints
+          tone={'do'}
+          items={[
+            {title: 'Use 2048-bit keys', body: '1024-bit keys still work, but Gmail and others recommend 2048.'},
+            {
+              title: 'Set up SPF and DMARC too',
+              body: 'The three work together. DKIM alone does not tell inboxes what to do with forged mail.',
+            },
+            {title: 'Monitor results', body: 'Check that signatures keep passing, especially after DNS or provider changes.'},
+            {
+              title: 'Rotate keys every 6 to 12 months',
+              body: 'Publish the new selector before you switch, and remove the old one after.',
+            },
+          ]}
+        />
+        <GuidePoints
+          tone={'dont'}
+          items={[
+            {title: 'Share your private key', body: 'Treat it like a password. Anyone who has it can sign as you.'},
+            {title: 'Reuse a key across domains', body: 'Give each domain its own key pair.'},
+          ]}
+        />
+      </GuideSection>
     </GuideLayout>
+  );
+}
+
+/** A domain's DKIM records: one per sender, plus a key being rotated out. */
+function SelectorsFragment() {
+  const records = [
+    {service: 'Google Workspace', name: 'google._domainkey', state: {tone: 'ok' as const, label: 'Verified'}},
+    {service: 'Help desk', name: 'zd1._domainkey', state: {tone: 'ok' as const, label: 'Verified'}},
+    {service: 'Product email, new key', name: 's2._domainkey', state: {tone: 'ok' as const, label: 'Verified'}},
+    {service: 'Product email, old key', name: 's1._domainkey', state: {tone: 'warn' as const, label: 'Retiring'}},
+  ];
+
+  return (
+    <UICard className={'w-full max-w-md'}>
+      <div className={'flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3'}>
+        <p className={'text-ui font-semibold text-neutral-900'}>acme.com</p>
+        <p className={'text-label text-neutral-500'}>4 DKIM records</p>
+      </div>
+      <div className={'divide-y divide-neutral-100'}>
+        {records.map(r => (
+          <div key={r.name} className={'flex items-center gap-3 px-4 py-3'}>
+            <div className={'min-w-0 flex-1'}>
+              <p className={'truncate text-ui font-semibold text-neutral-900'}>{r.name}</p>
+              <p className={'truncate text-label text-neutral-500'}>{r.service}</p>
+            </div>
+            <StatusPill tone={r.state.tone}>{r.state.label}</StatusPill>
+          </div>
+        ))}
+      </div>
+    </UICard>
+  );
+}
+
+/** The summary block Gmail shows at the top of "Show original". */
+function OriginalMessageFragment() {
+  const rows: {label: string; value: string; pass?: boolean}[] = [
+    {label: 'From', value: 'Acme <billing@acme.com>'},
+    {label: 'Subject', value: 'Your receipt from Acme'},
+    {label: 'SPF', value: 'with IP 54.240.8.1', pass: true},
+    {label: 'DKIM', value: 'with domain acme.com', pass: true},
+    {label: 'DMARC', value: '', pass: true},
+  ];
+
+  return (
+    <UICard className={'w-full max-w-md p-4'}>
+      <p className={'text-ui font-semibold text-neutral-900'}>Original message</p>
+      <dl className={'mt-3 flex flex-col gap-2.5 border-t border-neutral-100 pt-3'}>
+        {rows.map(r => (
+          <div key={r.label} className={'grid grid-cols-[4.5rem_1fr] items-center gap-3'}>
+            <dt className={'text-ui text-neutral-500'}>{r.label}</dt>
+            <dd className={'flex min-w-0 items-center gap-2'}>
+              {r.pass && <StatusPill tone={'ok'}>Pass</StatusPill>}
+              {r.value && <span className={'truncate text-ui text-neutral-800'}>{r.value}</span>}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </UICard>
   );
 }

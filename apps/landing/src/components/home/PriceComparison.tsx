@@ -1,8 +1,6 @@
 import {motion, useReducedMotion} from 'framer-motion';
 import React from 'react';
 
-import {Label} from '../Mono';
-
 /**
  * What everyone charges per email, drawn to scale.
  *
@@ -13,7 +11,7 @@ import {Label} from '../Mono';
  * times as much. A bar makes the multiple the first thing you see instead of
  * the last thing you work out.
  *
- * Plunk's bar is solid and the rest are outlined, so the comparison has a
+ * Plunk's bar is solid black and the rest are pale grey, so the comparison has a
  * subject. The multiples are stated as well as drawn, because "4x" is the
  * sentence a reader repeats to someone else and a bar length is not.
  */
@@ -76,16 +74,14 @@ export function PriceComparison({rows, note}: {rows: PriceRow[]; note: string}) 
                 transition={{duration: 0.75, delay: still ? 0 : 0.1 + i * 0.09, ease: [0.22, 1, 0.36, 1]}}
                 style={{width: `calc((100% - 7.5rem) * ${row.price / max})`}}
                 className={`h-8 flex-shrink-0 origin-left rounded-md ${
-                  us ? 'bg-neutral-900' : 'border border-neutral-300 bg-neutral-100'
+                  us ? 'bg-neutral-900' : 'bg-neutral-200'
                 }`}
               />
               <div className={'flex min-w-0 items-baseline gap-2 tabular-nums'}>
-                <span
-                  className={`font-code text-ui ${us ? 'font-medium text-neutral-900' : 'text-neutral-600'}`}
-                >
+                <span className={`text-ui ${us ? 'font-semibold text-neutral-900' : 'text-neutral-600'}`}>
                   ${row.price.toFixed(3)}
                 </span>
-                <Label>{us ? 'base' : `${Math.round(multiple)}x`}</Label>
+                <span className={'text-label text-neutral-500'}>{us ? 'base' : `${Math.round(multiple)}x`}</span>
               </div>
             </div>
           </motion.div>
@@ -93,7 +89,7 @@ export function PriceComparison({rows, note}: {rows: PriceRow[]; note: string}) 
       })}
 
       <figcaption className={'mt-3'}>
-        <Label>{note}</Label>
+        <span className={'text-label text-neutral-500'}>{note}</span>
       </figcaption>
     </figure>
   );

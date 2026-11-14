@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {factories} from '../../../../../test/helpers';
+import {ContactService} from '../../services/ContactService';
 import {EventService} from '../../services/EventService';
 import {WorkflowService} from '../../services/WorkflowService';
 
@@ -16,8 +17,9 @@ describe('Workflows Controller', () => {
   // ========================================
   describe('GET /workflows/fields', () => {
     it('should return contact and event fields', async () => {
-      const contact = await factories.createContact({
-        projectId,
+      // Through the service: custom fields are registered by contact writes
+      const contact = await ContactService.create(projectId, {
+        email: 'john@example.com',
         data: {
           firstName: 'John',
           lastName: 'Doe',

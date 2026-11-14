@@ -72,6 +72,37 @@ export function nextStatus(current: EmailStatus, incoming?: EmailStatus): EmailS
 }
 
 /**
+ * Whether SES judged an Open to be made by software rather than a person. Mail providers fetch
+ * the tracking pixel on their own -- Gmail's servers do it on delivery, whether or not anyone
+ * reads the email -- and SES marks those fetches `isBotEvent: "Likely"`. Measured, Gmail's own
+ * fetch was "Likely" and every real open was "Unlikely", including one seconds after delivery
+ * and Apple Mail's proxy. An Open without the mark counts, as every Open did before SES added it.
+ */
+export function isAutomaticOpen(open?: {isBotEvent?: unknown} | null): boolean {
+  return open?.isBotEvent === 'Likely';
+}
+
+/**
+ * Whether SES dropped the message because the recipient is on the account-level suppression
+ * list, rather than reporting something the recipient's mailbox did.
+ *
+ * Every Plunk project sends through one SES account. Once an address lands on that account's
+ * suppression list -- one real spam report or hard bounce, in any project -- SES accepts each
+ * later message to it, does not send it, and immediately publishes a Bounce or Complaint with
+ * this subtype. Treated as a fresh complaint, that charged the sending project with a spam
+ * report on every send to the address, including a customer mailing their own inbox, and
+ * could disable the project.
+ */
+export function isAccountSuppressed(subType: unknown): boolean {
+  return subType === 'OnAccountSuppressionList';
+}
+
+/** A field of the SES payload, kept only when it is the string SES documents it as. */
+function sesString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+/**
  * Webhooks Controller
  * Handles incoming webhooks from external services (AWS SNS/SES)
  */
@@ -94,6 +125,19 @@ export class Webhooks {
         // for every project drops here, and nothing else in the system counts the misses.
         signale.error('[WEBHOOK] SNS signature verification failed — request rejected. All SES events are being dropped.');
         return res.status(403).json({success: false, message: 'Invalid SNS signature'});
+      }
+
+      // A valid signature only proves AWS sent it: the topic must also be in our own account,
+      // or anyone could subscribe this endpoint to a topic of theirs and publish forged events.
+      // Checked before the subscription branch, so a foreign topic is never confirmed either.
+      const topicOrigin = await SecurityService.snsTopicOrigin(req.body.TopicArn);
+      if (topicOrigin === 'unknown') {
+        // 5xx makes SNS retry, so a genuine event is delivered again once the lookup works
+        return res.status(503).json({success: false, message: 'Could not verify SNS topic'});
+      }
+      if (topicOrigin === 'foreign') {
+        signale.warn(`[WEBHOOK] SNS message rejected — topic is not in this AWS account: ${String(req.body.TopicArn)}`);
+        return res.status(403).json({success: false, message: 'Untrusted SNS topic'});
       }
 
       // Handle SNS subscription confirmation FIRST (before parsing Message field)
@@ -387,6 +431,8 @@ export class Webhooks {
       // permanent bounce does: transient bounces are not counted, and an unknown type is
       // suppressed but deliberately left out of the rate -- see the branch for why.
       let countsTowardBounceRate = false;
+      // Set by the Complaint branch. Account suppressions return before reaching it.
+      let countsTowardComplaintRate = false;
 
       // Base event data with email metadata
       const baseEventData = {
@@ -401,6 +447,38 @@ export class Webhooks {
       };
       let eventData: Record<string, unknown> = baseEventData;
 
+      // A send SES refused because the address is on the account suppression list. Nothing was
+      // delivered and the recipient did nothing, so this is neither a new bounce nor a new
+      // complaint: the email row keeps its status and gets no `bouncedAt`/`complainedAt` (the
+      // rates are counted from those), and there is no alert and no enforcement -- the same
+      // treatment a transient bounce gets. The contact is still unsubscribed, because SES will
+      // drop every later message to the address too. The event is tracked so the activity feed
+      // explains why the email never arrived.
+      const subType =
+        eventType === 'Bounce'
+          ? body.bounce?.bounceSubType
+          : eventType === 'Complaint'
+            ? body.complaint?.complaintSubType
+            : undefined;
+      if (isAccountSuppressed(subType)) {
+        signale.info(
+          `[WEBHOOK] ${eventType} for ${email.contact.email} from ${email.project.name} is an SES account suppression (not counted)`,
+        );
+        // Clears `snoozedUntil` with `subscribed`; see SNOOZE_CLEARED_ON_WRITE in ContactService.
+        await prisma.contact.update({
+          where: {id: email.contactId},
+          data: {subscribed: false, snoozedUntil: null},
+        });
+        await EventService.trackEvent(email.projectId, eventName, email.contactId, email.id, {
+          ...baseEventData,
+          ...(eventType === 'Bounce'
+            ? {bounceType: sesString(body.bounce?.bounceType), bounceSubType: subType}
+            : {complaintSubType: subType}),
+          suppressedByProvider: true,
+        });
+        return res.status(200).json({success: true});
+      }
+
       // Process event based on type
       switch (eventType) {
         case 'Delivery':
@@ -414,7 +492,17 @@ export class Webhooks {
           break;
 
         case 'Open':
-          signale.success(`[WEBHOOK] Open received for ${email.contact.email} from ${email.project.name}`);
+          // Counting an automatic fetch as an open would stamp openedAt, move segments and resume
+          // workflows waiting for a real one, so nothing is written for it
+          if (isAutomaticOpen(body.open)) {
+            signale.info(`[WEBHOOK] Automatic open ignored for ${email.contact.email} from ${email.project.name}`);
+            return res.status(200).json({success: true});
+          }
+          // The mark is logged only when it is text, so an unexpected payload cannot make logging
+          // throw and lose an open that would have counted
+          signale.success(
+            `[WEBHOOK] Open received for ${email.contact.email} from ${email.project.name} (isBotEvent: ${typeof body.open?.isBotEvent === 'string' ? body.open.isBotEvent : 'none'})`,
+          );
           // Only set openedAt on first open
           if (!email.openedAt) {
             updateData.openedAt = now;
@@ -452,6 +540,13 @@ export class Webhooks {
           const bounceType = body.bounce?.bounceType;
           const isPermanentBounce = bounceType === 'Permanent';
           const isTransientBounce = bounceType === 'Transient';
+          // What the receiving server said, so support can answer "why did this bounce"
+          // without the raw SES notification, which is not kept anywhere else.
+          const bounceDetails = {
+            bounceSubType: sesString(body.bounce?.bounceSubType),
+            diagnosticCode: sesString(body.bounce?.bouncedRecipients?.[0]?.diagnosticCode),
+            feedbackId: sesString(body.bounce?.feedbackId),
+          };
 
           if (isPermanentBounce) {
             // Hard bounce - counts toward bounce rate and unsubscribes contact
@@ -471,6 +566,7 @@ export class Webhooks {
             eventData = {
               ...baseEventData,
               bounceType,
+              ...bounceDetails,
               bouncedAt: (email.bouncedAt ?? now).toISOString(),
             };
 
@@ -488,6 +584,7 @@ export class Webhooks {
             eventData = {
               ...baseEventData,
               bounceType,
+              ...bounceDetails,
               transientBounce: true,
             };
           } else {
@@ -508,6 +605,7 @@ export class Webhooks {
             eventData = {
               ...baseEventData,
               bounceType,
+              ...bounceDetails,
               bouncedAt: (email.bouncedAt ?? now).toISOString(),
             };
 
@@ -529,9 +627,18 @@ export class Webhooks {
             where: {id: email.contactId},
             data: {subscribed: false, snoozedUntil: null},
           });
+          countsTowardComplaintRate = true;
+          // How the mailbox provider classified the report, and the client it came from.
+          // Kept because nothing else stores the SES notification, and these are what tell a
+          // spam-button report apart from a provider-generated one when a sender disputes it.
           eventData = {
             ...baseEventData,
             complainedAt: (email.complainedAt ?? now).toISOString(),
+            complaintFeedbackType: sesString(body.complaint?.complaintFeedbackType),
+            complaintSubType: sesString(body.complaint?.complaintSubType),
+            userAgent: sesString(body.complaint?.userAgent),
+            feedbackId: sesString(body.complaint?.feedbackId),
+            arrivalDate: sesString(body.complaint?.arrivalDate),
           };
 
           // Send notification about complaint
@@ -579,7 +686,7 @@ export class Webhooks {
       // enforcement on one could only re-disable a project over history it has already been
       // judged against -- which is what happened to projects that were manually re-enabled.
       const isNewSuppression =
-        (countsTowardBounceRate && !alreadyBounced) || (eventType === 'Complaint' && !alreadyComplained);
+        (countsTowardBounceRate && !alreadyBounced) || (countsTowardComplaintRate && !alreadyComplained);
       if (isNewSuppression && !isSimulated) {
         // Only one metric moved, so only that metric's thresholds may disable the project.
         // One notification is one event type, so it can never be both.

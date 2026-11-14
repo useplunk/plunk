@@ -1,5 +1,5 @@
 import {Server} from '@overnightjs/core';
-import {EmailSourceType, EmailStatus} from '@plunk/db';
+import {EmailStatus} from '@plunk/db';
 import cookies from 'cookie-parser';
 import {json, type NextFunction, type Request, type Response} from 'express';
 import request from 'supertest';
@@ -10,7 +10,7 @@ import {factories, getPrismaClient} from '../../../../../test/helpers';
 import {Actions} from '../../controllers/Actions';
 import {Suppressions} from '../../controllers/Suppressions';
 import {jwt} from '../../middleware/auth';
-import {processEmail} from '../../jobs/email-processor';
+import {processEmailJob} from '../../jobs/email-processor';
 import {AnalyticsService} from '../AnalyticsService';
 import {CampaignService} from '../CampaignService';
 import {EmailService} from '../EmailService';
@@ -88,8 +88,8 @@ describe('recipient suppression', () => {
       attachments: [{filename: 'a.txt', content: 'aGVsbG8=', contentType: 'text/plain'}],
     });
     await prisma.recipientSuppressionRule.update({where: {id: rule.id}, data: {enabled: false}});
-    await processEmail({data: {emailId: email.id, sourceType: EmailSourceType.TRANSACTIONAL}});
-    await processEmail({data: {emailId: email.id, sourceType: EmailSourceType.TRANSACTIONAL}});
+    await processEmailJob(email.id);
+    await processEmailJob(email.id);
     const captured = await prisma.email.findUniqueOrThrow({where: {id: email.id}});
     expect(captured.status).toBe(EmailStatus.SUPPRESSED);
     expect(captured.renderedBody).toContain('Ada');
@@ -113,7 +113,7 @@ describe('recipient suppression', () => {
       from: 'sender@example.test',
     });
     await prisma.recipientSuppressionRule.create({data: {...definition, projectId: project.id}});
-    await processEmail({data: {emailId: email.id, sourceType: EmailSourceType.WORKFLOW}});
+    await processEmailJob(email.id);
     expect((await prisma.email.findUniqueOrThrow({where: {id: email.id}})).status).toBe(EmailStatus.SUPPRESSED);
     expect(sendRawEmail).not.toHaveBeenCalled();
   });
@@ -134,8 +134,7 @@ describe('recipient suppression', () => {
     expect(result.status, JSON.stringify(result.body)).toBe(200);
     const emails = await prisma.email.findMany({where: {projectId: project.id}, orderBy: {recipientAddress: 'asc'}});
     expect(emails).toHaveLength(2);
-    for (const email of emails)
-      await processEmail({data: {emailId: email.id, sourceType: EmailSourceType.TRANSACTIONAL}});
+    for (const email of emails) await processEmailJob(email.id);
     expect(sendRawEmail).toHaveBeenCalledTimes(1);
     expect(vi.mocked(sendRawEmail).mock.calls[0]?.[0].to).toEqual(['real@elsewhere.test']);
     const captured = await prisma.email.findFirstOrThrow({
@@ -198,7 +197,7 @@ describe('recipient suppression', () => {
     ).toBe(403);
     const contact = await factories.createContact({projectId: project.id});
     const email = await factories.createEmail(project.id, contact.id, {status: EmailStatus.PENDING});
-    await processEmail({data: {emailId: email.id, sourceType: EmailSourceType.TRANSACTIONAL}});
+    await processEmailJob(email.id);
     expect(sendRawEmail).not.toHaveBeenCalled();
     expect((await prisma.project.findUniqueOrThrow({where: {id: project.id}})).disabled).toBe(true);
   });
@@ -229,12 +228,41 @@ describe('recipient suppression', () => {
       subject: 'Concurrent',
       body: 'Body',
     });
-    await Promise.all(
-      Array.from({length: 4}, () =>
-        processEmail({data: {emailId: email.id, sourceType: EmailSourceType.TRANSACTIONAL}}),
-      ),
-    );
+    await Promise.all(Array.from({length: 4}, () => processEmailJob(email.id)));
     expect((await prisma.email.findUniqueOrThrow({where: {id: email.id}})).status).toBe(EmailStatus.SUPPRESSED);
+    expect(sendRawEmail).not.toHaveBeenCalled();
+  });
+  it('captures due scheduled mail, latches its rule and releases its throttle reservation', async () => {
+    const {project} = await factories.createUserWithProject();
+    const contact = await factories.createContact({projectId: project.id, email: 'qa@example.com'});
+    const rule = await prisma.recipientSuppressionRule.create({data: {...definition, projectId: project.id}});
+    const email = await EmailService.sendTransactionalEmail({
+      projectId: project.id,
+      contactId: contact.id,
+      from: 'sender@sender.test',
+      subject: 'Scheduled {{code}}',
+      body: '<p>Scheduled capture</p>',
+      scheduledFor: new Date(Date.now() + 60000),
+    });
+    await prisma.throttleClaim.create({
+      data: {
+        projectId: project.id,
+        key: 'scheduled-test',
+        recipientKey: contact.id,
+        contactId: contact.id,
+        emailId: email.id,
+      },
+    });
+    await processEmailJob(email.id);
+    expect((await prisma.email.findUniqueOrThrow({where: {id: email.id}})).status).toBe(EmailStatus.SCHEDULED);
+    await prisma.recipientSuppressionRule.update({where: {id: rule.id}, data: {enabled: false}});
+    await prisma.email.update({where: {id: email.id}, data: {scheduledFor: new Date(Date.now() - 1000)}});
+    await Promise.all([processEmailJob(email.id), processEmailJob(email.id)]);
+    const captured = await prisma.email.findUniqueOrThrow({where: {id: email.id}});
+    expect(captured.status).toBe(EmailStatus.SUPPRESSED);
+    expect(captured.renderedBody).toContain('Scheduled capture');
+    expect(await prisma.throttleClaim.count({where: {emailId: email.id}})).toBe(0);
+    await processEmailJob(email.id);
     expect(sendRawEmail).not.toHaveBeenCalled();
   });
   it('authorizes dashboard members and rejects another project header', async () => {

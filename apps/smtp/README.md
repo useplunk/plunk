@@ -142,10 +142,13 @@ docker run -d \
   -e API_URI=https://api.yourdomain.com \
   -e DATABASE_URL=postgresql://... \
   -e REDIS_URL=redis://... \
-  -v /etc/letsencrypt/live/smtp.yourdomain.com/privkey.pem:/certs/privkey.pem:ro \
-  -v /etc/letsencrypt/live/smtp.yourdomain.com/fullchain.pem:/certs/fullchain.pem:ro \
+  -v /path/to/certs:/certs:ro \
   plunk:latest
 ```
+
+Mount the directory holding `privkey.pem` and `fullchain.pem`, not the files: a single-file mount keeps the old file
+when a renewal replaces it. For certbot, copy the files there from a deploy hook (see the self-hosting docs), since
+certbot's `live/` files are symlinks into directories only root can read.
 
 **Option 3: Without TLS (Development Only)**
 

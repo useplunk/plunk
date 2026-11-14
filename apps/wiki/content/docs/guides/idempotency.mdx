@@ -126,3 +126,7 @@ A claimed key expires after **24 hours**, after which it becomes reusable. Self-
 `POST /v1/send` accepts an array of recipients and processes them one at a time. The idempotency key covers the request as a whole, not each recipient individually. If the request fails partway with a `5xx`, some recipients may already have been sent to — the key stays claimed precisely so a blind retry doesn't send to them again.
 
 For per-recipient control, send one request per recipient with its own key.
+
+## Idempotency versus throttling
+
+An idempotency key stops a **retry of the same request** from running twice. To stop **new requests** for the same notification from emailing someone over and over — a usage warning sent from every request, say — use [`delivery.throttle`](/guides/throttling) instead. The two work together on the same request.

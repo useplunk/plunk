@@ -57,17 +57,14 @@ export type CampaignListResponse = PaginatedResponse<CampaignListItem> & {
 };
 
 /**
- * The two ways a campaign can lose a recipient that are recoverable from the emails
- * table, and so answerable as a list rather than only as a count.
- *
- * Unsubscribes are deliberately absent. They are recorded as a counter increment plus an
- * Event, and `Email` carries no `unsubscribedAt`, so there is no indexed path from a
- * campaign to the contacts who opted out of it. Adding one is its own piece of work.
+ * The ways a campaign can lose a recipient that are stamped on the email row, and so
+ * answerable as a list rather than only as a count: a bounce, a spam complaint, or an
+ * opt-out (unsubscribe or snooze) made from the campaign email.
  */
-export type CampaignRecipientType = 'bounced' | 'complained';
+export type CampaignRecipientType = 'bounced' | 'complained' | 'unsubscribed';
 
 /**
- * One recipient in a campaign's bounce or complaint list.
+ * One recipient in a campaign's bounce, complaint or unsubscribe list.
  *
  * Deliberately narrow: this feeds a list whose job is to answer "who", so it carries the
  * address, when it happened, and the ids needed to open the contact. The email body and
@@ -77,6 +74,6 @@ export interface CampaignRecipient {
   emailId: string;
   contactId: string;
   email: string;
-  /** ISO 8601. The bounce or complaint timestamp, whichever list this is. */
+  /** ISO 8601. The bounce, complaint or opt-out timestamp, whichever list this is. */
   occurredAt: string;
 }

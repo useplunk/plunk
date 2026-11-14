@@ -135,7 +135,10 @@ function logicItems(query: string): LogicBlock[] {
           .slice(0, SHAPES_PER_FIELD)
           .map(shape => ({
             ...shape,
-            meta: field.coverage < 100 ? `${Math.round(field.coverage)}% of contacts` : undefined,
+            meta:
+              field.coverage !== null && field.coverage < 100
+                ? `${Math.round(field.coverage)}% of contacts`
+                : undefined,
           })),
       )
       .slice(0, MAX_ROWS);

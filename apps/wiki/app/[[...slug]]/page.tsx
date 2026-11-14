@@ -65,6 +65,7 @@ export async function generateMetadata(props: {params: Promise<{slug?: string[]}
     title: page.data.title,
     description: page.data.description,
     alternates: {
+      canonical: page.url,
       types: {
         'text/markdown': `${page.url}.md`,
       },

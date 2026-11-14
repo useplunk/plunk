@@ -16,6 +16,8 @@ import {NtfyService} from '../../services/NtfyService.js';
 import {UserService} from '../../services/UserService.js';
 import {CatchAsync} from '../../utils/asyncHandler.js';
 
+import {issueOAuthState, verifyOAuthState} from './state.js';
+
 @Controller('google')
 export class Google {
   @Get('outbound')
@@ -25,7 +27,7 @@ export class Google {
     }
 
     return res.redirect(
-      `https://accounts.google.com/o/oauth2/v2/auth?scope=https://www.googleapis.com/auth/userinfo.email&access_type=offline&include_granted_scopes=true&prompt=select_account&response_type=code&redirect_uri=${API_URI}/oauth/google/callback&client_id=${GOOGLE_OAUTH_CLIENT}`,
+      `https://accounts.google.com/o/oauth2/v2/auth?scope=https://www.googleapis.com/auth/userinfo.email&access_type=offline&include_granted_scopes=true&prompt=select_account&response_type=code&redirect_uri=${API_URI}/oauth/google/callback&client_id=${GOOGLE_OAUTH_CLIENT}&state=${issueOAuthState(res)}`,
     );
   }
 
@@ -36,6 +38,10 @@ export class Google {
       return res.status(404).json({error: 'Google OAuth is not configured'});
     }
     const {code} = req.query;
+
+    if (!verifyOAuthState(req, res)) {
+      return res.redirect(DASHBOARD_URI + '/auth/login?message=Invalid OAuth state, please try again');
+    }
 
     if (!code || typeof code !== 'string') {
       return res.redirect(DASHBOARD_URI + '/auth/login?message=Invalid OAuth callback');

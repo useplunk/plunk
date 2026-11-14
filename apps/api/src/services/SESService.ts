@@ -1,4 +1,5 @@
 import {SES} from '@aws-sdk/client-ses';
+import {STS} from '@aws-sdk/client-sts';
 import signale from 'signale';
 
 import {
@@ -10,7 +11,13 @@ import {
   SES_CONFIGURATION_SET_NO_TRACKING,
   TRACKING_TOGGLE_ENABLED,
 } from '../app/constants.js';
-import {encodeQuotedPrintable, htmlToPlainText} from '../utils/mime.js';
+import {
+  encodeHeaderValue,
+  encodeQuotedPrintable,
+  formatFilenameParameter,
+  formatMailbox,
+  htmlToPlainText,
+} from '../utils/mime.js';
 
 /**
  * AWS SES Client
@@ -23,6 +30,41 @@ export const ses = new SES({
     secretAccessKey: AWS_SES_SECRET_ACCESS_KEY,
   },
 });
+
+/**
+ * AWS STS Client, used only to look up the account the SES credentials belong to
+ */
+const sts = new STS({
+  region: AWS_SES_REGION,
+  credentials: {
+    accessKeyId: AWS_SES_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SES_SECRET_ACCESS_KEY,
+  },
+});
+
+let awsAccountId: Promise<string> | undefined;
+
+/**
+ * The AWS account the SES credentials belong to. GetCallerIdentity needs no IAM
+ * permission, so this works with any policy. Looked up once and cached; a failed
+ * lookup is not cached, so the next call tries again.
+ */
+export const getAwsAccountId = (): Promise<string> => {
+  awsAccountId ??= sts
+    .getCallerIdentity({})
+    .then(identity => {
+      if (!identity.Account) {
+        throw new Error('GetCallerIdentity returned no account');
+      }
+      return identity.Account;
+    })
+    .catch((error: unknown) => {
+      awsAccountId = undefined;
+      throw error;
+    });
+
+  return awsAccountId;
+};
 
 interface SendRawEmailParams {
   from: {
@@ -81,6 +123,14 @@ export async function sendRawEmail({
   attachments,
   tracking = true,
 }: SendRawEmailParams): Promise<{messageId: string}> {
+  // The API schema already refuses these, but attachments are stored and sent later by the
+  // worker, so rows written before that check (or by another caller) are checked here too.
+  for (const attachment of attachments ?? []) {
+    if ([attachment.filename, attachment.contentType, attachment.contentId ?? ''].some(v => /[\r\n]/.test(v))) {
+      throw new Error('Attachment header fields cannot contain line breaks');
+    }
+  }
+
   // Generate unique boundaries for multipart messages
   const altBoundary = `----=_AltPart_${Math.random().toString(36).substring(2)}`;
   const mixedBoundary = attachments?.some(a => (a.disposition ?? 'attachment') === 'attachment')
@@ -92,14 +142,8 @@ export async function sendRawEmail({
 
   // Format To header with names if provided
   const toHeader = to
-    .map(recipient => {
-      if (typeof recipient === 'string') {
-        return recipient;
-      } else {
-        return recipient.name ? `${recipient.name} <${recipient.email}>` : recipient.email;
-      }
-    })
-    .join(', ');
+    .map(recipient => (typeof recipient === 'string' ? recipient : formatMailbox(recipient.name, recipient.email)))
+    .join(',\n ');
 
   // Extract just email addresses for Destinations (SES requirement)
   const destinations = to.map(recipient => (typeof recipient === 'string' ? recipient : recipient.email));
@@ -120,10 +164,10 @@ export async function sendRawEmail({
   const extraHeaders = extraHeaderLines.length > 0 ? `\n${extraHeaderLines.join('\n')}` : '';
 
   // Build raw MIME message
-  let rawMessage = `From: ${from.name} <${from.email}>
+  let rawMessage = `From: ${formatMailbox(from.name, from.email)}
 To: ${toHeader}
 Reply-To: ${reply || from.email}
-Subject: ${content.subject}
+Subject: ${encodeHeaderValue(content.subject, 'Subject: '.length)}
 MIME-Version: 1.0
 Content-Type: ${rootContentType}${extraHeaders}
 
@@ -179,7 +223,8 @@ ${encodeQuotedPrintable(content.html)}
 Content-Type: ${attachment.contentType}
 Content-Transfer-Encoding: base64
 Content-ID: <${attachment.contentId || attachment.filename}>
-Content-Disposition: inline; filename="${attachment.filename}"
+Content-Disposition: inline;
+ ${formatFilenameParameter(attachment.filename)}
 
 ${breakLongLines(attachment.content, 76)}`;
     }
@@ -193,7 +238,8 @@ ${breakLongLines(attachment.content, 76)}`;
       rawMessage += `\n--${mixedBoundary}
 Content-Type: ${attachment.contentType}
 Content-Transfer-Encoding: base64
-Content-Disposition: attachment; filename="${attachment.filename}"
+Content-Disposition: attachment;
+ ${formatFilenameParameter(attachment.filename)}
 
 ${breakLongLines(attachment.content, 76)}`;
     }
@@ -212,7 +258,9 @@ ${breakLongLines(attachment.content, 76)}`;
     RawMessage: {
       Data: new TextEncoder().encode(rawMessage),
     },
-    Source: `${from.name} <${from.email}>`,
+    // The address alone: the display name travels in the From header above, and Source
+    // only names the sending identity and where bounces go.
+    Source: from.email,
   });
 
   if (!response.MessageId) {
@@ -304,6 +352,40 @@ export const disableFeedbackForwarding = async (domain: string): Promise<void> =
  */
 export const deleteIdentity = async (domain: string): Promise<void> => {
   await ses.deleteIdentity({Identity: domain});
+};
+
+/**
+ * Check at startup that the configuration sets Plunk sends through exist in SES.
+ * A missing set otherwise only shows up as a failed send, with an AWS error that
+ * doesn't name the env var. The no-tracking set is only checked when it was
+ * configured explicitly, since that is the only case in which it is used.
+ * Never throws: a failed check is logged and the API keeps starting.
+ */
+export const verifyConfigurationSets = async (): Promise<void> => {
+  const sets: {envVar: string; name: string}[] = [{envVar: 'SES_CONFIGURATION_SET', name: SES_CONFIGURATION_SET}];
+  if (TRACKING_TOGGLE_ENABLED) {
+    sets.push({envVar: 'SES_CONFIGURATION_SET_NO_TRACKING', name: SES_CONFIGURATION_SET_NO_TRACKING});
+  }
+
+  for (const {envVar, name} of sets) {
+    try {
+      await ses.describeConfigurationSet({ConfigurationSetName: name});
+    } catch (error) {
+      const errorName = error instanceof Error ? error.name : undefined;
+
+      if (errorName === 'ConfigurationSetDoesNotExistException') {
+        signale.error(
+          `[SES] Configuration set "${name}" from ${envVar} does not exist in ${AWS_SES_REGION}. Emails sent through it will fail until it is created or ${envVar} is corrected.`,
+        );
+      } else if (errorName === 'AccessDenied' || errorName === 'AccessDeniedException') {
+        // Older IAM policies predate this check, so a missing permission is not a misconfiguration
+        signale.info('[SES] Skipped configuration set check: grant ses:DescribeConfigurationSet to enable it');
+        return;
+      } else {
+        signale.warn(`[SES] Could not verify configuration set "${name}" from ${envVar}:`, error);
+      }
+    }
+  }
 };
 
 /**

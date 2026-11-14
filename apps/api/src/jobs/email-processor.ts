@@ -2,11 +2,15 @@
  * Background Job: Email Processor
  * Processes individual emails from the queue (for all sources: transactional, campaign, workflow)
  *
- * Suppression is latched on acceptance and checked again before delivery. The
- * exported processor is exercised with a real database and a stubbed provider.
+ * This is the only send path. `EmailService.sendEmail` used to hold a second copy of it, tested
+ * while this one was not, and the two had drifted; it has been removed. The job body is
+ * `processEmailJob`, outside the worker, so it can be called and tested without a queue.
+ *
+ * Scheduled transactional emails (`delivery.at`) arrive here as SCHEDULED when their delayed
+ * job fires, or from the scheduled-email sweep when that job was lost.
  */
 
-import {CampaignStatus, EmailStatus} from '@plunk/db';
+import {CampaignStatus, EmailStatus, TemplateType} from '@plunk/db';
 import {isMailboxSimulatorAddress} from '@plunk/shared';
 import type {SendEmailJobData} from '@plunk/types';
 import {type Job, Worker} from 'bullmq';
@@ -25,6 +29,7 @@ import {
   bodyHasListManagementLink,
   buildEmailHeaders,
   classifyEmail,
+  senderOneClickUrl,
   withSourceEmail,
 } from '../services/EmailHeaderService.js';
 import {EmailService} from '../services/EmailService.js';
@@ -34,6 +39,10 @@ import {emailQueue} from '../services/QueueService.js';
 import {RecipientSuppressionService} from '../services/RecipientSuppressionService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {getSendingQuota, sendRawEmail} from '../services/SESService.js';
+import {ThrottleService} from '../services/ThrottleService.js';
+
+/** A delayed job may fire a little before its time; within this, a scheduled email is due */
+const SCHEDULE_TOLERANCE_MS = 5000;
 
 /**
  * Determine the email sending rate limit (emails per second)
@@ -82,9 +91,11 @@ function deriveWorkerConcurrency(rateLimit: number): number {
   return Math.max(MIN_CONCURRENCY, Math.min(derived, EMAIL_WORKER_MAX_CONCURRENCY));
 }
 
-export async function processEmail(job: Pick<Job<SendEmailJobData>, 'data'>) {
-  const {emailId} = job.data;
-
+/**
+ * Send one email. Exported so it can be tested without a queue; the worker below is a thin
+ * wrapper around it.
+ */
+export async function processEmailJob(emailId: string): Promise<void> {
   const email = await prisma.email.findUnique({
     where: {id: emailId},
     include: {
@@ -106,7 +117,34 @@ export async function processEmail(job: Pick<Job<SendEmailJobData>, 'data'>) {
     return;
   }
 
-  if (email.status !== EmailStatus.PENDING) {
+  if (email.status === EmailStatus.SCHEDULED) {
+    // Promote it only if it is still scheduled and due. A cancelled email, or one moved later
+    // (whose own job is still waiting), leaves this job nothing to do. The update decides, so
+    // the original job and a sweep job arriving together cannot both send it.
+    const promoted = await prisma.email.updateMany({
+      where: {
+        id: emailId,
+        status: EmailStatus.SCHEDULED,
+        scheduledFor: {lte: new Date(Date.now() + SCHEDULE_TOLERANCE_MS)},
+      },
+      data: {status: EmailStatus.PENDING},
+    });
+
+    if (promoted.count === 0) {
+      return;
+    }
+
+    // The send was accepted while the contact was subscribed. A marketing template must not
+    // reach someone who unsubscribed while it waited.
+    if (email.template?.type === TemplateType.MARKETING && !email.contact.subscribed) {
+      await prisma.email.update({
+        where: {id: emailId},
+        data: {status: EmailStatus.CANCELLED, error: 'Contact unsubscribed before the scheduled time'},
+      });
+      await ThrottleService.releaseForEmail(emailId);
+      return;
+    }
+  } else if (email.status !== EmailStatus.PENDING) {
     return;
   }
 
@@ -144,6 +182,7 @@ export async function processEmail(job: Pick<Job<SendEmailJobData>, 'data'>) {
         error: 'Project is disabled',
       },
     });
+    await ThrottleService.releaseForEmail(emailId);
 
     // Cancelled emails are terminal for the campaign — finalize so it doesn't
     // stay stuck in SENDING forever waiting on emails that will never be sent.
@@ -220,6 +259,7 @@ export async function processEmail(job: Pick<Job<SendEmailJobData>, 'data'>) {
       },
     });
     if (suppression) {
+      await ThrottleService.releaseForEmail(emailId);
       await BillingLimitService.invalidateCache(email.projectId);
       if (email.campaignId) await CampaignService.finalizeIfDone(email.campaignId);
       return;
@@ -237,6 +277,7 @@ export async function processEmail(job: Pick<Job<SendEmailJobData>, 'data'>) {
       emailClass,
       isCampaign: email.campaignId != null,
       hasListManagementLink: bodyHasListManagementLink(compiledHtml, email.contact.id),
+      senderUnsubscribeUrl: senderOneClickUrl(compiledHtml),
       unsubscribeId: email.contact.id,
       sourceEmailId: emailId,
       customHeaders: publicHeaders,
@@ -276,6 +317,7 @@ export async function processEmail(job: Pick<Job<SendEmailJobData>, 'data'>) {
           error: 'This email could not be sent. The project has been disabled. Please contact support.',
         },
       });
+      await ThrottleService.releaseForEmail(emailId);
 
       throw new Error(`Project ${email.projectId} has been disabled due to a policy violation`);
     }
@@ -302,11 +344,12 @@ export async function processEmail(job: Pick<Job<SendEmailJobData>, 'data'>) {
     // Guarded on `sentAt` still being null so the campaign counter below is only
     // incremented by the run that actually stamped it. A job retried after SES
     // accepted the message would otherwise count the same email twice.
+    const sentAt = new Date();
     const marked = await prisma.email.updateMany({
       where: {id: emailId, sentAt: null},
       data: {
         status: EmailStatus.SENT,
-        sentAt: new Date(),
+        sentAt,
         messageId: result.messageId,
         // Stamped here, and only here, because this is the one place that knows the
         // address SES was actually given -- `recipientEmail` above, which is the
@@ -333,6 +376,9 @@ export async function processEmail(job: Pick<Job<SendEmailJobData>, 'data'>) {
 
       return;
     }
+
+    // A throttled notification's window runs from when the recipient actually got it
+    await ThrottleService.anchorToSend(emailId, sentAt);
 
     if (email.campaignId) {
       await CampaignService.countCampaignSent(email.campaignId);
@@ -375,6 +421,10 @@ export async function processEmail(job: Pick<Job<SendEmailJobData>, 'data'>) {
       },
     });
 
+    // FAILED is terminal: a retry finds the email no longer PENDING and stops. It never
+    // reached the recipient, so it must not hold back the next send of its notification.
+    await ThrottleService.releaseForEmail(emailId);
+
     throw error; // Re-throw to trigger retry
   }
 }
@@ -384,14 +434,20 @@ export async function createEmailWorker() {
   const rateLimit = await getEmailRateLimit();
   const concurrency = deriveWorkerConcurrency(rateLimit);
   signale.info(`[EMAIL-PROCESSOR] Worker concurrency: ${concurrency} (rate limit: ${rateLimit}/s)`);
-  const worker = new Worker<SendEmailJobData>(emailQueue.name, processEmail, {
-    connection: emailQueue.opts.connection,
-    concurrency,
-    limiter: {
-      max: rateLimit, // Max emails per second (from env, AWS SES quota, or default)
-      duration: 1000,
+  const worker = new Worker<SendEmailJobData>(
+    emailQueue.name,
+    async (job: Job<SendEmailJobData>) => {
+      await processEmailJob(job.data.emailId);
     },
-  });
+    {
+      connection: emailQueue.opts.connection,
+      concurrency,
+      limiter: {
+        max: rateLimit, // Max emails per second (from env, AWS SES quota, or default)
+        duration: 1000,
+      },
+    },
+  );
 
   worker.on('completed', job => {
     signale.info(`[EMAIL-PROCESSOR] Job ${job.id} completed`);

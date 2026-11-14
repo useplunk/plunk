@@ -32,6 +32,14 @@ A complaint occurs when a recipient marks your email as spam in their inbox prov
 
 Complaints are taken more seriously than bounces by mail providers — even a small complaint rate can hurt your sender reputation and deliverability.
 
+### Complaints you didn't expect
+
+Most complaints come from a mailbox provider's feedback loop, and not all of them are a deliberate click on "Report spam". Outlook.com, for example, reports a complaint when a message is moved to Junk by the recipient, by "Block sender", or by an inbox rule or Sweep. The `email.complaint` event includes the `complaintFeedbackType` and `userAgent` the provider sent, where it sent them.
+
+### Suppressed addresses
+
+Once an address has reported spam or hard-bounced, the sending provider stops delivering to it. Plunk then records later sends to that address as an `email.complaint` or `email.bounce` event with `suppressedByProvider: true`. The email was not sent, the contact is unsubscribed, and **these events do not count toward your bounce or complaint rate**.
+
 ### Preventing complaints
 - Ensure your emails are relevant and valuable to your audience.
 - Include a clear, working unsubscribe link in every marketing email — Plunk injects this automatically for `MARKETING` template/campaign types.

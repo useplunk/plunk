@@ -171,7 +171,7 @@ export function BillingInvoices({projectId, hasSubscription, onManageBilling}: B
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(invoice.hostedInvoiceUrl!, '_blank')}
+                          onClick={() => window.open(invoice.hostedInvoiceUrl!, '_blank', 'noopener,noreferrer')}
                           className="flex items-center gap-2"
                         >
                           <ExternalLink className="h-3 w-3" />
@@ -182,7 +182,7 @@ export function BillingInvoices({projectId, hasSubscription, onManageBilling}: B
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(invoice.invoicePdf!, '_blank')}
+                          onClick={() => window.open(invoice.invoicePdf!, '_blank', 'noopener,noreferrer')}
                           className="flex items-center gap-2"
                         >
                           <Download className="h-3 w-3" />

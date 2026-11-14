@@ -40,19 +40,8 @@ export default function Changelog() {
         {/* Same grid background as the feature pages, without an artifact:
             the timeline directly below is the picture. */}
         <section className={'relative overflow-hidden'}>
-          <div
-            aria-hidden
-            className={
-              'absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#eeeeee_1px,transparent_1px),linear-gradient(to_bottom,#eeeeee_1px,transparent_1px)] bg-[size:6rem_6rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_95%)]'
-            }
-          />
           <div className={'mx-auto max-w-[88rem] px-6 pb-16 pt-20 sm:px-10 sm:pb-24 sm:pt-24'}>
-            <motion.div
-              initial={{opacity: 0, y: 16}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.7, ease: [0.23, 1, 0.32, 1]}}
-              className={'max-w-4xl'}
-            >
+            <div className={'hero-enter max-w-4xl'}>
               <h1 className={'font-display text-display font-extrabold tracking-[-0.035em] text-neutral-900'}>
                 What&apos;s new
                 <br />
@@ -85,7 +74,7 @@ export default function Changelog() {
                   View commits on GitHub
                 </Link>
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
 

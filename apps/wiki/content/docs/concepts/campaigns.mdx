@@ -65,7 +65,7 @@ To cancel a `SCHEDULED` or `SENDING` campaign, call `POST /campaigns/:id/cancel`
 
 ## Stats
 
-`GET /campaigns/:id/stats` reports the counts and rates the dashboard shows: recipients, sent, delivered, opened, clicked, bounced, complained, and unsubscribed, plus the matching rates. Counts are recomputed from the underlying emails and events on every call, so they are authoritative rather than eventually consistent. Every rate is a percentage of `sentCount`.
+`GET /campaigns/:id/stats` reports the counts and rates the dashboard shows: recipients, sent, delivered, opened, clicked, bounced, complained, and unsubscribed, plus the matching rates. Counts are read from the campaign itself, so the call stays fast while a campaign is sending. Delivery, open, click, bounce and complaint counts are updated in the background as events arrive, so they can trail the latest event by a short interval. Unsubscribes are counted the moment they happen. Every rate is a percentage of `sentCount`.
 
 ### What a campaign cost you
 
@@ -75,7 +75,9 @@ Three columns describe recipients you lost, and each one counts a given recipien
 | ----- | ----- | --------- |
 | `bouncedCount` | Mail that could not be delivered. Hard bounces suppress the contact. | `Email.bouncedAt`, set by the SES bounce webhook |
 | `complainedCount` | Recipients who reported the campaign as spam. Suppresses the contact. | `Email.complainedAt`, set by the SES complaint webhook |
-| `unsubscribedCount` | Recipients who deliberately opted out. | The `?e=` parameter on the unsubscribe link |
+| `unsubscribedCount` | Recipients who deliberately opted out, including snoozes. A recipient who opts out more than once from the same email counts once. | `Email.unsubscribedAt`, set from the `?e=` parameter on the unsubscribe link |
+
+On the campaign page, click any of the three figures to see the contacts behind it.
 
 Bounces and complaints flip the contact to unsubscribed as well, but they are reported in their own column and never in `unsubscribedCount` — the same lost recipient counted twice would overstate both.
 

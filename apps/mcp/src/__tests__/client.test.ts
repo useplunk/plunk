@@ -1,13 +1,10 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
 import {PlunkApiError, PlunkClient} from '../client.js';
-import type {PlunkMcpConfig} from '../config.js';
 
-const config: PlunkMcpConfig = {
-  apiKey: 'sk_test',
-  apiUrl: 'https://api.example.com',
-  readOnly: false,
-};
+function client() {
+  return new PlunkClient('https://api.example.com', () => ({apiKey: 'sk_test'}));
+}
 
 function mockFetch(status: number, body: unknown, headers: Record<string, string> = {}) {
   const response = new Response(body === undefined ? '' : JSON.stringify(body), {
@@ -26,7 +23,7 @@ describe('PlunkClient', () => {
   it('sends the secret key as a bearer token', async () => {
     const spy = mockFetch(200, {ok: true});
 
-    await new PlunkClient(config).request({path: '/contacts'});
+    await client().request({path: '/contacts'});
 
     const [url, init] = spy.mock.calls[0]!;
     expect(String(url)).toBe('https://api.example.com/contacts');
@@ -36,7 +33,7 @@ describe('PlunkClient', () => {
   it('omits empty query parameters rather than sending blanks', async () => {
     const spy = mockFetch(200, {ok: true});
 
-    await new PlunkClient(config).request({
+    await client().request({
       path: '/contacts',
       query: {search: 'ada', subscribed: undefined, cursor: ''},
     });
@@ -47,7 +44,7 @@ describe('PlunkClient', () => {
   it('surfaces Retry-After on a rate limit so the agent can back off', async () => {
     mockFetch(429, {error: {code: 'RATE_LIMIT_EXCEEDED', message: 'Rate limit exceeded.'}}, {'Retry-After': '12'});
 
-    const error = await new PlunkClient(config).request({path: '/contacts'}).catch((e: unknown) => e as PlunkApiError);
+    const error = await client().request({path: '/contacts'}).catch((e: unknown) => e as PlunkApiError);
 
     expect(error).toBeInstanceOf(PlunkApiError);
     expect(error.retryAfterSeconds).toBe(12);
@@ -65,7 +62,7 @@ describe('PlunkClient', () => {
       },
     });
 
-    const error = await new PlunkClient(config).request({path: '/contacts'}).catch((e: unknown) => e as PlunkApiError);
+    const error = await client().request({path: '/contacts'}).catch((e: unknown) => e as PlunkApiError);
 
     expect(error.message).toContain('email: must be a valid email');
   });
@@ -73,13 +70,13 @@ describe('PlunkClient', () => {
   it('explains a 401 in terms of the key that is configured', async () => {
     mockFetch(401, {error: {code: 'INVALID_API_KEY', message: 'Invalid secret API key.'}});
 
-    const error = await new PlunkClient(config).request({path: '/contacts'}).catch((e: unknown) => e as PlunkApiError);
+    const error = await client().request({path: '/contacts'}).catch((e: unknown) => e as PlunkApiError);
 
     expect(error.message).toMatch(/PLUNK_API_KEY/);
   });
 
   it('refuses a public-key call when no public key is configured', async () => {
-    const error = await new PlunkClient(config)
+    const error = await client()
       .request({path: '/v1/track', usePublicKey: true})
       .catch((e: unknown) => e as PlunkApiError);
 
@@ -89,7 +86,7 @@ describe('PlunkClient', () => {
   it('reports an unreachable instance against the configured URL', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
 
-    const error = await new PlunkClient(config).request({path: '/contacts'}).catch((e: unknown) => e as PlunkApiError);
+    const error = await client().request({path: '/contacts'}).catch((e: unknown) => e as PlunkApiError);
 
     expect(error.code).toBe('NETWORK_ERROR');
     expect(error.message).toContain('https://api.example.com');

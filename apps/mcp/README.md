@@ -62,6 +62,8 @@ Point `PLUNK_API_URL` at your own API domain:
 | `PLUNK_ALLOW_UNCONFIRMED_SENDS` | no       | `true` skips the confirmation prompt before sends. For headless automation only.                             |
 | `PLUNK_MCP_API_KEY`             | no       | Takes precedence over `PLUNK_API_KEY`. Use it if `PLUNK_API_KEY` is already taken in your environment.        |
 | `PLUNK_MCP_API_URL`             | no       | Takes precedence over `PLUNK_API_URL`, for the same reason.                                                  |
+| `PLUNK_API_KEY_<NAME>`          | no       | A named project's secret key. Set one per project to use several at once — see below.                        |
+| `PLUNK_PUBLIC_KEY_<NAME>`       | no       | That project's public key.                                                                                   |
 
 Flags `--read-only` and `--api-url=<url>` do the same as their environment variables and win over them.
 
@@ -69,6 +71,29 @@ Flags `--read-only` and `--api-url=<url>` do the same as their environment varia
 > `PLUNK_API_KEY` for its own platform notification emails. That key belongs to a *different* project.
 > If both are present in the same environment, set `PLUNK_MCP_API_KEY` so the agent talks to the project
 > you mean.
+
+### Several projects
+
+To give one agent access to more than one project, set a key per project with the project's name as a
+suffix instead of `PLUNK_API_KEY`:
+
+```bash
+claude mcp add plunk \
+  --env PLUNK_API_KEY_ACME=sk_acme_key \
+  --env PLUNK_API_KEY_SIDE_PROJECT=sk_other_key \
+  -- npx -y @plunk/mcp
+```
+
+Every tool then takes a required `project` argument (`acme` or `side_project` here), so each call says
+which project it acts on — there is no "current project" the agent could lose track of. Confirmation
+prompts name the project too.
+
+- `PLUNK_PUBLIC_KEY_<NAME>` sets that project's public key, just like `PLUNK_PUBLIC_KEY` does for a single one.
+- Names may use letters, digits and underscores, and are lowercased.
+- Once a named key is set, a plain `PLUNK_API_KEY` is ignored, so a key inherited from a self-hosted Plunk
+  server's environment cannot slip in as an extra project. `PLUNK_MCP_API_KEY` and `PLUNK_PUBLIC_KEY` cannot be
+  combined with named keys.
+- All projects share one API URL and one read-only setting.
 
 ## Tools
 
@@ -80,6 +105,7 @@ Read-only tools (the only ones registered when `PLUNK_READ_ONLY=true`):
 | `plunk_get_contact`              | Fetch one contact by ID **or email address**            |
 | `plunk_list_captured_emails`     | List this project's suppressed messages with rule snapshots |
 | `plunk_get_captured_email`       | Read stored original/rendered capture content and attachments |
+| `plunk_get_email`                | Look up one email's status and when it sends            |
 | `plunk_verify_email`             | Check whether an address is deliverable                 |
 | `plunk_list_templates`           | List reusable email templates                           |
 | `plunk_list_campaigns`           | List campaigns and their status                         |
@@ -104,7 +130,9 @@ Writing tools:
 | `plunk_subscribe_contact`          | Re-subscribe an existing contact, by email or ID          |
 | `plunk_unsubscribe_contact`        | Opt a contact out of marketing email, by email or ID      |
 | `plunk_delete_contact`             | Permanently delete a contact *(destructive)*              |
-| `plunk_send_email`                 | Send a transactional email to specific recipients         |
+| `plunk_send_email`                 | Send a transactional email, now, scheduled or throttled   |
+| `plunk_reschedule_email`           | Move a scheduled transactional email to another time      |
+| `plunk_cancel_email`               | Cancel a scheduled transactional email *(destructive)*    |
 | `plunk_track_event`                | Record an event, which can trigger automation workflows   |
 | `plunk_create_template`            | Create a reusable template                                |
 | `plunk_create_campaign`            | Create a campaign as a draft                              |
@@ -113,7 +141,7 @@ Writing tools:
 | `plunk_cancel_campaign`            | Stop a scheduled or in-flight campaign *(destructive)*    |
 | `plunk_create_segment`             | Create an audience segment                                |
 | `plunk_create_workflow`            | Create a workflow, disabled, triggered by an event        |
-| `plunk_update_workflow`            | Rename, change the trigger event, or allow re-entry       |
+| `plunk_update_workflow`            | Rename, change the trigger event, re-entry or throttle    |
 | `plunk_duplicate_workflow`         | Copy a workflow, disabled, e.g. for another language      |
 | `plunk_delete_workflow`            | Delete a disabled workflow *(destructive)*                |
 | `plunk_add_workflow_step`          | Add any step type, appended, on a branch, or in between   |

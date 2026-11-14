@@ -636,9 +636,10 @@ export class SegmentService {
   }
 
   /**
-   * Build a single filter condition
+   * Build a single filter condition. A referenced segment is looked up in the project only.
    */
   public static async buildFilterCondition(
+    projectId: string,
     filter: SegmentFilter,
     visitedSegments = new Set<string>(),
   ): Promise<Prisma.ContactWhereInput> {
@@ -652,41 +653,37 @@ export class SegmentService {
         throw new HttpException(400, 'Circular segment reference detected');
       }
 
-      const referencedSegment = await prisma.segment.findUnique({
-        where: {id: segmentId},
+      const referencedSegment = await prisma.segment.findFirst({
+        where: {id: segmentId, projectId},
       });
 
       if (!referencedSegment) {
         throw new HttpException(400, `Referenced segment not found: ${segmentId}`);
       }
 
-      let memberIds: string[];
-
       if (referencedSegment.type === 'STATIC' || referencedSegment.trackMembership) {
-        // Use the membership table for static or tracked segments
-        const memberships = await prisma.segmentMembership.findMany({
-          where: {segmentId, exitedAt: null},
-          select: {contactId: true},
-        });
-        memberIds = memberships.map(m => m.contactId);
-      } else {
-        // For untracked dynamic segments, evaluate the condition recursively
-        const nestedCondition = fromPrismaJson<FilterCondition>(referencedSegment.condition);
-        const nextVisited = new Set(visitedSegments).add(segmentId);
-        const nestedWhere = await this.buildConditionClause(nestedCondition, nextVisited);
+        // Filter through the membership table of static or tracked segments rather than loading
+        // the members: a list of ids grows with the segment, and a query stops working past
+        // 32,767 bind variables.
+        const activeMembership = {segmentId, exitedAt: null};
 
         if (operator === 'memberOfSegment') {
-          return nestedWhere;
+          return {segmentMemberships: {some: activeMembership}};
         }
 
-        return {NOT: nestedWhere};
+        return {segmentMemberships: {none: activeMembership}};
       }
+
+      // For untracked dynamic segments, evaluate the condition recursively
+      const nestedCondition = fromPrismaJson<FilterCondition>(referencedSegment.condition);
+      const nextVisited = new Set(visitedSegments).add(segmentId);
+      const nestedWhere = await this.buildConditionClause(projectId, nestedCondition, nextVisited);
 
       if (operator === 'memberOfSegment') {
-        return {id: {in: memberIds}};
+        return nestedWhere;
       }
 
-      return {id: {notIn: memberIds}};
+      return {NOT: nestedWhere};
     }
 
     // Handle event-based filters (e.g., "event.upgrade", "event.purchase")
@@ -766,11 +763,12 @@ export class SegmentService {
    * Build Prisma clause from filter condition (recursive)
    */
   public static async buildConditionClause(
+    projectId: string,
     condition: FilterCondition,
     visitedSegments = new Set<string>(),
   ): Promise<Prisma.ContactWhereInput> {
     const groupClauses = await Promise.all(
-      condition.groups.map(group => this.buildGroupClause(group, visitedSegments)),
+      condition.groups.map(group => this.buildGroupClause(projectId, group, visitedSegments)),
     );
 
     if (condition.logic === 'AND') {
@@ -893,7 +891,7 @@ export class SegmentService {
   ): Promise<Prisma.ContactWhereInput> {
     return {
       projectId,
-      ...(await this.buildConditionClause(condition)),
+      ...(await this.buildConditionClause(projectId, condition)),
     };
   }
 
@@ -901,6 +899,7 @@ export class SegmentService {
    * Build Prisma clause from filter group (recursive)
    */
   private static async buildGroupClause(
+    projectId: string,
     group: FilterGroup,
     visitedSegments = new Set<string>(),
   ): Promise<Prisma.ContactWhereInput> {
@@ -909,14 +908,14 @@ export class SegmentService {
     // Add filter conditions from this group
     if (group.filters.length > 0) {
       const filterClauses = await Promise.all(
-        group.filters.map(filter => this.buildFilterCondition(filter, visitedSegments)),
+        group.filters.map(filter => this.buildFilterCondition(projectId, filter, visitedSegments)),
       );
       clauses.push(...filterClauses);
     }
 
     // Add nested condition if present
     if (group.conditions) {
-      clauses.push(await this.buildConditionClause(group.conditions, visitedSegments));
+      clauses.push(await this.buildConditionClause(projectId, group.conditions, visitedSegments));
     }
 
     // All conditions within a group are combined with AND

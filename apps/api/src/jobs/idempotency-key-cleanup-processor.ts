@@ -6,11 +6,16 @@ import signale from 'signale';
 
 import {REDIS_URL} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
+import {parseRedisUrl} from '../utils/redis.js';
 
 /**
  * Idempotency Key Cleanup Worker
  * Deletes claims past their expiresAt, which both bounds table growth and is what
  * makes an expired key reusable. Runs hourly, since the TTL is measured in hours.
+ *
+ * Also sweeps expired throttle claims (`delivery.throttle` on /v1/send). Those do not
+ * depend on the sweep to become reusable -- a send takes over an expired claim in place --
+ * so this only keeps the table from growing with every notification ever throttled.
  */
 
 const BATCH_SIZE = 10000; // Delete in batches to avoid long-held locks
@@ -18,7 +23,9 @@ const BATCH_SIZE = 10000; // Delete in batches to avoid long-held locks
 /**
  * Process idempotency key cleanup job
  */
-async function processCleanup(job: Job<IdempotencyKeyCleanupJobData>): Promise<{deleted: number}> {
+async function processCleanup(
+  job: Job<IdempotencyKeyCleanupJobData>,
+): Promise<{deleted: number; throttleClaimsDeleted: number}> {
   signale.info('[IDEMPOTENCY-CLEANUP] Starting cleanup of expired idempotency keys...');
 
   let totalDeleted = 0;
@@ -48,12 +55,43 @@ async function processCleanup(job: Job<IdempotencyKeyCleanupJobData>): Promise<{
 
     signale.success(`[IDEMPOTENCY-CLEANUP] Cleanup complete. Deleted ${totalDeleted} expired keys`);
 
+    const throttleClaimsDeleted = await deleteExpiredThrottleClaims();
+
+    signale.success(`[IDEMPOTENCY-CLEANUP] Deleted ${throttleClaimsDeleted} expired throttle claims`);
+
     await job.updateProgress(100);
 
-    return {deleted: totalDeleted};
+    return {deleted: totalDeleted, throttleClaimsDeleted};
   } catch (error) {
     signale.error('[IDEMPOTENCY-CLEANUP] Error during cleanup:', error);
     throw error;
+  }
+}
+
+/**
+ * Delete throttle claims whose window has passed. Claims held forever (expiresAt null) and
+ * claims of emails still scheduled (expiresAt in the future) are never touched.
+ */
+export async function deleteExpiredThrottleClaims(): Promise<number> {
+  let totalDeleted = 0;
+
+  for (;;) {
+    const deleted = await prisma.$executeRaw`
+      DELETE FROM "throttle_claims"
+      WHERE "id" IN (
+        SELECT "id" FROM "throttle_claims"
+        WHERE "expiresAt" < NOW()
+        LIMIT ${BATCH_SIZE}
+      )
+    `;
+
+    totalDeleted += deleted;
+
+    if (deleted < BATCH_SIZE) {
+      return totalDeleted;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 }
 
@@ -85,14 +123,4 @@ export function createIdempotencyKeyCleanupWorker(): Worker<IdempotencyKeyCleanu
   });
 
   return worker;
-}
-
-function parseRedisUrl(url: string): {host: string; port: number; password?: string; db?: number} {
-  const urlObj = new URL(url);
-  return {
-    host: urlObj.hostname,
-    port: parseInt(urlObj.port || '6379', 10),
-    password: urlObj.password || undefined,
-    db: parseInt(urlObj.pathname.slice(1) || '0', 10),
-  };
 }

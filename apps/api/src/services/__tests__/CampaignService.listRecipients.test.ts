@@ -51,15 +51,61 @@ describe('CampaignService - listRecipients', () => {
     expect(result.hasMore).toBe(false);
   });
 
-  it('keeps the two lists apart', async () => {
+  it('keeps the three lists apart', async () => {
     await sendTo('bounced@plunk.test', {status: 'BOUNCED', bouncedAt: new Date()});
     await sendTo('complained@plunk.test', {status: 'COMPLAINED', complainedAt: new Date()});
+    // An opt-out has no status of its own: the email stays delivered, or opened.
+    await sendTo('unsubscribed@plunk.test', {status: 'OPENED', unsubscribedAt: new Date()});
 
-    const bounced = await CampaignService.listRecipients(projectId, campaignId, 'bounced');
-    const complained = await CampaignService.listRecipients(projectId, campaignId, 'complained');
+    const lists = await Promise.all(
+      (['bounced', 'complained', 'unsubscribed'] as const).map(type =>
+        CampaignService.listRecipients(projectId, campaignId, type),
+      ),
+    );
 
-    expect(bounced.data.map(r => r.email)).toEqual(['bounced@plunk.test']);
-    expect(complained.data.map(r => r.email)).toEqual(['complained@plunk.test']);
+    expect(lists.map(list => list.data.map(r => r.email))).toEqual([
+      ['bounced@plunk.test'],
+      ['complained@plunk.test'],
+      ['unsubscribed@plunk.test'],
+    ]);
+  });
+
+  it('lists opt-outs newest first, whatever the email status', async () => {
+    await sendTo('older@plunk.test', {status: 'DELIVERED', unsubscribedAt: new Date('2026-01-01T10:00:00Z')});
+    await sendTo('newer@plunk.test', {status: 'CLICKED', unsubscribedAt: new Date('2026-01-02T10:00:00Z')});
+    await sendTo('stayed@plunk.test', {status: 'OPENED'});
+
+    const result = await CampaignService.listRecipients(projectId, campaignId, 'unsubscribed');
+
+    expect(result.data.map(r => r.email)).toEqual(['newer@plunk.test', 'older@plunk.test']);
+    expect(result.data[1]?.occurredAt).toBe('2026-01-01T10:00:00.000Z');
+  });
+
+  it('pages through opt-outs that share a timestamp without skipping or repeating', async () => {
+    const unsubscribedAt = new Date('2026-01-01T10:00:00Z');
+    for (const email of ['a@plunk.test', 'b@plunk.test', 'c@plunk.test']) {
+      await sendTo(email, {status: 'DELIVERED', unsubscribedAt});
+    }
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const page = await CampaignService.listRecipients(projectId, campaignId, 'unsubscribed', {limit: 2, cursor});
+      seen.push(...page.data.map(r => r.email));
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+
+    expect(seen.sort()).toEqual(['a@plunk.test', 'b@plunk.test', 'c@plunk.test']);
+  });
+
+  it('reports the unsubscribe counter as the opt-out total', async () => {
+    await sendTo('one@plunk.test', {status: 'DELIVERED', unsubscribedAt: new Date()});
+    await prisma.campaign.update({where: {id: campaignId}, data: {unsubscribedCount: 1}});
+
+    const result = await CampaignService.listRecipients(projectId, campaignId, 'unsubscribed');
+
+    expect(result.total).toBe(1);
   });
 
   it('reports the timestamp of the event, not of the send', async () => {

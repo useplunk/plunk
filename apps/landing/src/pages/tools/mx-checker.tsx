@@ -1,34 +1,22 @@
-import {FAQSection, Footer, Navbar, SectionHeader} from '../../components';
+import {
+  FAQSection,
+  FeatureCTA,
+  Footer,
+  MoreTools,
+  Navbar,
+  ToolExplainer,
+  ToolFinding,
+  ToolHero,
+  ToolPanel,
+  ToolPill,
+  ToolResult,
+  ToolVerdict,
+} from '../../components';
+import type {FAQ} from '../../components';
 import {motion} from 'framer-motion';
-import {DASHBOARD_URI} from '../../lib/constants';
 import React, {useState} from 'react';
 import {NextSeo} from 'next-seo';
-import {AlertTriangle, ArrowRight, CheckCircle, Mail, XCircle} from 'lucide-react';
 import {Button, Input} from '@plunk/ui';
-import {Funnel_Display, Funnel_Sans, JetBrains_Mono} from 'next/font/google';
-import Link from 'next/link';
-import type {FAQ} from '../../components/FAQSection';
-
-const display = Funnel_Display({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const body = Funnel_Sans({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
-});
-
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-  weight: ['400', '500'],
-});
 
 interface MxRecord {
   priority: number;
@@ -71,9 +59,9 @@ function analyzeMx(records: MxRecord[]): MxIssue[] {
   issues.push({type: 'pass', label: `${records.length} MX record${records.length > 1 ? 's' : ''} found`, detail: 'Mail servers can look up where to deliver email for this domain.'});
 
   if (records.length === 1) {
-    issues.push({type: 'warning', label: 'Single MX record — no redundancy', detail: 'If this mail server is unavailable, email delivery will fail. Consider adding a secondary MX record with a higher priority number as a fallback.'});
+    issues.push({type: 'warning', label: 'Single MX record, no fallback', detail: 'If this mail server is unavailable, email delivery will fail. Consider adding a secondary MX record with a higher priority number as a fallback.'});
   } else {
-    issues.push({type: 'pass', label: 'Multiple MX records — redundancy configured', detail: 'If the primary server is unreachable, mail will fall back to lower-priority servers.'});
+    issues.push({type: 'pass', label: 'Multiple MX records, fallback in place', detail: 'If the primary server is unreachable, mail will fall back to lower-priority servers.'});
   }
 
   const priorities = records.map(r => r.priority);
@@ -122,6 +110,35 @@ function priorityLabel(priority: number): string {
   if (priority <= 20) return 'Secondary';
   return 'Fallback';
 }
+
+const ISSUE_TONE = {pass: 'ok', warning: 'warn', error: 'err'} as const;
+
+const VERDICTS = {
+  ok: 'MX records are set up correctly',
+  warn: 'MX records need attention',
+  err: 'MX records have critical errors',
+} as const;
+
+function verdictTone(issues: MxIssue[]): keyof typeof VERDICTS {
+  if (issues.some(i => i.type === 'error')) return 'err';
+  if (issues.some(i => i.type === 'warning')) return 'warn';
+  return 'ok';
+}
+
+const explainer = [
+  {
+    title: 'Sender looks up MX',
+    body: 'When someone sends to you@domain.com, their mail server queries DNS for the MX records of domain.com. The priority numbers tell it which server to try first.',
+  },
+  {
+    title: 'Connection to port 25',
+    body: "The sending server opens an SMTP connection to port 25 on your mail server's hostname. If the connection fails, it tries the next MX in priority order.",
+  },
+  {
+    title: 'Authentication checks',
+    body: 'Your mail server runs SPF, DKIM, and DMARC checks on the incoming message. Failures may cause the message to be filtered or rejected depending on your policy.',
+  },
+];
 
 const faqs: FAQ[] = [
   {
@@ -179,281 +196,121 @@ export default function MxCheckerPage() {
 
       <Navbar />
 
-      <div className={`${display.variable} ${body.variable} ${mono.variable}`}>
+      <div>
         <main className={'text-neutral-800'}>
-          {/* ========== HERO ========== */}
-          <section className={'relative overflow-hidden'}>
-            <div
-              aria-hidden
-              className={'absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#eeeeee_1px,transparent_1px),linear-gradient(to_bottom,#eeeeee_1px,transparent_1px)] bg-[size:6rem_6rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_95%)]'}
-            />
+          <ToolHero
+            title={'MX record checker'}
+            subtitle={
+              'Look up the mail servers for any domain, see their priority, and check there is a fallback when one goes down.'
+            }
+          >
+            <ToolPanel>
+              <form onSubmit={handleCheck} className={'flex flex-col gap-3 sm:flex-row'}>
+                <label htmlFor="mxDomain" className={'sr-only'}>
+                  Domain name
+                </label>
+                <Input
+                  id="mxDomain"
+                  type="text"
+                  value={domain}
+                  onChange={e => setDomain(e.target.value)}
+                  placeholder="example.com"
+                  required
+                  className={'h-11 flex-1'}
+                />
+                <Button type="submit" className={'h-11 px-6'} disabled={loading}>
+                  {loading ? 'Checking…' : 'Check MX'}
+                </Button>
+              </form>
+            </ToolPanel>
 
-            <div className={'mx-auto max-w-[88rem] px-6 pb-24 pt-20 sm:px-10 sm:pt-28 lg:pb-36'}>
+            {result && (
               <motion.div
-                initial={{opacity: 0, y: 8}}
+                initial={{opacity: 0, y: 12}}
                 animate={{opacity: 1, y: 0}}
-                transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
-                style={{fontFamily: 'var(--font-mono)'}}
-                className={'mb-16 flex items-center justify-between border-t border-neutral-900/90 pt-4 text-label text-neutral-700 sm:mb-24'}
+                transition={{duration: 0.4, ease: [0.22, 1, 0.36, 1]}}
+                className={'mt-6 flex flex-col gap-4'}
               >
-                <span className={'font-medium text-neutral-900'}>§ T-08 &nbsp;— &nbsp;Tool</span>
-                <Link href="/tools" className={'text-neutral-500 transition hover:text-neutral-900'}>
-                  ← All tools
-                </Link>
+                {result.error ? (
+                  <ToolVerdict
+                    tone={'err'}
+                    title={'The lookup failed'}
+                    detail={`Could not query MX records for ${result.domain}. Check the domain and try again.`}
+                  />
+                ) : !result.found || result.records.length === 0 ? (
+                  <ToolVerdict
+                    tone={'err'}
+                    title={'No MX records found'}
+                    detail={`Email cannot be delivered to ${result.domain}. Add at least one MX record pointing to your mail server in your DNS provider.`}
+                  />
+                ) : (
+                  <>
+                    <ToolVerdict
+                      tone={verdictTone(result.issues)}
+                      title={VERDICTS[verdictTone(result.issues)]}
+                      detail={result.domain}
+                    />
+
+                    <ToolResult title={'Mail servers'}>
+                      <ul className={'divide-y divide-neutral-100'}>
+                        {result.records.map((rec, i) => (
+                          <li key={i} className={'flex items-center gap-4 py-3 first:pt-0 last:pb-0'}>
+                            <span
+                              className={
+                                'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-50 font-code text-ui font-medium tabular-nums text-neutral-700'
+                              }
+                            >
+                              {rec.priority}
+                            </span>
+                            <span className={'min-w-0 flex-1 truncate font-code text-ui font-medium text-neutral-900'}>
+                              {rec.exchange || '(empty)'}
+                            </span>
+                            <ToolPill tone={'neutral'}>{priorityLabel(rec.priority)}</ToolPill>
+                          </li>
+                        ))}
+                      </ul>
+                    </ToolResult>
+
+                    {result.issues.length > 0 && (
+                      <ToolResult title={'What we found'}>
+                        <ul className={'flex flex-col gap-4'}>
+                          {result.issues.map((issue, i) => (
+                            <ToolFinding
+                              key={i}
+                              tone={ISSUE_TONE[issue.type]}
+                              label={issue.label}
+                              detail={issue.detail}
+                            />
+                          ))}
+                        </ul>
+                      </ToolResult>
+                    )}
+                  </>
+                )}
               </motion.div>
+            )}
+          </ToolHero>
 
-              <motion.div
-                initial={{opacity: 0, y: 16}}
-                animate={{opacity: 1, y: 0}}
-                transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
-                className={'mx-auto max-w-5xl text-center'}
-              >
-                <h1
-                  style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-display font-extrabold leading-[0.92] tracking-[-0.04em] text-neutral-900'}
-                >
-                  MX record
-                  <br />
-                  checker
-                </h1>
-                <p className={'mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-neutral-600 sm:text-xl'}>
-                  Look up the mail exchange records for any domain. See mail server priority, check for redundancy, and diagnose email delivery problems.
-                </p>
-              </motion.div>
-            </div>
-          </section>
+          <ToolExplainer
+            title={'How email finds its destination'}
+            subtitle={'MX records are the address book of email routing: without them, no one can send you mail.'}
+            items={explainer}
+          />
 
-          {/* ========== TOOL ========== */}
-          <section className={'mx-auto max-w-[88rem] px-6 py-16 sm:px-10 sm:py-20'}>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              whileInView={{opacity: 1, y: 0}}
-              viewport={{once: true}}
-              transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-              className={'mx-auto max-w-2xl'}
-            >
-              <div className={'overflow-hidden rounded-card border border-neutral-200 bg-white'}>
-                <div className={'border-b border-neutral-200 px-8 py-5'}>
-                  <div className={'flex items-center gap-3'}>
-                    <Mail className={'h-4 w-4 text-neutral-500'} strokeWidth={1.5} />
-                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>
-                      MX record lookup
-                    </span>
-                  </div>
-                </div>
+          <MoreTools current={'mx-checker'} />
 
-                <form onSubmit={handleCheck} className={'p-8'}>
-                  <div className={'space-y-4'}>
-                    <div>
-                      <label htmlFor="mxDomain" className={'mb-2 block text-ui font-medium text-neutral-900'}>
-                        Domain name <span className={'text-err'}>*</span>
-                      </label>
-                      <Input
-                        id="mxDomain"
-                        type="text"
-                        value={domain}
-                        onChange={e => setDomain(e.target.value)}
-                        placeholder="example.com"
-                        required
-                        className={'w-full'}
-                      />
-                      <p className={'mt-1.5 text-xs text-neutral-500'}>Enter the domain without http:// or www.</p>
-                    </div>
-                    <Button type="submit" className={'w-full gap-2'} disabled={loading}>
-                      <Mail className={'h-4 w-4'} />
-                      {loading ? 'Looking up MX records…' : 'Check MX records'}
-                    </Button>
-                  </div>
-                </form>
-              </div>
+          <FAQSection faqs={faqs} schemaId="faq-mx-checker" />
 
-              {result && (
-                <motion.div
-                  initial={{opacity: 0, y: 16}}
-                  animate={{opacity: 1, y: 0}}
-                  transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
-                  className={'mt-6 space-y-4'}
-                >
-                  {result.error ? (
-                    <div className={'rounded-card border border-err/25 bg-err-surface p-8'}>
-                      <div className={'flex items-start gap-3'}>
-                        <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
-                        <div>
-                          <p className={'font-semibold text-err'}>DNS lookup failed</p>
-                          <p className={'mt-1 text-ui text-err'}>Could not query MX records for {result.domain}. Check the domain name and try again.</p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {!result.found || result.records.length === 0 ? (
-                        <div className={'rounded-card border border-err/25 bg-err-surface p-8'}>
-                          <div className={'flex items-start gap-3'}>
-                            <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
-                            <div>
-                              <p className={'font-semibold text-err'}>No MX records found</p>
-                              <p className={'mt-1 text-ui text-err'}>
-                                {result.domain} has no MX records. Email cannot be delivered to this domain. Add at least one MX record in your DNS provider.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
-                          <h3 style={{fontFamily: 'var(--font-display)'}} className={'mb-6 text-lg font-bold text-neutral-900'}>
-                            MX records for {result.domain}
-                          </h3>
-                          <div className={'space-y-3'}>
-                            {result.records.map((rec, i) => (
-                              <div key={i} className={'flex items-center gap-4 rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3'}>
-                                <div className={'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white'}>
-                                  <span style={{fontFamily: 'var(--font-mono)'}} className={'text-xs font-bold tabular-nums text-neutral-700'}>
-                                    {rec.priority}
-                                  </span>
-                                </div>
-                                <div className={'min-w-0 flex-1'}>
-                                  <span style={{fontFamily: 'var(--font-mono)'}} className={'block truncate text-ui font-medium text-neutral-900'}>
-                                    {rec.exchange || '(empty)'}
-                                  </span>
-                                  <span className={'text-xs text-neutral-500'}>Priority {rec.priority} · {priorityLabel(rec.priority)}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {result.issues.length > 0 && (
-                        <div className={'rounded-card border border-neutral-200 bg-white p-8'}>
-                          <h3 style={{fontFamily: 'var(--font-display)'}} className={'mb-6 text-lg font-bold text-neutral-900'}>
-                            Analysis
-                          </h3>
-                          <ul className={'space-y-3'}>
-                            {result.issues.map((issue, i) => (
-                              <li key={i} className={'flex items-start gap-3'}>
-                                {issue.type === 'pass' ? (
-                                  <CheckCircle className={'mt-0.5 h-5 w-5 shrink-0 text-ok'} />
-                                ) : issue.type === 'warning' ? (
-                                  <AlertTriangle className={'mt-0.5 h-5 w-5 shrink-0 text-warn'} />
-                                ) : (
-                                  <XCircle className={'mt-0.5 h-5 w-5 shrink-0 text-err'} />
-                                )}
-                                <div>
-                                  <p className={'text-ui font-medium text-neutral-900'}>{issue.label}</p>
-                                  <p className={'mt-0.5 text-xs text-neutral-500'}>{issue.detail}</p>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </motion.div>
-              )}
-            </motion.div>
-          </section>
-
-          {/* ========== EDUCATION ========== */}
-          <section className={'border-t border-neutral-200 bg-neutral-50/60'}>
-            <div className={'mx-auto max-w-[88rem] px-6 py-28 sm:px-10 sm:py-36'}>
-              <SectionHeader
-                title={'How email finds its destination.'}
-                subtitle={'MX records are the address book of email routing — without them, no one can send you mail.'}
-              />
-
-              <div className={'mt-20 grid gap-6 sm:grid-cols-3'}>
-                {[
-                  {
-                    step: '01',
-                    title: 'Sender looks up MX',
-                    body: 'When someone sends to you@domain.com, their mail server queries DNS for the MX records of domain.com. The priority numbers tell it which server to try first.',
-                    cls: 'border-neutral-300',
-                  },
-                  {
-                    step: '02',
-                    title: 'Connection to port 25',
-                    body: 'The sending server opens an SMTP connection to port 25 on your mail server\'s hostname. If the connection fails, it tries the next MX in priority order.',
-                    cls: 'border-neutral-300',
-                  },
-                  {
-                    step: '03',
-                    title: 'Authentication checks',
-                    body: 'Your mail server runs SPF, DKIM, and DMARC checks on the incoming message. Failures may cause the message to be filtered or rejected depending on your policy.',
-                    cls: 'border-neutral-300',
-                  },
-                ].map((item, i) => (
-                  <motion.div
-                    key={item.step}
-                    initial={{opacity: 0, y: 16}}
-                    whileInView={{opacity: 1, y: 0}}
-                    viewport={{once: true}}
-                    transition={{duration: 0.5, delay: i * 0.08, ease: [0.22, 1, 0.36, 1]}}
-                    className={`flex flex-col gap-5 rounded-card border-2 bg-white p-8 ${item.cls}`}
-                  >
-                    <span style={{fontFamily: 'var(--font-mono)'}} className={'text-label text-neutral-500'}>
-                      Step {item.step}
-                    </span>
-                    <h3 style={{fontFamily: 'var(--font-display)'}} className={'text-2xl font-bold tracking-[-0.02em] text-neutral-900'}>
-                      {item.title}
-                    </h3>
-                    <p className={'text-ui leading-relaxed text-neutral-600'}>{item.body}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* ========== CTA ========== */}
-          <section className={'relative overflow-hidden border-t border-neutral-900 bg-neutral-900 text-white'}>
-            <div className={'mx-auto max-w-[88rem] px-6 py-32 sm:px-10 sm:py-40'}>
-              <div className={'flex flex-col items-start gap-12 lg:flex-row lg:items-end lg:justify-between'}>
-                <motion.h2
-                  initial={{opacity: 0, y: 16}}
-                  whileInView={{opacity: 1, y: 0}}
-                  viewport={{once: true}}
-                  transition={{duration: 0.9, ease: [0.22, 1, 0.36, 1]}}
-                  style={{fontFamily: 'var(--font-display)'}}
-                  className={'text-display font-extrabold leading-[0.95] tracking-[-0.035em]'}
-                >
-                  Email that reaches the inbox.
-                </motion.h2>
-
-                <motion.div
-                  initial={{opacity: 0, y: 16}}
-                  whileInView={{opacity: 1, y: 0}}
-                  viewport={{once: true}}
-                  transition={{duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1]}}
-                  className={'flex max-w-md flex-col gap-6'}
-                >
-                  <p className={'text-lead text-neutral-300'}>
-                    Plunk handles SPF, DKIM, and DMARC setup and keeps your sending reputation clean so email lands in the inbox.
-                  </p>
-                  <div className={'flex flex-wrap gap-3'}>
-                    <motion.a
-                      whileHover={{scale: 1.015}}
-                      whileTap={{scale: 0.985}}
-                      href={`${DASHBOARD_URI}/auth/signup`}
-                      className={'inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-ui font-semibold text-neutral-900 transition hover:bg-neutral-100'}
-                    >
-                      Start with Plunk
-                      <ArrowRight className={'h-4 w-4'} />
-                    </motion.a>
-                    <Link
-                      href="/tools/spf-checker"
-                      className={'inline-flex items-center gap-2 rounded-full border border-neutral-700 px-7 py-3.5 text-ui font-semibold text-white transition hover:border-white'}
-                    >
-                      Check SPF record
-                    </Link>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </section>
+          <FeatureCTA
+            title={'Email that reaches the inbox.'}
+            body={
+              'Plunk handles SPF, DKIM, and DMARC setup and keeps your sending reputation clean so email lands in the inbox.'
+            }
+            secondary={{href: '/tools/spf-checker', label: 'Check SPF record'}}
+          />
         </main>
       </div>
 
-      <FAQSection faqs={faqs} schemaId="faq-mx-checker" />
       <Footer />
     </>
   );

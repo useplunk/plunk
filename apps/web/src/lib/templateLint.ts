@@ -284,7 +284,7 @@ export function lintTemplateFields(source: string, fields: ContactField[]): Temp
     }
 
     const field = byName.get(name);
-    if (field && field.coverage < SPARSE_COVERAGE_THRESHOLD) {
+    if (field && field.coverage !== null && field.coverage < SPARSE_COVERAGE_THRESHOLD) {
       warnings.push({
         kind: 'sparse',
         field: name,

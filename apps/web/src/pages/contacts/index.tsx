@@ -17,7 +17,7 @@ import {
 } from '@plunk/ui';
 import type {Contact} from '@plunk/db';
 import {ContactSchemas} from '@plunk/shared';
-import type {ContactSubscriptionStatus, CursorPaginatedResponse} from '@plunk/types';
+import type {BulkContactActionSelector, ContactSubscriptionStatus, CursorPaginatedResponse} from '@plunk/types';
 import {
   getCoreRowModel,
   useReactTable,
@@ -271,6 +271,20 @@ export default function ContactsPage() {
   const effectiveSelectionCount = selectAllMatching
     ? Math.max(0, totalCount - excludedContacts.size)
     : selectedContacts.size;
+
+  // What a bulk action targets. "Select all matching" mirrors the active list filters so it
+  // reaches exactly the rows the user is looking at, minus the ones they unticked.
+  const bulkSelector = useMemo<BulkContactActionSelector>(
+    () =>
+      selectAllMatching
+        ? {
+            mode: 'query',
+            filter: {...(search ? {search} : {}), ...(statusFilter !== 'ALL' ? {status: statusFilter} : {})},
+            excludeIds: Array.from(excludedContacts),
+          }
+        : {mode: 'ids', contactIds: Array.from(selectedContacts)},
+    [selectAllMatching, search, statusFilter, excludedContacts, selectedContacts],
+  );
 
   const handleBulkAction = (operation: 'subscribe' | 'unsubscribe' | 'delete') => {
     setBulkOperation(operation);
@@ -733,20 +747,7 @@ export default function ContactsPage() {
           open={showBulkActionsDialog}
           onOpenChange={setShowBulkActionsDialog}
           operation={bulkOperation}
-          selector={
-            selectAllMatching
-              ? {
-                  mode: 'query',
-                  // Mirror the active list filters so "select all matching"
-                  // targets exactly the rows the user is looking at.
-                  filter: {
-                    ...(search ? {search} : {}),
-                    ...(statusFilter !== 'ALL' ? {subscribed: statusFilter === 'subscribed'} : {}),
-                  },
-                  excludeIds: Array.from(excludedContacts),
-                }
-              : {mode: 'ids', contactIds: Array.from(selectedContacts)}
-          }
+          selector={bulkSelector}
           targetCount={effectiveSelectionCount}
           onSuccess={() => {
             mutate();
@@ -1180,15 +1181,11 @@ function ImportContactsDialog({open, onOpenChange, onSuccess}: ImportContactsDia
   );
 }
 
-type BulkSelector =
-  | {mode: 'ids'; contactIds: string[]}
-  | {mode: 'query'; filter: {search?: string; subscribed?: boolean}; excludeIds: string[]};
-
 interface BulkActionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   operation: 'subscribe' | 'unsubscribe' | 'delete' | null;
-  selector: BulkSelector;
+  selector: BulkContactActionSelector;
   targetCount: number;
   onSuccess: () => void;
 }

@@ -23,6 +23,9 @@ export function createWorkflowWorker() {
         }
 
         await WorkflowExecutionService.processTimeout(executionId, stepId, stepExecutionId);
+      } else if (type === 'delay-end') {
+        // Complete an execution whose DELAY step was the last step
+        await WorkflowExecutionService.processDelayEnd(executionId, stepId);
       } else {
         // Handle regular step execution
         await WorkflowExecutionService.processStepExecution(executionId, stepId);

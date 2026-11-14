@@ -13,9 +13,14 @@ For full product documentation, see the docs site: https://docs.useplunk.com/llm
 - [Plunk home](https://www.useplunk.com/index.md): Product overview, features, and positioning
 - [Pricing](https://www.useplunk.com/pricing.md): Plans, included volume, and overage pricing
 - [Made by humans](https://www.useplunk.com/made-by-humans): The team and story behind Plunk
+- [EU hosting and GDPR](https://www.useplunk.com/eu): Where data is stored, sub-processors, and the DPA
+- [Open-source email platform](https://www.useplunk.com/open-source-email-platform): License, self-hosting with Docker, and how Plunk compares to other open-source email tools
+- [Amazon SES dashboard](https://www.useplunk.com/aws-ses): Plunk as the dashboard and platform on top of Amazon SES
 
 ## Features
 
+- [Transactional email](https://www.useplunk.com/features/transactional-email): Send email from your app with one API call
+- [Campaigns](https://www.useplunk.com/features/campaigns): Newsletters and product updates to a list, segment, or filter
 - [Email editor](https://www.useplunk.com/features/email-editor.md): Drag-and-drop and code-based template editor
 - [Workflows](https://www.useplunk.com/features/workflows.md): Event- and segment-triggered automation flows
 - [Segments](https://www.useplunk.com/features/segments.md): Dynamic and static contact segments
@@ -40,6 +45,15 @@ For full product documentation, see the docs site: https://docs.useplunk.com/llm
 - [Plunk vs Amazon SES](https://www.useplunk.com/vs/amazon-ses)
 - [Plunk vs Mailjet](https://www.useplunk.com/vs/mailjet)
 - [Plunk vs Buttondown](https://www.useplunk.com/vs/buttondown)
+- [Plunk vs useSend](https://www.useplunk.com/vs/usesend)
+- [Plunk alternatives](https://www.useplunk.com/alternatives/plunk): When another tool is the better choice
+- [Resend alternatives](https://www.useplunk.com/alternatives/resend)
+- [SendGrid alternatives](https://www.useplunk.com/alternatives/sendgrid)
+- [Mailgun alternatives](https://www.useplunk.com/alternatives/mailgun)
+- [Mailchimp alternatives](https://www.useplunk.com/alternatives/mailchimp)
+- [Loops alternatives](https://www.useplunk.com/alternatives/loops)
+- [Postmark alternatives](https://www.useplunk.com/alternatives/postmark)
+- [Customer.io alternatives](https://www.useplunk.com/alternatives/customerio)
 - [All comparisons](https://www.useplunk.com/vs)
 
 ## Guides

@@ -1,0 +1,62 @@
+{
+  "pages": {
+    "unsubscribe": {
+      "title": "Loobu tellimusest",
+      "description": "Kas lõpetada {projectName} e-kirjade saamine aadressile {email}?",
+      "button": "Loobu tellimusest",
+      "buttonLoading": "Loobumine...",
+      "managePreferences": "Halda hoopis eelistusi",
+      "successTitle": "Olete tellimusest loobunud",
+      "successDescription": "{email} ei saa enam {projectName} e-kirju.",
+      "changedMind": "Mõtlesite ümber?",
+      "subscribeAgain": "Telli uuesti"
+    },
+    "subscribe": {
+      "title": "Telli uudised",
+      "description": "Kas saada {projectName} e-kirju aadressile {email}?",
+      "button": "Telli",
+      "buttonLoading": "Tellimine...",
+      "successTitle": "Olete tellinud!",
+      "successDescription": "{email} saab nüüd {projectName} e-kirju."
+    },
+    "manage": {
+      "title": "Tellimuse eelistused",
+      "description": "Hallake e-kirju, mida {projectName} saadab aadressile {email}.",
+      "subscriptionLabel": "E-kirjade tellimus",
+      "subscribedStatus": "Te saate praegu e-kirju",
+      "unsubscribedStatus": "Te ei saa praegu e-kirju",
+      "subscribedSuccess": "Tellimine õnnestus!",
+      "unsubscribedSuccess": "Tellimusest loobumine õnnestus!",
+      "unsubscribeCompletely": "Loobu täielikult",
+      "subscribeToEmails": "Telli e-kirjad",
+      "disclaimer": "Sellel lehel saate hallata oma e-kirjade eelistusi. Tellimuse olek uuendatakse kohe."
+    },
+    "snooze": {
+      "cta": "Peata hoopis e-kirjad ajutiselt",
+      "prompt": "Kui kauaks e-kirjad peatada?",
+      "duration_2_weeks": "2 nädalaks",
+      "duration_1_month": "1 kuuks",
+      "duration_6_months": "6 kuuks",
+      "duration_1_year": "1 aastaks",
+      "buttonLoading": "Peatamine...",
+      "cancel": "Tühista",
+      "successTitle": "E-kirjad on ajutiselt peatatud",
+      "successDescription": "{email} ei saa {projectName} e-kirju kuni {date}. Seejärel jätkuvad need automaatselt.",
+      "status": "Peatatud kuni {date}",
+      "resume": "Jätka e-kirjadega kohe"
+    },
+    "common": {
+      "loading": "Laadimine...",
+      "error": "Viga",
+      "loadFailed": "Teie e-kirjade eelistusi ei õnnestunud laadida. Kontrollige linki ja proovige uuesti.",
+      "actionFailed": "Midagi läks valesti. Palun proovige uuesti.",
+      "sentWith": "Saadetud teenusega {provider}"
+    }
+  },
+  "email": {
+    "footer": {
+      "unsubscribeText": "Saite selle e-kirja, kuna nõustusite saama e-kirju saatjalt {projectName}. Kui te ei soovi enam selliseid e-kirju saada, palun",
+      "updatePreferences": "muutke oma eelistusi"
+    }
+  }
+}

@@ -1,364 +1,263 @@
-import React from 'react';
-import {GuideLayout, InfoBox} from '../../components/guides';
-import {CodeBlock} from '../../components/CodeBlock';
 import Link from 'next/link';
+import React from 'react';
+
 import type {FAQ} from '../../components/FAQSection';
+import {
+  AuthResultsFragment,
+  DnsRecordFragment,
+  GuideCode,
+  GuideFigure,
+  GuideLayout,
+  GuidePoints,
+  GuideSection,
+  GuideSteps,
+  GuideTable,
+  InfoBox,
+} from '../../components/guides';
+import {SnippetTile} from '../../components/snippets';
 
 const faqs: FAQ[] = [
   {
     question: 'What is SPF in email?',
     answer:
-      'SPF (Sender Policy Framework) is an email authentication protocol that lets domain owners specify which mail servers are authorized to send email on behalf of their domain. It works by publishing a list of authorized IP addresses in your DNS as a TXT record. When an email arrives, the receiving server checks if the sending server\'s IP address is on your approved list.',
+      'SPF (Sender Policy Framework) is an email authentication standard that lets a domain owner list which mail servers may send email for their domain. The list is published in DNS as a TXT record. When a message arrives, the receiving server checks whether the server that sent it is on that list.',
   },
   {
     question: 'What is the difference between SPF and DKIM?',
     answer:
-      'SPF verifies that the sending mail server is authorized to send from your domain by checking the server\'s IP address against your DNS record. DKIM adds a cryptographic signature to the email body and headers, verifying the content was not modified in transit. SPF validates who is sending; DKIM validates what was sent. Both work best together, and DMARC requires at least one of them to be properly configured.',
+      'SPF checks that the sending server is allowed to send for your domain, by comparing its IP address with your DNS record. DKIM adds a cryptographic signature to the message, which proves the content was not changed in transit. SPF checks who sent it; DKIM checks what was sent. Use both: DMARC needs at least one of them to pass and align with your domain.',
   },
   {
     question: 'How do I create an SPF record?',
     answer:
-      'Add a TXT record to your domain\'s DNS at the root domain (@ or yourdomain.com) with the format: v=spf1 include:[your-email-service] ~all. Replace the include: with the SPF value from your email provider. If you use multiple email services, combine them in one record: v=spf1 include:_spf.google.com include:spf.useplunk.com ~all. You can only have one SPF record per domain.',
+      'Add a TXT record at the root of your domain (@) in the form v=spf1 include:your-provider ~all, using the include value your email provider gives you. If you send through more than one service, list them all in the same record, for example v=spf1 include:_spf.google.com include:spf.useplunk.com ~all. A domain can only have one SPF record.',
   },
   {
     question: 'What does ~all mean in an SPF record?',
     answer:
-      '~all (tilde-all) at the end of an SPF record is a "soft fail" qualifier, meaning emails from unlisted servers should be accepted but flagged as potentially suspicious. The alternative -all (hard fail) completely rejects emails from unlisted servers. Most experts recommend ~all for initial setup to avoid blocking legitimate emails. Never use +all—it passes all emails and completely defeats SPF\'s purpose.',
+      '~all is a soft fail: mail from servers that are not listed should be accepted but treated as suspicious. -all is a hard fail and asks receivers to reject that mail outright. Start with ~all while you confirm every sender is listed, then move to -all if you want. Never use +all, which lets any server pass.',
   },
   {
     question: 'Why is SPF failing even though I set it up correctly?',
     answer:
-      'Common SPF failure causes: (1) You have multiple SPF records—you can only have one, combine all senders into a single record, (2) You exceeded the 10 DNS lookup limit—each include: counts as one lookup, (3) You added a new email service but forgot to add its SPF include, (4) DNS propagation is still in progress—can take up to 48 hours, (5) Your email is being forwarded, which changes the sending IP and breaks SPF (use DKIM too to handle forwarding).',
+      'The usual causes are: two SPF records on the same domain (merge them into one); more than 10 DNS lookups (each include counts); a new sending service that was never added; DNS changes that have not propagated yet, which can take up to 48 hours; or forwarding, which changes the sending server and breaks SPF. Set up DKIM as well so forwarded mail still authenticates.',
   },
 ];
+
+/** The record most readers will end up with: their mailbox provider plus Plunk. */
+const RECORD = 'v=spf1 include:_spf.google.com include:spf.useplunk.com ~all';
 
 export default function WhatIsSPF() {
   return (
     <GuideLayout
+      slug={'what-is-spf'}
       title="What is SPF? Email Sender Policy Framework Explained"
+      heading={'What is SPF?'}
       description="Learn how SPF records work, prevent email spoofing, and improve deliverability. Complete guide with setup examples and best practices."
+      lead={
+        'SPF is a DNS record that lists the servers allowed to send email for your domain. Inboxes check it on every message, and mail from anywhere else can be sent to spam or rejected.'
+      }
       lastUpdated="2025-12-20"
       readTime="7 min"
       canonical="https://www.useplunk.com/guides/what-is-spf"
       faqs={faqs}
+      cta={'Get SPF right the first time.'}
+      figure={
+        <SnippetTile align={'bleed-right'} className={'min-h-[26rem] py-10'}>
+          <div className={'flex flex-col gap-3'}>
+            <DnsRecordFragment
+              type={'TXT'}
+              name={'acme.com'}
+              value={RECORD}
+              status={{tone: 'ok', label: 'Verified'}}
+              className={'w-full max-w-lg'}
+            />
+            <AuthResultsFragment
+              subject={'Your receipt from Acme'}
+              from={'billing@acme.com'}
+              results={[
+                {label: 'Sent by', value: 'spf.useplunk.com', tone: 'neutral'},
+                {label: 'SPF', value: 'Pass', tone: 'ok'},
+              ]}
+              className={'ml-10 w-full max-w-xs'}
+            />
+          </div>
+        </SnippetTile>
+      }
     >
-      {/* Introduction */}
-      <section id="introduction" className="mb-12">
-        <p className="text-neutral-700 leading-relaxed">
-          SPF (Sender Policy Framework) is an email authentication protocol that allows domain owners to specify which
-          mail servers are authorized to send emails on behalf of their domain.
+      <GuideSection id={'how-spf-works'} title={'How SPF works'}>
+        <p>
+          Anyone can put your domain in the From line of an email. SPF is how a receiving server tells real mail from
+          forged mail: it compares the server that delivered the message with the list you published.
         </p>
-        <p className="mt-4 text-neutral-700 leading-relaxed">
-          Think of SPF as a guest list for your domain—it tells receiving servers, "These are the only servers allowed
-          to send email using my domain name."
-        </p>
-      </section>
-
-      {/* How SPF Works */}
-      <section id="how-spf-works" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How SPF Works</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          SPF works by publishing a list of authorized sending servers in your DNS records. Here's the process:
-        </p>
-
-        <div className="space-y-6 mb-8">
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">1. You Publish an SPF Record</h3>
-            <p className="text-neutral-700">
-              You add a TXT record to your domain's DNS that lists all IP addresses and services authorized to send
-              email from your domain.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">2. An Email is Sent</h3>
-            <p className="text-neutral-700">
-              When someone sends an email claiming to be from your domain, the receiving server notes the IP address of
-              the sending server.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">3. The Receiving Server Checks SPF</h3>
-            <p className="text-neutral-700">
-              The receiving server looks up your domain's SPF record in DNS and checks if the sending server's IP
-              address is listed as authorized.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">4. Pass or Fail</h3>
-            <p className="text-neutral-700">
-              If the IP matches, SPF passes. If not, SPF fails and the email may be flagged as spam or rejected,
-              depending on your policy.
-            </p>
-          </div>
-        </div>
-
-        <InfoBox type="info" title="SPF Validates the Server, Not the Content">
-          <p>
-            Unlike DKIM which validates email content, SPF only checks if the sending server is authorized. This is why
-            using both SPF and DKIM together provides stronger authentication.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* SPF Record Syntax */}
-      <section id="spf-record-syntax" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">SPF Record Syntax</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          An SPF record is a TXT record with a specific format. Here's a typical example:
-        </p>
-
-        <CodeBlock
-          language="dns"
-          title="Example SPF Record"
-          code={`v=spf1 include:_spf.google.com include:sendgrid.net ip4:192.0.2.1 ~all
-
-# Breaking down the components:
-# v=spf1                    -> SPF version (always v=spf1)
-# include:_spf.google.com   -> Include Google's SPF record
-# include:sendgrid.net      -> Include SendGrid's SPF record
-# ip4:192.0.2.1            -> Authorize specific IPv4 address
-# ~all                     -> Soft fail for all others`}
+        <GuideSteps
+          steps={[
+            {
+              title: 'You publish a record',
+              body: 'A TXT record on your domain lists every service and IP address allowed to send for it.',
+            },
+            {title: 'A message arrives', body: 'The receiving server notes the IP address of the server that delivered it.'},
+            {title: 'It looks up your record', body: 'It fetches the SPF record for the domain in the message’s return path.'},
+            {
+              title: 'Pass or fail',
+              body: 'If the IP is on the list, SPF passes. If not, it fails, and the message may be filtered or rejected.',
+            },
+          ]}
         />
-
-        <div className="mt-8 space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Common SPF Mechanisms</h3>
-            <div className="rounded-xl border border-neutral-200 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Mechanism</th>
-                    <th className="px-6 py-3 text-left text-ui font-semibold text-neutral-900">Description</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200">
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">ip4:192.0.2.1</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Authorize specific IPv4 address</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">ip6:2001:db8::1</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Authorize specific IPv6 address</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">include:domain.com</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Include another domain's SPF record</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">a</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Authorize domain's A record IP</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">mx</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Authorize domain's MX record IPs</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">~all</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Soft fail (treat others as suspicious)</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-mono text-ui text-neutral-900">-all</td>
-                    <td className="px-6 py-4 text-ui text-neutral-700">Hard fail (reject all others)</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        <GuideFigure caption={'Same From address, two servers. Only the listed one passes.'}>
+          <div className={'grid w-full max-w-xl gap-3 sm:grid-cols-2'}>
+            <AuthResultsFragment
+              subject={'Your receipt from Acme'}
+              from={'billing@acme.com'}
+              results={[
+                {label: 'Sent by', value: 'Plunk', tone: 'neutral'},
+                {label: 'SPF', value: 'Pass', tone: 'ok'},
+              ]}
+              className={'w-full'}
+            />
+            <AuthResultsFragment
+              subject={'Urgent: verify your account'}
+              from={'billing@acme.com'}
+              results={[
+                {label: 'Sent by', value: 'Unknown server', tone: 'neutral'},
+                {label: 'SPF', value: 'Fail', tone: 'err'},
+              ]}
+              className={'w-full'}
+            />
           </div>
-        </div>
-
-        <InfoBox type="warning" title="10 DNS Lookup Limit">
+        </GuideFigure>
+        <InfoBox title={'SPF checks the server, not the message'}>
           <p>
-            SPF has a hard limit of 10 DNS lookups. Each <code>include:</code> mechanism counts as one lookup. Exceeding
-            this limit causes SPF validation to fail. Keep your SPF record concise and avoid excessive includes.
+            SPF says nothing about whether the content was changed on the way. That is what{' '}
+            <Link href={'/guides/what-is-dkim'}>DKIM</Link> is for, which is why the two are used together.
           </p>
         </InfoBox>
-      </section>
+      </GuideSection>
 
-      {/* Why SPF Matters */}
-      <section id="why-spf-matters" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Why SPF Matters</h2>
-
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Prevents Email Spoofing</h3>
-            <p className="text-neutral-700">
-              SPF makes it much harder for spammers to send emails that appear to come from your domain. Only authorized
-              servers can send on your behalf.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Improves Deliverability</h3>
-            <p className="text-neutral-700">
-              Emails from domains with proper SPF records are more trusted by receiving servers, leading to better inbox
-              placement rates.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Protects Your Domain</h3>
-            <p className="text-neutral-700">
-              By specifying authorized senders, you protect your domain from being used in phishing and spam campaigns.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Required for DMARC</h3>
-            <p className="text-neutral-700">
-              SPF (along with DKIM) is necessary for implementing DMARC, which provides comprehensive email
-              authentication and reporting.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Setting Up SPF */}
-      <section id="setting-up-spf" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How to Set Up SPF</h2>
-
-        <div className="space-y-4 mb-8">
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              1
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Identify All Email Senders</h3>
-              <p className="text-neutral-700">
-                List all services and servers that send email from your domain: your email service provider, marketing
-                tools, support systems, etc.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              2
-            </div>
-            <div className="w-full max-w-full wrap-break-word">
-              <h3 className="font-semibold text-neutral-900 mb-2">Gather SPF Include Values</h3>
-              <p className="text-neutral-700 mb-3">Each email service provides SPF values to include. For example:</p>
-              <CodeBlock
-                language="text"
-                code={`Google Workspace:     include:_spf.google.com\nMicrosoft 365:        include:spf.protection.outlook.com\nPlunk:                include:spf.useplunk.com\nSendGrid:             include:sendgrid.net`}
-                showCopy={false}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              3
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Create Your SPF Record</h3>
-              <p className="text-neutral-700 mb-3">Combine all authorized senders into one SPF record:</p>
-              <CodeBlock language="dns" code={`v=spf1 include:_spf.google.com include:spf.useplunk.com ~all`} />
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              4
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Add to DNS</h3>
-              <p className="text-neutral-700">
-                Add the SPF record as a TXT record in your DNS settings. The record name should be your root domain
-                (e.g., "@" or "yourdomain.com").
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              5
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Verify SPF</h3>
-              <p className="text-neutral-700">
-                Use SPF validation tools to confirm your record is correct and doesn't exceed the 10 DNS lookup limit.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <InfoBox type="success" title="Plunk Handles This Automatically">
+      <GuideSection id={'spf-record-syntax'} title={'Reading an SPF record'}>
+        <p>
+          An SPF record is one line of text. It starts with the version, lists the allowed senders, and ends with what to
+          do about everyone else.
+        </p>
+        <GuideCode title={'TXT record on acme.com'} code={'v=spf1 include:_spf.google.com include:sendgrid.net ip4:192.0.2.1 ~all'} />
+        <GuideTable
+          mono
+          head={['Part', 'What it means']}
+          rows={[
+            ['v=spf1', 'The SPF version. Every record starts with this.'],
+            ['include:sendgrid.net', 'Allow every server listed in another domain’s SPF record. This is how you add a provider.'],
+            ['ip4:192.0.2.1', 'Allow one IPv4 address, or a range such as 192.0.2.0/24.'],
+            ['ip6:2001:db8::1', 'Allow one IPv6 address or range.'],
+            ['a', 'Allow the IP addresses in the domain’s A record.'],
+            ['mx', 'Allow the servers in the domain’s MX records.'],
+            ['~all', 'Soft fail: accept mail from anyone else, but mark it as suspicious.'],
+            ['-all', 'Hard fail: reject mail from anyone else.'],
+          ]}
+        />
+        <InfoBox type={'warning'} title={'The 10-lookup limit'}>
           <p>
-            When you set up a domain in Plunk, we provide the exact SPF record you need. Just copy and paste it into
-            your DNS, and we'll verify it's working correctly.
+            Receivers stop after 10 DNS lookups. Every <code>include</code>, <code>a</code> and <code>mx</code> counts,
+            including the ones nested inside a provider’s record. Go over and SPF fails for every message, so remove
+            services you no longer use.
           </p>
         </InfoBox>
-      </section>
+      </GuideSection>
 
-      {/* Common SPF Mistakes */}
-      <section id="common-mistakes" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Common SPF Mistakes to Avoid</h2>
+      <GuideSection id={'why-spf-matters'} title={'Why SPF matters'}>
+        <GuidePoints
+          columns={2}
+          items={[
+            {title: 'Stops spoofing', body: 'Forged mail from servers you did not list fails the check.'},
+            {title: 'Helps you reach the inbox', body: 'Gmail, Yahoo and Outlook expect bulk senders to pass SPF.'},
+            {title: 'Protects your domain', body: 'Phishing that uses your name is easier for inboxes to catch.'},
+            {
+              title: 'Needed for DMARC',
+              body: (
+                <>
+                  <Link href={'/guides/what-is-dmarc'}>DMARC</Link> builds on SPF and DKIM results.
+                </>
+              ),
+            },
+          ]}
+        />
+      </GuideSection>
 
-        <div className="space-y-6">
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Multiple SPF Records</h3>
-            <p className="text-neutral-700">
-              Never create multiple SPF TXT records. You can only have ONE SPF record per domain. Combine all authorized
-              senders into a single record.
-            </p>
-          </div>
+      <GuideSection id={'setting-up-spf'} title={'How to set up SPF'}>
+        <GuideSteps
+          steps={[
+            {
+              title: 'List everything that sends as you',
+              body: 'Your mailbox provider, your product’s email service, your help desk, your newsletter tool.',
+            },
+            {
+              title: 'Collect each service’s include',
+              body: 'Every provider documents the value to add.',
+              children: (
+                <GuideTable
+                  mono
+                  head={['Value', 'Service']}
+                  rows={[
+                    ['include:_spf.google.com', 'Google Workspace'],
+                    ['include:spf.protection.outlook.com', 'Microsoft 365'],
+                    ['include:spf.useplunk.com', 'Plunk'],
+                  ]}
+                />
+              ),
+            },
+            {
+              title: 'Combine them into one record',
+              children: <GuideCode code={RECORD} />,
+            },
+            {
+              title: 'Add it to your DNS',
+              body: 'Create a TXT record at the root of your domain, usually written as @. Replace any SPF record that is already there rather than adding a second one.',
+            },
+            {
+              title: 'Check it',
+              body: (
+                <>
+                  Run your domain through the <Link href={'/tools/spf-checker'}>SPF checker</Link> to confirm the record is
+                  valid and under the lookup limit.
+                </>
+              ),
+            },
+          ]}
+        />
+        <InfoBox type={'success'} title={'Plunk gives you the exact record'}>
+          <p>
+            When you add a domain, Plunk shows the SPF value to add, checks your DNS for it and tells you when it is
+            verified.
+          </p>
+        </InfoBox>
+      </GuideSection>
 
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Exceeding 10 DNS Lookups</h3>
-            <p className="text-neutral-700">
-              Each <code>include:</code> mechanism counts toward the 10 lookup limit. Too many includes will cause SPF
-              to fail. Consolidate where possible.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Forgetting to Update SPF</h3>
-            <p className="text-neutral-700">
-              When you add new email services, remember to update your SPF record. Outdated SPF records cause legitimate
-              emails to fail authentication.
-            </p>
-          </div>
-
-          <div className="py-2">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">✗ Using +all</h3>
-            <p className="text-neutral-700">
-              Never use <code>+all</code> (pass all). This completely defeats the purpose of SPF by allowing anyone to
-              send from your domain. Always use <code>~all</code> or <code>-all</code>.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Related Guides */}
-      <section id="related-guides" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Related Email Authentication Guides</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link
-            href="/guides/what-is-dkim"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is DKIM?</h3>
-            <p className="text-ui text-neutral-600">Learn how DKIM complements SPF for email authentication.</p>
-          </Link>
-          <Link
-            href="/guides/what-is-dmarc"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">What is DMARC?</h3>
-            <p className="text-ui text-neutral-600">Implement DMARC using SPF and DKIM together.</p>
-          </Link>
-          <Link
-            href="/guides/email-deliverability"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability Guide</h3>
-            <p className="text-ui text-neutral-600">Complete guide to improving email deliverability.</p>
-          </Link>
-        </div>
-      </section>
+      <GuideSection id={'common-mistakes'} title={'Common mistakes'}>
+        <GuidePoints
+          tone={'dont'}
+          items={[
+            {
+              title: 'Two SPF records',
+              body: 'A domain can only have one. With two, both are ignored and SPF fails. Merge them.',
+            },
+            {
+              title: 'Too many lookups',
+              body: 'Each include adds at least one lookup. Past 10, every message fails.',
+            },
+            {
+              title: 'Forgetting a new tool',
+              body: 'When you start sending from a new service, add it to the record the same day.',
+            },
+            {
+              title: 'Ending with +all',
+              body: (
+                <>
+                  <code>+all</code> lets any server in the world pass. Use <code>~all</code> or <code>-all</code>.
+                </>
+              ),
+            },
+          ]}
+        />
+      </GuideSection>
     </GuideLayout>
   );
 }

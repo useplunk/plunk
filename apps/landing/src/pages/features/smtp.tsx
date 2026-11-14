@@ -1,71 +1,62 @@
-import {FAQSection, FeatureCTA, FeatureHero, FeatureSection, Footer, Navbar, SpecList, Surface} from '../../components';
-import type {FAQ, Spec} from '../../components';
-import {motion} from 'framer-motion';
+import {
+  ComparisonTable,
+  FAQSection,
+  FeatureCTA,
+  FeatureHero,
+  FeatureHighlights,
+  FeatureSection,
+  Footer,
+  MoreFeatures,
+  Navbar,
+  SmtpClientsFragment,
+  SmtpEncryptionFragment,
+  SmtpSnippet,
+  SmtpTrackingFragment,
+} from '../../components';
+import type {ChecklistItem, Claim, ComparisonRow, FAQ} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React from 'react';
 import {NextSeo} from 'next-seo';
 
-const capabilities: Spec[] = [
-  {
-    title: 'Credentials, not a rewrite',
-    description:
-      'Swap the host, port and credentials in whatever already sends your mail. Nothing else about your application changes.',
-    machine: 'smtp.useplunk.com : 587',
-  },
-  {
-    title: 'TLS on 465 and 587',
-    description: 'Encrypted in transit on both the implicit and STARTTLS ports.',
-  },
-  {
-    title: 'Any client, any language',
-    description: 'Outlook, Thunderbird, Apple Mail, or any framework with an SMTP transport. There is no SDK to adopt.',
-  },
-  {
-    title: 'The same pipeline as the API',
-    description:
-      'SMTP mail goes out over the same infrastructure, against the same verified domains, with the same open and click tracking.',
-  },
-  {
-    title: 'Attachments and custom headers',
-    description: 'Full MIME support, multiple recipients, and your own headers passed straight through.',
-  },
-];
-
-const useCases: Spec[] = [
-  {
-    title: 'Legacy systems',
-    description:
-      'Something in your stack already speaks SMTP and nobody wants to touch it. Point it at Plunk and it keeps working, now with tracking.',
-    machine: 'Zero code changes',
-  },
-  {
-    title: 'Sending from a mail client',
-    description:
-      'People who live in Outlook or Apple Mail can send through your verified domain without learning an API.',
-    machine: 'No technical knowledge needed',
-  },
-  {
-    title: 'Frameworks without an HTTP client',
-    description:
-      'Older platforms, embedded systems and anything else where an SMTP transport is the only option available.',
-    machine: 'Universal protocol support',
-  },
-];
-
 /**
- * Was a hand-rolled `<table>` even though `ComparisonTable` exists and every
- * `/vs/*` page uses it. Rendered as a surface here instead: the question this
- * answers is "which of the two should I use", so three columns of short values
- * beat a paragraph either way.
+ * The hero shows the four settings. These show what you get once they are in:
+ * it works with what you have, it is tracked, and it is encrypted.
  */
-const comparison = [
-  {feature: 'Protocol', smtp: 'SMTP', api: 'HTTP / REST'},
-  {feature: 'Setup', smtp: 'Credentials', api: 'API key'},
-  {feature: 'Works with mail clients', smtp: 'Yes', api: 'No'},
-  {feature: 'Open and click tracking', smtp: 'Yes', api: 'Yes'},
-  {feature: 'Attachments', smtp: 'Yes', api: 'Yes'},
-  {feature: 'Plunk templates', smtp: 'No', api: 'Yes'},
-  {feature: 'Triggers workflows', smtp: 'No', api: 'Yes'},
+const claims: Claim[] = [
+  {
+    title: 'Works with what you have',
+    copy: 'Mail clients, frameworks and older systems keep working. Change the settings, not the code.',
+    fragment: <SmtpClientsFragment />,
+  },
+  {
+    title: 'Tracked like the API',
+    copy: 'SMTP mail goes out through the same pipeline, so opens, clicks and bounces are recorded.',
+    fragment: <SmtpTrackingFragment />,
+  },
+  {
+    title: 'Encrypted in transit',
+    copy: 'STARTTLS on port 587 and implicit TLS on port 465.',
+    fragment: <SmtpEncryptionFragment />,
+  },
+];
+
+const extras: ChecklistItem[] = [
+  {title: 'Attachments', description: 'Full MIME support, files included.'},
+  {title: 'Custom headers', description: 'Your own headers pass straight through.'},
+  {title: 'Multiple recipients', description: 'Send to several people in one message.'},
+  {title: 'Same verified domains', description: 'Send from the domains you already verified.'},
+  {title: 'Same price', description: '$0.001 per email, like the API.'},
+  {title: 'No SDK to adopt', description: 'Any language with an SMTP transport works.'},
+];
+
+/** Both send through the same pipeline; these are the differences. */
+const comparison: ComparisonRow[] = [
+  {feature: 'Setup', plunk: 'Credentials', competitor: 'API key'},
+  {feature: 'Works with mail clients', plunk: true, competitor: false},
+  {feature: 'Open and click tracking', plunk: true, competitor: true},
+  {feature: 'Attachments', plunk: true, competitor: true},
+  {feature: 'Plunk templates', plunk: false, competitor: true},
+  {feature: 'Triggers workflows', plunk: false, competitor: true},
 ];
 
 const faqs: FAQ[] = [
@@ -127,65 +118,20 @@ export default function SMTPFeature() {
           subtitle={'Point any existing client or framework at Plunk. Same domains, same tracking, same price.'}
           docsHref={`${WIKI_URI}/guides/verifying-domains`}
           docsLabel={'SMTP docs'}
-          artifact={
-            <Surface label={'smtp'} meta={<span>TLS</span>} bodyClassName={'divide-y divide-neutral-100'}>
-              {[
-                {k: 'host', v: 'smtp.useplunk.com'},
-                {k: 'port', v: '587'},
-                {k: 'username', v: 'plunk'},
-                {k: 'password', v: 'sk_your_secret_key'},
-              ].map((row, i) => (
-                <motion.div
-                  key={row.k}
-                  initial={{opacity: 0, y: 4}}
-                  whileInView={{opacity: 1, y: 0}}
-                  viewport={{once: true, margin: '-15%'}}
-                  transition={{duration: 0.3, delay: 0.1 + i * 0.06, ease: [0.23, 1, 0.32, 1]}}
-                  className={'flex items-baseline gap-4 px-5 py-3.5'}
-                >
-                  <span className={'w-20 flex-shrink-0 font-code text-[0.6875rem] text-neutral-400'}>{row.k}</span>
-                  <span className={'min-w-0 truncate font-code text-ui text-neutral-900'}>{row.v}</span>
-                </motion.div>
-              ))}
-            </Surface>
-          }
+          artifact={<SmtpSnippet />}
         />
 
-        <FeatureSection tone={'muted'} title={'What you get'} intro={'The protocol is the only old thing about it.'}>
-          <SpecList specs={capabilities} />
-        </FeatureSection>
+        <FeatureHighlights title={'What you get'} claims={claims} extras={extras} />
 
         <FeatureSection title={'SMTP or API'} intro={'Both send through the same pipeline. These are the differences.'}>
-          <Surface label={'comparison'} bodyClassName={'divide-y divide-neutral-100'}>
-            <div className={'grid grid-cols-12 gap-4 bg-neutral-50 px-5 py-3'}>
-              <span className={'col-span-6 font-code text-label text-neutral-500'}>Feature</span>
-              <span className={'col-span-3 font-code text-label text-neutral-900'}>SMTP</span>
-              <span className={'col-span-3 font-code text-label text-neutral-500'}>API</span>
-            </div>
-            {comparison.map((row, i) => (
-              <motion.div
-                key={row.feature}
-                initial={{opacity: 0}}
-                whileInView={{opacity: 1}}
-                viewport={{once: true, margin: '-10%'}}
-                transition={{duration: 0.3, delay: i * 0.04, ease: [0.23, 1, 0.32, 1]}}
-                className={'grid grid-cols-12 items-baseline gap-4 px-5 py-3.5'}
-              >
-                <span className={'col-span-6 text-ui text-neutral-700'}>{row.feature}</span>
-                <span className={'col-span-3 font-code text-ui font-medium text-neutral-900'}>{row.smtp}</span>
-                <span className={'col-span-3 font-code text-ui text-neutral-500'}>{row.api}</span>
-              </motion.div>
-            ))}
-          </Surface>
-        </FeatureSection>
-
-        <FeatureSection tone={'muted'} title={'When SMTP is the right answer'}>
-          <SpecList specs={useCases} />
+          <ComparisonTable plunkLabel={'SMTP'} competitorName={'API'} rows={comparison} />
         </FeatureSection>
 
         <FAQSection faqs={faqs} schemaId={'faq-smtp'} />
 
         <FeatureCTA title={'Point your app at Plunk.'} />
+
+        <MoreFeatures current={'/features/smtp'} />
       </main>
 
       <Footer />

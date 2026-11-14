@@ -2,6 +2,7 @@ import type {Project} from '@plunk/db';
 import {createContext, type ReactNode, use, useEffect, useState} from 'react';
 import {useSWRConfig} from 'swr';
 
+import {pickActiveProject} from '../activeProject';
 import {useProjects} from '../hooks/useProject';
 
 interface ActiveProjectContextValue {
@@ -18,35 +19,29 @@ export function ActiveProjectProvider({children}: {children: ReactNode}) {
   const {data: projects, isLoading} = useProjects();
   const {mutate} = useSWRConfig();
 
-  // State is null until projects load, but localStorage is read synchronously by network.ts
-  // This ensures consistent behavior: either all calls use stored ID, or all fall back to projects[0]
+  // State is null until projects load. network.ts reads the id from localStorage on every request,
+  // so requests made before the effect below stores one go out without X-Project-Id, or with a stale one
   const [activeProject, setActiveProjectState] = useState<Project | null>(null);
 
   // Initialize active project from localStorage or use first project
   useEffect(() => {
-    if (!projects || projects.length === 0) return;
+    if (!projects) return;
 
-    const storedProjectId = localStorage.getItem('activeProjectId');
+    const choice = pickActiveProject(projects, localStorage.getItem('activeProjectId'));
+    if (!choice) return;
 
-    if (storedProjectId) {
-      // Find the stored project in available projects
-      const project = projects.find(p => p.id === storedProjectId);
-      if (project) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setActiveProjectState(project);
-      } else if (projects[0]) {
-        // Stored project not found (user might have been removed), use first project
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveProjectState(choice.project);
 
-        setActiveProjectState(projects[0]);
-        localStorage.setItem('activeProjectId', projects[0].id);
-      }
-    } else if (projects[0]) {
-      // No stored project, initialize with first one
+    if (choice.persist) {
+      localStorage.setItem('activeProjectId', choice.project.id);
 
-      setActiveProjectState(projects[0]);
-      localStorage.setItem('activeProjectId', projects[0].id);
+      // Pages mount and fetch before this effect runs, so on a fresh session (e.g. after signing
+      // out and back in) their requests went out without X-Project-Id, or with a stale one, and failed.
+      // SWR does not retry errors here, so fetch everything again now that the id is stored.
+      void mutate(() => true);
     }
-  }, [projects]);
+  }, [projects, mutate]);
 
   const setActiveProject = (project: Project) => {
     setActiveProjectState(project);

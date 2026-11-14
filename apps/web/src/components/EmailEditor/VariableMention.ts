@@ -51,7 +51,9 @@ export function getSuggestionFields(): ContactField[] {
  */
 function describe(field: ContactField): string | undefined {
   const type = TYPE_LABELS[field.type] ?? 'text';
-  return field.coverage < 100 ? `${type} · ${Math.round(field.coverage)}% of contacts` : type;
+  return field.coverage !== null && field.coverage < 100
+    ? `${type} · ${Math.round(field.coverage)}% of contacts`
+    : type;
 }
 
 function variableItems(query: string): VariableRow[] {

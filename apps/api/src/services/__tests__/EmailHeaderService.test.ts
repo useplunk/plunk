@@ -2,7 +2,13 @@ import {EmailSourceType} from '@plunk/db';
 import {describe, expect, it} from 'vitest';
 
 import {API_URI} from '../../app/constants';
-import {bodyHasListManagementLink, buildEmailHeaders, classifyEmail, withSourceEmail} from '../EmailHeaderService';
+import {
+  bodyHasListManagementLink,
+  buildEmailHeaders,
+  classifyEmail,
+  senderOneClickUrl,
+  withSourceEmail,
+} from '../EmailHeaderService';
 
 describe('bodyHasListManagementLink', () => {
   it('detects an unsubscribe link for the contact', () => {
@@ -23,6 +29,24 @@ describe('bodyHasListManagementLink', () => {
 
   it('does not match a link belonging to a different contact', () => {
     expect(bodyHasListManagementLink('<a href="https://app.test/unsubscribe/other">x</a>', 'contact-123')).toBe(false);
+  });
+});
+
+describe('senderOneClickUrl', () => {
+  it('returns the href of the link marked data-plunk-one-click', () => {
+    const html =
+      '<a href="https://example.com/prefs">Prefs</a> <a data-plunk-one-click href="https://example.com/u/c-1?a=1&amp;b=2">Unsubscribe</a>';
+    expect(senderOneClickUrl(html)).toBe('https://example.com/u/c-1?a=1&b=2');
+  });
+
+  it('ignores unmarked unsubscribe links', () => {
+    expect(senderOneClickUrl('<a href="https://example.com/unsubscribe/c-1">Unsubscribe</a>')).toBeUndefined();
+  });
+
+  it('only accepts absolute HTTPS URLs', () => {
+    expect(senderOneClickUrl('<a data-plunk-one-click href="http://example.com/u">x</a>')).toBeUndefined();
+    expect(senderOneClickUrl("<a data-plunk-one-click href='mailto:out@example.com'>x</a>")).toBeUndefined();
+    expect(senderOneClickUrl('<a data-plunk-one-click href="{{unsubscribeUrl}}">x</a>')).toBeUndefined();
   });
 });
 
@@ -338,5 +362,43 @@ describe('buildEmailHeaders', () => {
         'https://app.test/unsubscribe/c1?e=a%20b%26c',
       );
     });
+  });
+});
+
+describe('buildEmailHeaders with a sender one-click URL', () => {
+  const url = 'https://example.com/u/c-1';
+
+  it('points a headless send at the sender URL', () => {
+    const headers = buildEmailHeaders({emailClass: 'headless', isCampaign: true, senderUnsubscribeUrl: url, unsubscribeId: 'c-1'});
+    expect(headers['List-Unsubscribe']).toBe(`<${url}>`);
+    expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+    expect(headers.Precedence).toBe('bulk');
+  });
+
+  it('takes precedence over a Plunk list-management link in a headless body', () => {
+    const headers = buildEmailHeaders({emailClass: 'headless', hasListManagementLink: true, senderUnsubscribeUrl: url, unsubscribeId: 'c-1'});
+    expect(headers['List-Unsubscribe']).toBe(`<${url}>`);
+  });
+
+  it('keeps Plunk\'s URL for a marketing send with a marked link', () => {
+    const headers = buildEmailHeaders({emailClass: 'marketing', senderUnsubscribeUrl: url, unsubscribeId: 'c-1', sourceEmailId: 'e-1'});
+    expect(headers['List-Unsubscribe']).toBe(`<${API_URI}/unsubscribe/c-1?e=e-1>`);
+    expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+  });
+
+  it('ignores a marked link in a transactional send', () => {
+    const headers = buildEmailHeaders({emailClass: 'transactional', senderUnsubscribeUrl: url, unsubscribeId: 'c-1'});
+    expect(headers['List-Unsubscribe']).toBeUndefined();
+    expect(headers['List-Unsubscribe-Post']).toBeUndefined();
+  });
+
+  it('still yields to caller-supplied headers', () => {
+    const headers = buildEmailHeaders({
+      emailClass: 'headless',
+      senderUnsubscribeUrl: url,
+      customHeaders: {'List-Unsubscribe': '<mailto:out@example.com>'},
+    });
+    expect(headers['List-Unsubscribe']).toBe('<mailto:out@example.com>');
+    expect(headers['List-Unsubscribe-Post']).toBeUndefined();
   });
 });

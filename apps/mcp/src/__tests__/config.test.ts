@@ -60,3 +60,52 @@ describe('loadConfig', () => {
     expect(loadConfig({PLUNK_API_KEY: 'sk_abc'}, []).readOnly).toBe(false);
   });
 });
+
+describe('loadConfig with several projects', () => {
+  it('reads PLUNK_API_KEY_<NAME> keys into named projects', () => {
+    const config = loadConfig({PLUNK_API_KEY_ACME: 'sk_a', PLUNK_API_KEY_BETA_EU: 'sk_b'}, []);
+
+    expect(config.projects).toEqual({acme: {apiKey: 'sk_a'}, beta_eu: {apiKey: 'sk_b'}});
+    expect(config.apiKey).toBeUndefined();
+  });
+
+  it('pairs PLUNK_PUBLIC_KEY_<NAME> with the matching project', () => {
+    const config = loadConfig({PLUNK_API_KEY_ACME: 'sk_a', PLUNK_PUBLIC_KEY_ACME: 'pk_a'}, []);
+
+    expect(config.projects).toEqual({acme: {apiKey: 'sk_a', publicKey: 'pk_a'}});
+  });
+
+  it('ignores a bare PLUNK_API_KEY once named keys exist', () => {
+    // On a self-hosted box that is the API server's own platform key — adding it
+    // as a silent extra project would expose a project nobody asked for.
+    const config = loadConfig({PLUNK_API_KEY: 'sk_platform', PLUNK_API_KEY_ACME: 'sk_a'}, []);
+
+    expect(config.projects).toEqual({acme: {apiKey: 'sk_a'}});
+  });
+
+  it('rejects PLUNK_MCP_API_KEY or PLUNK_PUBLIC_KEY alongside named keys', () => {
+    expect(() => loadConfig({PLUNK_MCP_API_KEY: 'sk_x', PLUNK_API_KEY_ACME: 'sk_a'}, [])).toThrow(ConfigError);
+    expect(() => loadConfig({PLUNK_PUBLIC_KEY: 'pk_x', PLUNK_API_KEY_ACME: 'sk_a'}, [])).toThrow(/PLUNK_PUBLIC_KEY_/);
+  });
+
+  it('rejects a named key that is not a secret key', () => {
+    expect(() => loadConfig({PLUNK_API_KEY_ACME: 'pk_a'}, [])).toThrow(/PLUNK_API_KEY_ACME/);
+  });
+
+  it('rejects a public key without a matching secret key', () => {
+    expect(() => loadConfig({PLUNK_API_KEY_ACME: 'sk_a', PLUNK_PUBLIC_KEY_BETA: 'pk_b'}, [])).toThrow(
+      /PLUNK_API_KEY_BETA/,
+    );
+  });
+
+  it('rejects a named public key that is not a public key', () => {
+    expect(() => loadConfig({PLUNK_API_KEY_ACME: 'sk_a', PLUNK_PUBLIC_KEY_ACME: 'sk_b'}, [])).toThrow(/public key/i);
+  });
+
+  it('skips empty named keys', () => {
+    const config = loadConfig({PLUNK_API_KEY: 'sk_main', PLUNK_API_KEY_ACME: '  '}, []);
+
+    expect(config.projects).toBeUndefined();
+    expect(config.apiKey).toBe('sk_main');
+  });
+});

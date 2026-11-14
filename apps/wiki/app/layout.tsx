@@ -2,11 +2,29 @@ import './global.css';
 import {DocsLayout} from 'fumadocs-ui/layouts/docs';
 import {RootProvider} from 'fumadocs-ui/provider/next';
 import Script from 'next/script';
+import type {Metadata} from 'next';
 import type {ReactNode} from 'react';
 import React from 'react';
 
 import {baseOptions} from '@/app/layout.config';
 import {source} from '@/lib/source';
+
+const description =
+  'Documentation for Plunk, the open-source email platform. Learn how to integrate Plunk into your application and manage your email communications.';
+
+export const metadata: Metadata = {
+  metadataBase: new URL('https://docs.useplunk.com'),
+  title: {default: 'Plunk Documentation', template: '%s | Plunk Docs'},
+  description,
+  openGraph: {
+    type: 'website',
+    siteName: 'Plunk Documentation',
+    title: 'Plunk Documentation',
+    description,
+    images: ['/api/og?title=Documentation'],
+  },
+  twitter: {card: 'summary_large_image', site: '@useplunk'},
+};
 
 export default function Layout({children}: {children: ReactNode}) {
   return (
@@ -15,34 +33,6 @@ export default function Layout({children}: {children: ReactNode}) {
         {/* Runtime environment configuration - must load before any app code */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="/__env.js" />
-
-        {/* Primary Meta Tags */}
-        <title>Plunk Documentation</title>
-        <meta name="title" content="Plunk Documentation" />
-        <meta
-          name="description"
-          content="Documentation for Plunk, the open-source email platform. Learn how to integrate Plunk into your application and manage your email communications."
-        />
-
-        {/* Open Graph / Facebook */}
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://docs.useplunk.com/" />
-        <meta property="og:title" content="Plunk Documentation" />
-        <meta
-          property="og:description"
-          content="Documentation for Plunk, the open-source email platform. Learn how to integrate Plunk into your application and manage your email communications."
-        />
-        <meta property="og:image" content="https://docs.useplunk.com/api/og?title=Documentation" />
-
-        {/* Twitter */}
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://docs.useplunk.com/" />
-        <meta property="twitter:title" content="Plunk Documentation" />
-        <meta
-          property="twitter:description"
-          content="Documentation for Plunk, the open-source email platform. Learn how to integrate Plunk into your application and manage your email communications."
-        />
-        <meta property="twitter:image" content="https://docs.useplunk.com/api/og?title=Documentation" />
 
         {/* Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

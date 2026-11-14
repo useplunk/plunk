@@ -1,504 +1,394 @@
-import React from 'react';
-import {GuideLayout, InfoBox} from '../../components/guides';
-import {CodeBlock} from '../../components/CodeBlock';
 import Link from 'next/link';
+import React from 'react';
+
 import type {FAQ} from '../../components/FAQSection';
+import {
+  GuideCode,
+  GuideCompare,
+  GuideFigure,
+  GuideLayout,
+  GuidePoints,
+  GuideSection,
+  GuideTable,
+  InboxFragment,
+  InfoBox,
+  RateFragment,
+  CampaignStatsFragment,
+} from '../../components/guides';
+import {SnippetTile, StatusPill, UICard} from '../../components/snippets';
 
 const faqs: FAQ[] = [
   {
     question: 'What is a good email open rate?',
     answer:
-      'A good email open rate depends on your industry and email type. For B2B emails, 25-35% is considered excellent. For B2C marketing emails, 20-30% is strong. Overall industry averages range from 20-30%, though Apple Mail Privacy Protection has inflated reported rates by 5-15 percentage points since 2021. Compare against your own historical data rather than industry averages alone.',
+      'It depends on your industry and the type of email. For B2B email, 25-35% is excellent; for B2C marketing email, 20-30% is strong. Industry averages sit between 20% and 30%, although Apple Mail Privacy Protection has inflated reported rates by 5-15 percentage points since 2021. Compare against your own history rather than industry averages alone.',
   },
   {
     question: 'What are average B2B email open rates?',
     answer:
-      'Average B2B email open rates typically range from 20-30%, with top-performing campaigns achieving 35-45%. B2B emails tend to outperform B2C because recipients opted in for professional reasons and have higher intent. Industry-specific rates vary: SaaS averages 22-28%, financial services 20-25%, and professional services 25-30%. Transactional B2B emails like invoices and notifications often exceed 50%.',
+      'B2B open rates typically range from 20-30%, and top campaigns reach 35-45%. B2B tends to beat B2C because recipients signed up for professional reasons and have higher intent. By industry: SaaS averages 22-28%, financial services 20-25% and professional services 25-30%. Transactional B2B email such as invoices and notifications often goes over 50%.',
   },
   {
     question: 'How do I improve my email open rate?',
     answer:
-      'The most impactful ways to improve email open rates are: (1) Write compelling, specific subject lines under 50 characters, (2) Personalize beyond first names—use behavioral data and purchase history, (3) Send at optimal times (Tuesday–Thursday, 10am–2pm for B2B), (4) Segment your list to send relevant content to specific groups, (5) Keep your list clean by removing inactive subscribers, (6) Use a recognizable sender name, and (7) Optimize preview text to complement the subject line.',
+      'Write specific subject lines under 50 characters. Personalize beyond first names using behavior and purchase history. Send at the right time (Tuesday to Thursday, 10am to 2pm for B2B). Segment your list so each group gets relevant content. Remove inactive subscribers. Use a sender name people recognize, and write preview text that complements the subject line.',
   },
   {
     question: 'Why are my email open rates low?',
     answer:
-      'Low email open rates typically result from: weak subject lines that fail to create curiosity or urgency, poor list hygiene with too many inactive subscribers dragging down averages, emails landing in spam due to deliverability or authentication issues, bad send timing, email fatigue from sending too frequently, or poor segmentation sending irrelevant content. Review each factor systematically and A/B test changes one at a time.',
+      'The usual causes are weak subject lines, too many inactive subscribers dragging down the average, emails landing in spam because of deliverability or authentication problems, bad send timing, sending so often that people tune out, and poor segmentation. Work through each one and A/B test one change at a time.',
   },
   {
     question: 'Does Apple Mail Privacy Protection affect open rates?',
     answer:
-      'Yes. Apple Mail Privacy Protection (MPP), launched in iOS 15 in 2021, pre-loads email images and tracking pixels, registering "opens" even if the user never actually read the email. This inflates open rates by 5-15 percentage points across the industry. To adapt, focus on click-through rates and conversions as more reliable engagement metrics, and segment by email client to understand true engagement patterns.',
+      'Yes. Apple Mail Privacy Protection (MPP), launched with iOS 15 in 2021, preloads images and tracking pixels, so an open is recorded even if nobody read the email. This inflates open rates by 5-15 percentage points across the industry. Rely more on click-through rate and conversions, and segment by email client to see real engagement.',
   },
 ];
 
 export default function EmailOpenRate() {
   return (
     <GuideLayout
-      title="Email Open Rates: Industry Benchmarks & How to Improve Yours"
+      slug={'email-open-rate'}
+      title="Email Open Rate: Benchmarks & How to Improve It"
+      heading={'Email open rate'}
       description="Learn what affects email open rates, industry benchmarks by sector, B2B vs B2C averages, and proven tactics to improve your open rates. Complete guide with actionable tips."
+      lead={
+        'Open rate is the share of delivered emails that get opened. Most industries average 20-30%, and it mostly tells you how well your subject line, sender name and timing work.'
+      }
       lastUpdated="2025-12-20"
-      readTime="12 min"
+      readTime="8 min"
       canonical="https://www.useplunk.com/guides/email-open-rate"
       faqs={faqs}
+      cta={'Send email people open.'}
+      figure={
+        <SnippetTile align={'bleed-right'} className={'min-h-[26rem] py-10'}>
+          <div className={'flex flex-col gap-3'}>
+            <CampaignStatsFragment highlight={'Opened'} className={'w-full max-w-lg'} />
+            <RateFragment
+              label={'Open rate'}
+              value={'46%'}
+              fill={46}
+              marker={{at: 25, label: 'Industry average 20-30%'}}
+              className={'ml-10 w-full max-w-xs'}
+            />
+          </div>
+        </SnippetTile>
+      }
     >
-      {/* Introduction */}
-      <section id="introduction" className="mb-12">
-        <p className="text-neutral-700 leading-relaxed">
-          Email open rate measures the percentage of recipients who open your email. It's one of the most important
-          email marketing metrics, indicating how well your subject lines, sender name, and send timing resonate with
-          your audience.
+      <GuideSection id={'what-is-open-rate'} title={'How open rate is calculated'}>
+        <p>
+          Divide unique opens by the number of emails delivered (sent minus bounces), then multiply by 100. It is one of
+          the main email marketing metrics, and still a useful one despite the privacy changes covered below.
         </p>
-        <p className="mt-4 text-neutral-700 leading-relaxed">
-          While recent privacy changes have affected open rate accuracy, it remains a valuable metric for understanding
-          email performance and audience engagement.
+        <GuideCode
+          title={'Open rate'}
+          copy={false}
+          code={`Open rate = (Unique opens ÷ Emails delivered) × 100
+
+Sent: 1,000   Bounced: 50   Delivered: 950   Unique opens: 285
+Open rate = (285 ÷ 950) × 100 = 30%`}
+        />
+        <p>
+          Use unique opens, which count each recipient once however many times they open. Total opens count every open
+          and inflate the number.
         </p>
-      </section>
+      </GuideSection>
 
-      {/* What is Open Rate */}
-      <section id="what-is-open-rate" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">What is Email Open Rate?</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Open rate is calculated by dividing the number of unique opens by the number of delivered emails (sent emails
-          minus bounces).
+      <GuideSection id={'benchmarks'} title={'Open rate benchmarks by industry'}>
+        <p>Open rates vary a lot by industry, audience and type of email.</p>
+        <GuideTable
+          head={['Industry', 'Average open rate', 'Good open rate']}
+          rows={[
+            ['SaaS / Technology', '20-25%', '30%+'],
+            ['E-commerce / Retail', '15-20%', '25%+'],
+            ['Financial services', '18-23%', '28%+'],
+            ['Healthcare', '20-25%', '30%+'],
+            ['Education', '22-28%', '33%+'],
+            ['Media / Publishing', '18-23%', '28%+'],
+            ['Non-profit', '24-30%', '35%+'],
+          ]}
+        />
+        <InfoBox type={'warning'} title={'Benchmarks shifted in 2021'}>
+          <p>
+            Since Apple Mail Privacy Protection launched, open rates across the industry have risen by 5-15 percentage
+            points without anyone reading more. Compare against your own history, not only these numbers.
+          </p>
+        </InfoBox>
+      </GuideSection>
+
+      <GuideSection id={'b2b-email-open-rates'} title={'B2B email open rates'}>
+        <p>
+          B2B email consistently beats B2C benchmarks. Recipients signed up because of a real professional need, so they
+          are a more engaged audience.
         </p>
+        <GuideTable
+          head={['B2B industry', 'Average open rate', 'Top performers']}
+          rows={[
+            ['SaaS / Technology', '22-28%', '35%+'],
+            ['Professional services', '25-32%', '40%+'],
+            ['Financial services', '20-26%', '33%+'],
+            ['Agency / Marketing', '18-24%', '30%+'],
+            ['Transactional / Receipts', '45-65%', '70%+'],
+          ]}
+        />
+        <h3>What works for B2B</h3>
+        <GuidePoints
+          tone={'do'}
+          columns={2}
+          items={[
+            {title: 'Send midweek', body: 'Tuesday to Thursday, 10am to 2pm in the recipient’s timezone.'},
+            {title: 'Name the company or product', body: 'A familiar name in the subject line gets recognized.'},
+            {title: 'Personalize by role', body: 'Use job title, industry or company size.'},
+            {title: 'Speak to their problem', body: 'Reference pain points specific to their role.'},
+            {title: 'Send less to cold lists', body: 'One or two emails a month.'},
+          ]}
+        />
+        <h3>How B2B differs from B2C</h3>
+        <ul>
+          <li>Decisions are more considered, so longer subject lines are acceptable.</li>
+          <li>B2B audiences check email less on weekends.</li>
+          <li>Recipients share inboxes with colleagues, which affects metrics.</li>
+          <li>Unsubscribe rates are lower: 0.1-0.3% against 0.3-0.5%.</li>
+          <li>Transactional email such as invoices and updates gets far more opens.</li>
+        </ul>
+        <InfoBox type={'tip'} title={'Report transactional and marketing email separately'}>
+          <p>
+            Invoices, notifications and password resets reach 40-60% open rates. Mixed in with campaigns, they make your
+            marketing numbers look better than they are.
+          </p>
+        </InfoBox>
+      </GuideSection>
 
-        <div className="rounded-xl border-2 border-neutral-900 bg-neutral-50 p-8 mb-8">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-neutral-900 mb-4">Open Rate Formula</div>
-            <CodeBlock
-              language="text"
-              code={`Open Rate = (Unique Opens ÷ Emails Delivered) × 100
+      <GuideSection id={'factors'} title={'What affects open rate'}>
+        <p>
+          The subject line matters most. It should be specific and relevant, and create curiosity without being
+          clickbait. Before that, people check who the email is from.
+        </p>
+        <GuideFigure
+          caption={'A recognizable sender and a specific subject get opened. Generic and clickbait stay unread.'}
+        >
+          <InboxFragment
+            rows={[
+              {
+                sender: 'Acme Billing',
+                subject: 'John, your invoice is ready',
+                time: '9:41',
+                tag: {tone: 'ok', label: 'Opened'},
+              },
+              {
+                sender: 'Ana from Acme',
+                subject: '3 proven ways to increase conversion rates',
+                time: '9:12',
+                tag: {tone: 'ok', label: 'Opened'},
+              },
+              {sender: 'noreply@acme.com', subject: 'Newsletter #47', time: '8:30', unread: true},
+              {sender: 'Acme', subject: 'You won’t believe this!', time: 'Mon', unread: true},
+            ]}
+          />
+        </GuideFigure>
+        <GuidePoints
+          items={[
+            {title: 'Subject line', body: 'Personal and specific beats vague. “John, your invoice is ready” is clear.'},
+            {
+              title: 'Sender name',
+              body: '“Acme” or “Ana from Acme” works better than noreply@acme.com.',
+            },
+            {
+              title: 'Send time and day',
+              body: 'B2B does best Tuesday to Thursday, 10am to 2pm. B2C varies, so test evenings and weekends. Avoid Monday mornings and Friday afternoons.',
+            },
+            {
+              title: 'List quality and segmentation',
+              body: 'Engaged subscribers open more. Inactive ones drag the rate down: re-engage or remove them.',
+            },
+            {
+              title: 'Deliverability and reputation',
+              body: (
+                <>
+                  Email in spam does not get opened. Authenticate with <Link href={'/guides/what-is-spf'}>SPF</Link>,{' '}
+                  <Link href={'/guides/what-is-dkim'}>DKIM</Link> and <Link href={'/guides/what-is-dmarc'}>DMARC</Link>,
+                  and keep complaints low.
+                </>
+              ),
+            },
+            {
+              title: 'Frequency',
+              body: 'Too often causes fatigue and unsubscribes; too rarely and people forget you. One to four marketing emails a week is typical.',
+            },
+            {
+              title: 'Mobile',
+              body: 'Over 60% of email is opened on mobile. Keep subject lines to 40-50 characters and write clear preview text.',
+            },
+          ]}
+        />
+      </GuideSection>
 
-Example:
-- Sent: 1,000 emails
-- Bounced: 50 emails
-- Delivered: 950 emails
-- Unique Opens: 285
+      <GuideSection id={'improve-open-rates'} title={'How to improve your open rate'}>
+        <GuidePoints
+          tone={'do'}
+          items={[
+            {
+              title: 'Write better subject lines',
+              body: 'Try questions, personalization, numbers and honest urgency. Keep them under 50 characters and A/B test.',
+            },
+            {
+              title: 'Personalize beyond first names',
+              body: 'Use behavior, past purchases, browsing history or location. “Products you recently viewed” beats a generic blast.',
+            },
+            {
+              title: 'Segment your audience',
+              body: 'Group by engagement, purchase history, demographics or interests. Segmented campaigns see 14-100% higher open rates.',
+            },
+            {
+              title: 'Write the preview text',
+              body: 'It sits next to the subject line. Use it to add context, not “View this email in your browser”.',
+            },
+            {
+              title: 'Clean your list',
+              body: (
+                <>
+                  Remove subscribers who have not engaged in 6-12 months. The list gets smaller, but open rate and
+                  sender reputation improve. <Link href={'/tools/verify-email'}>Verify addresses</Link> before they get
+                  in.
+                </>
+              ),
+            },
+            {
+              title: 'Test send times',
+              body: 'Send the same email at different times and see when your audience responds. Send time optimization can lift opens by 20-50%.',
+            },
+            {
+              title: 'Re-engage before removing',
+              body: 'Send a “Still interested?” email, perhaps with an offer. Remove those who still do not engage.',
+            },
+            {
+              title: 'Keep your sender name consistent',
+              body: 'People open names they recognize. Avoid changing it.',
+            },
+          ]}
+        />
+        <GuideFigure caption={'Same email, two subject lines. The specific one won by seven points.'}>
+          <SubjectTestFragment />
+        </GuideFigure>
+      </GuideSection>
 
-Open Rate = (285 ÷ 950) × 100 = 30%`}
-              showCopy={false}
+      <GuideSection id={'apple-mpp'} title={'Apple Mail Privacy Protection'}>
+        <p>
+          Since iOS 15, Apple Mail preloads every image and tracking pixel when a message arrives. An open is recorded
+          whether or not the person ever sees the email, so open tracking is unreliable for Apple Mail users.
+        </p>
+        <GuideFigure
+          caption={'Over half the opens came from Apple Mail, which loads images for every message it receives.'}
+        >
+          <OpensByClientFragment />
+        </GuideFigure>
+        <GuideCompare
+          items={[
+            {
+              title: 'What changed',
+              points: [
+                'Apple Mail preloads all images',
+                'Opens are recorded even if the email is never seen',
+                '30-50% of lists use Apple Mail',
+                'Open rates look 5-15% higher than reality',
+                'Open-based automation is less accurate',
+              ],
+            },
+            {
+              title: 'How to adapt',
+              points: [
+                'Make click rate the main engagement metric',
+                'Track conversions and replies, not only opens',
+                'Use multi-touch attribution',
+                'Compare against your own history',
+                'Segment by email client',
+              ],
+            },
+          ]}
+        />
+        <p>
+          With opens less reliable, put more weight on{' '}
+          <Link href={'/guides/email-click-through-rate'}>click-through rate</Link>, conversion rate, reply rate and
+          revenue per email. They show real engagement and return.
+        </p>
+      </GuideSection>
+    </GuideLayout>
+  );
+}
+
+/** An A/B test on the subject line, finished, with the winner marked. */
+function SubjectTestFragment() {
+  const variants = [
+    {name: 'A', subject: 'Acme newsletter #47', rate: 31.2, winner: false},
+    {name: 'B', subject: '3 ways to cut churn this quarter', rate: 38.6, winner: true},
+  ];
+
+  return (
+    <UICard className={'w-full max-w-md divide-y divide-neutral-100'}>
+      <div className={'flex items-center justify-between gap-3 px-4 py-3'}>
+        <p className={'text-ui font-semibold text-neutral-900'}>Subject line test</p>
+        <span className={'text-label text-neutral-500'}>2,000 contacts each</span>
+      </div>
+      {variants.map(v => (
+        <div key={v.name} className={'px-4 py-3.5'}>
+          <div className={'flex items-center gap-3'}>
+            <span
+              className={
+                'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100 text-label font-semibold text-neutral-700'
+              }
+            >
+              {v.name}
+            </span>
+            <p
+              className={`min-w-0 flex-1 truncate text-ui ${v.winner ? 'font-semibold text-neutral-900' : 'text-neutral-700'}`}
+            >
+              {v.subject}
+            </p>
+            {v.winner && <StatusPill tone={'ok'}>Winner</StatusPill>}
+            <span className={'flex-shrink-0 text-ui font-semibold tabular-nums text-neutral-900'}>{v.rate}%</span>
+          </div>
+          <div className={'ml-9 mt-2.5 h-1.5 rounded-full bg-neutral-100'}>
+            <div
+              className={`h-full rounded-full ${v.winner ? 'bg-neutral-900' : 'bg-neutral-300'}`}
+              style={{width: `${v.rate * 2}%`}}
             />
           </div>
         </div>
+      ))}
+    </UICard>
+  );
+}
 
-        <InfoBox type="info" title="Unique vs Total Opens">
-          <p>
-            <strong>Unique opens</strong> count each recipient only once, even if they open multiple times.{' '}
-            <strong>Total opens</strong> count every open. Always use unique opens for open rate calculations to avoid
-            inflated metrics.
-          </p>
-        </InfoBox>
-      </section>
+/** Where a campaign's opens came from, by mail client. */
+function OpensByClientFragment() {
+  const clients = [
+    {name: 'Apple Mail', opens: 3020, share: 53, auto: true},
+    {name: 'Gmail', opens: 1890, share: 33, auto: false},
+    {name: 'Outlook', opens: 640, share: 11, auto: false},
+    {name: 'Other', opens: 191, share: 3, auto: false},
+  ];
 
-      {/* Benchmarks */}
-      <section id="benchmarks" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Email Open Rate Benchmarks by Industry</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Open rates vary significantly by industry, audience, and email type:
-        </p>
-
-        <div className="rounded-xl border border-neutral-200 overflow-hidden mb-8">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Industry</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Average Open Rate</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Good Open Rate</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200 bg-white">
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">SaaS / Technology</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">20-25%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">30%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">E-commerce / Retail</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">15-20%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">25%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Financial Services</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">18-23%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">28%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Healthcare</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">20-25%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">30%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Education</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">22-28%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">33%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Media / Publishing</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">18-23%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">28%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Non-Profit</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">24-30%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">35%+</td>
-              </tr>
-            </tbody>
-          </table>
+  return (
+    <UICard className={'w-full max-w-md divide-y divide-neutral-100'}>
+      <div className={'flex items-center justify-between gap-3 px-4 py-3'}>
+        <p className={'text-ui font-semibold text-neutral-900'}>Opens by client</p>
+        <span className={'text-label tabular-nums text-neutral-500'}>5,741 opens</span>
+      </div>
+      {clients.map(c => (
+        <div key={c.name} className={'flex items-center gap-3 px-4 py-3'}>
+          <span className={'w-24 flex-shrink-0 text-ui font-medium text-neutral-900'}>{c.name}</span>
+          <div className={'h-1.5 min-w-0 flex-1 rounded-full bg-neutral-100'}>
+            <div
+              className={`h-full rounded-full ${c.auto ? 'bg-warn' : 'bg-neutral-900'}`}
+              style={{width: `${c.share}%`}}
+            />
+          </div>
+          {c.auto && <StatusPill tone={'warn'}>Preloaded</StatusPill>}
+          <span className={'w-12 flex-shrink-0 text-right text-ui tabular-nums text-neutral-600'}>
+            {c.opens.toLocaleString('en-US')}
+          </span>
         </div>
-
-        <InfoBox type="warning" title="Post-Apple MPP Benchmarks">
-          <p>
-            Since Apple Mail Privacy Protection launched in 2021, industry-wide open rates have increased by 5-15
-            percentage points. Compare against your own historical data rather than relying solely on industry
-            benchmarks.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* B2B Email Open Rates */}
-      <section id="b2b-email-open-rates" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">B2B Email Open Rates</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          B2B (business-to-business) emails consistently outperform B2C benchmarks. Recipients opted in because of
-          genuine professional need, making them more engaged audiences.
-        </p>
-
-        <div className="rounded-xl border border-neutral-200 overflow-hidden mb-8">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="px-6 py-4 text-left text-ui font-semibold">B2B Industry</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Average Open Rate</th>
-                <th className="px-6 py-4 text-left text-ui font-semibold">Top Performers</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200 bg-white">
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">SaaS / Technology</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">22–28%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">35%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Professional Services</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">25–32%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">40%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Financial Services</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">20–26%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">33%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Agency / Marketing</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">18–24%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">30%+</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-ui text-neutral-900">Transactional / Receipts</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">45–65%</td>
-                <td className="px-6 py-4 text-ui text-neutral-700">70%+</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 mb-6">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">B2B-Specific Tactics</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>• Send Tuesday–Thursday, 10am–2pm in recipient's timezone</li>
-              <li>• Use company/product name in subject line for recognition</li>
-              <li>• Personalize with job title, industry, or company size</li>
-              <li>• Reference specific pain points relevant to their role</li>
-              <li>• Keep frequency lower—1–2 times per month for cold lists</li>
-            </ul>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">B2B vs B2C Differences</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>• B2B decisions are more considered—longer subject lines acceptable</li>
-              <li>• B2B audiences check email less frequently on weekends</li>
-              <li>• B2B recipients share inboxes with colleagues, affecting metrics</li>
-              <li>• B2B unsubscribe rates are typically lower (0.1–0.3% vs 0.3–0.5%)</li>
-              <li>• B2B transactional emails (invoices, updates) have much higher opens</li>
-            </ul>
-          </div>
-        </div>
-
-        <InfoBox type="tip" title="Segment Transactional vs Marketing">
-          <p>
-            Keep transactional emails (invoices, notifications, password resets) in separate campaigns from marketing
-            emails. Transactional emails typically achieve 40–60% open rates, which will skew your marketing
-            benchmarks if mixed together.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* Factors Affecting */}
-      <section id="factors" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">What Affects Email Open Rates?</h2>
-
-        <div className="space-y-6">
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">1. Subject Line</h3>
-            <p className="text-neutral-700 mb-3">
-              Your subject line is the #1 factor. It must be compelling, relevant, and create curiosity without being
-              clickbait. Personalization and specificity improve opens.
-            </p>
-            <div className="rounded-lg bg-neutral-50 p-4 space-y-2">
-              <div className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">✓</span>
-                <span className="text-ui text-neutral-700">
-                  "John, your invoice is ready" (personal, specific, clear)
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">✓</span>
-                <span className="text-ui text-neutral-700">
-                  "3 proven ways to increase conversion rates" (specific value)
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-red-600 font-bold">✗</span>
-                <span className="text-ui text-neutral-700">"You won't believe this!" (clickbait, vague)</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-red-600 font-bold">✗</span>
-                <span className="text-ui text-neutral-700">"Newsletter #47" (generic, uninteresting)</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">2. Sender Name</h3>
-            <p className="text-neutral-700">
-              Recipients decide whether to open based on who it's from. Use a recognizable name—either your brand or a
-              person from your company. "Company Name" or "John from Company" work better than "noreply@company.com".
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">3. Send Time & Day</h3>
-            <p className="text-neutral-700">
-              Timing impacts visibility. B2B emails typically perform best Tuesday-Thursday, 10am-2pm. B2C varies more
-              by audience—test evenings and weekends. Avoid Monday mornings and Friday afternoons.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">4. List Quality & Segmentation</h3>
-            <p className="text-neutral-700">
-              Engaged subscribers open more. Segmenting by behavior, interests, or demographics ensures relevance.
-              Inactive subscribers drag down open rates—consider re-engagement or removal.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">5. Deliverability & Sender Reputation</h3>
-            <p className="text-neutral-700">
-              If emails land in spam, they won't be opened. Maintain good sender reputation through proper
-              authentication (SPF, DKIM, DMARC), low spam complaints, and high engagement.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">6. Email Frequency</h3>
-            <p className="text-neutral-700">
-              Too frequent leads to fatigue and unsubscribes. Too infrequent and subscribers forget you. Find the sweet
-              spot for your audience—typically 1-4 emails per week for marketing.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">7. Mobile Optimization</h3>
-            <p className="text-neutral-700">
-              60%+ of emails are opened on mobile. Use short subject lines (40-50 characters), clear preview text, and
-              mobile-responsive design to improve mobile open rates.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* How to Improve */}
-      <section id="improve-open-rates" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">How to Improve Email Open Rates</h2>
-
-        <div className="space-y-4">
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              1
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Write Compelling Subject Lines</h3>
-              <p className="text-neutral-700">
-                Test different approaches: questions, personalization, numbers, urgency (without being spammy). Keep
-                them under 50 characters. A/B test to find what resonates with your audience.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              2
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Personalize Beyond First Names</h3>
-              <p className="text-neutral-700">
-                Use behavioral data, past purchases, browsing history, or location. "Products you recently viewed" or
-                "Based on your interest in [topic]" outperform generic blasts.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              3
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Segment Your Audience</h3>
-              <p className="text-neutral-700">
-                Send targeted emails to specific groups based on engagement level, purchase history, demographics, or
-                interests. Segmented campaigns see 14-100% higher open rates than non-segmented.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              4
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Optimize Preview Text</h3>
-              <p className="text-neutral-700">
-                Preview text appears next to the subject line. Use it to complement your subject, add context, or create
-                additional curiosity. Don't let it default to "View this email in your browser".
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              5
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Clean Your Email List Regularly</h3>
-              <p className="text-neutral-700">
-                Remove subscribers who haven't engaged in 6-12 months. While this reduces list size, it dramatically
-                improves open rates and sender reputation. Quality over quantity.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              6
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Test Send Times</h3>
-              <p className="text-neutral-700">
-                Run A/B tests sending the same email at different times. Track when your specific audience is most
-                responsive. Send time optimization can improve opens by 20-50%.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              7
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Re-engage Inactive Subscribers</h3>
-              <p className="text-neutral-700">
-                Before removing inactive users, send a re-engagement campaign: "We miss you" or "Still interested?"
-                emails with special offers. Remove those who still don't engage.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              8
-            </div>
-            <div className="w-full max-w-full break-words">
-              <h3 className="font-semibold text-neutral-900 mb-2">Use a Recognizable Sender Name</h3>
-              <p className="text-neutral-700">
-                Build consistency with your sender name. People are more likely to open emails from names they
-                recognize. Avoid changing it frequently.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Apple MPP Impact */}
-      <section id="apple-mpp" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Apple Mail Privacy Protection Impact</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Since iOS 15, Apple Mail Privacy Protection pre-loads email images and tracking pixels, making open tracking
-          less reliable for Apple Mail users.
-        </p>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-6">
-            <h3 className="text-xl font-semibold text-amber-900 mb-3">What Changed</h3>
-            <ul className="space-y-2 text-neutral-700">
-              <li>• Apple Mail pre-loads all images automatically</li>
-              <li>• Opens are registered even if user never sees email</li>
-              <li>• 30-50% of email lists use Apple Mail</li>
-              <li>• Open rates appear 5-15% higher than reality</li>
-              <li>• Open-based automation is less accurate</li>
-            </ul>
-          </div>
-
-          <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
-            <h3 className="text-xl font-semibold text-blue-900 mb-3">How to Adapt</h3>
-            <ul className="space-y-2 text-neutral-700">
-              <li>• Focus on click rates as primary engagement metric</li>
-              <li>• Track conversions and replies, not just opens</li>
-              <li>• Use multi-touch attribution</li>
-              <li>• Compare your own historical data, not industry averages</li>
-              <li>• Segment by email client to understand true engagement</li>
-            </ul>
-          </div>
-        </div>
-
-        <InfoBox type="tip" title="Beyond Open Rates">
-          <p>
-            With less reliable open tracking, prioritize metrics like click-through rate, conversion rate, reply rate,
-            and revenue per email. These better indicate true engagement and ROI.
-          </p>
-        </InfoBox>
-      </section>
-
-      {/* Related Guides */}
-      <section id="related-guides" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Related Email Guides</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link
-            href="/guides/email-click-through-rate"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Click-Through Rate</h3>
-            <p className="text-ui text-neutral-600">Optimize CTAs and improve email clicks.</p>
-          </Link>
-          <Link
-            href="/guides/email-deliverability"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-            <p className="text-ui text-neutral-600">Reach the inbox to maximize opens.</p>
-          </Link>
-          <Link
-            href="/guides/email-marketing-best-practices"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Marketing Best Practices</h3>
-            <p className="text-ui text-neutral-600">Complete email marketing strategy guide.</p>
-          </Link>
-        </div>
-      </section>
-    </GuideLayout>
+      ))}
+    </UICard>
   );
 }

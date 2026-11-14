@@ -1,14 +1,17 @@
 import {
+  EditorClientsFragment,
+  EditorReuseFragment,
+  EditorSnippets,
+  EditorVariablesFragment,
   FAQSection,
   FeatureCTA,
   FeatureHero,
-  FeatureSection,
+  FeatureHighlights,
   Footer,
+  MoreFeatures,
   Navbar,
-  SpecList,
-  StepSequence,
 } from '../../components';
-import type {FAQ, Spec, Step} from '../../components';
+import type {ChecklistItem, Claim, FAQ} from '../../components';
 import {WIKI_URI} from '../../lib/constants';
 import React from 'react';
 import {NextSeo} from 'next-seo';
@@ -19,62 +22,35 @@ import {NextSeo} from 'next-seo';
  * like one template with the nouns swapped, which is the single loudest
  * "generated" tell a feature page can have.
  */
-const capabilities: Spec[] = [
+/**
+ * The hero shows the two modes and the preview. These are the three things
+ * that happen to a template after you write it.
+ */
+const claims: Claim[] = [
   {
-    title: 'Visual and HTML, both ways',
-    description:
-      'Format with a toolbar, or open the HTML and write it yourself. The editor detects markup it cannot represent visually and switches to code mode rather than flattening your work.',
+    title: 'Personal without the risk',
+    copy: 'Pick a contact field from the list. If it is empty, a fallback fills in, so nobody gets “Hi ,”.',
+    fragment: <EditorVariablesFragment />,
   },
   {
-    title: 'Variables with autocomplete',
-    description:
-      'Type two braces and pick a field. Fallbacks, nested properties and custom contact fields all resolve at send time.',
-    machine: '{{contact.firstName | there}}',
+    title: 'Looks right in every inbox',
+    copy: 'CSS is inlined and the markup is written for real mail clients, Outlook included.',
+    fragment: <EditorClientsFragment />,
   },
   {
-    title: 'Preview with real contacts',
-    description: 'Select any contact and see what they will actually receive, at desktop, tablet and mobile widths.',
-  },
-  {
-    title: 'Email-safe output',
-    description: 'CSS is inlined automatically and the markup is written for real mail clients, Outlook included.',
-  },
-];
-
-const audiences: Spec[] = [
-  {
-    title: 'For developers',
-    description:
-      'Full HTML control when you need it, and a variable system with fallbacks. The same template works in an API call, a workflow and a campaign.',
-    machine: 'Password resets, API-triggered alerts, webhook notifications',
-  },
-  {
-    title: 'For marketers',
-    description:
-      'The visual editor for quick changes, and live preview against real customer data. No waiting on a developer to fix a paragraph.',
-    machine: 'Product announcements, newsletters, onboarding',
-  },
-  {
-    title: 'For teams',
-    description:
-      'One tool both halves of the team can open. Developers write the markup, marketers edit the copy, and templates are reused rather than rebuilt.',
-    machine: 'Launch announcements, feature updates, lifecycle email',
+    title: 'Write once, use everywhere',
+    copy: 'The same template backs an API call, a workflow step and a campaign. Edit it once.',
+    fragment: <EditorReuseFragment />,
   },
 ];
 
-const steps: Step[] = [
-  {
-    title: 'Create your template',
-    body: 'Use the visual editor for quick formatting or write custom HTML. Add variables with autocomplete.',
-  },
-  {
-    title: 'Preview with real data',
-    body: 'Select any contact and see exactly what they will receive. Test on desktop, tablet, and mobile.',
-  },
-  {
-    title: 'Use everywhere',
-    body: 'Use your template in campaigns, workflows, and API calls. One template, unlimited uses.',
-  },
+const extras: ChecklistItem[] = [
+  {title: 'Visual and HTML, both ways', description: 'Switch any time without losing your markup.'},
+  {title: 'Keeps your code intact', description: 'Markup it cannot show visually stays in code mode.'},
+  {title: 'Preview as any contact', description: 'See exactly what one person will receive.'},
+  {title: 'Three screen widths', description: 'Check desktop, tablet and mobile before sending.'},
+  {title: 'Custom and nested fields', description: 'Use any data you store on a contact.'},
+  {title: 'Built for both halves', description: 'Developers write markup, marketers edit copy.'},
 ];
 
 const faqs: FAQ[] = [
@@ -104,11 +80,11 @@ export default function EmailEditorFeature() {
   return (
     <>
       <NextSeo
-        title="Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk"
+        title="Email Editor - Visual and HTML Email Builder | Plunk"
         description="The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere."
         canonical="https://www.useplunk.com/features/email-editor"
         openGraph={{
-          title: 'Email Editor - Create Beautiful Emails Without Fighting Your Tools | Plunk',
+          title: 'Email Editor - Visual and HTML Email Builder | Plunk',
           description:
             'The email editor that speaks both languages. Switch between visual and code editing, preview with real data, and create templates that work everywhere.',
           url: 'https://www.useplunk.com/features/email-editor',
@@ -137,27 +113,16 @@ export default function EmailEditorFeature() {
           subtitle={'Switch between visual and code editing, and preview against a real contact before you send.'}
           docsHref={`${WIKI_URI}/guides/template-language`}
           docsLabel={'Template docs'}
+          artifact={<EditorSnippets />}
         />
 
-        <FeatureSection
-          tone={'muted'}
-          title={'What the editor does'}
-          intro={'One template that survives being edited by two different kinds of person.'}
-        >
-          <SpecList specs={capabilities} />
-        </FeatureSection>
-
-        <FeatureSection title={'How it works'}>
-          <StepSequence steps={steps} />
-        </FeatureSection>
-
-        <FeatureSection tone={'muted'} title={'Who it is for'}>
-          <SpecList specs={audiences} />
-        </FeatureSection>
+        <FeatureHighlights title={'What the editor does'} claims={claims} extras={extras} />
 
         <FAQSection faqs={faqs} schemaId={'faq-email-editor'} />
 
         <FeatureCTA title={'Write your first template.'} />
+
+        <MoreFeatures current={'/features/email-editor'} />
       </main>
 
       <Footer />

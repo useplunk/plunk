@@ -3,14 +3,7 @@ import * as z from 'zod';
 import type {PlunkClient} from '../client.js';
 import {FILTER_HELP, filterCondition} from '../schemas.js';
 
-import {errorResult, jsonResult, paginationHint, register, runTool, type ToolContext} from './shared.js';
-
-interface SegmentList {
-  data: unknown[];
-  cursor: string | null;
-  hasMore: boolean;
-  total: number;
-}
+import {errorResult, jsonResult, register, runTool, type ToolContext} from './shared.js';
 
 export function registerSegmentTools(ctx: ToolContext, client: PlunkClient): void {
   register(
@@ -23,27 +16,22 @@ export function registerSegmentTools(ctx: ToolContext, client: PlunkClient): voi
         '',
         '**NOT for:** Listing the contacts inside a segment — this returns the segments themselves.',
         '',
-        '**Returns:** A page of segments with IDs, names, types and conditions.',
+        '**Returns:** Every segment in the project, with IDs, names, types, conditions and cached member',
+        'counts (`memberCount`).',
         '',
         '**When to use:** Before creating a `SEGMENT`-audience campaign, to find the segment ID and',
         'to show the user how many people it covers.',
         '',
         '**Key trigger phrases:** "what segments do I have", "my audiences", "how big is the segment"',
       ].join('\n'),
-      inputSchema: z.object({
-        limit: z.number().int().min(1).max(100).default(20).describe('Items per page (max 100).'),
-        cursor: z.string().optional().describe('Cursor from a previous page.'),
-      }),
       annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true},
     },
-    async ({limit, cursor}) =>
+    async () =>
       runTool(async () => {
-        const result = await client.request<SegmentList>({path: '/segments', query: {limit, cursor}});
+        // GET /segments returns every segment as a bare array — it is not paginated.
+        const segments = await client.request<unknown[]>({path: '/segments'});
 
-        return jsonResult(
-          `Found ${result.data.length} segment(s).${paginationHint(result.hasMore, result.cursor)}`,
-          result,
-        );
+        return jsonResult(`Found ${segments.length} segment(s).`, segments);
       }),
   );
 

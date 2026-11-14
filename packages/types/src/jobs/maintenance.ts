@@ -54,3 +54,20 @@ export interface EmailBodyCleanupJobData {
 export interface SnoozeSweepJobData {
   // Empty - sweeps every contact whose snoozedUntil has passed
 }
+
+/**
+ * Job data for re-queueing scheduled transactional emails whose time has passed
+ * Used by: scheduledEmailSweepQueue worker
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ScheduledEmailSweepJobData {
+  // Empty - sweeps every email still SCHEDULED past its scheduledFor
+}
+
+/**
+ * Job data for measuring the coverage and type of a project's custom contact fields
+ * Used by: contactFieldsQueue worker
+ */
+export interface ContactFieldsJobData {
+  projectId: string;
+}

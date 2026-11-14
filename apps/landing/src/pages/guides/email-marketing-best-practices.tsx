@@ -1,549 +1,420 @@
-import React from 'react';
-import {GuideLayout, InfoBox} from '../../components/guides';
+import {Filter, MailCheck} from 'lucide-react';
 import Link from 'next/link';
+import React from 'react';
+
+import {
+  GuideCompare,
+  GuideFigure,
+  GuideLayout,
+  GuidePoints,
+  GuideSection,
+  GuideTable,
+  InboxFragment,
+  InfoBox,
+} from '../../components/guides';
+import {
+  Avatar,
+  SegmentCampaignFragment,
+  SnippetRow,
+  SnippetTile,
+  StatusPill,
+  TimeAgo,
+  UICard,
+} from '../../components/snippets';
 
 export default function EmailMarketingBestPractices() {
   return (
     <GuideLayout
+      slug={'email-marketing-best-practices'}
       title="Email Marketing Best Practices: The Complete Guide"
-      description="Master email marketing with proven best practices for content, design, timing, deliverability, and compliance. Comprehensive guide for 2025."
+      heading={'Email marketing best practices'}
+      description="Master email marketing with proven best practices for content, design, timing, deliverability, and compliance."
+      lead={
+        'Mail people who asked for it, send each segment something worth opening, test one change at a time and follow the law. Done well, email returns an average of $36 to $42 for every $1 spent.'
+      }
       lastUpdated="2025-12-20"
-      readTime="15 min"
+      readTime="10 min"
       canonical="https://www.useplunk.com/guides/email-marketing-best-practices"
+      cta={'Campaigns your subscribers asked for.'}
+      figure={
+        <SnippetTile align={'bleed-right'} className={'min-h-[26rem] py-10'}>
+          <div className={'flex flex-col gap-3'}>
+            <ConfirmationEmail className={'w-full max-w-sm'} />
+            <UICard className={'ml-10 w-full max-w-xs p-4'}>
+              <SnippetRow
+                leading={<Avatar name={'Ana Ruiz'} />}
+                title={'Ana Ruiz'}
+                label={'Confirmed her email'}
+                labelPosition={'below'}
+                trailing={<StatusPill tone={'ok'}>Subscribed</StatusPill>}
+              />
+            </UICard>
+          </div>
+        </SnippetTile>
+      }
     >
-      {/* Introduction */}
-      <section id="introduction" className="mb-12">
-        <p className="text-neutral-700 leading-relaxed">
-          Email marketing remains one of the most effective digital marketing channels, delivering an average ROI of
-          $36-42 for every $1 spent. But success requires following best practices that have evolved with technology,
-          regulations, and user expectations.
+      <GuideSection id={'list-building'} title={'Build your list with consent'}>
+        <p>
+          A small list of people who want your email beats a large one that does not. Every address you add without
+          consent costs you opens, complaints and{' '}
+          <Link href={'/guides/email-sender-reputation'}>sender reputation</Link>.
         </p>
-        <p className="mt-4 text-neutral-700 leading-relaxed">
-          This comprehensive guide covers everything you need to know: from building your list to crafting compelling
-          content, optimizing deliverability, and staying compliant with regulations.
-        </p>
-      </section>
-
-      {/* List Building */}
-      <section id="list-building" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Building Your Email List</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          A high-quality email list is the foundation of successful email marketing. Focus on engaged subscribers who
-          genuinely want to hear from you.
-        </p>
-
-        <div className="space-y-6">
-          <div className="rounded-xl border-2 border-green-200 bg-green-50 p-6">
-            <h3 className="text-xl font-semibold text-green-900 mb-3">✓ Best Practices</h3>
-            <ul className="space-y-3 text-neutral-700">
-              <li className="flex items-start gap-3">
-                <span className="text-green-600 font-bold mt-1">•</span>
-                <span>
-                  <strong>Use double opt-in:</strong> Require subscribers to confirm their email address. This ensures
-                  list quality and reduces spam complaints.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-green-600 font-bold mt-1">•</span>
-                <span>
-                  <strong>Offer clear value:</strong> Explain what subscribers will receive and how often. "Get weekly
-                  tips on [topic]" is better than "Subscribe to our newsletter."
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-green-600 font-bold mt-1">•</span>
-                <span>
-                  <strong>Use multiple touchpoints:</strong> Add signup forms on your website, blog, checkout page,
-                  social media, and in-person events.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-green-600 font-bold mt-1">•</span>
-                <span>
-                  <strong>Provide incentives:</strong> Lead magnets like ebooks, discounts, templates, or exclusive
-                  content encourage signups.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-green-600 font-bold mt-1">•</span>
-                <span>
-                  <strong>Make forms easy:</strong> Keep signup forms simple—ask only for essential information (usually
-                  just email, sometimes name).
-                </span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
-            <h3 className="text-xl font-semibold text-red-900 mb-3">✗ Avoid These Mistakes</h3>
-            <ul className="space-y-3 text-neutral-700">
-              <li className="flex items-start gap-3">
-                <span className="text-red-600 font-bold mt-1">•</span>
-                <span>
-                  <strong>Never buy email lists:</strong> Purchased lists lead to spam complaints, poor engagement, and
-                  damaged reputation.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-red-600 font-bold mt-1">•</span>
-                <span>
-                  <strong>Don't use pre-checked boxes:</strong> Subscribers must actively opt-in. Pre-checked boxes
-                  violate GDPR and reduce engagement.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-red-600 font-bold mt-1">•</span>
-                <span>
-                  <strong>Avoid hidden signup terms:</strong> Be transparent about email frequency and content type.
-                </span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Content Best Practices */}
-      <section id="content" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Email Content Best Practices</h2>
-
-        <div className="space-y-6 mb-8">
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">1. Craft Compelling Subject Lines</h3>
-            <p className="text-neutral-700 mb-3">
-              Your subject line determines whether emails get opened. Keep them under 50 characters, create curiosity,
-              and be specific about value.
-            </p>
-            <div className="rounded-lg bg-neutral-50 p-4">
-              <p className="text-ui font-semibold text-neutral-900 mb-2">Examples:</p>
-              <ul className="space-y-1 text-ui text-neutral-700">
-                <li>✓ "5 proven strategies to reduce churn by 30%"</li>
-                <li>✓ "Your personalized year-end report is ready"</li>
-                <li>✓ "Last chance: Sale ends tonight at midnight"</li>
-                <li>✗ "Newsletter #47"</li>
-                <li>✗ "Check this out!!!"</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">2. Personalize Beyond First Names</h3>
-            <p className="text-neutral-700">
-              Use behavioral data, purchase history, browsing activity, or preferences. Personalized emails deliver 6x
-              higher transaction rates than generic blasts.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">3. Focus on One Primary Goal</h3>
-            <p className="text-neutral-700">
-              Each email should have one clear call-to-action (CTA). Multiple CTAs confuse readers and reduce conversion
-              rates. Guide recipients toward a single action.
-            </p>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">4. Write Scannable Content</h3>
-            <p className="text-neutral-700 mb-3">Most people skim emails. Structure content for easy scanning:</p>
-            <ul className="list-disc list-inside space-y-1 text-neutral-700">
-              <li>Use short paragraphs (2-3 sentences max)</li>
-              <li>Include bullet points and numbered lists</li>
-              <li>Add descriptive subheadings</li>
-              <li>Use white space generously</li>
-              <li>Highlight key points with bold text</li>
-            </ul>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">5. Create Compelling CTAs</h3>
-            <p className="text-neutral-700 mb-3">Effective CTAs are:</p>
-            <ul className="list-disc list-inside space-y-1 text-neutral-700">
-              <li>
-                <strong>Action-oriented:</strong> "Download the guide" not "Click here"
-              </li>
-              <li>
-                <strong>Specific:</strong> "Start your 14-day free trial" not "Get started"
-              </li>
-              <li>
-                <strong>Visually prominent:</strong> Button format with contrasting colors
-              </li>
-              <li>
-                <strong>Urgent when appropriate:</strong> "Claim your discount today"
-              </li>
-            </ul>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">6. Provide Real Value</h3>
-            <p className="text-neutral-700">
-              Every email should benefit the reader. Share insights, solve problems, offer exclusive content, or provide
-              entertainment. Don't just promote—educate and engage.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Design Best Practices */}
-      <section id="design" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Email Design Best Practices</h2>
-
-        <div className="space-y-4">
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              1
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Mobile-First Design</h3>
-              <p className="text-neutral-700">
-                60%+ of emails are opened on mobile. Use responsive templates, large tap targets (44x44px minimum), and
-                test on multiple devices and email clients.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              2
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Optimize Images</h3>
-              <p className="text-neutral-700">
-                Compress images for fast loading, use alt text (many clients block images), and maintain 60/40
-                text-to-image ratio. Never send image-only emails.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              3
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Brand Consistency</h3>
-              <p className="text-neutral-700">
-                Use your brand colors, fonts, logo, and voice consistently. Recipients should instantly recognize your
-                emails. Create a template system for efficiency.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              4
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Accessible Design</h3>
-              <p className="text-neutral-700">
-                Use sufficient color contrast (4.5:1 minimum), readable font sizes (14px+ for body text), descriptive
-                link text, and semantic HTML for screen readers.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white text-ui font-bold">
-              5
-            </div>
-            <div>
-              <h3 className="font-semibold text-neutral-900 mb-2">Test Across Email Clients</h3>
-              <p className="text-neutral-700">
-                Email rendering varies dramatically across Gmail, Outlook, Apple Mail, etc. Test your designs across
-                major clients before sending to your full list.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Timing & Frequency */}
-      <section id="timing" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Timing & Frequency Best Practices</h2>
-
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-4">Best Send Times (General)</h3>
-            <ul className="space-y-2 text-neutral-700">
-              <li>
-                <strong>B2B:</strong> Tuesday-Thursday, 10am-11am or 2pm-3pm
-              </li>
-              <li>
-                <strong>B2C:</strong> Varies widely—test evenings and weekends
-              </li>
-              <li>
-                <strong>Avoid:</strong> Monday mornings (inbox overload) and Friday afternoons
-              </li>
-            </ul>
-            <InfoBox type="info" title="Test Your Audience" className="mt-4">
-              <p className="text-ui">
-                These are starting points. Your specific audience may behave differently. A/B test send times and let
-                data guide your strategy.
-              </p>
-            </InfoBox>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-4">Email Frequency Guidelines</h3>
-            <ul className="space-y-2 text-neutral-700">
-              <li>
-                <strong>Weekly:</strong> Most common for newsletters and content
-              </li>
-              <li>
-                <strong>2-3x/week:</strong> Works for engaged audiences with fresh content
-              </li>
-              <li>
-                <strong>Daily:</strong> Only for news, deals, or highly engaged communities
-              </li>
-              <li>
-                <strong>Monthly:</strong> Risk of being forgotten; better for curated content
-              </li>
-            </ul>
-            <InfoBox type="warning" title="Monitor Unsubscribes">
-              <p className="text-ui">
-                If unsubscribe rates spike when you increase frequency, you're sending too often. Find the balance.
-              </p>
-            </InfoBox>
-          </div>
-        </div>
-      </section>
-
-      {/* Segmentation */}
-      <section id="segmentation" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Segmentation & Personalization</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Segmented campaigns generate 30% more opens and 50% more clicks than non-segmented campaigns. Send targeted
-          messages to specific groups rather than blasting your entire list.
-        </p>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Common Segmentation Criteria</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>
-                • <strong>Demographics:</strong> Age, location, job title, company size
-              </li>
-              <li>
-                • <strong>Behavior:</strong> Purchase history, browsing activity, email engagement
-              </li>
-              <li>
-                • <strong>Lifecycle stage:</strong> New subscriber, active customer, churned user
-              </li>
-              <li>
-                • <strong>Engagement level:</strong> Highly engaged vs inactive subscribers
-              </li>
-              <li>
-                • <strong>Preferences:</strong> Product interests, content topics, email frequency
-              </li>
-              <li>
-                • <strong>Purchase recency:</strong> Recent buyers, lapsed customers
-              </li>
-            </ul>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Segment-Specific Campaigns</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>• Welcome series for new subscribers</li>
-              <li>• Re-engagement campaigns for inactive users</li>
-              <li>• Win-back campaigns for churned customers</li>
-              <li>• Product recommendations based on past purchases</li>
-              <li>• Location-specific offers and events</li>
-              <li>• VIP campaigns for high-value customers</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Testing & Optimization */}
-      <section id="testing" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Testing & Optimization</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Continuous testing is essential for improving email performance. Never assume—test and let data guide
-          decisions.
-        </p>
-
-        <div className="space-y-6">
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">What to A/B Test</h3>
-            <ul className="space-y-2 text-neutral-700">
-              <li>
-                • <strong>Subject lines:</strong> Length, personalization, questions vs statements, emojis
-              </li>
-              <li>
-                • <strong>Send times:</strong> Day of week, time of day, time zones
-              </li>
-              <li>
-                • <strong>Content:</strong> Long vs short, text vs image-heavy, tone and style
-              </li>
-              <li>
-                • <strong>CTAs:</strong> Button text, color, placement, number of CTAs
-              </li>
-              <li>
-                • <strong>Sender name:</strong> Company name vs person's name
-              </li>
-              <li>
-                • <strong>Personalization:</strong> Generic vs personalized content
-              </li>
-            </ul>
-          </div>
-
-          <div className="">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">A/B Testing Best Practices</h3>
-            <ul className="space-y-2 text-neutral-700">
-              <li>• Test one variable at a time for clear results</li>
-              <li>• Use statistically significant sample sizes (minimum 1,000+ per variant)</li>
-              <li>• Run tests long enough to account for timing variations</li>
-              <li>• Test with random splits, not cherry-picked segments</li>
-              <li>• Implement winners, then test the next variable</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Compliance */}
-      <section id="compliance" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Legal Compliance</h2>
-        <p className="text-neutral-700 leading-relaxed mb-6">
-          Email marketing is heavily regulated. Non-compliance can result in massive fines and damage to your
-          reputation.
-        </p>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
-            <h3 className="text-xl font-semibold text-blue-900 mb-3">CAN-SPAM (US)</h3>
-            <ul className="space-y-2 text-neutral-700">
-              <li>• Don't use misleading subject lines or headers</li>
-              <li>• Include your physical mailing address</li>
-              <li>• Provide a clear, easy unsubscribe mechanism</li>
-              <li>• Honor unsubscribe requests within 10 business days</li>
-              <li>• Identify the email as an advertisement (if applicable)</li>
-            </ul>
-          </div>
-
-          <div className="rounded-xl border-2 border-neutral-200 bg-neutral-50 p-6">
-            <h3 className="text-xl font-semibold text-neutral-900 mb-3">GDPR (EU)</h3>
-            <ul className="space-y-2 text-neutral-700">
-              <li>• Obtain explicit consent before sending marketing emails</li>
-              <li>• Provide clear information about data usage</li>
-              <li>• Allow subscribers to access, modify, or delete their data</li>
-              <li>• Keep records of consent</li>
-              <li>• Implement appropriate data security measures</li>
-            </ul>
-          </div>
-        </div>
-
-        <InfoBox type="warning" title="When in Doubt, Get Consent" className="mt-6">
+        <GuidePoints
+          tone={'do'}
+          items={[
+            {
+              title: 'Use double opt-in',
+              body: 'Ask new subscribers to confirm their address. It keeps typos and fake signups off your list and cuts spam complaints.',
+            },
+            {
+              title: 'Say what they will get',
+              body: '“Get weekly tips on onboarding” beats “Subscribe to our newsletter”. State the topic and how often.',
+            },
+            {
+              title: 'Put forms where people are',
+              body: 'Your website, blog, checkout page, social profiles and in-person events.',
+            },
+            {
+              title: 'Offer an incentive',
+              body: 'An ebook, discount, template or exclusive content gives people a reason to sign up.',
+            },
+            {title: 'Keep forms short', body: 'Ask for an email address, and a name only if you will use it.'},
+          ]}
+        />
+        <GuidePoints
+          tone={'dont'}
+          items={[
+            {
+              title: 'Buy lists',
+              body: 'Purchased addresses never opted in. Expect spam complaints, bounces and a damaged reputation.',
+            },
+            {title: 'Pre-check the box', body: 'Subscribers must opt in themselves. Pre-checked boxes break GDPR.'},
+            {title: 'Hide the terms', body: 'Be clear about what you send and how often before someone signs up.'},
+          ]}
+        />
+        <InfoBox type={'success'} title={'Double opt-in in Plunk'}>
           <p>
-            Laws vary by jurisdiction. The safest approach is always to get explicit, documented consent before adding
-            anyone to your email list. Make unsubscribing easy and honor requests immediately.
+            Create the contact as unsubscribed and send a confirmation email with the <code>{'{{subscribeUrl}}'}</code>{' '}
+            link. One click subscribes them and fires an event you can start a welcome workflow from.
           </p>
         </InfoBox>
-      </section>
+      </GuideSection>
 
-      {/* Metrics to Track */}
-      <section id="metrics" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Key Metrics to Track</h2>
+      <GuideSection id={'content'} title={'Write emails people open'}>
+        <p>
+          The subject line decides whether an email gets opened. Keep it under 50 characters and say what is inside.
+          More in the <Link href={'/guides/email-open-rate'}>open rate guide</Link>.
+        </p>
+        <GuideFigure caption={'Specific subjects tell the reader what they get. Vague ones get skipped.'}>
+          <InboxFragment
+            className={'w-full max-w-md'}
+            rows={[
+              {
+                sender: 'Acme',
+                subject: '5 proven strategies to reduce churn by 30%',
+                time: '9:41',
+                unread: true,
+                tag: {tone: 'ok', label: 'Specific'},
+              },
+              {
+                sender: 'Acme',
+                subject: 'Last chance: sale ends tonight at midnight',
+                time: '9:12',
+                unread: true,
+                tag: {tone: 'ok', label: 'Specific'},
+              },
+              {sender: 'Acme', subject: 'Newsletter #47', time: 'Tue', tag: {tone: 'warn', label: 'Vague'}},
+              {sender: 'Acme', subject: 'Check this out!!!', time: 'Mon', tag: {tone: 'warn', label: 'Vague'}},
+            ]}
+          />
+        </GuideFigure>
+        <GuidePoints
+          items={[
+            {
+              title: 'Personalize beyond the first name',
+              body: 'Use purchase history, browsing activity and stated preferences. Personalized emails deliver 6x higher transaction rates than generic blasts.',
+            },
+            {
+              title: 'One email, one goal',
+              body: 'Give each email a single call to action. Several compete with each other and lower conversions.',
+            },
+            {
+              title: 'Write for skimmers',
+              body: 'Paragraphs of two or three sentences, bullet points, clear subheadings, white space, and bold for the key point.',
+            },
+            {
+              title: 'Make the CTA specific',
+              body: (
+                <>
+                  “Start your 14-day free trial”, not “Get started”. “Download the guide”, not “Click here”. Use a
+                  button in a contrasting color, and add urgency only when it is real. See the{' '}
+                  <Link href={'/guides/email-click-through-rate'}>click-through rate guide</Link>.
+                </>
+              ),
+            },
+            {
+              title: 'Give something every time',
+              body: 'An insight, a fix, exclusive content. Emails that only promote get unsubscribed.',
+            },
+          ]}
+        />
+      </GuideSection>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Engagement Metrics</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>
-                • <strong>Open rate:</strong> Industry average: 15-25%
-              </li>
-              <li>
-                • <strong>Click-through rate (CTR):</strong> Industry average: 2-5%
-              </li>
-              <li>
-                • <strong>Click-to-open rate (CTOR):</strong> Clicks ÷ opens
-              </li>
-              <li>
-                • <strong>Conversion rate:</strong> Goal completions ÷ delivered
-              </li>
-            </ul>
+      <GuideSection id={'design'} title={'Design for mobile and every client'}>
+        <GuidePoints
+          columns={2}
+          items={[
+            {
+              title: 'Mobile first',
+              body: 'Over 60% of emails are opened on a phone. Use responsive templates and tap targets of at least 44×44px.',
+            },
+            {
+              title: 'Light images with alt text',
+              body: 'Compress images and write alt text, since many clients block them. Aim for 60/40 text to image, and never send image-only emails.',
+            },
+            {
+              title: 'Consistent branding',
+              body: 'Same colors, fonts, logo and voice every time, so readers recognize you. Build from templates.',
+            },
+            {
+              title: 'Accessible',
+              body: 'Contrast of 4.5:1 or more, body text of 14px or larger, descriptive link text and semantic HTML.',
+            },
+            {
+              title: 'Tested across clients',
+              body: 'Gmail, Outlook and Apple Mail render the same email differently. Check them all before the full send.',
+            },
+          ]}
+        />
+      </GuideSection>
+
+      <GuideSection id={'timing'} title={'When and how often to send'}>
+        <p>
+          These are starting points. Your audience may behave differently, so A/B test send times and keep what the data
+          supports.
+        </p>
+        <GuideTable
+          head={['Audience', 'Try sending']}
+          rows={[
+            ['B2B', 'Tuesday to Thursday, 10 to 11am or 2 to 3pm'],
+            ['B2C', 'Varies widely. Test evenings and weekends.'],
+            ['Avoid', 'Monday mornings (inbox overload) and Friday afternoons'],
+          ]}
+        />
+        <GuideTable
+          head={['Frequency', 'Works for']}
+          rows={[
+            ['Daily', 'News, deals, or highly engaged communities only'],
+            ['2 to 3 times a week', 'Engaged audiences, when you have fresh content'],
+            ['Weekly', 'Most newsletters and content. The most common choice.'],
+            ['Monthly', 'Curated content, with a risk of being forgotten'],
+          ]}
+        />
+        <p>Watch unsubscribes when you send more often. If they spike, you have gone past what your list wants.</p>
+      </GuideSection>
+
+      <GuideSection id={'segmentation'} title={'Segment your list'}>
+        <p>
+          Segmented campaigns get 30% more opens and 50% more clicks than sending the same email to everyone. Group
+          contacts by what you know about them, then write for each group.
+        </p>
+        <GuideFigure
+          caption={'A segment is a rule, and the campaign goes to the people who match it, not the whole list.'}
+        >
+          <div className={'flex w-full max-w-xl flex-col items-center gap-3 sm:flex-row sm:items-start'}>
+            <UICard className={'w-full max-w-xs p-4'}>
+              <SnippetRow icon={Filter} label={'Segment'} title={'Pro customers'} />
+              <ul className={'mt-3 flex flex-col gap-1.5 border-t border-neutral-100 pt-3 text-ui text-neutral-700'}>
+                <li>Plan is Pro</li>
+                <li>Opened an email in the last 90 days</li>
+              </ul>
+            </UICard>
+            <SegmentCampaignFragment />
           </div>
+        </GuideFigure>
+        <GuidePoints
+          columns={2}
+          items={[
+            {title: 'Demographics', body: 'Age, location, job title, company size.'},
+            {title: 'Behavior', body: 'Purchases, browsing activity, email engagement.'},
+            {title: 'Lifecycle stage', body: 'New subscriber, active customer, churned user.'},
+            {title: 'Engagement', body: 'Highly engaged against inactive subscribers.'},
+            {title: 'Preferences', body: 'Product interests, topics, preferred frequency.'},
+            {title: 'Purchase recency', body: 'Recent buyers against lapsed customers.'},
+          ]}
+        />
+        <p>Campaigns that only work with segments:</p>
+        <ul>
+          <li>A welcome series for new subscribers</li>
+          <li>Re-engagement for inactive users, and win-back for churned customers</li>
+          <li>Product recommendations based on past purchases</li>
+          <li>Location-specific offers and events</li>
+          <li>VIP campaigns for high-value customers</li>
+        </ul>
+      </GuideSection>
 
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Health Metrics</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>
-                • <strong>Bounce rate:</strong> Target: &lt;2%
-              </li>
-              <li>
-                • <strong>Unsubscribe rate:</strong> Target: &lt;0.5%
-              </li>
-              <li>
-                • <strong>Spam complaint rate:</strong> Target: &lt;0.1%
-              </li>
-              <li>
-                • <strong>List growth rate:</strong> New subscribers vs unsubscribes
-              </li>
-            </ul>
-          </div>
+      <GuideSection id={'testing'} title={'Test one thing at a time'}>
+        <GuideTable
+          head={['Test', 'Variations to try']}
+          rows={[
+            ['Subject line', 'Length, personalization, question or statement, emoji'],
+            ['Send time', 'Day of week, time of day, time zone'],
+            ['Content', 'Long or short, text or image-heavy, tone'],
+            ['CTA', 'Button text, color, placement, how many'],
+            ['Sender name', 'Company name or a person’s name'],
+            ['Personalization', 'Generic or personalized content'],
+          ]}
+        />
+        <GuidePoints
+          tone={'do'}
+          columns={2}
+          items={[
+            {title: 'Change one variable', body: 'Otherwise you cannot tell what made the difference.'},
+            {title: 'Use enough recipients', body: 'At least 1,000 per variant for a significant result.'},
+            {title: 'Run it long enough', body: 'Let the test cover timing differences across the day.'},
+            {title: 'Split at random', body: 'Not by hand-picked segments.'},
+            {title: 'Ship the winner', body: 'Then test the next variable.'},
+          ]}
+        />
+      </GuideSection>
 
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Business Metrics</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>
-                • <strong>ROI:</strong> Revenue generated ÷ cost
-              </li>
-              <li>
-                • <strong>Revenue per email:</strong> Total revenue ÷ emails sent
-              </li>
-              <li>
-                • <strong>Customer lifetime value (CLV):</strong> Long-term value
-              </li>
-              <li>
-                • <strong>Cost per acquisition (CPA):</strong> Acquisition cost
-              </li>
-            </ul>
-          </div>
+      <GuideSection id={'compliance'} title={'Stay compliant'}>
+        <p>
+          Marketing email is regulated, and breaking the rules means fines and lost trust. The two laws most senders
+          deal with:
+        </p>
+        <GuideCompare
+          items={[
+            {
+              title: 'CAN-SPAM',
+              badge: <StatusPill>United States</StatusPill>,
+              points: [
+                'No misleading subject lines or headers',
+                'Include your physical mailing address',
+                'Offer a clear, easy unsubscribe',
+                'Honor unsubscribes within 10 business days',
+                'Identify the email as an ad, where it is one',
+              ],
+            },
+            {
+              title: 'GDPR',
+              badge: <StatusPill>European Union</StatusPill>,
+              points: [
+                'Get explicit consent before marketing email',
+                'Explain how you use their data',
+                'Let people access, change or delete their data',
+                'Keep records of consent',
+                'Secure the data you hold',
+              ],
+            },
+          ]}
+        />
+        <GuideFigure
+          caption={'The footer every marketing email needs: who you are, where you are, and a one-click way out.'}
+        >
+          <UnsubscribeFooter />
+        </GuideFigure>
+        <InfoBox type={'warning'} title={'When in doubt, get consent'}>
+          <p>
+            Laws vary by country. The safe approach is explicit, recorded consent before anyone joins your list, an easy
+            unsubscribe, and acting on it right away. Not sure if an email counts as marketing? Read{' '}
+            <Link href={'/guides/transactional-vs-marketing-email'}>transactional vs marketing email</Link>.
+          </p>
+        </InfoBox>
+      </GuideSection>
 
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3">Deliverability Metrics</h3>
-            <ul className="space-y-2 text-ui text-neutral-700">
-              <li>
-                • <strong>Delivery rate:</strong> Target: 98%+
-              </li>
-              <li>
-                • <strong>Inbox placement rate:</strong> Target: 95%+
-              </li>
-              <li>
-                • <strong>Sender reputation score:</strong> Monitor regularly
-              </li>
-              <li>
-                • <strong>Authentication status:</strong> SPF, DKIM, DMARC passing
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Related Guides */}
-      <section id="related-guides" className="mb-12">
-        <h2 className="text-3xl font-bold text-neutral-900 mb-6">Related Email Guides</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link
-            href="/guides/email-deliverability"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Deliverability</h3>
-            <p className="text-ui text-neutral-600">Ensure your emails reach the inbox.</p>
-          </Link>
-          <Link
-            href="/guides/email-open-rate"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Open Rates</h3>
-            <p className="text-ui text-neutral-600">Improve your open rates with proven tactics.</p>
-          </Link>
-          <Link
-            href="/guides/email-click-through-rate"
-            className="block rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Email Click-Through Rate</h3>
-            <p className="text-ui text-neutral-600">Optimize CTAs for more clicks.</p>
-          </Link>
-        </div>
-      </section>
+      <GuideSection id={'metrics'} title={'Metrics to track'}>
+        <p>Watch engagement to judge content, and health metrics to catch problems before inboxes do.</p>
+        <GuideTable
+          head={['Metric', 'Benchmark']}
+          rows={[
+            ['Open rate', '15 to 25% (industry average)'],
+            ['Click-through rate', '2 to 5% (industry average)'],
+            [
+              <Link key={'bounce'} href={'/guides/email-bounce-rate'}>
+                Bounce rate
+              </Link>,
+              'Under 2%',
+            ],
+            ['Unsubscribe rate', 'Under 0.5%'],
+            ['Spam complaint rate', 'Under 0.1%'],
+            ['Delivery rate', '98% or more'],
+            ['Inbox placement rate', '95% or more'],
+            [
+              'Authentication',
+              <React.Fragment key={'auth'}>
+                <Link href={'/guides/what-is-spf'}>SPF</Link>, <Link href={'/guides/what-is-dkim'}>DKIM</Link> and{' '}
+                <Link href={'/guides/what-is-dmarc'}>DMARC</Link> all passing
+              </React.Fragment>,
+            ],
+            [
+              <Link key={'reputation'} href={'/guides/email-sender-reputation'}>
+                Sender reputation
+              </Link>,
+              'No fixed number. Monitor it regularly.',
+            ],
+          ]}
+        />
+        <p>And the ones you calculate yourself:</p>
+        <GuidePoints
+          columns={2}
+          items={[
+            {title: 'Click-to-open rate', body: 'Clicks divided by opens.'},
+            {title: 'Conversion rate', body: 'Goal completions divided by delivered.'},
+            {title: 'List growth rate', body: 'New subscribers against unsubscribes.'},
+            {title: 'ROI', body: 'Revenue generated divided by cost.'},
+            {title: 'Revenue per email', body: 'Total revenue divided by emails sent.'},
+            {title: 'Customer lifetime value', body: 'The long-term value of a subscriber.'},
+            {title: 'Cost per acquisition', body: 'What it costs to win a customer.'},
+          ]}
+        />
+        <p>
+          If delivery or inbox placement slips, start with the{' '}
+          <Link href={'/guides/email-deliverability'}>deliverability guide</Link>, and run new campaigns through the{' '}
+          <Link href={'/tools/spam-checker'}>spam checker</Link> before you send.
+        </p>
+      </GuideSection>
     </GuideLayout>
+  );
+}
+
+/** The confirmation email a double opt-in sends: one line and one button. */
+function ConfirmationEmail({className = ''}: {className?: string}) {
+  return (
+    <UICard className={`p-4 ${className}`}>
+      <SnippetRow
+        icon={MailCheck}
+        label={'From Acme'}
+        title={'Confirm your subscription'}
+        trailing={<TimeAgo>now</TimeAgo>}
+      />
+      <div className={'mt-4 border-t border-neutral-100 pt-4'}>
+        <p className={'text-ui text-neutral-700'}>Hi Ana, confirm your email to get our weekly onboarding tips.</p>
+        <span className={'mt-4 inline-flex rounded-lg bg-neutral-900 px-3.5 py-2 text-ui font-semibold text-white'}>
+          Confirm my email
+        </span>
+      </div>
+    </UICard>
+  );
+}
+
+/** The bottom of a marketing email. */
+function UnsubscribeFooter() {
+  return (
+    <UICard className={'w-full max-w-sm overflow-hidden'}>
+      <div className={'p-4'}>
+        <p className={'text-ui font-semibold text-neutral-900'}>Acme Weekly</p>
+        <p className={'mt-1 text-ui text-neutral-600'}>Three ways teams cut onboarding time this month.</p>
+        <span className={'mt-3 inline-flex rounded-lg bg-neutral-900 px-3.5 py-2 text-ui font-semibold text-white'}>
+          Read the issue
+        </span>
+      </div>
+      <div className={'border-t border-neutral-100 bg-neutral-50 px-4 py-3 text-center text-label text-neutral-500'}>
+        <p>Acme Inc., 548 Market St, San Francisco, CA 94104</p>
+        <p className={'mt-1'}>
+          You signed up at acme.com. <span className={'font-medium text-neutral-900 underline'}>Unsubscribe</span>
+        </p>
+      </div>
+    </UICard>
   );
 }

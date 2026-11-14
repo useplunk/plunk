@@ -2,6 +2,8 @@
  * Import and bulk operation queue job data types
  */
 
+import type {ContactSubscriptionStatus} from '../api/contact.js';
+
 /**
  * Job data for importing contacts from CSV
  * Used by: importQueue worker
@@ -21,7 +23,15 @@ export interface ContactImportJobData {
  */
 export type BulkContactActionSelector =
   | {mode: 'ids'; contactIds: string[]}
-  | {mode: 'query'; filter: {search?: string; subscribed?: boolean}; excludeIds?: string[]};
+  | {
+      mode: 'query';
+      /**
+       * Mirrors the contacts list filters. `status` is the current facet; `subscribed` is the
+       * legacy boolean, kept for API callers that predate snoozing and ignored when `status` is set.
+       */
+      filter: {search?: string; status?: ContactSubscriptionStatus; subscribed?: boolean};
+      excludeIds?: string[];
+    };
 
 /**
  * Job data for bulk contact actions (subscribe, unsubscribe, delete)

@@ -1,7 +1,5 @@
-import {motion} from 'framer-motion';
+import {motion, useReducedMotion} from 'framer-motion';
 import React from 'react';
-
-import {Label} from '../Mono';
 
 export interface Step {
   title: string;
@@ -9,40 +7,80 @@ export interface Step {
 }
 
 /**
- * An ordered sequence: setup steps, a flow, a lifecycle.
+ * The number on a step: a small white card with a hairline, the same piece as
+ * a step in the snippet graphics, not a solid black dot. The black dots were
+ * the only filled circles on the site and read as a template's "1 2 3"; this
+ * belongs to the same family as FlowFragment, whose steps are joined by the
+ * same 1px line the sequences below use.
+ */
+export function StepMarker({n}: {n: number}) {
+  return (
+    <span
+      aria-hidden
+      className={
+        'relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-neutral-200/80 bg-white font-display text-ui font-bold text-neutral-900 shadow-fragment tabular-nums'
+      }
+    >
+      {n}
+    </span>
+  );
+}
+
+/**
+ * An ordered sequence: setup steps, a flow, a lifecycle. Numbers are allowed
+ * here because the order is the content.
  *
- * This is the one place on the site where numerals are allowed as section
- * furniture, because here the order *is* the content — step two genuinely
- * follows step one. Everywhere else the numbers were decoration and have been
- * removed.
- *
- * Rendered as a hairline grid (`gap-px` over a neutral background) rather than
- * as three separate cards, so the steps read as one continuous run instead of
- * three unrelated things that happen to sit in a row.
+ * Three columns joined by a line from each marker to the next, so the steps
+ * read as one sequence rather than three separate facts that happen to be
+ * numbered. The line draws in after its step appears. Below `sm` the columns
+ * stack and the line runs down the left instead.
  */
 export function StepSequence({steps}: {steps: Step[]}) {
+  const still = useReducedMotion();
+
   return (
-    <ol
-      className={'grid gap-px overflow-hidden rounded-card border border-neutral-200 bg-neutral-200 sm:grid-cols-3'}
-    >
-      {steps.map((step, i) => (
-        <motion.li
-          key={step.title}
-          initial={{opacity: 0, y: 16}}
-          whileInView={{opacity: 1, y: 0}}
-          viewport={{once: true}}
-          transition={{duration: 0.5, delay: i * 0.1, ease: [0.22, 1, 0.36, 1]}}
-          className={'bg-white p-8 sm:p-10'}
-        >
-          <Label>Step {String(i + 1).padStart(2, '0')}</Label>
-          <h3
-            className={'font-display mt-6 text-h3 font-bold tracking-[-0.02em] text-neutral-900'}
+    <ol className={'grid gap-10 sm:grid-cols-3 sm:gap-8'}>
+      {steps.map((step, i) => {
+        const last = i === steps.length - 1;
+        const delay = still ? 0 : i * 0.12;
+
+        return (
+          <motion.li
+            key={step.title}
+            initial={still ? undefined : {opacity: 0, y: 12}}
+            whileInView={still ? undefined : {opacity: 1, y: 0}}
+            viewport={{once: true, margin: '-10%'}}
+            transition={{duration: 0.5, delay, ease: [0.22, 1, 0.36, 1]}}
+            className={'relative flex gap-5 sm:block'}
           >
-            {step.title}
-          </h3>
-          <p className={'mt-3 text-neutral-600'}>{step.body}</p>
-        </motion.li>
-      ))}
+            {!last && (
+              <>
+                {/* Across, to the next column's marker. */}
+                <motion.span
+                  aria-hidden
+                  initial={still ? undefined : {scaleX: 0}}
+                  whileInView={still ? undefined : {scaleX: 1}}
+                  viewport={{once: true, margin: '-10%'}}
+                  transition={{duration: 0.6, delay: delay + 0.25, ease: [0.22, 1, 0.36, 1]}}
+                  className={
+                    'absolute left-[2.75rem] right-[-1.25rem] top-4 hidden h-px origin-left bg-neutral-300 sm:block'
+                  }
+                />
+                {/* Down, to the next stacked marker. */}
+                <span
+                  aria-hidden
+                  className={'absolute bottom-[-2rem] left-4 top-[2.5rem] w-px bg-neutral-300 sm:hidden'}
+                />
+              </>
+            )}
+            <StepMarker n={i + 1} />
+            <div className={'min-w-0 sm:mt-6'}>
+              <h3 className={'font-display text-xl font-semibold tracking-[-0.01em] text-neutral-900'}>{step.title}</h3>
+              <p className={'mt-2 max-w-[38ch] text-neutral-600'}>{step.body}</p>
+            </div>
+          </motion.li>
+        );
+      })}
     </ol>
   );
 }

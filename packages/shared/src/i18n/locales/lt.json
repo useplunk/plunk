@@ -1,0 +1,62 @@
+{
+  "pages": {
+    "unsubscribe": {
+      "title": "Atsisakyti prenumeratos",
+      "description": "Nebegauti {projectName} laiškų adresu {email}?",
+      "button": "Atsisakyti",
+      "buttonLoading": "Atsisakoma...",
+      "managePreferences": "Verčiau tvarkyti nustatymus",
+      "successTitle": "Prenumeratos atsisakėte",
+      "successDescription": "{email} daugiau negaus {projectName} laiškų.",
+      "changedMind": "Persigalvojote?",
+      "subscribeAgain": "Prenumeruoti vėl"
+    },
+    "subscribe": {
+      "title": "Prenumeruoti naujienas",
+      "description": "Gauti {projectName} laiškus adresu {email}?",
+      "button": "Prenumeruoti",
+      "buttonLoading": "Prenumeruojama...",
+      "successTitle": "Prenumerata aktyvuota!",
+      "successDescription": "{email} dabar gaus {projectName} laiškus."
+    },
+    "manage": {
+      "title": "Prenumeratos nustatymai",
+      "description": "Tvarkykite laiškus, kuriuos {projectName} siunčia adresu {email}.",
+      "subscriptionLabel": "El. laiškų prenumerata",
+      "subscribedStatus": "Šiuo metu jūs gaunate laiškus",
+      "unsubscribedStatus": "Šiuo metu laiškų negaunate",
+      "subscribedSuccess": "Prenumerata sėkmingai aktyvuota!",
+      "unsubscribedSuccess": "Prenumeratos sėkmingai atsisakyta!",
+      "unsubscribeCompletely": "Atsisakyti visiškai",
+      "subscribeToEmails": "Prenumeruoti laiškus",
+      "disclaimer": "Šiame puslapyje galite tvarkyti el. laiškų nustatymus. Prenumeratos būsena atnaujinama iš karto."
+    },
+    "snooze": {
+      "cta": "Verčiau laikinai sustabdyti laiškus",
+      "prompt": "Kuriam laikui sustabdyti laiškus?",
+      "duration_2_weeks": "2 savaitėms",
+      "duration_1_month": "1 mėnesiui",
+      "duration_6_months": "6 mėnesiams",
+      "duration_1_year": "1 metams",
+      "buttonLoading": "Stabdoma...",
+      "cancel": "Atšaukti",
+      "successTitle": "Laiškai laikinai sustabdyti",
+      "successDescription": "{email} negaus {projectName} laiškų iki {date}. Vėliau jie bus siunčiami automatiškai.",
+      "status": "Sustabdyta iki {date}",
+      "resume": "Atnaujinti laiškus dabar"
+    },
+    "common": {
+      "loading": "Įkeliama...",
+      "error": "Klaida",
+      "loadFailed": "Nepavyko įkelti jūsų laiškų nustatymų. Patikrinkite nuorodą ir bandykite dar kartą.",
+      "actionFailed": "Kažkas nepavyko. Bandykite dar kartą.",
+      "sentWith": "Išsiųsta naudojant {provider}"
+    }
+  },
+  "email": {
+    "footer": {
+      "unsubscribeText": "Gavote šį laišką, nes sutikote gauti {projectName} laiškus. Jei nebenorite gauti tokių laiškų,",
+      "updatePreferences": "pakeiskite nustatymus"
+    }
+  }
+}

@@ -8,6 +8,7 @@ import {prisma} from '../database/prisma.js';
 import {redis} from '../database/redis.js';
 import {Keys} from './keys.js';
 
+import {WorkflowEntryService} from './WorkflowEntryService.js';
 import {WorkflowExecutionService} from './WorkflowExecutionService.js';
 
 /**
@@ -445,34 +446,6 @@ export class EventService {
         return;
       }
 
-      // Check re-entry rules
-      if (!workflow.allowReentry) {
-        // If re-entry is not allowed, check if contact has ANY execution (regardless of status)
-        const existingExecution = await prisma.workflowExecution.findFirst({
-          where: {
-            workflowId,
-            contactId,
-          },
-        });
-
-        if (existingExecution) {
-          return;
-        }
-      } else {
-        // If re-entry is allowed, only check if there's a currently RUNNING execution
-        const runningExecution = await prisma.workflowExecution.findFirst({
-          where: {
-            workflowId,
-            contactId,
-            status: 'RUNNING',
-          },
-        });
-
-        if (runningExecution) {
-          return;
-        }
-      }
-
       const triggerStep = workflow.steps[0];
 
       if (!triggerStep) {
@@ -480,16 +453,13 @@ export class EventService {
         return;
       }
 
-      // Create workflow execution
-      const execution = await prisma.workflowExecution.create({
-        data: {
-          workflowId,
-          contactId,
-          status: 'RUNNING',
-          currentStepId: triggerStep.id,
-          context: context ? toPrismaJson(context) : undefined,
-        },
-      });
+      const entry = await WorkflowEntryService.enter(workflow, contactId, triggerStep.id, context);
+
+      if (!entry.entered) {
+        return;
+      }
+
+      const {execution} = entry;
 
       signale.info(
         `[EVENT] Started workflow ${workflowId} execution ${execution.id} for contact ${contactId}${workflow.allowReentry ? ' (re-entry allowed)' : ''}`,

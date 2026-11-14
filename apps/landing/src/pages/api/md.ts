@@ -15,7 +15,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const content = MARKDOWN_PAGES[slug];
   if (!content) {
-    res.status(406).end();
+    res.status(404).end();
     return;
   }
 

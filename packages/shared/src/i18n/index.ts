@@ -17,6 +17,9 @@ import zhCNTranslations from './locales/zh-CN.json' with {type: 'json'};
 import jaTranslations from './locales/ja.json' with {type: 'json'};
 import svTranslations from './locales/sv.json' with {type: 'json'};
 import cyTranslations from './locales/cy.json' with {type: 'json'};
+import ltTranslations from './locales/lt.json' with {type: 'json'};
+import lvTranslations from './locales/lv.json' with {type: 'json'};
+import etTranslations from './locales/et.json' with {type: 'json'};
 
 export {
   SUPPORTED_LANGUAGES,
@@ -60,6 +63,9 @@ const translationsMap: Record<string, Translations> = {
   'ja': jaTranslations,
   'sv': svTranslations,
   'cy': cyTranslations,
+  'lt': ltTranslations,
+  'lv': lvTranslations,
+  'et': etTranslations,
 };
 
 // In-memory cache for loaded translations

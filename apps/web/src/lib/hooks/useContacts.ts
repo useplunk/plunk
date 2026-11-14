@@ -1,5 +1,5 @@
 import type {Contact} from '@plunk/db';
-import type {CursorPaginatedResponse, PaginatedResponse} from '@plunk/types';
+import type {ContactField, ContactFieldsResponse, CursorPaginatedResponse, PaginatedResponse} from '@plunk/types';
 import useSWR from 'swr';
 
 interface UseContactsOptions {
@@ -10,13 +10,7 @@ interface UseContactsOptions {
 /** Stable identity so consumers' effect dependencies don't churn before the fetch lands. */
 const NO_FIELDS: ContactField[] = [];
 
-/** A contact field as reported by `GET /contacts/fields`. */
-export interface ContactField {
-  field: string;
-  type: 'string' | 'number' | 'boolean' | 'date';
-  /** Percentage of the project's contacts that carry this field. */
-  coverage: number;
-}
+export type {ContactField};
 
 /**
  * Hook to fetch contacts with optional search
@@ -77,10 +71,13 @@ export function useSegmentContacts(segmentId?: string, pageSize = 50) {
  * Hook to fetch available contact fields for variable usage
  */
 export function useContactFields() {
-  const {data, error, mutate, isLoading} = useSWR<{fields: ContactField[]; count: number}>('/contacts/fields', {
+  const {data, error, mutate, isLoading} = useSWR<ContactFieldsResponse>('/contacts/fields', {
     revalidateOnFocus: false,
     // Cache fields for longer since they don't change often
     dedupingInterval: 60000, // 1 minute
+    // A project that was never scanned only lists the fields written since; poll until the
+    // background scan has filled in the rest.
+    refreshInterval: latest => (latest?.pending ? 3000 : 0),
   });
 
   const fieldDetails = data?.fields ?? NO_FIELDS;

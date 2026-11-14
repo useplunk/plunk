@@ -7,18 +7,38 @@ icon: Send
 Transactional emails are emails sent directly through the API. They are typically used for one-to-one communication, such as password resets, order confirmations, and notifications.
 
 ## Sending with attachments
-Plunk supports sending attachments with transactional emails. By default, you can include up to 10 attachments per email with a maximum total size of 10MB. Attachments should be base64 encoded and included in the `attachments` array when sending the email via the [/v1/email/send](/api-reference/public-api/sendEmail) endpoint.
+Plunk supports sending attachments with transactional emails. By default, you can include up to 10 attachments per email with a maximum total size of 10MB. Attachments should be base64 encoded and included in the `attachments` array when sending the email via the [/v1/send](/api-reference/public-api/sendEmail) endpoint.
 
 The total message size cannot exceed 40 MB. Self-hosters can adjust the defaults — see [Environment variables](/self-hosting/environment-variables).
 
 ## Sending from a template
 You can also send transactional emails using a [template](/concepts/templates) you have created in the dashboard. This allows you to reuse the same design and content for multiple emails, while still personalizing them with contact data.
 
+## Sending later
+Add `delivery.at` to send the email at a set time, up to 30 days ahead. Until it goes out you can move or cancel it with its email ID, or cancel it from **Activity** in the dashboard. See [Scheduling](/guides/scheduling).
+
+## Sending at most once per period
+Add `delivery.throttle` to send a notification to a recipient at most once per window, such as a usage warning you trigger on every request but want delivered once a day. A throttled send writes nothing and is not billed. See [Throttling](/guides/throttling).
+
+```json
+{
+  "to": "ana@acme.com",
+  "template": "your-template-id",
+  "delivery": { "at": "2026-11-01T09:00:00Z", "throttle": "24h" }
+}
+```
+
 ## What's next
 
 <Cards>
   <Card title="Send Email API" href="/api-reference/public-api/sendEmail">
     Full reference for `POST /v1/send`.
+  </Card>
+  <Card title="Scheduling" href="/guides/scheduling">
+    Send later, then move or cancel it before it goes out.
+  </Card>
+  <Card title="Throttling" href="/guides/throttling">
+    Send a notification at most once per period.
   </Card>
   <Card title="Templates" href="/concepts/templates">
     Author reusable email designs.
