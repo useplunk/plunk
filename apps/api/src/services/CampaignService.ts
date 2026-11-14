@@ -2,6 +2,7 @@ import type {Campaign, Contact} from '@plunk/db';
 import {CampaignAudienceType, CampaignStatus, EmailSourceType, EmailStatus, Prisma, TemplateType} from '@plunk/db';
 import {compileTemplate} from '@plunk/shared';
 import type {
+  CampaignFailureReason,
   CampaignListResponse,
   CampaignRecipient,
   CampaignRecipientType,
@@ -10,7 +11,7 @@ import type {
   FilterCondition,
   UpdateCampaignData,
 } from '@plunk/types';
-import {fromPrismaJson, toPrismaJson} from '@plunk/types';
+import {fromPrismaJson, fromPrismaJsonOptional, toPrismaJson} from '@plunk/types';
 import signale from 'signale';
 
 import {prisma} from '../database/prisma.js';
@@ -29,6 +30,9 @@ import {SegmentService} from './SegmentService.js';
 import {Keys} from './keys.js';
 import {DASHBOARD_URI, STRIPE_ENABLED} from '../app/constants.js';
 import {sendRawEmail} from './SESService.js';
+
+/** What `CampaignService.finalizeIfDone` found; see its documentation. */
+export type FinalizeOutcome = 'finalized' | 'not-sending' | 'pending' | 'incomplete' | 'raced';
 
 const BATCH_SIZE = 500; // Number of emails to process per batch (increased for better performance)
 
@@ -269,7 +273,7 @@ export class CampaignService {
     ]);
 
     return {
-      data: campaigns,
+      data: await this.withLiveSentCount(campaigns),
       total,
       page,
       pageSize,
@@ -494,6 +498,7 @@ export class CampaignService {
         bouncedCount: 0,
         complainedCount: 0,
         unsubscribedCount: 0,
+        failedCount: 0,
       },
     });
 
@@ -788,6 +793,43 @@ export class CampaignService {
   }
 
   /**
+   * Add the live Redis progress to `sentCount` on every SENDING campaign in a list.
+   *
+   * The stats endpoint already does this for one campaign; every other surface read the
+   * bare column, which stays 0 until the send finalizes, so the list and the analytics
+   * leaderboard reported "0 sent" for a campaign the campaign page showed as 78% through.
+   * One MGET for the whole page, and none at all when nothing on it is sending.
+   *
+   * Falls back to the row as-is when Redis is unavailable, the same way
+   * `readSentProgress` does.
+   */
+  public static async withLiveSentCount<T extends {id: string; status: CampaignStatus; sentCount: number}>(
+    campaigns: T[],
+  ): Promise<T[]> {
+    const sending = campaigns.filter(c => c.status === CampaignStatus.SENDING);
+
+    if (sending.length === 0) {
+      return campaigns;
+    }
+
+    let values: (string | null)[];
+
+    try {
+      values = await redis.mget(...sending.map(c => Keys.Campaign.sentProgress(c.id)));
+    } catch (error) {
+      signale.warn('[CAMPAIGN] Failed to read sent progress for campaign list:', error);
+      return campaigns;
+    }
+
+    const progress = new Map(sending.map((c, i) => [c.id, values[i] ? Number.parseInt(values[i], 10) || 0 : 0]));
+
+    return campaigns.map(c => {
+      const delta = progress.get(c.id);
+      return delta ? {...c, sentCount: c.sentCount + delta} : c;
+    });
+  }
+
+  /**
    * Note that a campaign's counters are behind its email rows.
    *
    * Called from the SES event webhook, which runs once per recipient per event --
@@ -878,6 +920,7 @@ export class CampaignService {
         clicked: bigint;
         bounced: bigint;
         complained: bigint;
+        failed: bigint;
       }[]
     >`
       SELECT
@@ -886,7 +929,12 @@ export class CampaignService {
         COUNT(*) FILTER (WHERE "openedAt" IS NOT NULL) AS opened,
         COUNT(*) FILTER (WHERE "clickedAt" IS NOT NULL) AS clicked,
         COUNT(*) FILTER (WHERE "bouncedAt" IS NOT NULL) AS bounced,
-        COUNT(*) FILTER (WHERE "complainedAt" IS NOT NULL) AS complained
+        COUNT(*) FILTER (WHERE "complainedAt" IS NOT NULL) AS complained,
+        COUNT(*) FILTER (
+          WHERE "status" = 'FAILED'
+            AND "sentAt" IS NULL
+            AND ("error" IS NULL OR "error" NOT IN (${Prisma.join(this.USER_STOPPED_ERRORS)}))
+        ) AS failed
       FROM "emails"
       WHERE "campaignId" = ${campaignId}::text
     `;
@@ -907,6 +955,7 @@ export class CampaignService {
         clickedCount: Number(totals.clicked),
         bouncedCount: Number(totals.bounced),
         complainedCount: Number(totals.complained),
+        failedCount: Number(totals.failed),
       },
     });
 
@@ -924,12 +973,66 @@ export class CampaignService {
   }
 
   /**
+   * The error the send path records on an email it skips because its campaign is no longer
+   * SENDING. Shared with the email processor so the two cannot drift apart: the failure
+   * counters below recognise the user-initiated stops by exactly this text.
+   */
+  public static skippedEmailError(status: CampaignStatus): string {
+    return `Campaign ${status.toLowerCase()}`;
+  }
+
+  /**
+   * Skips the user asked for -- cancelling a send, or reverting it to draft. Those emails
+   * end FAILED too, but they are not failures: nothing refused them, the user stopped them,
+   * and counting them would report a cancelled campaign as a broken one.
+   *
+   * "Campaign sent" is deliberately not here. An email skipped because its campaign had
+   * already finalized is a recipient the send genuinely missed.
+   */
+  private static readonly USER_STOPPED_ERRORS = [
+    CampaignService.skippedEmailError(CampaignStatus.CANCELLED),
+    CampaignService.skippedEmailError(CampaignStatus.DRAFT),
+  ];
+
+  /**
+   * The emails that count towards `failedCount`: FAILED without SES ever accepting them
+   * (`sentAt` null -- one SES accepted before a later step threw reached its recipient and
+   * is counted as sent), and not stopped on purpose. Served by the (campaignId, status)
+   * index, so the cost scales with how many failed, not with the audience.
+   */
+  private static failedEmailWhere(campaignId: string): Prisma.EmailWhereInput {
+    return {
+      campaignId,
+      status: EmailStatus.FAILED,
+      sentAt: null,
+      OR: [{error: null}, {error: {notIn: this.USER_STOPPED_ERRORS}}],
+    };
+  }
+
+  /** How many distinct errors `failureReasons` keeps */
+  private static readonly FAILURE_REASON_LIMIT = 5;
+
+  /**
    * Finalize a SENDING campaign if every email has reached a terminal state.
    * Terminal = sentAt is set OR status is FAILED. Counting FAILED as terminal
    * unsticks campaigns where some emails couldn't be delivered (e.g. the project
-   * was disabled mid-send), so the campaign moves to SENT with a partial sentCount.
+   * was disabled mid-send, or SES refused the rest once the daily quota ran out),
+   * so the campaign moves to SENT with a partial sentCount, a `failedCount` that
+   * says how many recipients the send never reached, and `failureReasons` saying why.
+   *
+   * Called from every terminal outcome of the send path -- success and failure
+   * alike -- and from `finalizeStalled` for campaigns no send path will revisit.
+   *
+   * Returns what it found, so `finalizeStalled` can tell a campaign that is still
+   * sending from one that will never finish on its own:
+   * - `finalized`: this call moved the campaign to SENT.
+   * - `not-sending`: missing, or not SENDING.
+   * - `pending`: some email is still PENDING or SENDING.
+   * - `incomplete`: nothing is in flight, but fewer emails reached a terminal state than
+   *   `totalRecipients` -- the batch chain is between batches, or it died.
+   * - `raced`: another caller finalized it first.
    */
-  public static async finalizeIfDone(campaignId: string): Promise<void> {
+  public static async finalizeIfDone(campaignId: string): Promise<FinalizeOutcome> {
     const campaign = await prisma.campaign.findUnique({
       where: {id: campaignId},
       select: {
@@ -943,7 +1046,7 @@ export class CampaignService {
     });
 
     if (!campaign || campaign.status !== CampaignStatus.SENDING) {
-      return;
+      return 'not-sending';
     }
 
     // Cheap completion probe: an unprocessed campaign email is always PENDING or
@@ -958,10 +1061,10 @@ export class CampaignService {
     });
 
     if (stillPending) {
-      return;
+      return 'pending';
     }
 
-    const [processedCount, sentCount] = await Promise.all([
+    const [processedCount, sentCount, failedCount] = await Promise.all([
       prisma.email.count({
         where: {
           campaignId,
@@ -969,16 +1072,53 @@ export class CampaignService {
         },
       }),
       prisma.email.count({where: {campaignId, sentAt: {not: null}}}),
+      prisma.email.count({where: this.failedEmailWhere(campaignId)}),
     ]);
 
     if (campaign.totalRecipients > 0 && processedCount < campaign.totalRecipients) {
-      return;
+      return 'incomplete';
     }
 
-    await prisma.campaign.update({
-      where: {id: campaignId},
-      data: {status: CampaignStatus.SENT, sentCount},
+    // Conditional on still being SENDING. The last few emails of a campaign finish
+    // within moments of each other and every one of them calls this, so several can
+    // pass the checks above together; only the one whose update lands may go on to
+    // reconcile and announce the send, or the completion notification goes out twice.
+    //
+    // `failedCount` is written here, with the status, rather than left to the reconcile
+    // below: if that recount fails, a campaign whose every email failed draws no SES
+    // event to recount it later, and would read as a clean send forever.
+    const finalized = await prisma.campaign.updateMany({
+      where: {id: campaignId, status: CampaignStatus.SENDING},
+      data: {status: CampaignStatus.SENT, sentCount, failedCount},
     });
+
+    if (finalized.count === 0) {
+      return 'raced';
+    }
+
+    // Failed rows cannot change once the campaign has left SENDING, so their breakdown is
+    // computed once, here, rather than on every read of the stats endpoint -- which is
+    // polled, and would otherwise aggregate every failed row on each poll. Display-only,
+    // so a failure here is logged rather than allowed to stop the finalization.
+    if (failedCount > 0) {
+      try {
+        const groups = await prisma.email.groupBy({
+          by: ['error'],
+          where: this.failedEmailWhere(campaignId),
+          _count: {_all: true},
+          orderBy: {_count: {id: 'desc'}},
+          take: this.FAILURE_REASON_LIMIT,
+        });
+        const failureReasons: CampaignFailureReason[] = groups.map(group => ({
+          error: group.error ?? 'Unknown error',
+          count: group._count._all,
+        }));
+
+        await prisma.campaign.update({where: {id: campaignId}, data: {failureReasons: toPrismaJson(failureReasons)}});
+      } catch (error) {
+        signale.warn(`[CAMPAIGN] Failed to record failure reasons for campaign ${campaignId}:`, error);
+      }
+    }
 
     // Fold every counter back to what the emails actually say, now that the send is
     // over, and settle `sentCount` against the live Redis delta. Events that arrive
@@ -986,11 +1126,88 @@ export class CampaignService {
     // dirty-set sweep instead.
     await this.reconcileStats(campaignId, {foldSentProgress: true});
 
-    signale.success(
-      `[CAMPAIGN] Campaign ${campaign.name} finalized: ${sentCount}/${campaign.totalRecipients} emails sent`,
-    );
+    if (failedCount > 0) {
+      signale.warn(
+        `[CAMPAIGN] Campaign ${campaign.name} finalized: ${sentCount}/${campaign.totalRecipients} emails sent, ${failedCount} failed`,
+      );
+    } else {
+      signale.success(
+        `[CAMPAIGN] Campaign ${campaign.name} finalized: ${sentCount}/${campaign.totalRecipients} emails sent`,
+      );
+    }
 
     await NtfyService.notifyCampaignSendCompleted(campaign.name, campaign.project.name, campaign.projectId, sentCount);
+
+    return 'finalized';
+  }
+
+  /** How long `finalizeStalled` leaves an `incomplete` campaign before recounting it */
+  private static readonly INCOMPLETE_BACKOFF_SECONDS = 60 * 60;
+
+  /**
+   * Finalize SENDING campaigns that no send path is going to revisit.
+   *
+   * `finalizeIfDone` runs when an email reaches a terminal state, so a campaign whose last
+   * email finished without calling it stays SENDING indefinitely. That was the case for
+   * every campaign whose tail failed before the send path finalized on failure, and it
+   * remains possible after a worker crash between marking an email and calling it. This
+   * gives each one another look; `finalizeIfDone` itself decides, so a campaign still
+   * mid-send is left alone.
+   *
+   * Selected by `sentAt`, when the send started, not `updatedAt`: the row is rewritten by
+   * every stats reconcile, so a stuck campaign still drawing opens and clicks would never
+   * look idle. A send younger than `minAgeMs` is skipped -- its own emails will finalize it.
+   * There are only ever a handful of SENDING campaigns, and a campaign still sending costs
+   * one LIMIT 1 probe, so every one is checked on every run rather than rotated.
+   *
+   * What this does not recover: an `incomplete` campaign -- nothing in flight, but fewer
+   * emails than `totalRecipients`, typically because the batch chain died before creating
+   * every email. Finalizing it would report recipients who were never queued as neither
+   * sent nor failed, so it is left SENDING, logged, and only recounted once an hour.
+   *
+   * Returns the number of campaigns that left SENDING.
+   */
+  public static async finalizeStalled({minAgeMs = 10 * 60 * 1000, limit = 500} = {}): Promise<number> {
+    const candidates = await prisma.campaign.findMany({
+      where: {status: CampaignStatus.SENDING, sentAt: {lt: new Date(Date.now() - minAgeMs)}},
+      select: {id: true},
+      orderBy: {sentAt: 'asc'},
+      take: limit,
+    });
+
+    let finalized = 0;
+
+    for (const {id} of candidates) {
+      try {
+        if (await this.isBackingOff(id)) {
+          continue;
+        }
+
+        const outcome = await this.finalizeIfDone(id);
+
+        if (outcome === 'finalized') {
+          finalized += 1;
+        } else if (outcome === 'incomplete') {
+          signale.warn(
+            `[CAMPAIGN] Campaign ${id} has nothing left in flight but fewer emails than its recipient count; leaving it SENDING`,
+          );
+          await redis.set(Keys.Campaign.finalizeBackoff(id), '1', 'EX', this.INCOMPLETE_BACKOFF_SECONDS);
+        }
+      } catch (error) {
+        signale.error(`[CAMPAIGN] Failed to finalize stalled campaign ${id}:`, error);
+      }
+    }
+
+    return finalized;
+  }
+
+  /** Whether `finalizeStalled` recently found this campaign `incomplete`. Fails open. */
+  private static async isBackingOff(campaignId: string): Promise<boolean> {
+    try {
+      return (await redis.exists(Keys.Campaign.finalizeBackoff(campaignId))) === 1;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -1189,6 +1406,8 @@ export class CampaignService {
         bouncedCount: 0,
         complainedCount: 0,
         unsubscribedCount: 0,
+        failedCount: 0,
+        failureReasons: Prisma.DbNull,
       },
       include: {
         project: {
@@ -1253,6 +1472,7 @@ export class CampaignService {
       bouncedCount,
       complainedCount,
       unsubscribedCount,
+      failedCount,
     } = campaign;
 
     // `sentCount` is only written to the row when the send finalizes, so while a
@@ -1272,6 +1492,9 @@ export class CampaignService {
       bouncedCount,
       complainedCount,
       unsubscribedCount,
+      failedCount,
+      // Stored when the send finalized; see `finalizeIfDone`. Null until then.
+      failureReasons: fromPrismaJsonOptional<CampaignFailureReason[]>(campaign.failureReasons) ?? [],
       openRate: sentCount > 0 ? (openedCount / sentCount) * 100 : 0,
       clickRate: sentCount > 0 ? (clickedCount / sentCount) * 100 : 0,
       bounceRate: sentCount > 0 ? (bouncedCount / sentCount) * 100 : 0,

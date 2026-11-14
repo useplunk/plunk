@@ -13,6 +13,11 @@
  * run. Recounting rather than incrementing is the point: SES delivers notifications at least
  * once, so an increment has to be guarded against replays and still loses anything dropped, while
  * a count of the email rows is correct however many times the event arrived.
+ *
+ * Each run also gives stalled SENDING campaigns another chance to finalize (see
+ * `CampaignService.finalizeStalled`). Finalization is driven by the send path, so a campaign whose
+ * last email finished without triggering it -- every campaign whose tail failed, before the
+ * failure path finalized too -- would otherwise stay SENDING for good.
  */
 
 import type {CampaignStatsSweepJobData} from '@plunk/types';
@@ -30,14 +35,20 @@ import {campaignStatsSweepQueue} from '../services/QueueService.js';
  */
 const BATCH_SIZE = 200;
 
-async function processSweep(job: Job<CampaignStatsSweepJobData>): Promise<{reconciled: number}> {
+async function processSweep(job: Job<CampaignStatsSweepJobData>): Promise<{reconciled: number; finalized: number}> {
   const reconciled = await CampaignService.sweepDirtyStats(job.data?.batchSize ?? BATCH_SIZE);
 
   if (reconciled > 0) {
     signale.info(`[CAMPAIGN-STATS-SWEEP] Reconciled counters for ${reconciled} campaign(s)`);
   }
 
-  return {reconciled};
+  const finalized = await CampaignService.finalizeStalled();
+
+  if (finalized > 0) {
+    signale.info(`[CAMPAIGN-STATS-SWEEP] Finalized ${finalized} stalled campaign(s)`);
+  }
+
+  return {reconciled, finalized};
 }
 
 export function createCampaignStatsSweepWorker(): Worker<CampaignStatsSweepJobData> {

@@ -104,6 +104,15 @@ export const Keys = {
     },
 
     /**
+     * Set while a SENDING campaign is known to be unable to finalize on its own -- nothing
+     * in flight, fewer emails than recipients -- so the stalled-campaign sweep recounts it
+     * once an hour rather than on every run. Expires on its own.
+     */
+    finalizeBackoff(campaignId: string): string {
+      return `campaign:finalize_backoff:${campaignId}`;
+    },
+
+    /**
      * Set of campaigns whose materialized counters are behind their email rows.
      *
      * One set for the whole install rather than a key per campaign: the sweep needs to
