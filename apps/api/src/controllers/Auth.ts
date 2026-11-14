@@ -13,6 +13,9 @@ import {
   GITHUB_OAUTH_ENABLED,
   GOOGLE_OAUTH_ENABLED,
   LANDING_URI,
+  LOGIN_RATE_LIMIT_PER_EMAIL,
+  LOGIN_RATE_LIMIT_PER_IP,
+  LOGIN_RATE_LIMIT_WINDOW,
   PASSWORD_RESET_RATE_LIMIT,
   PLUNK_ENABLED,
   TOKEN_EXPIRY_SECONDS,
@@ -29,6 +32,30 @@ import {UserService} from '../services/UserService.js';
 import {Keys} from '../services/keys.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
+/**
+ * Count an attempt against a fixed window and return the new total. SET NX starts the
+ * window on the first attempt only, so continued attempts cannot keep extending it.
+ */
+async function countLoginAttempt(key: string): Promise<number> {
+  const results = await redis.multi().set(key, '0', 'EX', LOGIN_RATE_LIMIT_WINDOW, 'NX').incr(key).exec();
+  const [set, incr] = results ?? [];
+
+  // MULTI still runs INCR when SET fails, which would leave a counter with no expiry.
+  if (!set || !incr || set[0] || incr[0]) {
+    throw set?.[0] ?? incr?.[0] ?? new Error('Login attempt counter transaction was aborted');
+  }
+
+  return Number(incr[1]);
+}
+
+async function loginRateLimited(key: string, res: Response): Promise<never> {
+  const ttl = await redis.ttl(key);
+  // TTL is 0 in the window's last second, and negative only if the key vanished meanwhile.
+  const retryAfter = ttl >= 0 ? Math.max(1, ttl) : 1;
+  res.set('Retry-After', String(retryAfter));
+  throw new RateLimitError('Too many failed login attempts. Please try again later.', retryAfter);
+}
+
 @Controller('auth')
 export class Auth {
   @Post('login')
@@ -36,20 +63,59 @@ export class Auth {
   public async login(req: Request, res: Response, _next: NextFunction) {
     const {email, password} = AuthenticationSchemas.login.parse(req.body);
 
+    // Both limits are checked before the user lookup, so an unknown email and a wrong
+    // password are counted and refused identically.
+    const emailKey = LOGIN_RATE_LIMIT_PER_EMAIL > 0 ? Keys.User.loginFailuresByEmail(email) : null;
+    const ip = req.ip || req.socket.remoteAddress;
+    const ipKey = LOGIN_RATE_LIMIT_PER_IP > 0 && ip ? Keys.User.loginFailuresByIp(ip) : null;
+
+    if (ipKey) {
+      const ipFailures = await redis.get(ipKey);
+
+      if (ipFailures && parseInt(ipFailures) >= LOGIN_RATE_LIMIT_PER_IP) {
+        await loginRateLimited(ipKey, res);
+      }
+    }
+
+    // The email counter is bumped before verifying, so concurrent guesses can't all pass
+    // the check at once, and is cleared again on success.
+    if (emailKey && (await countLoginAttempt(emailKey)) > LOGIN_RATE_LIMIT_PER_EMAIL) {
+      await loginRateLimited(emailKey, res);
+    }
+
+    // The IP counter is only bumped on failure: a shared address must not be charged for
+    // every successful login, and a success can't be subtracted without racing the expiry.
+    // Concurrent requests can therefore overshoot it slightly; the email counter still
+    // bounds guesses per account exactly.
+    const recordFailure = async () => {
+      if (ipKey) {
+        await countLoginAttempt(ipKey);
+      }
+      return res.json({success: false, data: 'Incorrect email or password'});
+    };
+
     const user = await UserService.email(email);
 
     if (!user) {
-      return res.json({success: false, data: 'Incorrect email or password'});
+      return recordFailure();
     }
 
     if (user.type === 'PASSWORD' && !user.password) {
+      // Not a failed guess (there is no password to guess), so don't let revisits lock it.
+      if (emailKey) {
+        await redis.del(emailKey);
+      }
       return res.json({success: 'redirect', redirect: `/auth/reset?id=${user.id}`});
     }
 
     const verified = await AuthService.verifyCredentials(email, password);
 
     if (!verified) {
-      return res.json({success: false, data: 'Incorrect email or password'});
+      return recordFailure();
+    }
+
+    if (emailKey) {
+      await redis.del(emailKey);
     }
 
     await redis.set(Keys.User.id(user.id), JSON.stringify(user), 'EX', REDIS_ONE_MINUTE * 60);
