@@ -20,8 +20,8 @@ export default defineConfig({
         '**/*.config.ts',
         '**/*.config.js',
         'test/',
-        '**/*.test.ts',
-        '**/*.spec.ts',
+        '**/*.test.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
       ],
     },
     // Cap at 4 to stay within Postgres' default max_connections=100 when each
@@ -34,12 +34,12 @@ export default defineConfig({
     // not read from a project's own config.
     maxWorkers: 4,
 
-    // Two projects because the MCP server is the one workspace with no database.
+    // Separate platform integration, DOM component, and standalone MCP tests.
     // test/setup.ts hard-requires DATABASE_URL and connects to Postgres in a global
     // beforeAll, so running the mcp tests under it fails before a single assertion
     // runs — which is exactly what broke the npm publish workflow, where no Postgres
-    // service exists. Keeping mcp in its own project lets it be tested (and
-    // published) without standing up the platform's services.
+    // service exists. Keeping component and mcp tests in their own projects lets
+    // them run without standing up the platform's services.
     projects: [
       {
         resolve: {alias},
@@ -78,7 +78,18 @@ export default defineConfig({
             '.turbo/**',
             // Owned by the `mcp` project below.
             'apps/mcp/**',
+            // Component interactions run in the DOM project below, without database setup.
+            'apps/web/**/__tests__/**/*.test.tsx',
           ],
+        },
+      },
+      {
+        oxc: {jsx: {runtime: 'automatic'}},
+        test: {
+          name: 'web',
+          globals: true,
+          environment: 'jsdom',
+          include: ['apps/web/**/__tests__/**/*.test.tsx'],
         },
       },
       {
