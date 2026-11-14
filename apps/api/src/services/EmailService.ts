@@ -37,6 +37,7 @@ interface SendEmailParams {
   workflowExecutionId?: string;
   workflowStepExecutionId?: string;
   recipientEmail?: string; // Optional custom recipient email (overrides contact.email)
+  tracking?: boolean; // Transactional only: overrides the template's and project's tracking for this email
   isTransactional?: boolean; // Override source type to TRANSACTIONAL (e.g. for transactional campaigns)
   scheduledFor?: Date; // Transactional only: hold the email until then (`delivery.at`)
 }
@@ -101,6 +102,7 @@ export class EmailService {
         attachments: params.attachments ? toPrismaJson(params.attachments) : undefined,
         sourceType: EmailSourceType.TRANSACTIONAL,
         templateId: params.templateId,
+        trackingOverride: params.tracking,
         status: params.scheduledFor ? EmailStatus.SCHEDULED : EmailStatus.PENDING,
         scheduledFor: params.scheduledFor,
       },
@@ -379,6 +381,27 @@ export class EmailService {
       subject: renderTemplate(subject, data),
       body: renderTemplate(body, data),
     };
+  }
+
+  /**
+   * Decide whether one email is tracked. The most specific setting wins: the `tracking`
+   * field of the `POST /v1/send` call that created it, then its campaign's or template's
+   * own setting, then the project's tracking mode for its source type. Null at any level
+   * means "no opinion", so the decision falls through to the next.
+   */
+  public static resolveTracking(params: {
+    trackingMode: TrackingMode;
+    sourceType: EmailSourceType;
+    emailOverride?: boolean | null;
+    campaignTracking?: boolean | null;
+    templateTracking?: boolean | null;
+  }): boolean {
+    return (
+      params.emailOverride ??
+      params.campaignTracking ??
+      params.templateTracking ??
+      this.shouldTrackEmail(params.trackingMode, params.sourceType)
+    );
   }
 
   /**

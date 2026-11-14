@@ -99,8 +99,8 @@ export async function processEmailJob(emailId: string): Promise<void> {
     include: {
       contact: true,
       project: true,
-      template: {select: {type: true}},
-      campaign: {select: {type: true, status: true}},
+      template: {select: {type: true, tracking: true}},
+      campaign: {select: {type: true, status: true, tracking: true}},
     },
   });
 
@@ -267,8 +267,15 @@ export async function processEmailJob(emailId: string): Promise<void> {
       ? {name: email.toName, email: recipientEmail}
       : recipientEmail;
 
-    // Determine tracking based on project settings and email type
-    const shouldTrack = EmailService.shouldTrackEmail(email.project.tracking, email.sourceType);
+    // Determine tracking: the send's own override, then the campaign's or template's
+    // setting, then the project's tracking mode for this email type
+    const shouldTrack = EmailService.resolveTracking({
+      trackingMode: email.project.tracking,
+      sourceType: email.sourceType,
+      emailOverride: email.trackingOverride,
+      campaignTracking: email.campaign?.tracking,
+      templateTracking: email.template?.tracking,
+    });
 
     // Check for phishing/dangerous content before sending
     const phishingCheck = await SecurityService.checkPhishingContent(
