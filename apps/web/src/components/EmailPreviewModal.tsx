@@ -5,6 +5,7 @@ import {wrapEmailWithStyles} from '../lib/emailStyles';
 import {Segmented} from './Segmented';
 
 export interface EmailPreviewModalProps {
+  captured?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subject: string;
@@ -31,6 +32,7 @@ const DEVICES = [
  * recipient on top, the rendered body below at its full height.
  */
 export function EmailPreviewModal({
+  captured = false,
   open,
   onOpenChange,
   subject,
@@ -53,9 +55,13 @@ export function EmailPreviewModal({
       <DialogContent className="flex h-[90vh] max-w-5xl flex-col gap-0 overflow-hidden p-0">
         <div className="flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-neutral-200 py-3 pl-5 pr-14">
           <div className="min-w-0">
-            <DialogTitle className="text-sm font-medium">Email preview</DialogTitle>
+            <DialogTitle className="text-sm font-medium">
+              {captured ? 'Suppressed email — captured content' : 'Email preview'}
+            </DialogTitle>
             <DialogDescription className="sr-only">
-              How this email looks to the person who received it
+              {captured
+                ? 'Stored rendered content; no external delivery'
+                : 'How this email looks to the person who received it'}
             </DialogDescription>
           </div>
           <Segmented label="Preview width" value={device} options={DEVICES} onChange={setDevice} />
@@ -99,7 +105,16 @@ export function EmailPreviewModal({
             </header>
 
             {body !== undefined ? (
-              <EmailBody html={body} />
+              captured ? (
+                <iframe
+                  title="Captured email content"
+                  sandbox=""
+                  className="block w-full min-h-[500px] border-0"
+                  srcDoc={`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">${wrapEmailWithStyles(body)}`}
+                />
+              ) : (
+                <EmailBody html={body} />
+              )
             ) : failed ? (
               <p className="px-8 py-16 text-center text-sm text-neutral-500">This email didn&apos;t load.</p>
             ) : (

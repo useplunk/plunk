@@ -526,7 +526,7 @@ export class SecurityService {
       simulated: false,
       // A scheduled email has not been sent and a cancelled one never will be. Counting them
       // would let a sender dilute a real bounce rate by scheduling mail it then cancels.
-      status: {notIn: [EmailStatus.SCHEDULED, EmailStatus.CANCELLED]},
+      status: {notIn: [EmailStatus.SCHEDULED, EmailStatus.CANCELLED, EmailStatus.SUPPRESSED]},
       ...(startDate && {
         createdAt: {
           gte: startDate,
@@ -815,9 +815,7 @@ export class SecurityService {
             dashboardUrl: DASHBOARD_URI,
             landingUrl: LANDING_URI,
           });
-          await Promise.all(
-            emails.map(email => sendPlatformEmail(email, 'Project Disabled', template)),
-          );
+          await Promise.all(emails.map(email => sendPlatformEmail(email, 'Project Disabled', template)));
         }
       } catch (emailError) {
         signale.error(`[SECURITY] Failed to send project disabled email:`, emailError);
@@ -1110,9 +1108,7 @@ ${analysedBody || '(no visible text)'}`,
             dashboardUrl: DASHBOARD_URI,
             landingUrl: LANDING_URI,
           });
-          await Promise.all(
-            emails.map(email => sendPlatformEmail(email, 'Project Disabled', template)),
-          );
+          await Promise.all(emails.map(email => sendPlatformEmail(email, 'Project Disabled', template)));
         }
       } catch (emailError) {
         signale.error(`[PHISHING] Failed to send project disabled email:`, emailError);

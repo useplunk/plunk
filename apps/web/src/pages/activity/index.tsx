@@ -16,6 +16,7 @@ const CATEGORIES = [
 type Category = (typeof CATEGORIES)[number]['value'];
 
 const EMAIL_STATUSES = [
+  {value: 'suppressed', label: 'Suppressed', type: 'email.suppressed'},
   {value: 'sent', label: 'Sent', type: 'email.sent'},
   {value: 'delivered', label: 'Delivered', type: 'email.delivered'},
   {value: 'opened', label: 'Opened', type: 'email.opened'},

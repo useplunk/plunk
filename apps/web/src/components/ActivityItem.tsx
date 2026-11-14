@@ -24,6 +24,7 @@ import Link from 'next/link';
 import {memo, type ReactNode, useState} from 'react';
 import {toast} from 'sonner';
 import useSWR from 'swr';
+import {useActiveProject} from '../lib/contexts/ActiveProjectProvider';
 
 import {network} from '../lib/network';
 
@@ -173,6 +174,15 @@ function getActivityConfig(activity: Activity): ActivityConfig {
         tile: TILE.amber,
         title: str(metadata.eventName) ?? 'Event triggered',
         badge: {label: 'Event', variant: 'default'},
+      };
+
+    case 'email.suppressed':
+      return {
+        icon: ShieldAlert,
+        tile: TILE.amber,
+        title: subject ?? 'Suppressed email',
+        badge: {label: 'Suppressed', variant: 'neutral'},
+        detail: 'Captured without external delivery',
       };
 
     case 'email.sent':
@@ -337,6 +347,16 @@ function getDetails(activity: Activity): {label: string; value: ReactNode}[] {
     add('From', isInbound ? activity.contactEmail : from && (fromName ? `${fromName} <${from}>` : from));
     add('To', isInbound ? from : activity.contactEmail);
     add('Reply-to', str(metadata.replyTo));
+  }
+
+  if (type === 'email.suppressed') {
+    const rule = metadata.suppression;
+    if (rule && typeof rule === 'object' && !Array.isArray(rule)) {
+      const match = rule as Metadata;
+      add('Suppression rule', str(match.name));
+      add('Match type', str(match.kind));
+      add('Pattern', str(match.pattern));
+    }
   }
 
   if (type === 'email.clicked') {
@@ -594,6 +614,7 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
 
       {showPreview && canPreview && (
         <FeedEmailPreview
+          captured={activity.type === 'email.suppressed'}
           emailId={String(activity.metadata.emailId)}
           open={showPreview}
           onOpenChange={setShowPreview}
@@ -618,7 +639,19 @@ export const ActivityItem = memo(function ActivityItem({activity, status = 'comp
  * lifecycle step on every poll. The preview fetches the one it shows when it opens.
  */
 function FeedEmailPreview({emailId, ...props}: {emailId: string} & Omit<EmailPreviewModalProps, 'body' | 'failed'>) {
-  const {data, error} = useSWR<{body: string}>(`/activity/emails/${emailId}`, {revalidateOnFocus: false});
+  const {activeProject} = useActiveProject();
+  const path = props.captured ? `/suppressions/emails/${emailId}` : `/activity/emails/${emailId}`;
+  const {data, error} = useSWR<{body: string; renderedBody?: string | null}>(
+    activeProject ? [path, activeProject.id] : null,
+    () => network.fetch('GET', path, undefined, activeProject!.id),
+    {revalidateOnFocus: false},
+  );
 
-  return <EmailPreviewModal {...props} body={data?.body} failed={!!error} />;
+  return (
+    <EmailPreviewModal
+      {...props}
+      body={data ? (props.captured ? (data.renderedBody ?? '') : data.body) : undefined}
+      failed={!!error}
+    />
+  );
 }

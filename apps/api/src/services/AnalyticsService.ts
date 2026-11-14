@@ -646,6 +646,7 @@ function emailScope(query: AnalyticsQuery, stream: AnalyticsStream = query.strea
     AND e."createdAt" >= ${utc(query.from)} AND e."createdAt" < ${utc(query.to)}
     AND ${streamFilter}
     AND e."simulated" = false
+    AND e."status" <> 'SUPPRESSED'
   `;
 }
 

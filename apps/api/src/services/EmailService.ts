@@ -10,6 +10,7 @@ import {createTranslatorSync, renderTemplate} from '@plunk/shared';
 
 import {BillingLimitService} from './BillingLimitService.js';
 import {withSourceEmail} from './EmailHeaderService.js';
+import {RecipientSuppressionService} from './RecipientSuppressionService.js';
 import {QueueService} from './QueueService.js';
 import {ThrottleService} from './ThrottleService.js';
 
@@ -103,6 +104,12 @@ export class EmailService {
         templateId: params.templateId,
         status: params.scheduledFor ? EmailStatus.SCHEDULED : EmailStatus.PENDING,
         scheduledFor: params.scheduledFor,
+        ...(await RecipientSuppressionService.snapshot(
+          params.projectId,
+          params.contactId,
+          params.headers,
+          params.recipientEmail,
+        )),
       },
     });
 
@@ -245,6 +252,12 @@ export class EmailService {
         templateId: params.templateId,
         campaignId: params.campaignId,
         status: EmailStatus.PENDING,
+        ...(await RecipientSuppressionService.snapshot(
+          params.projectId,
+          params.contactId,
+          params.headers,
+          params.recipientEmail,
+        )),
       },
     });
 
@@ -351,6 +364,12 @@ export class EmailService {
         workflowExecutionId: params.workflowExecutionId,
         workflowStepExecutionId: params.workflowStepExecutionId,
         status: EmailStatus.PENDING,
+        ...(await RecipientSuppressionService.snapshot(
+          params.projectId,
+          params.contactId,
+          params.headers,
+          params.recipientEmail,
+        )),
       },
     });
 
@@ -417,8 +436,18 @@ export class EmailService {
       const classValue = match[1];
       if (!classValue) continue;
       const classes = classValue.split(/\s+/).filter((c: string) => c.length > 0);
-      const allowedPrefixes = ['prose', 'variable-', 'email-image', 'ProseMirror', 'resizable-image', 'selected', 'resize-handle'];
-      const hasDisallowedClass = classes.some((cls: string) => !allowedPrefixes.some((prefix: string) => cls.startsWith(prefix)));
+      const allowedPrefixes = [
+        'prose',
+        'variable-',
+        'email-image',
+        'ProseMirror',
+        'resizable-image',
+        'selected',
+        'resize-handle',
+      ];
+      const hasDisallowedClass = classes.some(
+        (cls: string) => !allowedPrefixes.some((prefix: string) => cls.startsWith(prefix)),
+      );
       if (hasDisallowedClass) {
         hasCustomClasses = true;
         break;

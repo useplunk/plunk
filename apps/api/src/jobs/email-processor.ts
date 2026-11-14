@@ -23,6 +23,7 @@ import {
   EMAIL_WORKER_MAX_CONCURRENCY,
 } from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
+import {BillingLimitService} from '../services/BillingLimitService.js';
 import {CampaignService} from '../services/CampaignService.js';
 import {
   bodyHasListManagementLink,
@@ -35,6 +36,7 @@ import {EmailService} from '../services/EmailService.js';
 import {EventService} from '../services/EventService.js';
 import {MeterService} from '../services/MeterService.js';
 import {emailQueue} from '../services/QueueService.js';
+import {RecipientSuppressionService} from '../services/RecipientSuppressionService.js';
 import {SecurityService} from '../services/SecurityService.js';
 import {getSendingQuota, sendRawEmail} from '../services/SESService.js';
 import {ThrottleService} from '../services/ThrottleService.js';
@@ -192,10 +194,11 @@ export async function processEmailJob(emailId: string): Promise<void> {
 
   try {
     // Update status to sending
-    await prisma.email.update({
-      where: {id: emailId},
+    const claimed = await prisma.email.updateMany({
+      where: {id: emailId, status: EmailStatus.PENDING},
       data: {status: EmailStatus.SENDING},
     });
+    if (!claimed.count) return;
 
     // Format template variables in subject and body
     const contactData = (email.contact.data as Record<string, unknown>) || {};
@@ -242,7 +245,25 @@ export async function processEmailJob(emailId: string): Promise<void> {
         : undefined;
 
     // Check for custom recipient override in headers
-    const recipientEmail = customHeaders?.['X-Plunk-Recipient-Override'] || email.contact.email;
+    const recipientEmail =
+      email.recipientAddress || customHeaders?.['X-Plunk-Recipient-Override'] || email.contact.email;
+
+    const suppression = email.suppression || (await RecipientSuppressionService.match(email.projectId, recipientEmail));
+    await prisma.email.update({
+      where: {id: emailId},
+      data: {
+        recipientAddress: recipientEmail,
+        renderedSubject: formattedEmail.subject,
+        renderedBody: compiledHtml,
+        ...(suppression ? {status: EmailStatus.SUPPRESSED, suppression} : {}),
+      },
+    });
+    if (suppression) {
+      await ThrottleService.releaseForEmail(emailId);
+      await BillingLimitService.invalidateCache(email.projectId);
+      if (email.campaignId) await CampaignService.finalizeIfDone(email.campaignId);
+      return;
+    }
 
     // Remove internal headers before sending
     const publicHeaders = customHeaders ? {...customHeaders} : undefined;
@@ -391,9 +412,9 @@ export async function processEmailJob(emailId: string): Promise<void> {
   } catch (error) {
     signale.error(`[EMAIL-PROCESSOR] Failed to send email ${emailId}:`, error);
 
-    // Mark as failed
-    await prisma.email.update({
-      where: {id: emailId},
+    // Never overwrite a committed suppression decision on retry.
+    await prisma.email.updateMany({
+      where: {id: emailId, status: {not: EmailStatus.SUPPRESSED}},
       data: {
         status: EmailStatus.FAILED,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -412,9 +433,7 @@ export async function createEmailWorker() {
   // Fetch the rate limit (from env, AWS, or default)
   const rateLimit = await getEmailRateLimit();
   const concurrency = deriveWorkerConcurrency(rateLimit);
-  signale.info(
-    `[EMAIL-PROCESSOR] Worker concurrency: ${concurrency} (rate limit: ${rateLimit}/s)`,
-  );
+  signale.info(`[EMAIL-PROCESSOR] Worker concurrency: ${concurrency} (rate limit: ${rateLimit}/s)`);
   const worker = new Worker<SendEmailJobData>(
     emailQueue.name,
     async (job: Job<SendEmailJobData>) => {

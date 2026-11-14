@@ -69,13 +69,15 @@ describe('tool registration', () => {
     const {client, close} = await connect(baseConfig);
 
     const {tools} = await client.listTools();
-    const names = tools.map((t) => t.name);
+    const names = tools.map(t => t.name);
 
     expect(names).toContain('plunk_send_email');
     expect(names).toContain('plunk_send_campaign');
     expect(names).toContain('plunk_delete_contact');
+    expect(names).toContain('plunk_list_captured_emails');
+    expect(names).toContain('plunk_get_captured_email');
     expect(names).toContain('plunk_cancel_email');
-    expect(tools).toHaveLength(45);
+    expect(tools).toHaveLength(47);
 
     await close();
   });
@@ -98,7 +100,7 @@ describe('tool registration', () => {
     const {client, close} = await connect(baseConfig);
 
     const {tools} = await client.listTools();
-    const destructive = tools.filter((t) => t.annotations?.destructiveHint).map((t) => t.name);
+    const destructive = tools.filter(t => t.annotations?.destructiveHint).map(t => t.name);
 
     expect(destructive.sort()).toEqual([
       'plunk_cancel_campaign',
@@ -116,11 +118,11 @@ describe('tool registration', () => {
 
   it('returns tools in a stable order across builds', async () => {
     const first = await connect(baseConfig);
-    const a = (await first.client.listTools()).tools.map((t) => t.name);
+    const a = (await first.client.listTools()).tools.map(t => t.name);
     await first.close();
 
     const second = await connect(baseConfig);
-    const b = (await second.client.listTools()).tools.map((t) => t.name);
+    const b = (await second.client.listTools()).tools.map(t => t.name);
     await second.close();
 
     expect(a).toEqual(b);
@@ -133,8 +135,8 @@ describe('read-only mode', () => {
 
     const {tools} = await client.listTools();
 
-    expect(tools.every((t) => t.annotations?.readOnlyHint === true)).toBe(true);
-    expect(tools.map((t) => t.name)).not.toContain('plunk_send_campaign');
+    expect(tools.every(t => t.annotations?.readOnlyHint === true)).toBe(true);
+    expect(tools.map(t => t.name)).not.toContain('plunk_send_campaign');
 
     await close();
   });
@@ -144,9 +146,7 @@ describe('read-only mode', () => {
 
     // An unregistered tool is a protocol error, so the model cannot reach it by
     // guessing the name after seeing it in a previous non-read-only session.
-    await expect(
-      client.callTool({name: 'plunk_send_campaign', arguments: {id: 'abc'}}),
-    ).rejects.toThrow();
+    await expect(client.callTool({name: 'plunk_send_campaign', arguments: {id: 'abc'}})).rejects.toThrow();
 
     await close();
   });
@@ -181,7 +181,7 @@ describe('tool behaviour', () => {
   it('lists segments from the bare array GET /segments returns', async () => {
     const calls: string[] = [];
 
-    mockApi((url) => {
+    mockApi(url => {
       calls.push(url);
       return json([{id: 'seg-1', name: 'VIP', type: 'DYNAMIC', memberCount: 12}]);
     });
@@ -251,7 +251,7 @@ describe('tool behaviour', () => {
   it('tracks an event via the contact upsert when no public key is configured', async () => {
     const calls: string[] = [];
 
-    mockApi((url) => {
+    mockApi(url => {
       calls.push(url);
       return url.endsWith('/contacts') ? json({id: 'contact-1'}) : json({ok: true});
     });
@@ -273,7 +273,7 @@ describe('tool behaviour', () => {
   it('uses /v1/track directly when a public key is configured', async () => {
     const calls: string[] = [];
 
-    mockApi((url) => {
+    mockApi(url => {
       calls.push(url);
       return json({ok: true});
     });
@@ -324,7 +324,7 @@ describe('addressing contacts by email', () => {
 
     expect(result.isError).toBeFalsy();
 
-    const patch = calls.find((call) => call.method === 'PATCH');
+    const patch = calls.find(call => call.method === 'PATCH');
     expect(patch?.url).toBe('https://api.example.com/contacts/right');
     expect(JSON.parse(patch?.body ?? '{}')).toEqual({subscribed: false});
 
@@ -332,7 +332,7 @@ describe('addressing contacts by email', () => {
   });
 
   it('reports a missing email without patching anything', async () => {
-    mockApi((url) => {
+    mockApi(url => {
       if (url.includes('/contacts?')) {
         return json({data: [], cursor: null, hasMore: false, total: 0});
       }
@@ -385,6 +385,27 @@ describe('single-campaign envelope', () => {
   });
 });
 
+describe('captured email reads', () => {
+  it('works in read-only mode and preserves stored content without any send request', async () => {
+    const calls: string[] = [];
+    mockApi((url, init) => {
+      calls.push(url);
+      expect(init?.method).toBe('GET');
+      return json({
+        id: 'capture',
+        status: 'SUPPRESSED',
+        renderedBody: '<p>Code 123</p>',
+        suppression: {ruleId: 'rule'},
+      });
+    });
+    const {client, close} = await connect({...baseConfig, readOnly: true});
+    const result = await client.callTool({name: 'plunk_get_captured_email', arguments: {id: 'capture'}});
+    expect(JSON.stringify(result)).toContain('Code 123');
+    expect(calls).toEqual(['https://api.example.com/suppressions/emails/capture']);
+    await close();
+  });
+});
+
 describe('page-based lists', () => {
   // GET /campaigns and GET /templates take page/pageSize, unlike the cursor-paginated contact list.
   it.each([
@@ -393,7 +414,7 @@ describe('page-based lists', () => {
   ])('%s pages by page/pageSize and points to the next page', async (tool, path, noun) => {
     const calls: URL[] = [];
 
-    mockApi((url) => {
+    mockApi(url => {
       const target = new URL(url);
       calls.push(target);
       const page = Number(target.searchParams.get('page'));
@@ -407,8 +428,8 @@ describe('page-based lists', () => {
     const middle = await client.callTool({name: tool, arguments: {limit: 5, page: 2}});
     const last = await client.callTool({name: tool, arguments: {limit: 5, page: 3}});
 
-    expect(calls.map((c) => c.pathname)).toEqual([path, path, path]);
-    expect(calls.map((c) => Object.fromEntries(c.searchParams))).toEqual([
+    expect(calls.map(c => c.pathname)).toEqual([path, path, path]);
+    expect(calls.map(c => Object.fromEntries(c.searchParams))).toEqual([
       {page: '1', pageSize: '5'},
       {page: '2', pageSize: '5'},
       {page: '3', pageSize: '5'},
