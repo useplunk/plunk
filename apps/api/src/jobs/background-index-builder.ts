@@ -97,6 +97,14 @@ const INDEXES: BackgroundIndex[] = [
     sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "emails_scheduledFor_scheduled_idx" ON "emails"("scheduledFor") WHERE "status" = 'SCHEDULED'`,
   },
   {
+    // Failed emails per project over a createdAt range, for the global analytics. status is
+    // not in the stats index, and without this the planner reads every FAILED email of the
+    // instance through the status index, a set that only grows. Partial, so it holds only
+    // the failures, a tiny slice of the table. The predicate must match `status = 'FAILED'`.
+    name: 'emails_projectId_createdAt_failed_idx',
+    sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "emails_projectId_createdAt_failed_idx" ON "emails"("projectId", "createdAt") WHERE "status" = 'FAILED'`,
+  },
+  {
     // Dashboard and analytics stats: per-project counts over a createdAt range. INCLUDE
     // lets those counts be answered from the index alone, without fetching email rows,
     // which are wide because of the stored body. Covers every column the analytics

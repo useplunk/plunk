@@ -70,6 +70,9 @@ export const Keys = {
     query(projectId: string, kind: string, params: string): string {
       return `analytics:${kind}:${projectId}:${params}`;
     },
+    global(userId: string, kind: string, params: string): string {
+      return `analytics:global:${kind}:${userId}:${params}`;
+    },
   },
   Workflow: {
     enabled(projectId: string): string {

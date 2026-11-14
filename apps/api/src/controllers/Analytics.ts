@@ -3,8 +3,13 @@ import type {AnalyticsLeaderboardKind, AnalyticsStream} from '@plunk/types';
 import type {NextFunction, Request, Response} from 'express';
 
 import {type FieldError, ValidationError} from '../exceptions/index.js';
-import {requireAuth, requireEmailVerified} from '../middleware/auth.js';
+import {isAuthenticated, requireAuth, requireEmailVerified} from '../middleware/auth.js';
 import {type AnalyticsQuery, AnalyticsService} from '../services/AnalyticsService.js';
+import {
+  type GlobalAnalyticsQuery,
+  GlobalAnalyticsService,
+  snapToQuarterHour,
+} from '../services/GlobalAnalyticsService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
 const STREAMS: AnalyticsStream[] = ['ALL', 'TRANSACTIONAL', 'CAMPAIGN', 'WORKFLOW'];
@@ -22,6 +27,46 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * the cache; the server never draws buckets past the current time.
  */
 function parseQuery(req: Request, res: Response): AnalyticsQuery {
+  return {projectId: res.locals.auth.projectId, ...parseFilter(req)};
+}
+
+/**
+ * The global endpoints take the same filter, plus:
+ * - projects: comma-separated project ids to narrow the scope to. Defaults to every project
+ *   the user is a member of; ids outside those memberships are ignored.
+ */
+function parseGlobalQuery(req: Request, res: Response): GlobalAnalyticsQuery {
+  const raw = req.query.projects === undefined ? '' : String(req.query.projects);
+  const projectIds = [
+    ...new Set(
+      raw
+        .split(',')
+        .map(id => id.trim())
+        .filter(Boolean),
+    ),
+  ];
+
+  if (projectIds.length > GlobalAnalyticsService.MAX_REQUESTED_PROJECTS || projectIds.some(id => id.length > 64)) {
+    throw new ValidationError([
+      {
+        field: 'projects',
+        message: `projects must list at most ${GlobalAnalyticsService.MAX_REQUESTED_PROJECTS} project ids`,
+        code: 'invalid_projects',
+      },
+    ]);
+  }
+
+  const filter = parseFilter(req);
+  return {
+    userId: res.locals.auth.userId,
+    projectIds,
+    ...filter,
+    from: snapToQuarterHour(filter.from, 'down'),
+    to: snapToQuarterHour(filter.to, 'up'),
+  };
+}
+
+function parseFilter(req: Request): Omit<AnalyticsQuery, 'projectId'> {
   const errors: FieldError[] = [];
 
   const parseDate = (field: 'from' | 'to'): Date | undefined => {
@@ -61,7 +106,7 @@ function parseQuery(req: Request, res: Response): AnalyticsQuery {
     throw new ValidationError(errors);
   }
 
-  return {projectId: res.locals.auth.projectId, from, to, tz, stream};
+  return {from, to, tz, stream};
 }
 
 function isValidTimezone(tz: string): boolean {
@@ -170,5 +215,27 @@ export class Analytics {
   @CatchAsync
   public async getTopEvents(req: Request, res: Response, _next: NextFunction) {
     return res.status(200).json(await AnalyticsService.getTopEvents(parseQuery(req, res)));
+  }
+
+  /**
+   * GET /analytics/global/overview
+   * Totals across every project the user is a member of, one row per project, and alerts
+   */
+  @Get('global/overview')
+  @Middleware([isAuthenticated, requireEmailVerified])
+  @CatchAsync
+  public async getGlobalOverview(req: Request, res: Response, _next: NextFunction) {
+    return res.status(200).json(await GlobalAnalyticsService.getOverview(parseGlobalQuery(req, res)));
+  }
+
+  /**
+   * GET /analytics/global/timeseries
+   * Email counts per bucket, summed across the user's projects
+   */
+  @Get('global/timeseries')
+  @Middleware([isAuthenticated, requireEmailVerified])
+  @CatchAsync
+  public async getGlobalTimeseries(req: Request, res: Response, _next: NextFunction) {
+    return res.status(200).json(await GlobalAnalyticsService.getTimeseries(parseGlobalQuery(req, res)));
   }
 }

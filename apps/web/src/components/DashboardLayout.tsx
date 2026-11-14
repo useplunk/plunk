@@ -11,6 +11,7 @@ import {
   BookOpen,
   ChevronDown,
   FileText,
+  Globe,
   Heart,
   Layers,
   LayoutDashboard,
@@ -73,6 +74,8 @@ const navigation: NavSection[] = [
   },
 ];
 
+const GLOBAL_VIEW_HREF = '/analytics/global';
+
 export function DashboardLayout({children}: DashboardLayoutProps) {
   const router = useRouter();
   const {data: user} = useUser();
@@ -80,6 +83,9 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
   const {data: config} = useConfig();
   const {activeProject, availableProjects, setActiveProject} = useActiveProject();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  // The cross-project analytics: only worth offering once there is more than one project
+  const showGlobalView = availableProjects.length > 1;
+  const inGlobalView = router.pathname === GLOBAL_VIEW_HREF;
 
   // Sort projects alphabetically by name
   const sortedProjects = useMemo(() => {
@@ -110,9 +116,11 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
           <DropdownMenuTrigger className="group w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg hover:bg-neutral-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div className="h-8 w-8 rounded-lg bg-neutral-100 text-neutral-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
-                {activeProject?.name.charAt(0).toUpperCase() || 'P'}
+                {inGlobalView ? <Globe className="h-4 w-4" /> : activeProject?.name.charAt(0).toUpperCase() || 'P'}
               </div>
-              <span className="font-medium text-neutral-900 truncate">{activeProject?.name || 'Select project'}</span>
+              <span className="font-medium text-neutral-900 truncate">
+                {inGlobalView ? 'Global view' : activeProject?.name || 'Select project'}
+              </span>
             </div>
             <ChevronDown className="h-4 w-4 text-neutral-500 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
           </DropdownMenuTrigger>
@@ -120,6 +128,23 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
             align="start"
             className="min-w-[var(--radix-dropdown-menu-trigger-width)] max-h-[400px] overflow-y-auto"
           >
+            {showGlobalView && (
+              <>
+                <DropdownMenuItem asChild className="gap-2 px-3 py-2 cursor-pointer">
+                  <Link href={GLOBAL_VIEW_HREF} onClick={() => setShowMobileMenu(false)}>
+                    <div className="h-6 w-6 rounded-md bg-neutral-100 text-neutral-700 flex items-center justify-center flex-shrink-0">
+                      <Globe className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="flex-1 min-w-0 text-left">
+                      <span className="block text-neutral-900 truncate">Global view</span>
+                      <span className="block text-xs text-neutral-500 truncate">Analytics across all projects</span>
+                    </span>
+                    {inGlobalView && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-neutral-900 flex-shrink-0" />}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             {sortedProjects.map(project => (
               <DropdownMenuItem
                 key={project.id}
@@ -130,7 +155,7 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
                   {project.name.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-neutral-900 text-left flex-1 truncate">{project.name}</span>
-                {activeProject?.id === project.id && (
+                {!inGlobalView && activeProject?.id === project.id && (
                   <div className="ml-auto h-1.5 w-1.5 rounded-full bg-neutral-900 flex-shrink-0" />
                 )}
               </DropdownMenuItem>
