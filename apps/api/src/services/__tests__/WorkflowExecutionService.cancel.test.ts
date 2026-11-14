@@ -8,7 +8,7 @@ import {factories, getPrismaClient} from '../../../../../test/helpers';
 
 vi.mock('../QueueService', () => ({
   QueueService: {
-    queueWorkflowStep: vi.fn(async () => ({id: 'mock-job-id'})),
+    queueWorkflowDelayEnd: vi.fn(async () => ({id: 'mock-delay-end-job-id'})),
     queueEmail: vi.fn(async () => ({id: 'mock-email-job-id'})),
     queueWorkflowTimeout: vi.fn(async () => ({id: 'mock-timeout-job-id'})),
     cancelWorkflowTimeout: vi.fn(async () => true),
@@ -68,6 +68,7 @@ async function createRun(
     start: () => WorkflowExecutionService.processStepExecution(execution.id, trigger.id),
     cancel: () => WorkflowService.cancelExecution(projectId, workflow.id, execution.id),
     timeOut: async () => WorkflowExecutionService.processTimeout(execution.id, middle.id, (await stepExecution()).id),
+    endDelay: () => WorkflowExecutionService.processDelayEnd(execution.id, middle.id),
   };
 }
 
@@ -172,12 +173,7 @@ describe('WorkflowExecutionService - cancelled executions', () => {
     // The transition out of the EXIT step is one addStep's auto-connect can create
     it.each([
       ['a wait', WAIT, 'executeWaitForEvent', () => ship()],
-      [
-        'a delay',
-        DELAY,
-        'executeDelay',
-        (run: Run) => WorkflowExecutionService.processStepExecution(run.executionId, run.sendStepId!),
-      ],
+      ['a delay', DELAY, 'executeDelay', (run: Run) => run.endDelay()],
       ['an exit step with a way out', EXIT, 'executeExit', null],
     ] as const)('stays cancelled when it lands while the run enters %s', async (_kind, step, method, resume) => {
       const run = await createRun(step);
@@ -192,7 +188,7 @@ describe('WorkflowExecutionService - cancelled executions', () => {
       await run.start();
       expect(await outcome(run)).toEqual(cancelled);
 
-      // What would resume it next: the awaited event, or the delayed job for the following step
+      // What would resume it next: the awaited event, or the end of the delay
       if (resume) {
         await resume(run);
         expect(await outcome(run)).toEqual(cancelled);
@@ -200,13 +196,16 @@ describe('WorkflowExecutionService - cancelled executions', () => {
     });
   });
 
-  it('a run parked on a delay stays cancelled when its next step comes due', async () => {
+  it('a run parked on a delay stays cancelled when the delay ends', async () => {
     const run = await createRun(DELAY);
     await run.start();
     await run.cancel();
 
-    await WorkflowExecutionService.processStepExecution(run.executionId, run.sendStepId!);
+    await run.endDelay();
+    expect(await outcome(run)).toEqual(cancelled);
 
+    // A job queued for the following step itself, as delays did before deploy, does nothing either
+    await WorkflowExecutionService.processStepExecution(run.executionId, run.sendStepId!);
     expect(await outcome(run)).toEqual(cancelled);
   });
 

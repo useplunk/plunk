@@ -18,7 +18,6 @@ import {factories, getPrismaClient} from '../../../../../test/helpers';
 // Mock QueueService to prevent actual job queueing
 vi.mock('../QueueService', () => ({
   QueueService: {
-    queueWorkflowStep: vi.fn(async () => ({id: 'mock-job-id'})),
     queueEmail: vi.fn(async () => ({id: 'mock-email-job-id'})),
     queueWorkflowTimeout: vi.fn(async () => ({id: 'mock-timeout-job-id'})),
   },
