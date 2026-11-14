@@ -674,7 +674,11 @@ export class SegmentService {
         return {segmentMemberships: {none: activeMembership}};
       }
 
-      // For untracked dynamic segments, evaluate the condition recursively
+      // For untracked dynamic segments, evaluate the condition recursively. Negating it is safe:
+      // every data.* comparison but equals/notEquals null requires its key first
+      // (buildJsonFieldCondition), so it is never NULL. A value of another type than the filter (a
+      // number or an array for `contains`) still matches neither, because Prisma's NOT on a typed
+      // JSON filter also requires the type.
       const nestedCondition = fromPrismaJson<FilterCondition>(referencedSegment.condition);
       const nextVisited = new Set(visitedSegments).add(segmentId);
       const nestedWhere = await this.buildConditionClause(projectId, nestedCondition, nextVisited);
@@ -940,7 +944,38 @@ export class SegmentService {
     unit?: 'days' | 'hours' | 'minutes',
   ): Prisma.ContactWhereInput {
     const path = jsonPath.split('.');
+    // Not exists = key is null / missing, represented as either DbNull or JsonNull
+    const missing: Prisma.ContactWhereInput = {data: {path, equals: Prisma.AnyNull}};
 
+    if (operator === 'notExists') {
+      return missing;
+    }
+    // Exists = key present with a non-null JSON value (neither DbNull nor JsonNull)
+    if (operator === 'exists') {
+      return {NOT: missing};
+    }
+
+    const comparison = this.buildJsonComparison(path, operator, value, unit);
+    // equals/notEquals null compare against a JSON null, as workflow conditions do
+    if (value === null && (operator === 'equals' || operator === 'notEquals')) {
+      return comparison;
+    }
+    // A comparison on a missing key is NULL in Postgres, and NOT NULL is still NULL, so a NOT
+    // around it (notMemberOfSegment) dropped contacts without the key. Requiring the key first
+    // makes every comparison true or false.
+    return {AND: [{NOT: missing}, comparison]};
+  }
+
+  /**
+   * Compare a JSON field that may be missing; buildJsonFieldCondition requires it first, except for
+   * equals/notEquals null
+   */
+  private static buildJsonComparison(
+    path: string[],
+    operator: string,
+    value: unknown,
+    unit?: 'days' | 'hours' | 'minutes',
+  ): Prisma.ContactWhereInput {
     switch (operator) {
       case 'equals':
         // For date strings, compare only the date portion (ignore time)
@@ -978,18 +1013,6 @@ export class SegmentService {
         return {data: {path, gte: value as Prisma.InputJsonValue}};
       case 'lessThanOrEqual':
         return {data: {path, lte: value as Prisma.InputJsonValue}};
-      case 'exists':
-        // Exists = key present with a non-null JSON value (neither DbNull nor JsonNull)
-        return {
-          NOT: {
-            OR: [{data: {path, equals: Prisma.DbNull}}, {data: {path, equals: Prisma.JsonNull}}],
-          },
-        };
-      case 'notExists':
-        // Not exists = key is null / missing, represented as either DbNull or JsonNull
-        return {
-          OR: [{data: {path, equals: Prisma.DbNull}}, {data: {path, equals: Prisma.JsonNull}}],
-        };
       case 'within': {
         // Note: Requires JSON date fields in ISO 8601 format for proper comparison
         if (!unit) {
