@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 
 import {HttpException} from '../../exceptions/index.js';
-import {assertValidTemplateSyntax} from '../templateValidation.js';
+import {assertValidReplyTo, assertValidTemplateSyntax} from '../templateValidation.js';
 
 /**
  * Rendering is intentionally forgiving — a broken template still sends, falling back to
@@ -60,5 +60,30 @@ describe('assertValidTemplateSyntax', () => {
 
   it('reports the first offending field', () => {
     expect(() => assertValidTemplateSyntax({subject: '{% if %}', body: 'fine'})).toThrow(/subject/);
+  });
+});
+
+/**
+ * Reply-To is free text in the dashboard because it may be on any domain, so this is
+ * what keeps a typo out of every email the template or campaign sends.
+ */
+describe('assertValidReplyTo', () => {
+  it('accepts an address on any domain', () => {
+    expect(() => assertValidReplyTo('support@other-domain.com')).not.toThrow();
+  });
+
+  it('ignores a Reply-To that is absent or empty', () => {
+    expect(() => assertValidReplyTo(undefined)).not.toThrow();
+    expect(() => assertValidReplyTo(null)).not.toThrow();
+    expect(() => assertValidReplyTo('')).not.toThrow();
+  });
+
+  it('rejects a value that is not an email address', () => {
+    expect(() => assertValidReplyTo('not-an-email')).toThrow(HttpException);
+    expect(() => assertValidReplyTo('support@')).toThrow('Reply-To must be a valid email address');
+  });
+
+  it('rejects a non-string value', () => {
+    expect(() => assertValidReplyTo(42)).toThrow(HttpException);
   });
 });

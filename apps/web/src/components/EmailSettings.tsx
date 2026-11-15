@@ -26,11 +26,8 @@ export function EmailSettings({
   replyToPlaceholder,
   layout = 'grid',
 }: EmailSettingsProps) {
-  // Use from email's local part as the reply-to placeholder if not provided
-  // Extract local part (before @) since the domain is shown in a dropdown
-  // Fall back to fromPlaceholder when from is empty (since reply-to defaults to from)
-  const fromLocalPart = from.includes('@') ? from.split('@')[0] : from;
-  const effectiveReplyToPlaceholder = replyToPlaceholder || fromLocalPart || fromPlaceholder;
+  // Reply-to defaults to the from address, so show it as the placeholder
+  const effectiveReplyToPlaceholder = replyToPlaceholder || from || 'Same as From email';
   const GridWrapper = layout === 'grid' ? 'div' : 'div';
   const gridClassName = layout === 'grid' ? 'grid gap-4 md:grid-cols-2' : 'space-y-4';
 
@@ -65,13 +62,17 @@ export function EmailSettings({
 
       <GridWrapper className={layout === 'grid' ? 'grid gap-4 md:grid-cols-2' : ''}>
         <div>
-          <EmailDomainInput
+          <Label htmlFor="replyTo">Reply-To email</Label>
+          <Input
             id="replyTo"
-            label="Reply-To email"
+            type="email"
             value={replyTo}
-            onChange={onReplyToChange}
+            onChange={e => onReplyToChange(e.target.value)}
             placeholder={effectiveReplyToPlaceholder}
           />
+          <p className="text-xs text-neutral-500 mt-1">
+            Where replies are sent. Can be on any domain. Defaults to the From email if not set.
+          </p>
         </div>
       </GridWrapper>
     </div>

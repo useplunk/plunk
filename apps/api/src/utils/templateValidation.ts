@@ -1,4 +1,5 @@
 import {validateTemplate} from '@plunk/shared';
+import {z} from 'zod';
 
 import {ErrorCode, HttpException} from '../exceptions/index.js';
 
@@ -32,5 +33,24 @@ export function assertValidTemplateSyntax(fields: Record<string, unknown>): void
         {field, line: result.line, column: result.column},
       );
     }
+  }
+}
+
+/**
+ * Reject a Reply-To that is not an email address.
+ *
+ * Unlike `from`, Reply-To may be on any domain, so the dashboard takes it as free
+ * text. Checking it here keeps a typo out of every email the template or campaign sends.
+ * Absent or empty values are allowed: they fall back to the from address.
+ */
+export function assertValidReplyTo(replyTo: unknown): void {
+  if (replyTo === undefined || replyTo === null || replyTo === '') {
+    return;
+  }
+
+  if (!z.string().email().safeParse(replyTo).success) {
+    throw new HttpException(400, 'Reply-To must be a valid email address', ErrorCode.VALIDATION_ERROR, {
+      field: 'replyTo',
+    });
   }
 }
