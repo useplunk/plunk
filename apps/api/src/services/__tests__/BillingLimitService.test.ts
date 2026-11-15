@@ -870,4 +870,46 @@ describe('BillingLimitService - Critical Enforcement', () => {
       expect(limits.transactional.usage).toBe(450);
     });
   });
+
+  /**
+   * Usage is counted from Email rows, and deleting contacts cascades their emails -- which
+   * handed the quota back to anyone who deleted what they had just sent and sent again.
+   */
+  describe('Deleted Emails Still Count', () => {
+    it('keeps usage after the contacts that were mailed are deleted', async () => {
+      await prisma.project.update({where: {id: projectId}, data: {billingLimitCampaigns: 100}});
+      const contact = await factories.createContact({projectId});
+
+      for (let i = 0; i < 3; i++) {
+        await factories.createEmail({projectId, contactId: contact.id, sourceType: EmailSourceType.CAMPAIGN});
+        await BillingLimitService.recordSent(projectId, EmailSourceType.CAMPAIGN);
+      }
+
+      await prisma.contact.delete({where: {id: contact.id}});
+      await BillingLimitService.invalidateCache(projectId);
+
+      expect(await prisma.email.count({where: {projectId}})).toBe(0);
+      expect(await BillingLimitService.getUsage(projectId, EmailSourceType.CAMPAIGN)).toBe(3);
+    });
+
+    it('blocks a free tier project that sent its 1000 emails and deleted them', async () => {
+      await prisma.project.update({
+        where: {id: projectId},
+        data: {
+          billingLimitWorkflows: null,
+          billingLimitCampaigns: null,
+          billingLimitTransactional: null,
+          billingLimitInbound: null,
+        },
+      });
+
+      for (let i = 0; i < 1000; i++) {
+        await BillingLimitService.recordSent(projectId, EmailSourceType.CAMPAIGN);
+      }
+
+      const result = await BillingLimitService.checkLimit(projectId, EmailSourceType.TRANSACTIONAL);
+      expect(result.allowed).toBe(false);
+      expect(result.usage).toBe(1000);
+    });
+  });
 });

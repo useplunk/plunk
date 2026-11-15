@@ -94,7 +94,17 @@ interface SendRawEmailParams {
       }[]
     | null;
   tracking?: boolean;
+  /**
+   * Tags the message with its project. SES echoes message tags back in `mail.tags` on every
+   * event notification, so a bounce or complaint can still be charged to the project after
+   * the email row is gone -- deleting contacts or resetting a project cascades their emails.
+   * Only metered sends pass this: a bounce carrying the tag is counted against the project.
+   */
+  projectId?: string;
 }
+
+/** Message tag that carries the sending project; read back by the SES event webhook. */
+export const SES_PROJECT_TAG = 'plunk-project';
 
 /**
  * Break base64 content into fixed-width lines to comply with RFC 5322's line limit.
@@ -122,6 +132,7 @@ export async function sendRawEmail({
   headers,
   attachments,
   tracking = true,
+  projectId,
 }: SendRawEmailParams): Promise<{messageId: string}> {
   // The API schema already refuses these, but attachments are stored and sent later by the
   // worker, so rows written before that check (or by another caller) are checked here too.
@@ -261,6 +272,7 @@ ${breakLongLines(attachment.content, 76)}`;
     // The address alone: the display name travels in the From header above, and Source
     // only names the sending identity and where bounces go.
     Source: from.email,
+    ...(projectId && {Tags: [{Name: SES_PROJECT_TAG, Value: projectId}]}),
   });
 
   if (!response.MessageId) {

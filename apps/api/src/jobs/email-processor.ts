@@ -23,6 +23,7 @@ import {
   EMAIL_WORKER_MAX_CONCURRENCY,
 } from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
+import {BillingLimitService} from '../services/BillingLimitService.js';
 import {CampaignService} from '../services/CampaignService.js';
 import {
   bodyHasListManagementLink,
@@ -316,6 +317,7 @@ export async function processEmailJob(emailId: string): Promise<void> {
       headers: outboundHeaders,
       tracking: shouldTrack,
       attachments: email.attachments as {filename: string; content: string; contentType: string}[] | null,
+      projectId: email.projectId,
     });
 
     // Mark as sent with SES message ID.
@@ -361,6 +363,13 @@ export async function processEmailJob(emailId: string): Promise<void> {
 
     if (email.campaignId) {
       await CampaignService.countCampaignSent(email.campaignId);
+    }
+
+    // Deletion-proof counts for quota and abuse checks: both are otherwise counted from
+    // Email rows, which deleting the contacts just mailed removes. Neither call throws.
+    await BillingLimitService.recordSent(email.projectId, email.sourceType);
+    if (!isMailboxSimulatorAddress(recipientEmail)) {
+      await SecurityService.recordSent(email.projectId);
     }
 
     // Record usage for billing (pay-per-email)

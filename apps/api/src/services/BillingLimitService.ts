@@ -71,22 +71,65 @@ export class BillingLimitService {
         },
       });
 
-      return count;
+      return Math.max(count, await this.getSentFloor(projectId, Object.values(EmailSourceType)));
     } catch (error) {
       signale.error(`[BILLING_LIMIT] Failed to query total usage for ${projectId}:`, error);
-      return 0; // Return 0 on error to avoid blocking
+      // The floor needs no database, so it still holds when the count fails.
+      return this.getSentFloor(projectId, Object.values(EmailSourceType));
     }
   }
 
   /**
    * Get current usage count for a specific email category
-   * Uses Redis cache with 5-minute TTL to minimize DB queries
+   * Uses Redis cache with 5-minute TTL to minimize DB queries. Never lower than the
+   * month's sent floor, so deleting sent emails cannot hand quota back.
    *
    * @param projectId - Project ID
    * @param sourceType - Email category (TRANSACTIONAL, CAMPAIGN, WORKFLOW)
    * @returns Current usage count for the calendar month
    */
   public static async getUsage(projectId: string, sourceType: EmailSourceType): Promise<number> {
+    const [rows, floor] = await Promise.all([
+      this.getRowUsage(projectId, sourceType),
+      this.getSentFloor(projectId, [sourceType]),
+    ]);
+    return Math.max(rows, floor);
+  }
+
+  /**
+   * Count a sent email towards this month's deletion-proof usage floor.
+   *
+   * The usage count is recomputed from Email rows, and those go when their contact is
+   * deleted or the project is reset -- which handed the quota back to anyone who deleted
+   * what they had just sent. Called where Stripe is metered, so the floor counts exactly
+   * what the invoice does. Never throws: the message is already sent.
+   */
+  public static async recordSent(projectId: string, sourceType: EmailSourceType): Promise<void> {
+    const key = this.getSentKey(projectId, sourceType);
+
+    try {
+      await redis.multi().incr(key).expire(key, this.SENT_FLOOR_TTL_SECONDS).exec();
+    } catch (error) {
+      signale.warn(`[BILLING_LIMIT] Failed to record send for ${key}:`, error);
+    }
+  }
+
+  /** A month and a few days, so the key outlives the month it counts. */
+  private static readonly SENT_FLOOR_TTL_SECONDS = 35 * 24 * 60 * 60;
+
+  /** Sum of this month's sent counters for the given categories; 0 when Redis is unavailable. */
+  private static async getSentFloor(projectId: string, sourceTypes: EmailSourceType[]): Promise<number> {
+    try {
+      const values = await redis.mget(...sourceTypes.map(type => this.getSentKey(projectId, type)));
+      return values.reduce((sum, value) => sum + Number(value ?? 0), 0);
+    } catch (error) {
+      signale.warn(`[BILLING_LIMIT] Failed to read sent floor for ${projectId}:`, error);
+      return 0;
+    }
+  }
+
+  /** This month's usage counted from Email rows, cached. */
+  private static async getRowUsage(projectId: string, sourceType: EmailSourceType): Promise<number> {
     const cacheKey = this.getCacheKey(projectId, sourceType);
 
     try {
@@ -590,6 +633,13 @@ export class BillingLimitService {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     return Keys.Billing.usage(projectId, sourceType, year, month);
+  }
+
+  private static getSentKey(projectId: string, sourceType: EmailSourceType): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return Keys.Billing.sent(projectId, sourceType, year, month);
   }
 
   /**

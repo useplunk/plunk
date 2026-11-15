@@ -143,6 +143,12 @@ interface RateData {
  */
 type SecurityMetric = 'bounce' | 'complaint';
 
+interface CounterTotals {
+  sent: number;
+  bounces: number;
+  complaints: number;
+}
+
 interface SecurityStatus {
   projectId: string;
   isHealthy: boolean;
@@ -507,6 +513,121 @@ export class SecurityService {
   }
 
   /**
+   * Count a sent email towards the project's deletion-proof counters.
+   *
+   * Never throws: the message is already with SES, and failing here would retry the job
+   * and send it again. A lost increment only means the rows decide, as they did before.
+   */
+  public static async recordSent(projectId: string): Promise<void> {
+    try {
+      await this.incrementCounter(projectId, 'sent');
+    } catch (error) {
+      signale.warn(`[SECURITY] Failed to record send for project ${projectId}:`, error);
+    }
+  }
+
+  /**
+   * Count a bounce or complaint towards the project's deletion-proof counters, once per SES
+   * message: SNS redelivers notifications, and the email row that would normally dedupe
+   * them may already be deleted.
+   *
+   * Returns whether this call counted it. On a Redis failure it answers true, so the caller
+   * still runs enforcement rather than skipping it.
+   */
+  public static async recordSuppression(projectId: string, metric: SecurityMetric, messageId: string): Promise<boolean> {
+    try {
+      const claimed = await redis.set(
+        Keys.Security.suppressionCounted(messageId, metric),
+        '1',
+        'EX',
+        this.COUNTER_TTL_SECONDS,
+        'NX',
+      );
+
+      if (claimed !== 'OK') {
+        return false;
+      }
+
+      await this.incrementCounter(projectId, metric === 'bounce' ? 'bounces' : 'complaints');
+      return true;
+    } catch (error) {
+      signale.warn(`[SECURITY] Failed to record ${metric} for project ${projectId}:`, error);
+      return true;
+    }
+  }
+
+  /** Hourly buckets for the 7-day window, kept a day longer so the oldest one is still there. */
+  private static readonly COUNTER_TTL_SECONDS = 8 * 24 * 60 * 60;
+  private static readonly COUNTER_FIELDS = ['sent', 'bounces', 'complaints'] as const;
+
+  private static async incrementCounter(
+    projectId: string,
+    field: (typeof SecurityService.COUNTER_FIELDS)[number],
+  ): Promise<void> {
+    const key = Keys.Security.counters(projectId, Math.floor(Date.now() / 3_600_000));
+    await redis.multi().hincrby(key, field, 1).expire(key, this.COUNTER_TTL_SECONDS).exec();
+  }
+
+  /**
+   * Sum the hourly counters over the last 24 hours and the last 7 days. One pipelined
+   * round trip of 168 HMGETs, and only on a cache miss of the security status.
+   *
+   * Answers zeros on a Redis failure, which leaves the row counts in charge.
+   */
+  private static async readCounters(projectId: string): Promise<{last24h: CounterTotals; last7d: CounterTotals}> {
+    const last24h: CounterTotals = {sent: 0, bounces: 0, complaints: 0};
+    const last7d: CounterTotals = {sent: 0, bounces: 0, complaints: 0};
+
+    try {
+      const currentHour = Math.floor(Date.now() / 3_600_000);
+      const pipeline = redis.pipeline();
+      for (let i = 0; i < 7 * 24; i++) {
+        pipeline.hmget(Keys.Security.counters(projectId, currentHour - i), ...this.COUNTER_FIELDS);
+      }
+      const results = (await pipeline.exec()) ?? [];
+
+      results.forEach(([error, values], i) => {
+        if (error) {
+          return;
+        }
+        const [sent = 0, bounces = 0, complaints = 0] = (values as (string | null)[]).map(v => Number(v ?? 0));
+        last7d.sent += sent;
+        last7d.bounces += bounces;
+        last7d.complaints += complaints;
+        if (i < 24) {
+          last24h.sent += sent;
+          last24h.bounces += bounces;
+          last24h.complaints += complaints;
+        }
+      });
+    } catch (error) {
+      signale.warn(`[SECURITY] Failed to read counters for project ${projectId}:`, error);
+      return {last24h: {sent: 0, bounces: 0, complaints: 0}, last7d: {sent: 0, bounces: 0, complaints: 0}};
+    }
+
+    return {last24h, last7d};
+  }
+
+  /**
+   * Take each figure as the larger of the row count and the counter. Per field rather than
+   * per window: rows written before the counters existed only show up on the row side, and
+   * deleted rows only on the counter side.
+   */
+  private static withCounterFloor(rows: RateData, counters: CounterTotals): RateData {
+    const total = Math.max(rows.total, counters.sent);
+    const bounces = Math.max(rows.bounces, counters.bounces);
+    const complaints = Math.max(rows.complaints, counters.complaints);
+
+    return {
+      total,
+      bounces,
+      complaints,
+      bounceRate: total > 0 ? (bounces / total) * 100 : 0,
+      complaintRate: total > 0 ? (complaints / total) * 100 : 0,
+    };
+  }
+
+  /**
    * Calculate bounce and complaint rates for a project
    */
   private static async calculateRates(projectId: string, startDate?: Date): Promise<RateData> {
@@ -581,11 +702,19 @@ export class SecurityService {
     const isNewProject = projectAgeDays < SECURITY_THRESHOLDS.NEW_PROJECT_AGE_DAYS;
 
     // Get 24-hour, 7-day and all-time rates in parallel
-    const [twentyFourHour, sevenDay, allTime] = await Promise.all([
+    const [rows24h, rows7d, rowsAllTime, counters] = await Promise.all([
       this.calculateRates(projectId, oneDayAgo),
       this.calculateRates(projectId, sevenDaysAgo),
       this.calculateRates(projectId),
+      this.readCounters(projectId),
     ]);
+
+    // The rows undercount whenever emails were deleted after sending, which is how a
+    // sender could clear their own history and keep blasting. The counters are a floor
+    // that deletion cannot lower. The 7-day counters are a lower bound for all time too.
+    const twentyFourHour = this.withCounterFloor(rows24h, counters.last24h);
+    const sevenDay = this.withCounterFloor(rows7d, counters.last7d);
+    const allTime = this.withCounterFloor(rowsAllTime, counters.last7d);
 
     const violations: string[] = [];
     const warnings: string[] = [];

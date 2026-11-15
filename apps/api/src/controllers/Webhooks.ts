@@ -1,6 +1,7 @@
 import {Controller, Post} from '@overnightjs/core';
 import type {Prisma} from '@plunk/db';
 import {EmailSourceType, EmailStatus} from '@plunk/db';
+import {isMailboxSimulatorAddress} from '@plunk/shared';
 import type {Request, Response} from 'express';
 import {simpleParser} from 'mailparser';
 import sanitizeHtml from 'sanitize-html';
@@ -24,6 +25,7 @@ import {NtfyService} from '../services/NtfyService.js';
 import {OutstandingInvoiceService} from '../services/OutstandingInvoiceService.js';
 import {QueueService} from '../services/QueueService.js';
 import {SecurityService} from '../services/SecurityService.js';
+import {SES_PROJECT_TAG} from '../services/SESService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 
 /**
@@ -100,6 +102,57 @@ export function isAccountSuppressed(subType: unknown): boolean {
 /** A field of the SES payload, kept only when it is the string SES documents it as. */
 function sesString(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
+}
+
+/**
+ * Charge a bounce or complaint to its project when the email row is already gone.
+ *
+ * Deleting contacts or resetting a project cascades their emails, and bounces and complaints
+ * arrive minutes later. Dropping them let a sender import a list, send, delete it before the
+ * feedback landed, and repeat with a clean record. The project comes from the message tag
+ * the send path sets; the event is counted the way the row path counts it -- permanent
+ * bounces and complaints only, never an account suppression or a mailbox simulator send.
+ *
+ * Returns whether the message carried a project tag, i.e. whether this was one of our
+ * metered sends rather than a message with no row ever written.
+ */
+async function countOrphanedSuppression(
+  body: {
+    eventType?: unknown;
+    mail?: {tags?: unknown; destination?: unknown};
+    bounce?: {bounceType?: unknown; bounceSubType?: unknown};
+    complaint?: {complaintSubType?: unknown};
+  },
+  messageId: string,
+): Promise<boolean> {
+  const tags = body.mail?.tags as Record<string, unknown> | undefined;
+  const tagValues = tags?.[SES_PROJECT_TAG];
+  const projectId = Array.isArray(tagValues) ? sesString(tagValues[0]) : null;
+
+  if (!projectId) {
+    return false;
+  }
+
+  let metric: 'bounce' | 'complaint' | null = null;
+  if (
+    body.eventType === 'Bounce' &&
+    body.bounce?.bounceType === 'Permanent' &&
+    !isAccountSuppressed(body.bounce?.bounceSubType)
+  ) {
+    metric = 'bounce';
+  } else if (body.eventType === 'Complaint' && !isAccountSuppressed(body.complaint?.complaintSubType)) {
+    metric = 'complaint';
+  }
+
+  const destinations = Array.isArray(body.mail?.destination) ? body.mail.destination : [];
+  const simulated = destinations.some(d => typeof d === 'string' && isMailboxSimulatorAddress(d));
+
+  if (metric && !simulated && (await SecurityService.recordSuppression(projectId, metric, messageId))) {
+    signale.warn(`[WEBHOOK] ${metric} for deleted email ${messageId} charged to project ${projectId}`);
+    await SecurityService.checkAndEnforceSecurityLimits(projectId, metric);
+  }
+
+  return true;
 }
 
 /**
@@ -325,6 +378,7 @@ export class Webhooks {
 
               // Increment usage counter in cache
               await BillingLimitService.incrementUsage(domainRecord.projectId, EmailSourceType.INBOUND);
+              await BillingLimitService.recordSent(domainRecord.projectId, EmailSourceType.INBOUND);
 
               // Record Stripe metering if project has customer
               if (domainRecord.project.customer) {
@@ -399,6 +453,10 @@ export class Webhooks {
       });
 
       if (!email) {
+        if (await countOrphanedSuppression(body, messageId)) {
+          return res.status(200).json({success: true});
+        }
+
         // Error level for the same reason as a signature failure: an event that matches no
         // email row is silently lost, and SES gives up after its retries. A run of these
         // means the send path is not stamping `messageId`, which is invisible from outside.
@@ -690,10 +748,10 @@ export class Webhooks {
       if (isNewSuppression && !isSimulated) {
         // Only one metric moved, so only that metric's thresholds may disable the project.
         // One notification is one event type, so it can never be both.
-        await SecurityService.checkAndEnforceSecurityLimits(
-          email.projectId,
-          eventType === 'Complaint' ? 'complaint' : 'bounce',
-        );
+        const metric = eventType === 'Complaint' ? 'complaint' : 'bounce';
+        // Also counted outside the row, so the rate survives the row being deleted later.
+        await SecurityService.recordSuppression(email.projectId, metric, messageId);
+        await SecurityService.checkAndEnforceSecurityLimits(email.projectId, metric);
       }
 
       signale.success(`[WEBHOOK] Processed ${eventType} event for email ${email.id}`);

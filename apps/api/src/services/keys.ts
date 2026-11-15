@@ -52,10 +52,29 @@ export const Keys = {
     limitEmail(projectId: string, sourceType: string, year: number, month: string): string {
       return `billing:limit_email:${projectId}:${sourceType}:${year}-${month}`;
     },
+    /**
+     * Emails actually sent this month, incremented at send and never decremented. The usage
+     * count above is recomputed from Email rows, which deleting contacts or resetting the
+     * project removes; this is the floor that deletion cannot lower.
+     */
+    sent(projectId: string, sourceType: string, year: number, month: string): string {
+      return `billing:sent:${projectId}:${sourceType}:${year}-${month}`;
+    },
   },
   Security: {
     rates(projectId: string): string {
       return `security:${projectId}:rates`;
+    },
+    /**
+     * Hash of `sent`, `bounces` and `complaints` for one project in one clock hour (`hour` is
+     * epoch hours). Survives deletion of the Email rows the rates are otherwise counted from.
+     */
+    counters(projectId: string, hour: number): string {
+      return `security:${projectId}:counters:${hour}`;
+    },
+    /** Set once a bounce or complaint for this SES message has been counted, so SNS redeliveries are not. */
+    suppressionCounted(messageId: string, metric: string): string {
+      return `security:counted:${metric}:${messageId}`;
     },
   },
   Activity: {

@@ -381,4 +381,50 @@ describe('SecurityService', () => {
       expect(status.shouldDisable).toBe(true);
     });
   });
+
+  /**
+   * Deleting contacts or resetting a project cascades their emails, and the rates used to be
+   * counted from those rows alone. A sender could import a list, send, delete it before the
+   * bounces and complaints landed, and repeat with a clean record. The counters are the floor
+   * that deletion cannot lower.
+   */
+  describe('Deletion-proof counters', () => {
+    async function recordSends(sent: number, bounces: number) {
+      for (let i = 0; i < sent; i++) {
+        await SecurityService.recordSent(projectId);
+      }
+      for (let i = 0; i < bounces; i++) {
+        await SecurityService.recordSuppression(projectId, 'bounce', `ses-${projectId}-${i}`);
+      }
+    }
+
+    it('disables on bounces whose email rows no longer exist', async () => {
+      // 200 sent, 30 permanent bounces, and not a single email row left to count them from
+      await recordSends(200, 30);
+
+      const status = await SecurityService.getSecurityStatus(projectId);
+      expect(status.sevenDay.total).toBe(200);
+      expect(status.sevenDay.bounces).toBe(30);
+      expect(status.criticalByMetric.bounce).toBe(true);
+    });
+
+    it('counts a redelivered notification once', async () => {
+      expect(await SecurityService.recordSuppression(projectId, 'complaint', `ses-${projectId}-dup`)).toBe(true);
+      expect(await SecurityService.recordSuppression(projectId, 'complaint', `ses-${projectId}-dup`)).toBe(false);
+
+      const status = await SecurityService.getSecurityStatus(projectId);
+      expect(status.twentyFourHour.complaints).toBe(1);
+    });
+
+    it('lets the rows decide when they hold more than the counters', async () => {
+      // Rows written before the counters existed only show up on the row side
+      await createEmails(200, {bouncedCount: 5});
+      await recordSends(10, 0);
+
+      const status = await SecurityService.getSecurityStatus(projectId);
+      expect(status.sevenDay.total).toBe(200);
+      expect(status.sevenDay.bounces).toBe(5);
+      expect(status.shouldDisable).toBe(false);
+    });
+  });
 });

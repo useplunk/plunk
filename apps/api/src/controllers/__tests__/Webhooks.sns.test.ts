@@ -440,6 +440,81 @@ describe('Webhooks - SES event notifications', () => {
     });
   });
   /**
+   * Deleting contacts or resetting a project cascades their emails, so a bounce or complaint
+   * can arrive for a row that is gone. Dropping those let a sender import a list, send, delete
+   * it before the feedback landed, and repeat with a clean record. The project now travels on
+   * the SES message tag, and the event is charged to it without the row.
+   */
+  describe('events for deleted emails', () => {
+    let enforce: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      enforce = vi.spyOn(SecurityService, 'checkAndEnforceSecurityLimits');
+    });
+
+    afterEach(() => {
+      enforce.mockRestore();
+    });
+
+    const tagged = (
+      eventType: string,
+      messageId: string,
+      extra: Record<string, unknown> = {},
+      destination = ['reader@example.com'],
+    ) => ({
+      eventType,
+      mail: {
+        messageId,
+        timestamp: new Date().toISOString(),
+        destination,
+        tags: {'plunk-project': [projectId]},
+      },
+      ...extra,
+    });
+
+    async function countedBounces() {
+      await SecurityService.invalidateCache(projectId);
+      const status = await SecurityService.getSecurityStatus(projectId);
+      return {bounces: status.twentyFourHour.bounces, complaints: status.twentyFourHour.complaints};
+    }
+
+    it('charges a permanent bounce to the project on the message tag', async () => {
+      const captured = await post(tagged('Bounce', `ses-gone-${projectId}`, {bounce: {bounceType: 'Permanent'}}));
+
+      expect(captured.status).toBe(200);
+      expect(enforce).toHaveBeenCalledWith(projectId, 'bounce');
+      expect(await countedBounces()).toEqual({bounces: 1, complaints: 0});
+    });
+
+    it('counts a redelivered complaint once', async () => {
+      const event = tagged('Complaint', `ses-gone-${projectId}`, {complaint: {}});
+
+      await post(event);
+      await post(event);
+
+      expect(enforce).toHaveBeenCalledTimes(1);
+      expect(await countedBounces()).toEqual({bounces: 0, complaints: 1});
+    });
+
+    it('does not count what the row path would not count', async () => {
+      await post(tagged('Bounce', `ses-transient-${projectId}`, {bounce: {bounceType: 'Transient'}}));
+      await post(
+        tagged('Complaint', `ses-suppressed-${projectId}`, {
+          complaint: {complaintSubType: 'OnAccountSuppressionList'},
+        }),
+      );
+      await post(
+        tagged('Bounce', `ses-simulated-${projectId}`, {bounce: {bounceType: 'Permanent'}}, [
+          'bounce@simulator.amazonses.com',
+        ]),
+      );
+
+      expect(enforce).not.toHaveBeenCalled();
+      expect(await countedBounces()).toEqual({bounces: 0, complaints: 0});
+    });
+  });
+
+  /**
    * Mail addressed to `@simulator.amazonses.com` is how AWS documents rehearsing bounce and
    * complaint handling. It never leaves AWS, and AWS keeps it out of its own bounce rates,
    * complaint rates, quotas and reputation metrics -- so Plunk treating a simulated bounce
