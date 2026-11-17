@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
 import {ContactService} from '../../services/ContactService.js';
-import {coerceCustomValue} from '../import-processor.js';
+import {coerceCustomValue, importCustomData, importFieldKey} from '../import-processor.js';
 
 /**
  * Tests for Contact Import Processor - Subscription Status Preservation
@@ -326,5 +326,47 @@ describe('coerceCustomValue', () => {
     it('leaves empty string as empty string', () => {
       expect(coerceCustomValue('')).toBe('');
     });
+  });
+});
+
+describe('importFieldKey', () => {
+  it('stores a dot in a column name as an underscore, so filters and templates can reach it', () => {
+    expect(importFieldKey('metafields.lastopen')).toBe('metafields_lastopen');
+    expect(importFieldKey('a..b')).toBe('a__b');
+  });
+
+  it('drops a leading data. prefix', () => {
+    expect(importFieldKey('data.plan')).toBe('plan');
+    expect(importFieldKey('data.a.b')).toBe('a_b');
+    expect(importFieldKey('data.')).toBe('data_');
+  });
+
+  it('leaves other names alone', () => {
+    expect(importFieldKey('plan')).toBe('plan');
+    expect(importFieldKey('first name')).toBe('first name');
+    expect(importFieldKey('database')).toBe('database');
+  });
+});
+
+describe('importCustomData', () => {
+  it('fills each field from its column, coercing the values', () => {
+    expect(importCustomData({'plan': 'pro', 'metafields.lastopen': '2026-10-24T20:35:24Z', 'age': '42'})).toEqual({
+      plan: 'pro',
+      metafields_lastopen: '2026-10-24T20:35:24Z',
+      age: 42,
+    });
+    expect(importCustomData({})).toBeUndefined();
+  });
+
+  it('never lets an empty cell erase another column filling the same field', () => {
+    expect(importCustomData({'plan': 'pro', 'data.plan': ''})).toEqual({plan: 'pro'});
+    expect(importCustomData({'plan': '', 'data.plan': 'pro'})).toEqual({plan: 'pro'});
+    expect(importCustomData({'a.b': 'one', 'a_b': 'two'})).toEqual({a_b: 'two'});
+  });
+
+  it('keeps an unusual field name as its own key', () => {
+    const data = importCustomData({'data.__proto__': 'x'});
+    expect(Object.getPrototypeOf(data)).toBe(Object.prototype);
+    expect(Object.keys(data!)).toEqual(['__proto__']);
   });
 });
