@@ -501,6 +501,11 @@ model WorkflowExecution {
   // Exit information
   exitReason String?
 
+  // While HELD: the transition it arrived through, released into whatever step is inserted on it.
+  // No relation, since a foreign key would be validated with a full scan of this table at deploy.
+  // Indexed by apps/api/src/jobs/background-index-builder.ts.
+  holdTransitionId String?
+
   // Context data (merged with contact.data when executing)
   context Json? // Additional variables for this execution
 
@@ -853,6 +858,7 @@ enum WorkflowStepType {
   EXIT // Early exit point
   WEBHOOK // Call external webhook
   UPDATE_CONTACT // Update contact fields
+  HOLD // End of a workflow that keeps growing: contacts wait here, with no time limit, for steps added above it
 }
 
 enum WorkflowExecutionStatus {
@@ -862,6 +868,7 @@ enum WorkflowExecutionStatus {
   EXITED // Exited early (via EXIT step)
   FAILED // Failed with error
   CANCELLED // Manually cancelled
+  HELD // Parked on a HOLD step until a step is added above it
 }
 
 // ============================================

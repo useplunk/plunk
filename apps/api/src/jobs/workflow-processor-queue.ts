@@ -14,6 +14,14 @@ export function createWorkflowWorker() {
   const worker = new Worker<WorkflowStepJobData>(
     workflowQueue.name,
     async (job: Job<WorkflowStepJobData>) => {
+      // HOLD jobs belong to a workflow, not to one execution
+      if (job.data.type === 'hold-release') {
+        return WorkflowExecutionService.processHoldRelease(job.data.workflowId);
+      }
+      if (job.data.type === 'hold-remove') {
+        return WorkflowExecutionService.processHoldRemove(job.data.workflowId, job.data.stepId);
+      }
+
       const {executionId, stepId, type, stepExecutionId} = job.data;
 
       if (type === 'timeout') {

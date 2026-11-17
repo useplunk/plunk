@@ -92,6 +92,7 @@ function fakeApi(
   ];
   const transitions: FakeTransition[] = [];
   const calls: Call[] = [];
+  const held: Record<string, number> = {};
   let next = 1;
 
   const view = () => ({
@@ -105,6 +106,7 @@ function fakeApi(
       outgoingTransitions: transitions.filter((t) => t.fromStepId === step.id),
       incomingTransitions: transitions.filter((t) => t.toStepId === step.id),
     })),
+    heldCounts: {...held},
   });
 
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
@@ -159,6 +161,12 @@ function fakeApi(
       const id = parts[3]!;
       let doomed = new Set([id]);
 
+      // Like the API: a HOLD with contacts waiting loses its connections now and goes later
+      if (held[id]) {
+        remove(transitions, (t) => t.toStepId === id);
+        return json({completing: held[id]}, 202);
+      }
+
       if (target.searchParams.get('splice') === 'true') {
         if (steps.find((step) => step.id === id)?.type === 'CONDITION') {
           return apiError('Cannot splice a condition step out of the flow.');
@@ -206,8 +214,8 @@ function fakeApi(
       const branch = (body.condition as {branch?: string} | undefined)?.branch;
       const outgoing = transitions.filter((t) => t.fromStepId === from.id);
 
-      if (from.type === 'EXIT') {
-        return apiError('An exit step ends the flow and cannot be connected to another step');
+      if (from.type === 'EXIT' || from.type === 'HOLD') {
+        return apiError(`A ${from.type.toLowerCase()} step ends the flow and cannot be connected to another step`);
       }
 
       if (from.type === 'CONDITION' && branch !== undefined) {
@@ -280,6 +288,9 @@ function fakeApi(
     writes: () => calls.filter((c) => c.method !== 'GET'),
     view,
     stepNamed: (name: string) => steps.find((s) => s.name === name)!,
+    park: (stepId: string, count: number) => {
+      held[stepId] = count;
+    },
     edges: () =>
       transitions.map((t) => {
         const from = steps.find((s) => s.id === t.fromStepId)!.name;
@@ -1135,5 +1146,64 @@ describe('workflow lifecycle', () => {
         {id: 'a', name: 'B', operator: 'exists'},
       ]),
     ).toMatchObject({error: expect.stringContaining('used twice')});
+  });
+});
+
+describe('HOLD steps', () => {
+  async function evergreen() {
+    const api = fakeApi();
+    const session = await connect();
+    await call(session.client, 'plunk_add_workflow_steps', {
+      workflowId: 'wf-1',
+      steps: [
+        {type: 'SEND_EMAIL', name: 'Welcome', templateId: 'tpl-1'},
+        {type: 'HOLD', name: 'End'},
+      ],
+    });
+    return {api, ...session};
+  }
+
+  it('ends a path: nothing is appended after a hold', async () => {
+    const {api, client, close} = await evergreen();
+
+    const result = await call(client, 'plunk_add_workflow_step', {
+      workflowId: 'wf-1',
+      type: 'SEND_EMAIL',
+      name: 'Later',
+      templateId: 'tpl-2',
+      after: api.stepNamed('End').id,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain('HOLD step; it ends the flow');
+    expect(api.edges()).toEqual(['Trigger: user.signup -> Welcome', 'Welcome -> End']);
+
+    await close();
+  });
+
+  it('shows how many contacts wait on each hold', async () => {
+    const {api, client, close} = await evergreen();
+    api.park(api.stepNamed('End').id, 3);
+
+    const result = await call(client, 'plunk_get_workflow', {id: 'wf-1'});
+
+    expect(result.text).toContain('3 contact(s) waiting');
+
+    await close();
+  });
+
+  it('says the contacts waiting on a deleted hold are being completed', async () => {
+    const {api, client, close} = await evergreen();
+    const end = api.stepNamed('End');
+    api.park(end.id, 3);
+
+    const result = await call(client, 'plunk_delete_workflow_step', {workflowId: 'wf-1', stepId: end.id});
+
+    expect(result.isError).toBeFalsy();
+    expect(result.text).toContain('3 contact(s) waiting on a hold are being completed;');
+    // Disconnected while it goes, which is not something the agent should fix
+    expect(result.text).not.toContain('is not connected');
+
+    await close();
   });
 });

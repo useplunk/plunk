@@ -64,6 +64,8 @@ interface WorkflowWithDetails extends Workflow {
     outgoingTransitions: WorkflowTransition[];
     incomingTransitions: WorkflowTransition[];
   })[];
+  /** Contacts parked on each HOLD step, by step id */
+  heldCounts?: Record<string, number>;
 }
 
 interface PaginatedExecutions {
@@ -228,11 +230,11 @@ export default function WorkflowEditorPage() {
       }
     });
 
-    // Check for orphaned steps (steps with no incoming or outgoing transitions, except TRIGGER and EXIT)
+    // Check for orphaned steps (steps with no incoming or outgoing transitions, except TRIGGER, EXIT and HOLD)
     const triggerSteps = workflow.steps.filter(s => s.type === 'TRIGGER');
 
     workflow.steps.forEach(step => {
-      if (step.type !== 'TRIGGER' && step.type !== 'EXIT') {
+      if (step.type !== 'TRIGGER' && step.type !== 'EXIT' && step.type !== 'HOLD') {
         const hasIncoming = step.incomingTransitions && step.incomingTransitions.length > 0;
         const hasOutgoing = step.outgoingTransitions && step.outgoingTransitions.length > 0;
 
@@ -457,7 +459,7 @@ export default function WorkflowEditorPage() {
               </p>
               <ul className="list-disc list-inside space-y-1 mt-2">
                 <li>Delete steps or transitions</li>
-                <li>Change step settings, such as templates or conditions</li>
+                <li>Change the settings of the steps they are on</li>
                 <li>Change the trigger</li>
               </ul>
               <p className="mt-2">
@@ -543,7 +545,13 @@ export default function WorkflowEditorPage() {
             </CardHeader>
             <CardContent className="p-0">
               <ReactFlowProvider>
-                <WorkflowBuilder workflowId={id as string} steps={workflow.steps} onUpdate={() => mutate()} />
+                <WorkflowBuilder
+                  workflowId={id as string}
+                  steps={workflow.steps}
+                  heldCounts={workflow.heldCounts}
+                  enabled={workflow.enabled}
+                  onUpdate={() => mutate()}
+                />
               </ReactFlowProvider>
             </CardContent>
           </Card>
@@ -604,7 +612,7 @@ export default function WorkflowEditorPage() {
                                   ? 'success'
                                   : execution.status === 'FAILED'
                                     ? 'destructive'
-                                    : execution.status === 'WAITING'
+                                    : execution.status === 'WAITING' || execution.status === 'HELD'
                                       ? 'warning'
                                       : execution.status === 'RUNNING'
                                         ? 'default'
@@ -626,7 +634,9 @@ export default function WorkflowEditorPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            {(execution.status === 'RUNNING' || execution.status === 'WAITING') && (
+                            {(execution.status === 'RUNNING' ||
+                              execution.status === 'WAITING' ||
+                              execution.status === 'HELD') && (
                               <Button
                                 variant="destructiveGhost"
                                 size="sm"

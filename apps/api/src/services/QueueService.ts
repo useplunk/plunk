@@ -424,26 +424,22 @@ export class QueueService {
   }
 
   /**
-   * Add workflow step to queue for execution
+   * Queue the same step for many executions at once, as a HOLD release does. `runId` keeps the job
+   * ids apart from those of an earlier run through the same step, which BullMQ would ignore.
    */
-  public static async queueWorkflowStep(
-    executionId: string,
-    stepId: string,
-    delay?: number,
-  ): Promise<Job<WorkflowStepJobData>> {
-    return workflowQueue.add(
-      'process-step',
-      {executionId, stepId, type: 'process-step'},
-      {
-        delay,
-        jobId: `workflow-${executionId}-${stepId}`,
-      },
+  public static async queueWorkflowSteps(executionIds: string[], stepId: string, runId: number): Promise<void> {
+    await workflowQueue.addBulk(
+      executionIds.map(executionId => ({
+        name: 'process-step',
+        data: {executionId, stepId, type: 'process-step' as const},
+        opts: {jobId: `workflow-${executionId}-${stepId}-${runId}`},
+      })),
     );
   }
 
   /**
-   * Queue the end of a DELAY step that has no step after it, so the execution completes
-   * when the delay runs out instead of staying WAITING forever
+   * Queue the end of a DELAY step. The step after it is looked up when the delay runs out, so one
+   * inserted after the delay while the execution waits is not skipped
    */
   public static async queueWorkflowDelayEnd(
     executionId: string,
@@ -458,6 +454,30 @@ export class QueueService {
         delay: delayMs,
         jobId: `workflow-delay-end-${stepExecutionId}`,
       },
+    );
+  }
+
+  /**
+   * Queue the release of the executions parked on a workflow's HOLD steps into the steps inserted
+   * above them. Runs right away: an edit above a HOLD takes effect immediately, as anywhere else in
+   * a workflow.
+   */
+  public static async queueWorkflowHoldRelease(workflowId: string): Promise<void> {
+    await workflowQueue.add(
+      'hold-release',
+      {type: 'hold-release', workflowId},
+      {jobId: `workflow-hold-release-${workflowId}-${Date.now()}`},
+    );
+  }
+
+  /**
+   * Queue the removal of a HOLD step that still has executions parked on it
+   */
+  public static async queueWorkflowHoldRemove(workflowId: string, stepId: string): Promise<void> {
+    await workflowQueue.add(
+      'hold-remove',
+      {type: 'hold-remove', workflowId, stepId},
+      {jobId: `workflow-hold-remove-${stepId}`},
     );
   }
 
@@ -874,7 +894,7 @@ export class QueueService {
     const cancelledExecutions = await prisma.workflowExecution.updateMany({
       where: {
         workflow: {projectId},
-        status: {in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING]},
+        status: {in: [WorkflowExecutionStatus.RUNNING, WorkflowExecutionStatus.WAITING, WorkflowExecutionStatus.HELD]},
       },
       data: {
         status: WorkflowExecutionStatus.CANCELLED,

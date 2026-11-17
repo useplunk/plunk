@@ -18,6 +18,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import type {WorkflowStep} from '@plunk/db';
 import {
+  CirclePause,
   Clock,
   ExternalLink,
   GitBranch,
@@ -61,6 +62,10 @@ interface WorkflowBuilderProps {
       priority: number;
     }>;
   })[];
+  /** Contacts parked on each HOLD step, by step id */
+  heldCounts?: Record<string, number>;
+  /** Whether the workflow is enabled: a disabled one releases nobody from its HOLDs */
+  enabled?: boolean;
   onUpdate: () => void;
 }
 
@@ -73,6 +78,7 @@ const STEP_TYPE_LABELS: Record<string, string> = {
   EXIT: 'Exit',
   WEBHOOK: 'Webhook',
   UPDATE_CONTACT: 'Update Contact',
+  HOLD: 'Hold',
 };
 
 const STEP_TYPE_ICONS = {
@@ -84,6 +90,7 @@ const STEP_TYPE_ICONS = {
   EXIT: LogOut,
   WEBHOOK: Webhook,
   UPDATE_CONTACT: UserCog,
+  HOLD: CirclePause,
 };
 
 const STEP_TYPE_COLORS = {
@@ -95,6 +102,7 @@ const STEP_TYPE_COLORS = {
   EXIT: '#dc2626',
   WEBHOOK: '#16a34a',
   UPDATE_CONTACT: '#4f46e5',
+  HOLD: '#0d9488',
 };
 
 const STEP_TYPE_BG = {
@@ -106,6 +114,7 @@ const STEP_TYPE_BG = {
   EXIT: '#fee2e2',
   WEBHOOK: '#dcfce7',
   UPDATE_CONTACT: '#e0e7ff',
+  HOLD: '#ccfbf1',
 };
 
 // Multi-branch condition helpers
@@ -292,9 +301,11 @@ function CustomNode({
     /**
      * One entry per outgoing slot. Condition steps get a handle per branch so a
      * dragged connection carries the branch it started from; everything else has
-     * a single unnamed slot. Empty for EXIT, which ends the path.
+     * a single unnamed slot. Empty for EXIT and HOLD, which end the path.
      */
     sourceHandles?: {id: string; color: string; connectable: boolean}[];
+    /** HOLD only: contacts parked on it */
+    heldCount?: number;
   };
 }) {
   const Icon = data.icon;
@@ -460,6 +471,16 @@ function CustomNode({
             </div>
           </div>
         )}
+        {data.type === 'HOLD' && (
+          <div className="mt-3 pt-3 border-t border-neutral-100">
+            <div className="flex items-center gap-2 text-xs text-neutral-600">
+              <CirclePause className="h-3 w-3 shrink-0" />
+              <span>
+                {data.heldCount ?? 0} contact{data.heldCount === 1 ? '' : 's'} waiting for new steps
+              </span>
+            </div>
+          </div>
+        )}
         {data.type === 'WEBHOOK' && data.config?.url && (
           <div className="mt-3 pt-3 border-t border-neutral-100">
             <div className="flex items-center gap-2 text-xs text-neutral-600">
@@ -518,9 +539,22 @@ const STEP_TYPE_OPTIONS = [
   {value: 'WEBHOOK', label: 'Webhook', icon: Webhook, color: STEP_TYPE_COLORS.WEBHOOK},
   {value: 'UPDATE_CONTACT', label: 'Update contact', icon: UserCog, color: STEP_TYPE_COLORS.UPDATE_CONTACT},
   {value: 'EXIT', label: 'Exit', icon: LogOut, color: STEP_TYPE_COLORS.EXIT},
+  {value: 'HOLD', label: 'Hold', icon: CirclePause, color: STEP_TYPE_COLORS.HOLD},
 ];
 
-export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderProps) {
+/** Steps that end their path: nothing is ever connected after one */
+const ENDS_PATH = new Set(['EXIT', 'HOLD']);
+
+// A stable default, so a missing prop does not rebuild the graph on every render
+const NO_HELD_COUNTS: Record<string, number> = {};
+
+export function WorkflowBuilder({
+  workflowId,
+  steps,
+  heldCounts = NO_HELD_COUNTS,
+  enabled = false,
+  onUpdate,
+}: WorkflowBuilderProps) {
   const [pickerContext, setPickerContext] = useState<PickerContext | null>(null);
   const [transitionToDisconnect, setTransitionToDisconnect] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -578,11 +612,11 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       const color = STEP_TYPE_COLORS[step.type as keyof typeof STEP_TYPE_COLORS] || '#6b7280';
       const bgColor = STEP_TYPE_BG[step.type as keyof typeof STEP_TYPE_BG] || '#f3f4f6';
 
-      // EXIT ends the path, a condition routes per branch, everything else has a
-      // single next step.
+      // EXIT and HOLD end the path, a condition routes per branch, everything else
+      // has a single next step.
       const outgoing = step.outgoingTransitions ?? [];
       const sourceHandles =
-        step.type === 'EXIT'
+        ENDS_PATH.has(step.type)
           ? []
           : step.type === 'CONDITION'
             ? getBranchHandles(step.config, outgoing).map(branchId => ({
@@ -607,13 +641,14 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           config: step.config,
           onEdit: () => handleEditStep(step.id),
           onDelete: () => handleDeleteStepClick(step.id),
+          heldCount: heldCounts[step.id] ?? 0,
         },
       };
     });
 
     // Add "Add Step" nodes at the end of each flow path
     steps.forEach(step => {
-      if (step.type === 'EXIT') return; // Exit steps can't have next steps
+      if (ENDS_PATH.has(step.type)) return; // Exit and hold steps can't have next steps
 
       if (step.type === 'CONDITION') {
         const expectedBranches = getExpectedBranches(step.config);
@@ -655,7 +690,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
     });
 
     return nodes;
-  }, [steps, handleEditStep, handleDeleteStepClick]);
+  }, [steps, heldCounts, handleEditStep, handleDeleteStepClick]);
 
   // Convert transitions to React Flow edges
   const rawEdges: Edge[] = useMemo(() => {
@@ -703,7 +738,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       }
 
       // Add edges from steps to their "Add Step" nodes
-      if (step.type === 'EXIT') return;
+      if (ENDS_PATH.has(step.type)) return;
 
       if (step.type === 'CONDITION') {
         const expectedBranches = getExpectedBranches(step.config);
@@ -800,7 +835,12 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
             },
           );
 
-          toast.success('Step inserted');
+          // Contacts parked on a HOLD below the insert move into it once it is configured
+          const target = steps.find(s => s.incomingTransitions?.some(t => t.id === pickerContext.transitionId));
+          const parked = target ? (heldCounts[target.id] ?? 0) : 0;
+          const waiting = `${parked} waiting contact${parked === 1 ? '' : 's'}`;
+          const when = enabled ? 'as soon as it is configured' : 'when you enable the workflow';
+          toast.success(parked === 0 ? 'Step inserted' : `Step inserted. ${waiting} will receive it ${when}.`);
           setPickerContext(null);
           onUpdate();
 
@@ -887,7 +927,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pickerContext, workflowId, onUpdate],
+    [pickerContext, workflowId, onUpdate, heldCounts, enabled],
   );
 
   // Get all steps that will be affected by deleting a step (the step itself + all downstream steps)
@@ -927,9 +967,12 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           ? `/workflows/${workflowId}/steps/${stepToDelete}?splice=true`
           : `/workflows/${workflowId}/steps/${stepToDelete}`;
 
-      await network.fetch('DELETE', url);
+      const result = await network.fetch<{completing?: number} | null>('DELETE', url);
 
-      if (deleteMode === 'cascade') {
+      if (result?.completing) {
+        const waiting = `${result.completing} waiting contact${result.completing === 1 ? ' is' : 's are'}`;
+        toast.success(`Removing the hold. ${waiting} being marked as completed.`);
+      } else if (deleteMode === 'cascade') {
         const affectedSteps = getAffectedSteps(stepToDelete);
         if (affectedSteps.length > 1) {
           toast.success(`Deleted ${affectedSteps.length} steps`);
@@ -1009,7 +1052,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
 
       // Either end being unknown means it's one of the "+" placeholder nodes
       if (!fromStep || !toStep) return false;
-      if (fromStep.type === 'EXIT') return false;
+      if (ENDS_PATH.has(fromStep.type)) return false;
 
       // The slot being dragged from has to be free
       if (fromStep.type === 'CONDITION') {
@@ -1207,8 +1250,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           )}
           <div className="grid grid-cols-2 gap-3 py-4">
             {STEP_TYPE_OPTIONS
-              // An exit step ends the path, so it can never sit between two steps.
-              .filter(option => !(pickerContext?.mode === 'insert' && option.value === 'EXIT'))
+              // Exit and hold steps end the path, so they can never sit between two steps.
+              .filter(option => !(pickerContext?.mode === 'insert' && ENDS_PATH.has(option.value)))
               .map(option => {
                 const Icon = option.icon;
                 return (
@@ -1316,6 +1359,16 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
           const hasChildren = downstreamSteps.length > 0;
           const canSplice = !isCondition && hasChildren;
           const isSplice = canSplice && deleteMode === 'splice';
+          // Contacts parked on the holds being deleted are completed: they won't get steps added later
+          const parked = affectedSteps
+            .filter(s => s.type === 'HOLD')
+            .reduce((sum, s) => sum + (heldCounts[s.id] ?? 0), 0);
+          const holdName = stepToDeleteData?.type === 'HOLD' ? 'this hold' : 'a hold below it';
+          const parkedNote =
+            parked > 0
+              ? ` ${parked} contact${parked === 1 ? ' is' : 's are'} waiting on ${holdName}. ` +
+                "They will be marked as completed and won't receive steps you add later."
+              : '';
           const stepCount = `${downstreamSteps.length} downstream ${downstreamSteps.length === 1 ? 'step' : 'steps'}`;
 
           return (
@@ -1328,8 +1381,8 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
                 canSplice
                   ? 'Choose what happens to the steps after it.'
                   : isCondition && hasChildren
-                    ? `A condition can't be lifted out of the flow, so its ${stepCount} across every branch are deleted with it. This can't be undone.`
-                    : "This step is removed from the workflow. This can't be undone."
+                    ? `A condition can't be lifted out of the flow, so its ${stepCount} across every branch are deleted with it. This can't be undone.${parkedNote}`
+                    : `This step is removed from the workflow. This can't be undone.${parkedNote}`
               }
               details={
                 canSplice ? (
@@ -1344,7 +1397,7 @@ export function WorkflowBuilder({workflowId, steps, onUpdate}: WorkflowBuilderPr
                       selected={deleteMode === 'cascade'}
                       onSelect={() => setDeleteMode('cascade')}
                       title={`Delete with ${stepCount}`}
-                      description="Removes this step and everything below it. This can't be undone."
+                      description={`Removes this step and everything below it. This can't be undone.${parkedNote}`}
                       destructive
                     />
                   </div>
