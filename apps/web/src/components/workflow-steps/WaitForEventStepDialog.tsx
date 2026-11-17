@@ -1,4 +1,18 @@
-import {Command, CommandGroup, CommandItem, CommandList, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@plunk/ui';
+import {canScopeWaitToExecution} from '@plunk/shared';
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Switch,
+} from '@plunk/ui';
 import {useState} from 'react';
 import {toast} from 'sonner';
 import useSWR from 'swr';
@@ -49,6 +63,7 @@ export function WaitForEventStepDialog({step, workflowId, open, onOpenChange, on
   const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
   const [timeoutAmount, setTimeoutAmount] = useState(initialTimeout.amount);
   const [timeoutUnit, setTimeoutUnit] = useState<TimeUnit>(initialUnit);
+  const [onlyThisExecution, setOnlyThisExecution] = useState(config.scope === 'execution');
 
   const {data: eventNamesData} = useSWR<{eventNames: string[]}>(open ? '/events/names' : null, {
     revalidateOnFocus: false,
@@ -72,9 +87,18 @@ export function WaitForEventStepDialog({step, workflowId, open, onOpenChange, on
 
     const timeoutSeconds = amount > 0 ? amount * SECONDS_PER_UNIT[timeoutUnit] : 0;
 
+    // The scope only applies to email events an execution's own emails produce
+    const scoped = onlyThisExecution && canScopeWaitToExecution(eventName);
+
+    // A scoped wait whose email is never sent or opened would otherwise wait forever
+    if (scoped && timeoutSeconds === 0) {
+      toast.error('Set a timeout when waiting only for emails from this run');
+      return;
+    }
+
     const ok = await update({
       name,
-      config: {eventName, timeout: timeoutSeconds},
+      config: {eventName, timeout: timeoutSeconds, ...(scoped ? {scope: 'execution'} : {})},
     });
 
     if (ok) {
@@ -155,6 +179,21 @@ export function WaitForEventStepDialog({step, workflowId, open, onOpenChange, on
             )}
           </div>
         </div>
+
+        {canScopeWaitToExecution(eventName) && (
+          <div className="flex items-start gap-3 p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+            <Switch id="editEventScope" checked={onlyThisExecution} onCheckedChange={setOnlyThisExecution} />
+            <div className="flex-1">
+              <Label htmlFor="editEventScope" className="font-medium cursor-pointer">
+                Only emails from this run
+              </Label>
+              <p className="text-xs text-neutral-500 mt-1">
+                Count the event only for emails this workflow sent to the contact in this run. Otherwise any email the
+                contact receives counts. Requires a timeout, in case the email is never sent or opened.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div>
           <Label htmlFor="editEventTimeoutAmount">Timeout (optional)</Label>
