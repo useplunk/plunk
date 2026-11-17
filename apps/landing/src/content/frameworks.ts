@@ -3,7 +3,7 @@
  * language's own HTTP client or the framework's own mailer over SMTP. That is
  * the honest pitch, too: nothing to install, nothing to keep up to date.
  *
- * SMTP is plunk / your secret key on smtp.useplunk.com, ports 587 (STARTTLS)
+ * SMTP is plunk / your secret key on next-smtp.useplunk.com, ports 587 (STARTTLS)
  * and 465 (TLS), as enforced in apps/smtp.
  */
 
@@ -48,7 +48,7 @@ if (!response.ok) {
 const nodemailer = `import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.useplunk.com',
+  host: 'next-smtp.useplunk.com',
   port: 587,
   auth: {user: 'plunk', pass: process.env.PLUNK_SECRET_KEY},
 });
@@ -139,7 +139,7 @@ export const FRAMEWORKS: Framework[] = [
       {
         question: 'Does it work with NextAuth or Auth.js magic links?',
         answer:
-          'Yes. Their email provider takes SMTP settings: use smtp.useplunk.com on port 587, the username plunk and your secret key as the password.',
+          'Yes. Their email provider takes SMTP settings: use next-smtp.useplunk.com on port 587, the username plunk and your secret key as the password.',
       },
       ...sharedFaqs,
     ],
@@ -191,7 +191,7 @@ message["Subject"] = "Welcome to Acme"
 message.set_content("Thanks for signing up.")
 message.add_alternative("<p>Thanks for signing up.</p>", subtype="html")
 
-with smtplib.SMTP("smtp.useplunk.com", 587) as smtp:
+with smtplib.SMTP("next-smtp.useplunk.com", 587) as smtp:
     smtp.starttls()
     smtp.login("plunk", os.environ["PLUNK_SECRET_KEY"])
     smtp.send_message(message)`,
@@ -215,7 +215,7 @@ with smtplib.SMTP("smtp.useplunk.com", 587) as smtp:
       code: `import os
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.useplunk.com"
+EMAIL_HOST = "next-smtp.useplunk.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "plunk"
@@ -248,7 +248,7 @@ DEFAULT_FROM_EMAIL = "Acme <hello@acme.com>"
       intro: 'Laravel’s SMTP mailer needs only these values. Port 587 negotiates TLS automatically.',
       title: '.env',
       code: `MAIL_MAILER=smtp
-MAIL_HOST=smtp.useplunk.com
+MAIL_HOST=next-smtp.useplunk.com
 MAIL_PORT=587
 MAIL_USERNAME=plunk
 MAIL_PASSWORD=your_plunk_secret_key
@@ -286,7 +286,7 @@ Http::withToken(config('services.plunk.secret'))
       title: 'config/environments/production.rb',
       code: `config.action_mailer.delivery_method = :smtp
 config.action_mailer.smtp_settings = {
-  address: "smtp.useplunk.com",
+  address: "next-smtp.useplunk.com",
   port: 587,
   user_name: "plunk",
   password: ENV["PLUNK_SECRET_KEY"],
@@ -360,7 +360,7 @@ if resp.StatusCode >= 300 {
     smtp: {
       intro: 'net/smtp upgrades to TLS on port 587 automatically.',
       title: 'send_smtp.go',
-      code: `auth := smtp.PlainAuth("", "plunk", os.Getenv("PLUNK_SECRET_KEY"), "smtp.useplunk.com")
+      code: `auth := smtp.PlainAuth("", "plunk", os.Getenv("PLUNK_SECRET_KEY"), "next-smtp.useplunk.com")
 
 message := []byte("From: Acme <hello@acme.com>\\r\\n" +
 	"To: ana@acme.com\\r\\n" +
@@ -368,7 +368,7 @@ message := []byte("From: Acme <hello@acme.com>\\r\\n" +
 	"Content-Type: text/html; charset=UTF-8\\r\\n\\r\\n" +
 	"<p>Thanks for signing up.</p>")
 
-err := smtp.SendMail("smtp.useplunk.com:587", auth, "hello@acme.com", []string{"ana@acme.com"}, message)`,
+err := smtp.SendMail("next-smtp.useplunk.com:587", auth, "hello@acme.com", []string{"ana@acme.com"}, message)`,
     },
     faqs: sharedFaqs,
   },
@@ -380,7 +380,7 @@ err := smtp.SendMail("smtp.useplunk.com:587", auth, "hello@acme.com", []string{"
     smtp: {
       intro: 'In the Supabase dashboard, open Authentication, then the SMTP settings, enable custom SMTP and enter these values.',
       title: 'Supabase Auth SMTP settings',
-      code: `Host:          smtp.useplunk.com
+      code: `Host:          next-smtp.useplunk.com
 Port:          587
 Username:      plunk
 Password:      your Plunk secret key

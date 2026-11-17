@@ -10,7 +10,7 @@ import {SnippetTile} from './SnippetTile';
  * developer page, so the values stay in mono; the labels do not.
  */
 const settings = [
-  {label: 'Host', value: 'smtp.useplunk.com'},
+  {label: 'Host', value: 'next-smtp.useplunk.com'},
   {label: 'Port', value: '587'},
   {label: 'Username', value: 'plunk'},
   {label: 'Password', value: 'Your secret key'},

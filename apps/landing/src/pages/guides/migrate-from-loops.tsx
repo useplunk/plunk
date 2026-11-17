@@ -177,7 +177,7 @@ export default function MigrateFromLoops() {
         </p>
         <p>
           If you used Loops’ SMTP server, note that it expects a JSON body naming a transactional email. Plunk’s SMTP
-          server takes ordinary email instead: host <code>smtp.useplunk.com</code>, port 587, username{' '}
+          server takes ordinary email instead: host <code>next-smtp.useplunk.com</code>, port 587, username{' '}
           <code>plunk</code> and your secret key as the password.
         </p>
       </GuideSection>

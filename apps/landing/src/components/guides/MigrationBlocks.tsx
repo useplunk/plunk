@@ -145,7 +145,7 @@ export function SmtpSwap({provider, theirs}: {provider: string; theirs: string})
 ${theirs}
 
 # After (Plunk)
-host:     smtp.useplunk.com
+host:     next-smtp.useplunk.com
 port:     587 (STARTTLS) or 465 (TLS)
 username: plunk
 password: your Plunk secret key (sk_...)`}
