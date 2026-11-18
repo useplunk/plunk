@@ -226,4 +226,81 @@ describe('WorkflowExecutionService.executeWebhook templating', () => {
     expect(body.referrer).toBe('newsletter-may');
     expect(body.subject).toBe('Welcome');
   });
+
+  describe('saveResponseAs', () => {
+    it('stores the JSON response in the execution context', async () => {
+      safeFetchSpy.mockImplementation(
+        async () => new Response('{"code":"WELCOME-7Q2K","validUntil":"2026-12-01"}', {status: 200}),
+      );
+      const {step, execution, stepExecution} = await setup(
+        {url: 'https://example.com/coupon', method: 'POST', saveResponseAs: 'coupon'},
+        {},
+        {referrer: 'newsletter-may'},
+      );
+
+      const result = await invokeWebhook(step, execution, stepExecution, step.config);
+
+      expect(result.savedAs).toBe('coupon');
+      const stored = await prisma.workflowExecution.findUnique({where: {id: execution.id}});
+      expect(stored!.context).toEqual({
+        referrer: 'newsletter-may',
+        coupon: {code: 'WELCOME-7Q2K', validUntil: '2026-12-01'},
+      });
+      expect((execution.context as Record<string, unknown>).coupon).toEqual({
+        code: 'WELCOME-7Q2K',
+        validUntil: '2026-12-01',
+      });
+    });
+
+    it('makes the saved response available to a later webhook step', async () => {
+      safeFetchSpy.mockImplementationOnce(async () => new Response('{"code":"WELCOME-7Q2K"}', {status: 200}));
+      const {step, execution, stepExecution} = await setup({
+        url: 'https://example.com/coupon',
+        saveResponseAs: 'coupon',
+      });
+      await invokeWebhook(step, execution, stepExecution, step.config);
+
+      await invokeWebhook(step, execution, stepExecution, {
+        url: 'https://example.com/use/{{event.coupon.code}}',
+        method: 'GET',
+      });
+
+      expect(captured!.url).toBe('https://example.com/use/WELCOME-7Q2K');
+    });
+
+    it('does not store the response of a failed request', async () => {
+      safeFetchSpy.mockImplementation(async () => new Response('{"error":"nope"}', {status: 500}));
+      const {step, execution, stepExecution} = await setup(
+        {url: 'https://example.com/coupon', saveResponseAs: 'coupon'},
+        {},
+        {referrer: 'newsletter-may'},
+      );
+
+      const result = await invokeWebhook(step, execution, stepExecution, step.config);
+
+      expect(result.savedAs).toBeNull();
+      const stored = await prisma.workflowExecution.findUnique({where: {id: execution.id}});
+      expect(stored!.context).toEqual({referrer: 'newsletter-may'});
+    });
+
+    it('leaves the context untouched without saveResponseAs', async () => {
+      const {step, execution, stepExecution} = await setup({url: 'https://example.com/hook'}, {}, {referrer: 'x'});
+
+      const result = await invokeWebhook(step, execution, stepExecution, step.config);
+
+      expect(result).not.toHaveProperty('savedAs');
+      const stored = await prisma.workflowExecution.findUnique({where: {id: execution.id}});
+      expect(stored!.context).toEqual({referrer: 'x'});
+    });
+
+    it('rejects reserved and invalid names', async () => {
+      const {step, execution, stepExecution} = await setup({url: 'https://example.com/hook'});
+      await expect(
+        invokeWebhook(step, execution, stepExecution, {url: 'https://example.com/hook', saveResponseAs: 'email'}),
+      ).rejects.toThrow();
+      await expect(
+        invokeWebhook(step, execution, stepExecution, {url: 'https://example.com/hook', saveResponseAs: '1abc'}),
+      ).rejects.toThrow();
+    });
+  });
 });
