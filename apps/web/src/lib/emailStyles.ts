@@ -7,6 +7,28 @@
 // round-trip <span style="color: ..."> / <a style="color: ..."> markup that TipTap itself
 // generates when you change text color or style a link. We must therefore PERMIT what
 // TipTap can represent and REJECT only what it can't.
+// TipTap's TextStyle + Color extensions only keep `color` on a <span>. The editor also
+// emits `background-color: initial|transparent` as an export artifact, which is harmless.
+// Any other declaration (a real background-color, font-size, ...) is dropped as soon as
+// the HTML is loaded into the visual editor, so such a span counts as custom HTML.
+const hasUnsupportedSpanStyle = (html: string): boolean => {
+  const spanMatches = html.matchAll(/<span\b[^>]*?\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/gi);
+  for (const match of spanMatches) {
+    const declarations = (match[1] ?? match[2] ?? '').split(';');
+    for (const declaration of declarations) {
+      const separator = declaration.indexOf(':');
+      if (separator === -1) continue;
+      const property = declaration.slice(0, separator).trim().toLowerCase();
+      const value = declaration.slice(separator + 1).trim().toLowerCase();
+      if (!property) continue;
+      if (property === 'color') continue;
+      if (property === 'background-color' && (value === 'initial' || value === 'transparent')) continue;
+      return true;
+    }
+  }
+  return false;
+};
+
 export const detectCustomHtmlPatterns = (html: string): boolean => {
   if (!html || html.trim() === '') return false;
 
@@ -43,7 +65,7 @@ export const detectCustomHtmlPatterns = (html: string): boolean => {
   // - No Div/Section/etc. block-layout extensions -> reject layout containers.
   // - Form/embed/media/interactive elements have no TipTap representation here.
   // <span> is intentionally NOT in this list: TipTap's TextStyle extension emits and
-  // accepts <span style="..."> for things like text color.
+  // accepts <span style="..."> for text color (see hasUnsupportedSpanStyle for the rest).
   const hasCustomElements =
     /<(?:div|section|article|header|footer|nav|aside|main|table|tr|td|th|tbody|thead|tfoot|colgroup|col|form|input|button|select|textarea|iframe|video|audio|svg|object|embed|details|summary|dialog)\b/i.test(
       html,
@@ -52,7 +74,16 @@ export const detectCustomHtmlPatterns = (html: string): boolean => {
   const hasMediaQueries = /@media/i.test(html);
   const hasStyleTags = /<style[^>]*>/i.test(html);
 
-  return hasCustomClasses || hasCustomAttributes || hasCustomElements || hasMediaQueries || hasStyleTags;
+  const hasCustomSpanStyle = hasUnsupportedSpanStyle(html);
+
+  return (
+    hasCustomClasses ||
+    hasCustomAttributes ||
+    hasCustomElements ||
+    hasMediaQueries ||
+    hasStyleTags ||
+    hasCustomSpanStyle
+  );
 };
 
 export const wrapEmailWithStyles = (htmlBody: string): string => {
