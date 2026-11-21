@@ -23,6 +23,7 @@ import {
   SMTP_ENABLED,
   STRIPE_ENABLED,
   TRACKING_TOGGLE_ENABLED,
+  TURNSTILE_ENABLED,
 } from './app/constants.js';
 import {ALLOWED_ORIGINS, isAllowedOrigin} from './app/origins.js';
 import {Actions} from './controllers/Actions.js';
@@ -432,6 +433,11 @@ void prisma.$connect().then(async () => {
       name: 'OAuth - Google',
       enabled: GOOGLE_OAUTH_ENABLED,
       details: GOOGLE_OAUTH_ENABLED ? 'Google login enabled' : 'Google OAuth not configured',
+    },
+    {
+      name: 'Captcha (Turnstile)',
+      enabled: TURNSTILE_ENABLED,
+      details: TURNSTILE_ENABLED ? 'Turnstile on login and signup' : 'Turnstile keys not configured',
     },
     {
       name: 'Tracking toggle',

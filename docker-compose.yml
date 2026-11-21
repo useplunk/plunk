@@ -164,6 +164,10 @@ services:
       GOOGLE_OAUTH_CLIENT: ${GOOGLE_OAUTH_CLIENT:-}
       GOOGLE_OAUTH_SECRET: ${GOOGLE_OAUTH_SECRET:-}
 
+      # Optional: Cloudflare Turnstile captcha on login and signup
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+
       # Optional: Stripe
       STRIPE_SK: ${STRIPE_SK:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}

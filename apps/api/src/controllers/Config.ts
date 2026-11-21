@@ -19,6 +19,8 @@ import {
   SMTP_PORT_SUBMISSION,
   STRIPE_ENABLED,
   TRACKING_TOGGLE_ENABLED,
+  TURNSTILE_ENABLED,
+  TURNSTILE_SITE_KEY,
   WIKI_URI,
 } from '../app/constants.js';
 
@@ -51,6 +53,9 @@ export class Config {
         },
         signup: {
           signupsDisabled: DISABLE_SIGNUPS,
+        },
+        captcha: {
+          turnstileSiteKey: TURNSTILE_ENABLED ? TURNSTILE_SITE_KEY : null,
         },
         email: {
           trackingToggleEnabled: TRACKING_TOGGLE_ENABLED,

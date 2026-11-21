@@ -13,6 +13,7 @@ export interface ConfigResponse {
     storage: {s3Enabled: boolean};
     authProviders: {github: boolean; google: boolean};
     signup: {signupsDisabled: boolean};
+    captcha: {turnstileSiteKey: string | null};
     email: {trackingToggleEnabled: boolean};
     sponsor: {enabled: boolean};
     smtp: {

@@ -52,10 +52,13 @@ export const AuthenticationSchemas = {
   login: z.object({
     email,
     password: z.string().min(6),
+    // Cloudflare Turnstile token; only checked when the instance has Turnstile configured
+    captchaToken: z.string().optional(),
   }),
   signup: z.object({
     email,
     password: z.string().min(6),
+    captchaToken: z.string().optional(),
   }),
   verifyEmail: z.object({
     token: z.string().length(64, 'Invalid verification token'),

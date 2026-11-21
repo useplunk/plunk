@@ -25,16 +25,23 @@ import {assertTrustedOrigin, jwt, parseJwt} from '../middleware/auth.js';
 import {AuthService} from '../services/AuthService.js';
 import {EmailVerificationService} from '../services/EmailVerificationService.js';
 import {NtfyService} from '../services/NtfyService.js';
+import {TurnstileService} from '../services/TurnstileService.js';
 import {UserService} from '../services/UserService.js';
 import {Keys} from '../services/keys.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
+
+const CAPTCHA_FAILED_MESSAGE = 'Captcha verification failed. Please try again.';
 
 @Controller('auth')
 export class Auth {
   @Post('login')
   @CatchAsync
   public async login(req: Request, res: Response, _next: NextFunction) {
-    const {email, password} = AuthenticationSchemas.login.parse(req.body);
+    const {email, password, captchaToken} = AuthenticationSchemas.login.parse(req.body);
+
+    if (!(await TurnstileService.verify(captchaToken))) {
+      return res.json({success: false, data: CAPTCHA_FAILED_MESSAGE});
+    }
 
     const user = await UserService.email(email);
 
@@ -73,7 +80,11 @@ export class Auth {
       });
     }
 
-    const {email, password} = AuthenticationSchemas.login.parse(req.body);
+    const {email, password, captchaToken} = AuthenticationSchemas.signup.parse(req.body);
+
+    if (!(await TurnstileService.verify(captchaToken))) {
+      return res.json({success: false, data: CAPTCHA_FAILED_MESSAGE});
+    }
 
     // Verify email is valid and not disposable/plus-addressed (if verification enabled)
     if (VERIFY_EMAIL_ON_SIGNUP) {

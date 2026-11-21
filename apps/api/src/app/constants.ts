@@ -91,6 +91,11 @@ export const GOOGLE_OAUTH_CLIENT = validateEnv('GOOGLE_OAUTH_CLIENT', '');
 export const GOOGLE_OAUTH_SECRET = validateEnv('GOOGLE_OAUTH_SECRET', '');
 export const GOOGLE_OAUTH_ENABLED = GOOGLE_OAUTH_CLIENT !== '' && GOOGLE_OAUTH_SECRET !== '';
 
+// Cloudflare Turnstile (optional - captcha on email/password login and signup)
+export const TURNSTILE_SITE_KEY = validateEnv('TURNSTILE_SITE_KEY', '');
+export const TURNSTILE_SECRET_KEY = validateEnv('TURNSTILE_SECRET_KEY', '');
+export const TURNSTILE_ENABLED = TURNSTILE_SITE_KEY !== '' && TURNSTILE_SECRET_KEY !== '';
+
 // Stripe (optional - if not set, billing features are disabled)
 export const STRIPE_SK = validateEnv('STRIPE_SK', '');
 export const STRIPE_WEBHOOK_SECRET = validateEnv('STRIPE_WEBHOOK_SECRET', '');
