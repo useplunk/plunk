@@ -163,3 +163,19 @@ export function FigureBand({
     </dl>
   );
 }
+
+/** Key for the charts that draw the previous period, dashed, under the current one */
+export function PeriodLegend() {
+  return (
+    <div className="flex items-center gap-4 text-xs text-neutral-500" aria-hidden>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="h-0.5 w-3.5 rounded-full bg-neutral-900" />
+        This period
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="w-3.5 border-t border-dashed border-neutral-400" />
+        Previous period
+      </span>
+    </div>
+  );
+}

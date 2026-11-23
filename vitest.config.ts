@@ -86,6 +86,8 @@ export default defineConfig({
           name: 'mcp',
           globals: true,
           environment: 'node',
+          // Pins the default number locale so assertions do not depend on the host's
+          setupFiles: ['./apps/mcp/vitest.setup.ts'],
           testTimeout: 30000,
           hookTimeout: 30000,
           include: ['apps/mcp/**/__tests__/**/*.{test,spec}.ts'],
