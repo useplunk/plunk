@@ -10,9 +10,10 @@ import {parseRedisUrl} from '../utils/redis.js';
 
 /**
  * Email Body Cleanup Worker
- * Blanks the rendered HTML body of emails past the retention window. The row is kept
- * so delivery history, event counts and analytics stay intact; only the body — by far
- * the largest column — is dropped. Runs daily.
+ * Blanks the rendered HTML body and drops the attachments (base64 file contents, often
+ * megabytes per row) of emails past the retention window. The row is kept so delivery
+ * history, event counts and analytics stay intact; only the two largest columns are
+ * dropped. Runs daily.
  */
 
 const RETENTION_DAYS = 90;
@@ -22,7 +23,7 @@ const BATCH_SIZE = 1000; // Update in batches to avoid long-held row locks
  * Process email body cleanup job
  */
 async function processCleanup(job: Job<EmailBodyCleanupJobData>): Promise<{cleared: number}> {
-  signale.info('[EMAIL-BODY-CLEANUP] Starting cleanup of email bodies past retention...');
+  signale.info('[EMAIL-BODY-CLEANUP] Starting cleanup of email bodies and attachments past retention...');
 
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - RETENTION_DAYS);
@@ -32,15 +33,17 @@ async function processCleanup(job: Job<EmailBodyCleanupJobData>): Promise<{clear
   try {
     for (;;) {
       // updateMany has no LIMIT, so bound each statement with a subselect. The
-      // `body <> ''` predicate keeps already-cleared rows out of every later batch
-      // and is served by the partial index emails_createdAt_unpurged_idx.
+      // `body <> '' OR attachments IS NOT NULL` predicate keeps already-cleared rows
+      // out of every later batch and is served by the partial index
+      // emails_createdAt_purgeable_idx (background-index-builder); keep the two identical
+      // or the index goes unused.
       const cleared = await prisma.$executeRaw`
         UPDATE "emails"
-        SET "body" = ''
+        SET "body" = '', "attachments" = NULL
         WHERE "id" IN (
           SELECT "id" FROM "emails"
           WHERE "createdAt" < ${cutoffDate}
-            AND "body" <> ''
+            AND ("body" <> '' OR "attachments" IS NOT NULL)
             -- A scheduled email still has to be sent with its body. The scheduling horizon is
             -- far shorter than the retention window, so this only guards that invariant.
             AND "status" <> 'SCHEDULED'
@@ -55,13 +58,13 @@ async function processCleanup(job: Job<EmailBodyCleanupJobData>): Promise<{clear
         break;
       }
 
-      signale.info(`[EMAIL-BODY-CLEANUP] Cleared ${totalCleared} bodies so far, continuing...`);
+      signale.info(`[EMAIL-BODY-CLEANUP] Cleared ${totalCleared} emails so far, continuing...`);
       // Small delay between batches to reduce database load
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     signale.success(
-      `[EMAIL-BODY-CLEANUP] Cleanup complete. Cleared ${totalCleared} bodies older than ${RETENTION_DAYS} days (before ${cutoffDate.toISOString()})`,
+      `[EMAIL-BODY-CLEANUP] Cleanup complete. Cleared ${totalCleared} emails older than ${RETENTION_DAYS} days (before ${cutoffDate.toISOString()})`,
     );
 
     await job.updateProgress(100);
