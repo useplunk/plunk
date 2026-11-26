@@ -17,7 +17,9 @@ interface ProjectDisabledEmailProps {
   projectId: string;
   /**
    * `reputation`: bounce/complaint rates the user can see in their dashboard, so we say so.
-   * `policy`: content-based (e.g. phishing) — deliberately vague, never name the cause.
+   * `policy`: content flagged by automated screening (phishing or fraud). Names the rule,
+   * says the decision was automated and offers a human review, as the Terms (section 5.3)
+   * and the EU Digital Services Act (Art. 17) require. Never describe how detection works.
    */
   reason?: 'reputation' | 'policy';
   // Which metrics crossed a critical threshold. Only used for `reputation`.
@@ -161,8 +163,12 @@ export function ProjectDisabledEmail({
 
         <Section className="mb-8 rounded-lg bg-red-50 px-6 py-4" style={{border: '1px solid #fca5a5'}}>
           <Text className="mb-0 mt-0 text-sm leading-relaxed text-red-900">
-            Your project has been flagged during a routine review and disabled to protect your account and our platform.
-            Please contact our support team for more details and to resolve this issue.
+            Our automated screening flagged email sent from this project as likely phishing or fraud, which our{' '}
+            <Link href={`${landingUrl}/terms#acceptable-use`} className="text-red-900 underline">
+              Terms of Service
+            </Link>{' '}
+            do not allow (section 4.3). The project was disabled automatically, without a manual check, to protect
+            recipients.
           </Text>
         </Section>
 
@@ -170,16 +176,18 @@ export function ProjectDisabledEmail({
 
         <Section className="mb-8">
           <Section className="mb-3">
-            <Text className="mb-1 mt-0 text-sm font-medium text-gray-900">Contact support</Text>
+            <Text className="mb-1 mt-0 text-sm font-medium text-gray-900">Ask for a review</Text>
             <Text className="mb-0 mt-0 text-sm leading-relaxed text-gray-600">
-              Reach out to our support team to understand the reason for the suspension and how to resolve it
+              If you think this is a mistake, reply to this email. A person will review the decision and get back to
+              you. You can also take the matter to court.
             </Text>
           </Section>
 
           <Section className="mb-3">
-            <Text className="mb-1 mt-0 text-sm font-medium text-gray-900">Review your account</Text>
+            <Text className="mb-1 mt-0 text-sm font-medium text-gray-900">Check what you sent</Text>
             <Text className="mb-0 mt-0 text-sm leading-relaxed text-gray-600">
-              While you wait, review your sending practices and ensure they comply with our terms of service
+              Review the emails this project sent recently and the links in them, in particular any that ask
+              recipients to sign in, pay or confirm account details.
             </Text>
           </Section>
         </Section>

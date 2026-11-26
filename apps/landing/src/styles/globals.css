@@ -220,7 +220,7 @@
 /* Guide prose. Guides are the one place on the site with long reading, so
    paragraphs, lists and inline code get one treatment here rather than the
    typography plugin's defaults restyled inline on every page. Scoped to
-   `.guide-prose`, which GuideSection applies. */
+   `.guide-prose`, which GuideSection and LegalSection apply. */
 @layer components {
     .guide-prose > * + * {
         margin-top: 1.25rem;

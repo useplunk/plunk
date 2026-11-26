@@ -1231,7 +1231,7 @@ ${analysedBody || '(no visible text)'}`,
         const members = await MembershipService.getMembers(projectId);
         const emails = members.map(m => m.email);
         if (emails.length > 0) {
-          // Deliberately vague: never tell the sender their content was flagged as phishing
+          // Names the rule and offers a human review (Terms 5.3, DSA Art. 17), without saying how detection works
           const template = React.createElement(ProjectDisabledEmail, {
             projectName: project.name,
             projectId,

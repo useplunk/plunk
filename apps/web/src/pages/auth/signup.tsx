@@ -22,6 +22,7 @@ import React, {useRef, useState} from 'react';
 import {useForm} from 'react-hook-form';
 import type {z} from 'zod';
 
+import {LegalConsent} from '../../components/LegalConsent';
 import type {TurnstileHandle} from '../../components/Turnstile';
 import {Turnstile} from '../../components/Turnstile';
 import {API_URI} from '../../lib/constants';
@@ -29,7 +30,6 @@ import {useConfig} from '../../lib/hooks/useConfig';
 import {useProjects} from '../../lib/hooks/useProject';
 import {useUser} from '../../lib/hooks/useUser';
 import {network} from '../../lib/network';
-
 
 export default function Signup() {
   const {mutate: userMutate} = useUser();
@@ -270,6 +270,9 @@ export default function Signup() {
               )}
             </CardContent>
           </Card>
+
+          {/* Outside the form so it also covers the Google and GitHub buttons. */}
+          <LegalConsent lead="By creating an account," />
         </div>
       </div>
     </>

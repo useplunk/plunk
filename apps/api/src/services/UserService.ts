@@ -1,8 +1,9 @@
+import {TERMS_VERSION} from '@plunk/shared';
 import type {ProjectWithRole} from '@plunk/types';
 import dayjs from 'dayjs';
 import {getDomain} from 'tldts';
 
-import {API_URI, DASHBOARD_URI, NODE_ENV} from '../app/constants.js';
+import {API_URI, DASHBOARD_URI, NODE_ENV, STRIPE_ENABLED} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {wrapRedis} from '../database/redis.js';
 
@@ -64,6 +65,14 @@ function isDashboardSameSite(): boolean {
 
 export class UserService {
   public static readonly COOKIE_NAME = 'next_token';
+
+  /**
+   * Fields recording Terms and DPA acceptance, for a new user. Signup shows the agreement
+   * line only on the hosted service (billing enabled); self-hosted instances record nothing.
+   */
+  public static termsAcceptance(): {termsAcceptedAt?: Date; termsVersion?: string} {
+    return STRIPE_ENABLED ? {termsAcceptedAt: new Date(), termsVersion: TERMS_VERSION} : {};
+  }
 
   public static async id(id: string) {
     return wrapRedis(Keys.User.id(id), async () => {

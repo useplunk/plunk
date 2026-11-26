@@ -1,10 +1,11 @@
 import {ArrowUpRight} from 'lucide-react';
 import {ArticleJsonLd, BreadcrumbJsonLd, NextSeo} from 'next-seo';
 import Link from 'next/link';
-import React, {ReactNode, useEffect, useRef, useState} from 'react';
+import React, {ReactNode} from 'react';
 
 import {FAQSection, FeatureCTA, Footer, Navbar} from '../';
 import type {FAQ} from '../FAQSection';
+import {ReadingBody} from '../ReadingBody';
 
 import {getGuide, relatedGuides} from './registry';
 
@@ -38,9 +39,6 @@ interface GuideLayoutProps {
  * a hero with one graphic that answers the title, a reading column at a
  * comfortable measure with a quiet contents rail to its left, and the same
  * related links, questions and closing tile at the end of every guide.
- *
- * The contents list only shows h2s. Listing h3s too made it as long as the
- * article on some pages, which defeats the point of a contents list.
  */
 export function GuideLayout({
   slug,
@@ -133,7 +131,7 @@ export function GuideLayout({
         </section>
 
         {/* Body */}
-        <GuideBody>{children}</GuideBody>
+        <ReadingBody>{children}</ReadingBody>
 
         {/* What next */}
         <GuideNext slug={slug} />
@@ -145,66 +143,6 @@ export function GuideLayout({
 
       <Footer />
     </>
-  );
-}
-
-/** The reading column and its contents rail. */
-function GuideBody({children}: {children: ReactNode}) {
-  const article = useRef<HTMLDivElement>(null);
-  const [headings, setHeadings] = useState<{id: string; text: string}[]>([]);
-  const [active, setActive] = useState('');
-
-  useEffect(() => {
-    const root = article.current;
-    if (!root) return;
-
-    const elements = Array.from(root.querySelectorAll<HTMLHeadingElement>('h2[id]'));
-    setHeadings(elements.map(el => ({id: el.id, text: el.textContent ?? ''})));
-
-    const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) setActive(entry.target.id);
-        });
-      },
-      {rootMargin: '-96px 0px -70% 0px'},
-    );
-    elements.forEach(el => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div className={'mx-auto max-w-[88rem] px-6 sm:px-10'}>
-      <div className={'grid gap-12 lg:grid-cols-12'}>
-        <aside className={'hidden lg:col-span-3 lg:block'}>
-          {headings.length > 0 && (
-            <nav aria-label={'On this page'} className={'sticky top-28'}>
-              <p className={'mb-4 text-ui font-semibold text-neutral-900'}>On this page</p>
-              <ul className={'flex flex-col border-l border-neutral-200'}>
-                {headings.map(h => (
-                  <li key={h.id}>
-                    <a
-                      href={`#${h.id}`}
-                      className={`-ml-px block border-l py-1.5 pl-4 text-ui transition-colors ${
-                        active === h.id
-                          ? 'border-neutral-900 font-medium text-neutral-900'
-                          : 'border-transparent text-neutral-500 hover:text-neutral-900'
-                      }`}
-                    >
-                      {h.text}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          )}
-        </aside>
-
-        <article ref={article} className={'min-w-0 lg:col-span-8 lg:col-start-4 xl:col-span-7 xl:col-start-4'}>
-          {children}
-        </article>
-      </div>
-    </div>
   );
 }
 
