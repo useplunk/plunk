@@ -110,8 +110,6 @@ export default function Settings() {
   type SettingsDialog = {type: 'none'} | {type: 'regenerate'} | {type: 'delete'} | {type: 'reset'};
   const [dialog, setDialog] = useState<SettingsDialog>({type: 'none'});
   const [isLoadingBilling, setIsLoadingBilling] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('auto');
-  const [showCurrencySelector, setShowCurrencySelector] = useState(false);
 
   // Fetch current user's membership for the active project
   const {data: membershipData} = useSWR<{
@@ -262,7 +260,7 @@ export default function Settings() {
     setDialog({type: 'regenerate'});
   };
 
-  const handleStartSubscription = async (currency: string = 'auto') => {
+  const handleStartSubscription = async () => {
     if (!activeProject) return;
     if (!billingEnabled) {
       setErrorMessage('Billing is disabled on this instance.');
@@ -273,13 +271,10 @@ export default function Settings() {
       setIsLoadingBilling(true);
       setErrorMessage(null);
 
-      // Build URL with optional currency parameter
-      const url =
-        currency === 'auto'
-          ? `/users/@me/projects/${activeProject.id}/checkout`
-          : `/users/@me/projects/${activeProject.id}/checkout?currency=${currency}`;
-
-      const response = await network.fetch<{url: string}>('POST', url);
+      const response = await network.fetch<{url: string}>(
+        'POST',
+        `/users/@me/projects/${activeProject.id}/checkout`,
+      );
 
       // Redirect to Stripe checkout
       if (response.url) {
@@ -708,7 +703,7 @@ export default function Settings() {
                               <span className="font-medium">No active subscription</span>
                             </div>
                             <p className="text-sm text-neutral-600">
-                              Activation places one charge of 2.00 on your card, credited back in full to your usage.
+                              Activation places one charge of €2.00 on your card, credited back in full to your usage.
                             </p>
                             <details className="group mt-2">
                               <summary className="cursor-pointer text-xs text-neutral-500 hover:text-neutral-700 transition-colors list-none">
@@ -722,52 +717,10 @@ export default function Settings() {
                             </details>
                           </div>
 
-                          <div className="flex flex-col gap-2">
-                            <div className="flex justify-start">
-                              <Button
-                                onClick={() => handleStartSubscription(selectedCurrency)}
-                                disabled={isLoadingBilling}
-                              >
-                                {isLoadingBilling ? 'Loading…' : 'Start Subscription'}
-                              </Button>
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setShowCurrencySelector(!showCurrencySelector)}
-                                className="text-xs text-neutral-500 hover:text-neutral-700 transition-colors w-fit"
-                              >
-                                {showCurrencySelector ? 'Hide currency options' : 'Select a different currency'}
-                              </button>
-
-                              <AnimatePresence>
-                                {showCurrencySelector && (
-                                  <motion.div
-                                    initial={{opacity: 0, height: 0}}
-                                    animate={{opacity: 1, height: 'auto'}}
-                                    exit={{opacity: 0, height: 0}}
-                                    transition={{duration: 0.2}}
-                                    className="overflow-hidden"
-                                  >
-                                    <div className="flex items-center gap-3 pt-1">
-                                      <label className="text-sm font-medium text-neutral-600">Currency:</label>
-                                      <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                                        <SelectTrigger className="w-[200px]">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="auto">Auto-detect</SelectItem>
-                                          <SelectItem value="usd">USD ($) - US Dollar</SelectItem>
-                                          <SelectItem value="eur">EUR (€) - Euro</SelectItem>
-                                          <SelectItem value="gbp">GBP (£) - British Pound</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
+                          <div className="flex justify-start">
+                            <Button onClick={handleStartSubscription} disabled={isLoadingBilling}>
+                              {isLoadingBilling ? 'Loading…' : 'Start Subscription'}
+                            </Button>
                           </div>
                         </div>
                       )}

@@ -304,7 +304,6 @@ export class Users {
   public async createCheckoutSession(req: Request, res: Response, _next: NextFunction) {
     const auth = res.locals.auth;
     const {id} = UtilitySchemas.id.parse(req.params);
-    const {currency} = req.query;
 
     // Check if billing is enabled
     if (!STRIPE_ENABLED || !stripe) {
@@ -350,17 +349,6 @@ export class Users {
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const billingCycleAnchor = Math.floor(nextMonth.getTime() / 1000);
 
-    // Validate currency if provided
-    let checkoutCurrency: string | undefined;
-    if (currency && typeof currency === 'string') {
-      const validCurrencies = ['usd', 'eur', 'gbp'];
-      if (validCurrencies.includes(currency.toLowerCase())) {
-        checkoutCurrency = currency.toLowerCase();
-      } else {
-        return res.status(400).json({error: 'Invalid currency. Supported: USD, EUR, GBP'});
-      }
-    }
-
     // Create checkout session
     // The billing_cycle_anchor ensures the subscription is anchored to the 1st of the month
     const verificationAmount = (VERIFICATION_AMOUNT / 100).toFixed(2);
@@ -371,7 +359,16 @@ export class Users {
       line_items: lineItems,
       // Nothing is due today, but the off-session verification charge needs a saved card.
       payment_method_collection: 'always',
-      ...(checkoutCurrency && {currency: checkoutCurrency}),
+      // The price is EUR only. Adaptive Pricing shows and charges cross-border customers in their
+      // own currency, while the subscription, invoices and payouts stay in EUR.
+      adaptive_pricing: {enabled: true},
+      // Collected now so Stripe Tax can work out VAT per customer once the business leaves the
+      // Belgian small-business exemption.
+      billing_address_collection: 'required',
+      tax_id_collection: {enabled: true},
+      // Stripe only accepts customer_update with an existing customer; tax ID collection needs it
+      // to save the name and address Checkout collects onto that customer.
+      ...(project.customer && {customer_update: {address: 'auto', name: 'auto'}}),
       custom_fields: [
         {
           key: 'promo_code',
@@ -387,7 +384,7 @@ export class Users {
       // let it arrive unannounced on the statement.
       custom_text: {
         submit: {
-          message: `Right after checkout, we'll make one ${verificationAmount} charge in your billing currency to confirm your card supports monthly billing. It's credited to your account in full and applied to your usage.`,
+          message: `Right after checkout, we'll make one €${verificationAmount} charge to confirm your card supports monthly billing. It's credited to your account in full and applied to your usage.`,
         },
       },
       success_url: `${DASHBOARD_URI}/settings?tab=billing&success=true`,
