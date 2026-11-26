@@ -816,6 +816,46 @@ export class Webhooks {
               ? subscription.default_payment_method
               : (subscription.default_payment_method?.id ?? null);
 
+          // Subscribing again from an outdated price (see Users.createCheckoutSession). The
+          // customer has been paying already, so no verification charge: a card that fails the
+          // next renewal pauses sending like any other.
+          const replacesSubscription = session.metadata?.replacesSubscription;
+          if (replacesSubscription) {
+            // Conditional on the old subscription still being the project's, so that of two
+            // Checkouts for the same switch (two tabs) exactly one wins. Moving the project
+            // first also leaves the old subscription's deletion webhook no project to clear.
+            const claim = await prisma.project.updateMany({
+              where: {id: projectId, subscription: replacesSubscription},
+              data: {customer: customerId, subscription: subscriptionId, cardVerificationPaymentMethod: paymentMethodId},
+            });
+
+            if (claim.count === 0) {
+              const current = await prisma.project.findUnique({where: {id: projectId}, select: {subscription: true}});
+              if (current?.subscription !== subscriptionId) {
+                await stripe.subscriptions.cancel(subscriptionId);
+                signale.warn(`[WEBHOOK] Surplus replacement ${subscriptionId} for project ${projectId} canceled`);
+                break;
+              }
+              // Otherwise a redelivery of this event: make sure the old subscription is closed.
+            }
+
+            const project = await prisma.project.findUniqueOrThrow({where: {id: projectId}});
+            await stripe.customers.update(customerId, {name: project.name});
+
+            // Bills the usage reported to the old customer so far. Checked first: cancelling an
+            // already-cancelled subscription throws, and the redelivery would retry forever.
+            const previous = await stripe.subscriptions.retrieve(replacesSubscription);
+            if (previous.status !== 'canceled') {
+              await stripe.subscriptions.cancel(replacesSubscription, {invoice_now: true, prorate: false});
+            }
+
+            if (claim.count > 0) {
+              signale.success(`[WEBHOOK] Project ${projectId} moved from ${replacesSubscription} to ${subscriptionId}`);
+              await NtfyService.notifySubscriptionStarted(project.name, projectId, subscriptionId);
+            }
+            break;
+          }
+
           // Update project with customer and subscription IDs. PENDING until the off-session
           // charge returns a verdict; the project is usable in the meantime, which is a few
           // seconds of exposure against a signal that otherwise takes a month to arrive.

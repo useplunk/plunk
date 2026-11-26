@@ -124,6 +124,11 @@ export default function Settings() {
 
   const billingEnabled = config?.features.billing.enabled ?? false;
   const billingPause = activeProject?.disabled ? BILLING_PAUSE_COPY[activeProject.disabledReason ?? ''] : undefined;
+  // A subscription on an outdated price; starting checkout again replaces it.
+  const {data: billingUpdate} = useSWR<{required: boolean}>(
+    billingEnabled && activeProject?.subscription ? `/users/@me/projects/${activeProject.id}/billing-update` : null,
+    {revalidateOnFocus: false},
+  );
   const smtpEnabled = config?.features.smtp.enabled ?? false;
   const trackingToggleEnabled = config?.features.email.trackingToggleEnabled ?? false;
   const smtpConfig = smtpEnabled
@@ -675,6 +680,17 @@ export default function Settings() {
                               </div>
                               <p className="text-sm text-amber-800">{billingPause}</p>
                             </div>
+                          ) : billingUpdate?.required ? (
+                            <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
+                              <div className="flex items-center gap-2 text-neutral-800 mb-2">
+                                <CreditCard className="h-5 w-5" />
+                                <span className="font-medium">Update your billing</span>
+                              </div>
+                              <p className="text-sm text-neutral-600">
+                                Plunk now bills everyone in euros, at €0.001 per email. Your card can still pay in its
+                                own currency. Your usage so far is billed on your current subscription when you switch.
+                              </p>
+                            </div>
                           ) : (
                             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                               <div className="flex items-center gap-2 text-green-800 mb-2">
@@ -688,8 +704,17 @@ export default function Settings() {
                             </div>
                           )}
 
-                          <div className="flex justify-start">
-                            <Button onClick={handleManageBilling} disabled={isLoadingBilling}>
+                          <div className="flex justify-start gap-2">
+                            {!billingPause && billingUpdate?.required && (
+                              <Button onClick={handleStartSubscription} disabled={isLoadingBilling}>
+                                {isLoadingBilling ? 'Loading…' : 'Update billing'}
+                              </Button>
+                            )}
+                            <Button
+                              onClick={handleManageBilling}
+                              disabled={isLoadingBilling}
+                              variant={!billingPause && billingUpdate?.required ? 'outline' : 'default'}
+                            >
                               {isLoadingBilling ? 'Loading…' : billingPause ? 'Update card' : 'Manage Billing'}
                             </Button>
                           </div>

@@ -29,6 +29,20 @@ import {Keys} from '../services/keys.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 import signale from 'signale';
 
+/**
+ * A live subscription on a price other than the current one, with no schedule already moving it
+ * across. Stripe fixes a subscription's currency and won't mix currencies on one customer, so the
+ * only way onto the current EUR price is a fresh Checkout: such a project may subscribe again, and
+ * the checkout webhook retires the old subscription.
+ */
+async function needsBillingUpdate(subscriptionId: string): Promise<boolean> {
+  const subscription = await stripe!.subscriptions.retrieve(subscriptionId);
+  if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired' || subscription.schedule) {
+    return false;
+  }
+  return subscription.items.data.some(item => item.price.id !== STRIPE_PRICE_EMAIL_USAGE);
+}
+
 @Controller('users')
 export class Users {
   @Get('@me')
@@ -322,8 +336,9 @@ export class Users {
       throw new NotFound('Project not found');
     }
 
-    // If project already has a subscription, return error
-    if (project.subscription) {
+    // A subscription on the current price has nothing to change; one on an outdated price is replaced.
+    const replacesSubscription = project.subscription ?? undefined;
+    if (replacesSubscription && !(await needsBillingUpdate(replacesSubscription))) {
       return res.status(400).json({error: 'Project already has a subscription'});
     }
 
@@ -352,10 +367,20 @@ export class Users {
     // Create checkout session
     // The billing_cycle_anchor ensures the subscription is anchored to the 1st of the month
     const verificationAmount = (VERIFICATION_AMOUNT / 100).toFixed(2);
+
+    // A replacement gets a new Stripe customer: the old one may be locked to another currency, and
+    // usage is metered per customer, so the switch cannot bill an email twice or drop one.
+    const customer = replacesSubscription ? undefined : (project.customer ?? undefined);
+    const previousCustomer =
+      replacesSubscription && project.customer ? await stripe.customers.retrieve(project.customer) : null;
+    const customerEmail = previousCustomer && !previousCustomer.deleted ? previousCustomer.email : null;
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      customer: project.customer ?? undefined, // Use existing customer if available
+      customer,
+      ...(customerEmail && {customer_email: customerEmail}),
       client_reference_id: project.id, // Store project ID for webhook
+      ...(replacesSubscription && {metadata: {replacesSubscription}}),
       line_items: lineItems,
       // Nothing is due today, but the off-session verification charge needs a saved card.
       payment_method_collection: 'always',
@@ -368,7 +393,7 @@ export class Users {
       tax_id_collection: {enabled: true},
       // Stripe only accepts customer_update with an existing customer; tax ID collection needs it
       // to save the name and address Checkout collects onto that customer.
-      ...(project.customer && {customer_update: {address: 'auto', name: 'auto'}}),
+      ...(customer && {customer_update: {address: 'auto', name: 'auto'}}),
       custom_fields: [
         {
           key: 'promo_code',
@@ -384,7 +409,9 @@ export class Users {
       // let it arrive unannounced on the statement.
       custom_text: {
         submit: {
-          message: `Right after checkout, we'll make one €${verificationAmount} charge to confirm your card supports monthly billing. It's credited to your account in full and applied to your usage.`,
+          message: replacesSubscription
+            ? 'This replaces your current subscription. Your usage so far is billed on it today, and from then on it is billed here.'
+            : `Right after checkout, we'll make one €${verificationAmount} charge to confirm your card supports monthly billing. It's credited to your account in full and applied to your usage.`,
         },
       },
       success_url: `${DASHBOARD_URI}/settings?tab=billing&success=true`,
@@ -430,6 +457,29 @@ export class Users {
     });
 
     return res.status(200).json({url: session.url});
+  }
+
+  @Get('@me/projects/:id/billing-update')
+  @Middleware([isAuthenticated, requireEmailVerified])
+  @CatchAsync
+  public async getBillingUpdate(req: Request, res: Response, _next: NextFunction) {
+    const auth = res.locals.auth;
+    const {id} = UtilitySchemas.id.parse(req.params);
+
+    if (!STRIPE_ENABLED || !stripe) {
+      return res.status(404).json({error: 'Billing is not enabled'});
+    }
+
+    await MembershipService.requireAccess(auth.userId!, id);
+
+    const project = await prisma.project.findUnique({where: {id}, select: {subscription: true}});
+
+    if (!project) {
+      throw new NotFound('Project not found');
+    }
+
+    const required = project.subscription ? await needsBillingUpdate(project.subscription) : false;
+    return res.status(200).json({required});
   }
 
   @Get('@me/projects/:id/billing-limits')
