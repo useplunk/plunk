@@ -109,6 +109,15 @@ const INDEXES: BackgroundIndex[] = [
     replaces: 'emails_createdAt_unpurged_idx',
   },
   {
+    // Retention cleanup of received email (email-body-cleanup-processor): the body copy in
+    // email.received events past the window. Partial, so cleared events drop out and each
+    // batch is a short range scan instead of a walk past every old event. The predicate must
+    // match the job's `"name" = 'email.received' AND ("data" -> 'body') IS NOT NULL`
+    // character for character, or the planner will not use it.
+    name: 'events_createdAt_inbound_body_idx',
+    sql: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "events_createdAt_inbound_body_idx" ON "events"("createdAt") WHERE "name" = 'email.received' AND ("data" -> 'body') IS NOT NULL`,
+  },
+  {
     // Dashboard and analytics stats: per-project counts over a createdAt range. INCLUDE
     // lets those counts be answered from the index alone, without fetching email rows,
     // which are wide because of the stored body. Covers every column the analytics
