@@ -28,6 +28,7 @@ import React, {useRef, useState} from 'react';
 import {useForm} from 'react-hook-form';
 import type {z} from 'zod';
 
+import {LegalConsent} from '../../components/LegalConsent';
 import type {TurnstileHandle} from '../../components/Turnstile';
 import {Turnstile} from '../../components/Turnstile';
 import {API_URI} from '../../lib/constants';
@@ -326,6 +327,12 @@ export default function Login() {
               </Form>
             </CardContent>
           </Card>
+
+          {/* Continuing with Google or GitHub here creates an account for a new user, who never
+              sees the signup page. */}
+          {(oauthConfig.github || oauthConfig.google) && (
+            <LegalConsent lead="If you are new, continuing with Google or GitHub creates an account, and" />
+          )}
         </div>
 
         <Dialog

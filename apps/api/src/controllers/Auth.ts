@@ -129,6 +129,7 @@ export class Auth {
         type: 'PASSWORD',
         // Auto-verify email if platform emails are disabled
         emailVerified: !PLUNK_ENABLED,
+        ...UserService.termsAcceptance(),
       },
     });
 

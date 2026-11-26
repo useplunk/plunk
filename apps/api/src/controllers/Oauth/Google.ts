@@ -89,6 +89,7 @@ export class Google {
           email,
           type: 'GOOGLE_OAUTH',
           emailVerified: true,
+          ...UserService.termsAcceptance(),
         },
       });
       isNewUser = true;
