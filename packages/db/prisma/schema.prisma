@@ -22,6 +22,10 @@ model User {
   type          AuthMethod
   emailVerified Boolean    @default(false)
 
+  // Terms of Service and DPA acceptance at signup, on the hosted service only (TERMS_VERSION in @plunk/shared)
+  termsAcceptedAt DateTime?
+  termsVersion    String?
+
   // Relations
   memberships Membership[]
 

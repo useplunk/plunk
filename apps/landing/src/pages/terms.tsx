@@ -1,721 +1,502 @@
-import {NextSeo} from 'next-seo';
 import Link from 'next/link';
 import React from 'react';
-import {Footer, Navbar} from '../components';
+
+import {GuideTable} from '../components/guides';
+import {TERMS_VERSION} from '@plunk/shared';
+
+import {Clause, ENTITY, LegalLayout, LegalSection} from '../components/legal';
 
 export default function TermsOfService() {
   return (
-    <>
-      <NextSeo
-        canonical="https://www.useplunk.com/terms"
-        title="Plunk Terms of Service | The Open-Source Email Platform"
-        description="Terms of Service for Plunk, the open-source email automation platform. Read our user agreement, acceptable use policy, and email compliance requirements."
-        openGraph={{
-          url: 'https://www.useplunk.com/terms',
-          title: 'Plunk Terms of Service | The Open-Source Email Platform',
-          description:
-            'Terms of Service for Plunk, the open-source email automation platform. Read our user agreement, acceptable use policy, and email compliance requirements.',
-        }}
-      />
-
-      <div className="min-h-screen bg-white">
-        <div className="px-8 pb-32 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-56">
-          <Navbar />
-
-          <div className="mx-auto max-w-4xl py-16">
-            {/* Hero */}
-            <div className="mb-12">
-              <h1 className="text-4xl font-bold text-neutral-900">Terms of Service</h1>
-              <p className="mt-2 text-ui text-neutral-600">Last Updated: October 11, 2026</p>
-              <p className="mt-4 text-base leading-relaxed text-neutral-700">
-                Welcome to Plunk, the open-source email automation platform. These Terms of Service govern your use of
-                Plunk's hosted service and self-hosted software.
-              </p>
-            </div>
-
-            {/* Table of Contents */}
-            <nav className="mb-12 rounded-lg border border-neutral-200 bg-neutral-50 p-6">
-              <h2 className="mb-4 text-lg font-semibold text-neutral-900">Contents</h2>
-              <ol className="space-y-2 text-ui text-neutral-700">
-                <li>
-                  <a href="#acceptance" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    1. Acceptance of Terms
-                  </a>
-                </li>
-                <li>
-                  <a href="#service" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    2. Service Description
-                  </a>
-                </li>
-                <li>
-                  <a href="#account" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    3. Account Registration & Eligibility
-                  </a>
-                </li>
-                <li>
-                  <a href="#acceptable-use" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    4. Acceptable Use Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#email-compliance" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    5. Email Compliance & Anti-Spam
-                  </a>
-                </li>
-                <li>
-                  <a href="#billing" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    6. Billing & Payments
-                  </a>
-                </li>
-                <li>
-                  <a href="#data-ownership" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    7. Data Ownership & Privacy
-                  </a>
-                </li>
-                <li>
-                  <a href="#intellectual-property" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    8. Intellectual Property
-                  </a>
-                </li>
-                <li>
-                  <a href="#availability" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    9. Service Availability & Limitations
-                  </a>
-                </li>
-                <li>
-                  <a href="#termination" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    10. Termination
-                  </a>
-                </li>
-                <li>
-                  <a href="#liability" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    11. Liability & Warranties
-                  </a>
-                </li>
-                <li>
-                  <a href="#disputes" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    12. Dispute Resolution
-                  </a>
-                </li>
-                <li>
-                  <a href="#changes" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    13. Changes to Terms
-                  </a>
-                </li>
-                <li>
-                  <a href="#self-hosted" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    14. Self-Hosted Deployments
-                  </a>
-                </li>
-                <li>
-                  <a href="#contact" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    15. Contact Information
-                  </a>
-                </li>
-              </ol>
-            </nav>
-
-            {/* Content */}
-            <div className="prose prose-neutral max-w-none">
-              {/* Section 1 */}
-              <section id="acceptance" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">1. Acceptance of Terms</h2>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  By accessing or using Plunk ("Service"), you agree to be bound by these Terms of Service ("Terms"). If
-                  you disagree with any part of these Terms, you may not use the Service.
-                </p>
-                <p className="mb-4 leading-relaxed text-neutral-700">These Terms apply to:</p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Hosted service at useplunk.com (SaaS)</li>
-                  <li>Self-hosted deployments (governed by AGPL v3 License + these Terms)</li>
-                  <li>All APIs, dashboards, and email infrastructure</li>
-                </ul>
-              </section>
-
-              {/* Section 2 */}
-              <section id="service" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">2. Service Description</h2>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Plunk is an email automation platform that enables you to:
-                </p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Send transactional and marketing emails</li>
-                  <li>Manage contact lists and segments</li>
-                  <li>Create email campaigns and workflows</li>
-                  <li>Track email performance and analytics</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Service Models</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  <strong className="font-semibold text-neutral-900">Hosted SaaS:</strong> We manage infrastructure,
-                  updates, and scaling. Available at useplunk.com.
-                </p>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  <strong className="font-semibold text-neutral-900">Self-Hosted:</strong> You deploy and manage your
-                  own instance. Software available under AGPL v3 License at github.com/useplunk/plunk.
-                </p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Email Delivery</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Plunk uses third-party email delivery infrastructure. Service availability depends on these providers'
-                  uptime and quota limits.
-                </p>
-              </section>
-
-              {/* Section 3 */}
-              <section id="account" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">3. Account Registration & Eligibility</h2>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Age Requirement</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  You must be at least 16 years old to use Plunk. By creating an account, you represent that you meet
-                  this age requirement.
-                </p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Account Security</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>You are responsible for maintaining account confidentiality</li>
-                  <li>Use a strong password (minimum 6 characters, stored as bcrypt hash)</li>
-                  <li>Do not share credentials with others</li>
-                  <li>Notify us immediately of any unauthorized access</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Email Verification</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Email verification may be required based on deployment configuration. OAuth providers (Google, GitHub)
-                  are automatically verified.
-                </p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Multiple Users</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Projects support multiple members with role-based access. Each member must have their own account.
-                </p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Account Information</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Provide accurate, current, and complete information. Update information promptly when changes occur.
-                </p>
-              </section>
-
-              {/* Section 4 */}
-              <section id="acceptable-use" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">4. Acceptable Use Policy</h2>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  <strong className="font-semibold text-neutral-900">You may NOT use Plunk to:</strong>
-                </p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Send spam or unsolicited bulk emails</li>
-                  <li>Violate anti-spam laws (CAN-SPAM, GDPR, CASL, etc.)</li>
-                  <li>Send emails containing illegal content</li>
-                  <li>Distribute malware, viruses, or malicious code</li>
-                  <li>Harass, threaten, or abuse recipients</li>
-                  <li>Impersonate others or misrepresent sender identity</li>
-                  <li>Send phishing or fraudulent emails</li>
-                  <li>Violate third-party intellectual property rights</li>
-                  <li>Interfere with platform security or performance</li>
-                  <li>Circumvent rate limits or usage restrictions</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Content Restrictions</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>No illegal pornography or adult content</li>
-                  <li>No hate speech or discriminatory content</li>
-                  <li>No violent threats or terrorism</li>
-                  <li>No illegal gambling or controlled substances</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Your Responsibilities</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">You are responsible for:</p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>All content sent through your account</li>
-                  <li>Compliance with applicable laws in your jurisdiction</li>
-                  <li>Ensuring recipients can unsubscribe from marketing emails</li>
-                </ul>
-              </section>
-
-              {/* Section 5 - Critical Email Compliance */}
-              <section id="email-compliance" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">5. Email Compliance & Anti-Spam</h2>
-                <div className="mb-6 rounded-lg border-2 border-red-200 bg-red-50 p-6">
-                  <h3 className="mb-3 text-h3 font-bold text-red-900">NO COLD EMAILING POLICY</h3>
-                  <p className="mb-4 leading-relaxed text-red-900">
-                    Plunk strictly prohibits cold emailing. All emails must be sent to recipients who have:
-                  </p>
-                  <ul className="ml-6 list-disc space-y-2 text-red-900">
-                    <li>
-                      <strong>Explicitly opted in</strong> to receive emails from you, OR
-                    </li>
-                    <li>
-                      <strong>An existing business relationship</strong> with you (for transactional emails only)
-                    </li>
-                  </ul>
-                </div>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Required Consent</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Prior express consent (opt-in forms, checkboxes, subscriptions)</li>
-                  <li>Documented consent records (signup date, IP address, opt-in method)</li>
-                  <li>Double opt-in is strongly recommended</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Prohibited Activities</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>✗ Purchasing or renting email lists</li>
-                  <li>✗ Scraping email addresses from websites</li>
-                  <li>✗ Sending emails without documented consent</li>
-                  <li>✗ Using third-party lists without verified opt-ins</li>
-                  <li>✗ "One-time" cold outreach emails</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Unsubscribe Requirements</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Marketing emails MUST include an unsubscribe link</li>
-                  <li>Unsubscribe requests must be honored immediately</li>
-                  <li>Do not require login to unsubscribe</li>
-                  <li>Transactional emails may omit unsubscribe (but must be truly transactional)</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Sender Reputation Monitoring</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Plunk monitors email bounce and complaint rates to maintain service quality and sender reputation.
-                  Projects with excessive bounce or complaint rates may receive warnings or be automatically suspended
-                  to protect our email infrastructure and delivery capabilities.
-                </p>
-
-                <p className="mb-4 leading-relaxed text-neutral-700">If your project is suspended:</p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Email sending is immediately disabled</li>
-                  <li>You will receive notification at your registered email</li>
-                  <li>You must remediate issues before reactivation</li>
-                  <li>Repeated violations may result in permanent termination</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Legal Compliance</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">You must comply with applicable anti-spam laws:</p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>
-                    <strong className="font-semibold text-neutral-900">CAN-SPAM Act (USA):</strong> Include physical
-                    address, accurate headers, unsubscribe option
-                  </li>
-                  <li>
-                    <strong className="font-semibold text-neutral-900">GDPR (EU):</strong> Obtain consent, honor data
-                    rights, provide privacy policy
-                  </li>
-                  <li>
-                    <strong className="font-semibold text-neutral-900">CASL (Canada):</strong> Obtain express consent,
-                    identify sender, provide unsubscribe
-                  </li>
-                  <li>Other jurisdictions: Comply with local anti-spam laws</li>
-                </ul>
-
-                <p className="leading-relaxed text-neutral-700">
-                  <strong className="font-semibold text-neutral-900">
-                    You are solely responsible for legal compliance in your jurisdiction.
-                  </strong>
-                </p>
-              </section>
-
-              {/* Section 6 */}
-              <section id="billing" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">6. Billing & Payments</h2>
-                <p className="mb-4 text-ui italic text-neutral-600">(SaaS Only - Not applicable to self-hosted)</p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Pay-As-You-Go Model</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Usage-based billing calculated after usage</li>
-                  <li>Charges based on emails sent (transactional, campaigns, workflows)</li>
-                  <li>No monthly subscriptions (usage billing only)</li>
-                  <li>Free tier available (1,000 emails/month total across all email types)</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Payment Processing</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Payments processed via Stripe (PCI-DSS compliant)</li>
-                  <li>Credit/debit cards accepted</li>
-                  <li>Billing occurs after usage is calculated</li>
-                  <li>Invoices available in dashboard</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Activation Charges</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Activating a subscription places a single card verification charge of 2.00, in your billing
-                  currency, on your card immediately after checkout, to confirm your card accepts automatic recurring
-                  billing. The amount is credited in full to your account balance and applied against your usage. The
-                  same verification runs when you change your card. If the verification charge is declined, no amount
-                  is collected and sending is paused until you add a card that passes verification. Prepaid cards are
-                  not accepted. Subscriptions that remain paused for 30 days are cancelled.
-                </p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">No Refunds</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Due to the pay-as-you-go nature of our service, refunds are not offered on usage charges. Usage is
-                  calculated and billed after emails are sent. Disputes must be raised within 30 days of charge.
-                </p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Usage Limits</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Rate limits apply to protect service stability</li>
-                  <li>Projects may be throttled if limits are exceeded</li>
-                  <li>Contact legal@useplunk.com for quota increases</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Non-Payment</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Overdue accounts may be suspended after 14 days</li>
-                  <li>Service restored upon payment</li>
-                  <li>Data retained for 30 days after suspension</li>
-                </ul>
-              </section>
-
-              {/* Section 7 */}
-              <section id="data-ownership" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">7. Data Ownership & Privacy</h2>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Your Data Ownership</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>You own all contact data, email content, and custom fields</li>
-                  <li>Plunk never sells or shares your data with third parties</li>
-                  <li>You can access and delete your data at any time via the dashboard or API</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Plunk's Role (GDPR Context)</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>
-                    <strong className="font-semibold text-neutral-900">Data Controller:</strong> For your account
-                    information (email, password)
-                  </li>
-                  <li>
-                    <strong className="font-semibold text-neutral-900">Data Processor:</strong> For your contact data
-                    (we process on your behalf)
-                  </li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Privacy</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>
-                    Full details in our{' '}
-                    <Link href="/privacy" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                      Privacy Policy
-                    </Link>
-                  </li>
-                  <li>EU/EEA data residency (Hetzner infrastructure)</li>
-                  <li>GDPR-compliant data processing</li>
-                  <li>Immediate deletion upon request (no grace period)</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Data Portability</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Export contacts as JSON via API</li>
-                  <li>Export email templates and workflows</li>
-                  <li>Export analytics and event data</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Self-Hosted</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>You are the data controller for your instance</li>
-                  <li>You are responsible for GDPR compliance</li>
-                  <li>You control data retention and deletion policies</li>
-                </ul>
-              </section>
-
-              {/* Section 8 */}
-              <section id="intellectual-property" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">8. Intellectual Property</h2>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Plunk Software (AGPL v3 License)</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Core platform is open-source under AGPL v3 License</li>
-                  <li>Available at github.com/useplunk/plunk</li>
-                  <li>You may modify, distribute, and use per AGPL v3 terms</li>
-                  <li>AGPL v3 License terms govern software usage</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Plunk Trademarks</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>"Plunk" name and logo are trademarks</li>
-                  <li>Requires permission for commercial use beyond software usage</li>
-                  <li>Attribution required for self-hosted deployments</li>
-                  <li>"Powered by Plunk" badge (removable with subscription)</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Your Content</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>You retain all rights to content you create (emails, templates, workflows)</li>
-                  <li>You grant Plunk a license to process content for service delivery</li>
-                  <li>No ownership transfer to Plunk</li>
-                </ul>
-              </section>
-
-              {/* Section 9 */}
-              <section id="availability" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">9. Service Availability & Limitations</h2>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Best-Effort Delivery</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Email delivery is not guaranteed 100%</li>
-                  <li>Depends on recipient servers, spam filters, and email delivery infrastructure</li>
-                  <li>No SLA for uptime or delivery rates (hosted service)</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Limitations</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Rate limits apply to protect service stability</li>
-                  <li>Storage limits may apply</li>
-                  <li>API rate limiting to prevent abuse</li>
-                  <li>Bounce/complaint monitoring may suspend projects</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Force Majeure</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">Not liable for service interruptions due to:</p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Email delivery infrastructure outages or quota issues</li>
-                  <li>Internet connectivity problems</li>
-                  <li>Natural disasters or acts of God</li>
-                  <li>Government actions or legal requirements</li>
-                  <li>Cyber attacks or security incidents</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Maintenance</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Scheduled maintenance with advance notice</li>
-                  <li>Emergency maintenance may occur without notice</li>
-                </ul>
-              </section>
-
-              {/* Section 10 */}
-              <section id="termination" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">10. Termination</h2>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Your Right to Terminate</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Cancel account at any time via dashboard</li>
-                  <li>No cancellation fees</li>
-                  <li>Pay-as-you-go charges apply up to cancellation date</li>
-                  <li>Data is immediately deleted (no recovery period)</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Our Right to Terminate</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">We may suspend or terminate your account for:</p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Violation of these Terms (especially Acceptable Use Policy)</li>
-                  <li>Fraudulent activity or payment disputes</li>
-                  <li>Abuse of service or security threats</li>
-                  <li>Excessive bounce/complaint rates</li>
-                  <li>Non-payment after 30 days</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Effect of Termination</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Access to service immediately revoked</li>
-                  <li>All data permanently deleted (no backups retained)</li>
-                  <li>In-flight campaigns/workflows are cancelled</li>
-                  <li>No refunds for unused time or credits</li>
-                </ul>
-              </section>
-
-              {/* Section 11 */}
-              <section id="liability" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">11. Liability & Warranties</h2>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">No Warranties</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Service provided "AS-IS" without warranties of any kind, express or implied, including but not limited
-                  to:
-                </p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>No guarantee of uptime, delivery rates, or data accuracy</li>
-                  <li>No warranty of merchantability or fitness for a particular purpose</li>
-                  <li>No warranty of uninterrupted or error-free operation</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Limitation of Liability</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  To the maximum extent permitted by law, Plunk's total liability is limited to the fees you paid in the
-                  last 12 months. We are not liable for:
-                </p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Indirect, consequential, or punitive damages</li>
-                  <li>Lost profits, data loss, or business interruption</li>
-                  <li>Third-party claims arising from your use of the service</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Indemnification</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  You agree to indemnify and hold Plunk harmless from claims arising from:
-                </p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Your use of the service</li>
-                  <li>Violation of these Terms (especially email compliance requirements)</li>
-                  <li>Violation of third-party rights</li>
-                  <li>Unlawful or fraudulent activity</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Exceptions</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Liability cannot be limited for willful misconduct, gross negligence, or where prohibited by law.
-                  Consumer protection laws may override these limitations.
-                </p>
-              </section>
-
-              {/* Section 12 */}
-              <section id="disputes" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">12. Dispute Resolution</h2>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Governing Law</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  These Terms are governed by the laws of the European Union. Disputes are subject to EU consumer
-                  protection laws.
-                </p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Negotiation</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Parties agree to good-faith negotiation before litigation. Contact legal@useplunk.com to initiate
-                  dispute resolution. 30-day negotiation period required.
-                </p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Jurisdiction</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Courts of the European Union have jurisdiction. You may also bring claims in your country of residence
-                  (EU consumer rights).
-                </p>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Class Action Waiver</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Disputes resolved individually, not as class actions, unless prohibited by law.
-                </p>
-              </section>
-
-              {/* Section 13 */}
-              <section id="changes" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">13. Changes to Terms</h2>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Modification Rights</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Plunk may update these Terms at any time. Material changes will be announced via:
-                </p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Email notification to registered users</li>
-                  <li>Notice on website homepage</li>
-                  <li>Updated "Last Updated" date</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Notice Period</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>30 days notice for material changes</li>
-                  <li>Immediate effect for non-material changes (typos, clarifications)</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Acceptance</h3>
-                <p className="mb-4 leading-relaxed text-neutral-700">
-                  Continued use after changes constitutes acceptance. If you disagree, you must stop using the service.
-                </p>
-              </section>
-
-              {/* Section 14 */}
-              <section id="self-hosted" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">14. Self-Hosted Deployments</h2>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">AGPL v3 License Governs</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Self-hosted software use governed by AGPL v3 License</li>
-                  <li>Available at github.com/useplunk/plunk/LICENSE</li>
-                  <li>These Terms supplement (not replace) AGPL v3 License</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Your Responsibilities</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Infrastructure management and scaling</li>
-                  <li>Security updates and patching</li>
-                  <li>Database backups and disaster recovery</li>
-                  <li>Compliance with anti-spam laws (Sections 4 & 5 still apply)</li>
-                  <li>Email delivery infrastructure account and quota management</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">No Support</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>Community support only (GitHub Discussions)</li>
-                  <li>No SLA or uptime guarantees</li>
-                  <li>Paid support may be available on request</li>
-                </ul>
-
-                <h3 className="mb-3 mt-6 text-xl font-semibold text-neutral-900">Compliance</h3>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>You must comply with Section 4 (Acceptable Use) and Section 5 (Email Compliance)</li>
-                  <li>You are the data controller and responsible for GDPR compliance</li>
-                  <li>You must create your own Privacy Policy for your users</li>
-                </ul>
-              </section>
-
-              {/* Section 15 */}
-              <section id="contact" className="mb-12">
-                <h2 className="mb-4 text-2xl font-bold text-neutral-900">15. Contact Information</h2>
-                <p className="mb-4 leading-relaxed text-neutral-700">Questions or concerns about these Terms?</p>
-
-                <div className="mb-6 rounded-lg border border-neutral-200 bg-neutral-50 p-6">
-                  <p className="mb-2 font-semibold text-neutral-900">Legal Inquiries:</p>
-                  <p className="mb-1 text-neutral-700">
-                    Email:{' '}
-                    <a href="mailto:legal@useplunk.com" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                      legal@useplunk.com
-                    </a>
-                  </p>
-                  <p className="text-ui text-neutral-600">Response time: Within 7 business days</p>
-                </div>
-
-                <p className="mb-2 font-semibold text-neutral-900">Technical Support:</p>
-                <ul className="mb-4 ml-6 list-disc space-y-2 text-neutral-700">
-                  <li>
-                    Community:{' '}
-                    <a
-                      href="https://github.com/useplunk/plunk/discussions"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900"
-                    >
-                      GitHub Discussions
-                    </a>
-                  </li>
-                  <li>
-                    Discord:{' '}
-                    <Link href="/discord" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                      useplunk.com/discord
-                    </Link>
-                  </li>
-                </ul>
-
-                <p className="mb-2 font-semibold text-neutral-900">Privacy Requests:</p>
-                <p className="text-neutral-700">
-                  See our{' '}
-                  <Link href="/privacy" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                    Privacy Policy
-                  </Link>{' '}
-                  or email legal@useplunk.com
-                </p>
-              </section>
-            </div>
-
-            {/* Footer CTA */}
-            <div className="mt-16 rounded-lg border border-neutral-200 bg-neutral-50 p-8 text-center">
-              <p className="mb-2 text-lg font-semibold text-neutral-900">Questions about these Terms?</p>
-              <p className="mb-4 text-neutral-700">
-                We're here to help. Contact us at{' '}
-                <a href="mailto:legal@useplunk.com" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                  legal@useplunk.com
-                </a>
-              </p>
-              <p className="text-ui text-neutral-600">
-                For privacy-related inquiries, please review our{' '}
-                <Link href="/privacy" className="text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-900">
-                  Privacy Policy
-                </Link>
-                .
-              </p>
-            </div>
+    <LegalLayout
+      path={'/terms'}
+      title={'Terms of Service'}
+      description={'The agreement between you and Plunk for using the hosted Plunk email platform.'}
+      lastUpdated={TERMS_VERSION}
+    >
+      <LegalSection id={'about'} number={1} title={'About these terms'}>
+        <p>
+          These Terms of Service (the “Terms”) are a contract between you and {ENTITY.name}, registered in Belgium under
+          enterprise number {ENTITY.enterpriseNumber}, with business address {ENTITY.address}, trading as Plunk
+          (“Plunk”, “we”, “us”). They apply to the hosted Plunk service at useplunk.com, including the dashboard, the
+          API and our other sending and receiving services (the “Service”).
+        </p>
+        <p>
+          The <Link href={'/dpa'}>Data Processing Agreement</Link> forms part of these Terms. The{' '}
+          <Link href={'/privacy'}>Privacy Policy</Link> explains how we handle personal data about you.
+        </p>
+        <Clause number={'1.1'} title={'Business customers and consumers'}>
+          <p>
+            You are a <strong>business customer</strong> if you use the Service for your trade, business, craft or
+            profession, including on behalf of an organisation. You are a <strong>consumer</strong> if you are an
+            individual using the Service for purposes outside your trade, business, craft or profession. Where a clause
+            applies to only one of the two, it says so.
+          </p>
+          <p>
+            Nothing in these Terms limits rights that consumer law gives you and that cannot be excluded by contract.
+          </p>
+        </Clause>
+        <Clause number={'1.2'} title={'Accepting on behalf of an organisation'}>
+          <p>
+            If you accept these Terms for an organisation, you confirm that you are authorised to bind it. In that case
+            “you” means the organisation.
+          </p>
+        </Clause>
+        <Clause number={'1.3'} title={'Self-hosted Plunk'}>
+          <p>
+            The Plunk source code is published under the GNU Affero General Public License v3 (AGPL). If you run Plunk
+            on your own infrastructure, the AGPL governs your use of the code and these Terms do not apply.
+          </p>
+        </Clause>
+      </LegalSection>
+
+      <LegalSection id={'account'} number={2} title={'Your account'}>
+        <ul>
+          <li>You must be at least 18 years old and able to enter into a binding contract.</li>
+          <li>
+            Keep your account details accurate, in particular your email address. We send notices about the Service,
+            your account and these Terms to it.
+          </li>
+          <li>
+            You are responsible for keeping your credentials and API keys secure, and for activity under your account,
+            including by members you invite to your projects. Tell us without delay if you suspect unauthorised access.
+          </li>
+          <li>Each login belongs to one person. Invite others to your projects instead of sharing a login.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection id={'service'} number={3} title={'The Service'}>
+        <Clause number={'3.1'} title={'What we provide'}>
+          <p>
+            The Service is organised in projects: workspaces that hold your contacts, emails, templates and settings,
+            and that you can share with members you invite. We provide the Service as described on our website and in
+            our documentation, and we improve and change it over time. If we remove or materially reduce a feature you
+            rely on, and you are a paying customer or a consumer, we give you at least 30 days’ notice. You may then end
+            the contract free of charge within 30 days after the notice or after the change, whichever is later.
+          </p>
+        </Clause>
+        <Clause number={'3.2'} title={'Email delivery'}>
+          <p>
+            Delivery depends on systems outside our control, such as recipients’ mail servers and spam filters. We do
+            not guarantee that any email is delivered, opened or placed in the inbox.
+          </p>
+        </Clause>
+        <Clause number={'3.3'} title={'Availability and support'}>
+          <p>
+            We aim to keep the Service available at all times, but we do not promise uninterrupted operation and do not
+            offer a service level agreement unless we agree one in writing. We may carry out maintenance, which we
+            announce in advance where we reasonably can. Support is available by email and through our community
+            channels.
+          </p>
+        </Clause>
+      </LegalSection>
+
+      <LegalSection id={'acceptable-use'} number={4} title={'Acceptable use and sending rules'}>
+        <Clause number={'4.1'} title={'Permission-based email only'}>
+          <p>
+            Send email only to people who asked to receive it from you, to your existing customers where the law allows
+            you to email them without prior consent, or to people who need a transactional message for a relationship
+            they have with you. Cold email is not allowed. This includes one-off outreach and email to purchased,
+            rented, scraped or shared lists.
+          </p>
+        </Clause>
+        <Clause number={'4.2'} title={'Sending requirements'}>
+          <ul>
+            <li>Marketing email must contain a working unsubscribe link, and you must honour unsubscribes promptly.</li>
+            <li>Identify yourself accurately as the sender and do not falsify headers or sender information.</li>
+            <li>Keep records of how and when your contacts gave permission.</li>
+            <li>Send messages as transactional only if they genuinely are.</li>
+            <li>
+              Comply with the laws on email marketing, privacy and consumer protection that apply to you and your
+              recipients, such as the GDPR and ePrivacy rules in the EU, CAN-SPAM in the United States and CASL in
+              Canada.
+            </li>
+          </ul>
+        </Clause>
+        <Clause number={'4.3'} title={'Prohibited content and conduct'}>
+          <p>You may not use the Service to send, store or link to, or to facilitate:</p>
+          <ul>
+            <li>illegal content, or content that promotes illegal goods, services or activities;</li>
+            <li>phishing, fraud, scams, malware or other harmful code;</li>
+            <li>impersonation of another person or organisation;</li>
+            <li>harassment, threats, hate speech or incitement to violence;</li>
+            <li>sexual content involving minors, or sexual content sent without the recipient’s request;</li>
+            <li>content that infringes someone else’s intellectual property or privacy.</li>
+          </ul>
+          <p>
+            You also may not interfere with the Service or its security, get around limits or protections, or resell the
+            Service without our written permission.
+          </p>
+        </Clause>
+        <Clause number={'4.4'} title={'Your responsibility'}>
+          <p>
+            You are responsible for the content you send and upload, for your contact lists, and for having a legal
+            basis to process your contacts’ personal data.
+          </p>
+        </Clause>
+      </LegalSection>
+
+      <LegalSection id={'enforcement'} number={5} title={'How we enforce these rules'}>
+        <Clause number={'5.1'} title={'Monitoring'}>
+          <p>
+            To protect recipients and the reputation of our sending infrastructure, we monitor bounce and complaint
+            rates and automatically check a sample of outgoing email for phishing and other abuse. Some of these checks
+            are fully automated and may use AI models.
+          </p>
+        </Clause>
+        <Clause number={'5.2'} title={'Measures we may take'}>
+          <p>
+            If we find or reasonably suspect a breach of section 4, we may pause your project, restrict features, remove
+            content, or suspend or close your account. A paused project stops sending and blocks changes, including
+            deletion, until the issue is resolved; you can still read and export your data through the API. Automated
+            systems may pause a project immediately when bounce or complaint rates exceed safe limits or content is
+            flagged with high confidence. We take into account how serious the breach is, whether it is repeated and
+            whether it appears intentional.
+          </p>
+        </Clause>
+        <Clause number={'5.3'} title={'Our reasons and your response'}>
+          <p>
+            When we take a measure, we tell you by email what we did, why, which rule it is based on and whether it was
+            decided automatically. You can reply to ask for a review by a person, and we will reconsider the decision
+            and answer you. You can also take the matter to court.
+          </p>
+        </Clause>
+        <Clause number={'5.4'} title={'Reporting illegal content'}>
+          <p>
+            Anyone can report content stored on or sent through the Service that they believe is illegal, by email to{' '}
+            <a href={`mailto:${ENTITY.email}`}>{ENTITY.email}</a>. Please include:
+          </p>
+          <ul>
+            <li>why you believe the content is illegal;</li>
+            <li>where it can be found, such as a URL or the email with its full headers;</li>
+            <li>your name and email address, unless the report concerns child sexual abuse material;</li>
+            <li>a statement that you believe in good faith that the report is accurate and complete.</li>
+          </ul>
+          <p>
+            We confirm receipt, handle the report diligently and tell you what we decided. This address is also our
+            single point of contact for authorities and users under the EU Digital Services Act. You can write to us in
+            English or Dutch.
+          </p>
+        </Clause>
+      </LegalSection>
+
+      <LegalSection id={'billing'} number={6} title={'Prices, billing and taxes'}>
+        <Clause number={'6.1'} title={'Free plan'}>
+          <p>
+            The free plan includes a limited number of emails per month, as shown on our{' '}
+            <Link href={'/pricing'}>pricing page</Link>. Emails sent on the free plan may carry a small “Powered by
+            Plunk” mark.
+          </p>
+        </Clause>
+        <Clause number={'6.2'} title={'Paid plan'}>
+          <p>
+            On the paid plan you pay for the emails you send and receive, at the prices shown on our pricing page when
+            they are sent or received. We bill monthly in arrears through our payment provider, Stripe, to the card you
+            add. Invoices are available in your dashboard.
+          </p>
+        </Clause>
+        <Clause number={'6.3'} title={'Card verification charge'}>
+          <p>
+            When you activate the paid plan or change your card, we charge 2.00 in your billing currency once to confirm
+            that your card accepts recurring payments. The amount is credited to your account balance and used against
+            your future usage. The credit has no cash value, cannot be refunded or transferred, and lapses when your
+            account is closed, with three exceptions: a consumer who withdraws is refunded as section 7 describes; if we
+            end the contract other than because of your breach, we refund any unused credit; and we refund wherever the
+            law otherwise requires it.
+          </p>
+          <p>
+            Prepaid cards are not accepted. Until the verification succeeds, sending on the paid plan stays paused. If
+            it does not succeed within 30 days, we cancel the paid plan.
+          </p>
+        </Clause>
+        <Clause number={'6.4'} title={'Taxes'}>
+          <p>
+            Prices exclude VAT and other taxes unless stated otherwise. Where the law requires us to charge VAT, we add
+            it at the applicable rate based on your location and on whether you are a business. Business customers
+            established in another EU member state who give us a valid VAT number are invoiced without VAT under the
+            reverse-charge mechanism. Prices shown to consumers include any VAT we are required to charge. You must give
+            us accurate billing details.
+          </p>
+        </Clause>
+        <Clause number={'6.5'} title={'Failed payments'}>
+          <p>
+            If a payment fails, we may pause sending immediately and we will notify you. Pausing cancels scheduled sends
+            and running automations, which are not resumed automatically. Sending resumes once outstanding amounts are
+            paid. If an amount remains unpaid 30 days after we have reminded you, we may end the contract under section
+            10.3.
+          </p>
+        </Clause>
+        <Clause number={'6.6'} title={'Price changes'}>
+          <p>
+            We may change our prices for a valid reason, such as changes in our infrastructure or third-party costs, in
+            taxes or in the Service. We announce a price increase by email at least 30 days before it applies to you.
+            You may end the contract free of charge before the increase takes effect. Price decreases can apply
+            immediately.
+          </p>
+        </Clause>
+        <Clause number={'6.7'} title={'Refunds and billing disputes'}>
+          <p>
+            Because you pay for emails after they are sent, usage charges are not refunded, unless we charged you in
+            error or the law requires a refund. Business customers must raise any dispute about an invoice within 60
+            days of its date.
+          </p>
+        </Clause>
+      </LegalSection>
+
+      <LegalSection id={'withdrawal'} number={7} title={'Right of withdrawal for consumers'}>
+        <p>This section applies only to consumers.</p>
+        <Clause number={'7.1'} title={'Withdrawal period'}>
+          <p>
+            You may withdraw from the contract without giving a reason within 14 days after the day you create your
+            account. For the paid plan, the period runs for 14 days after the day you activate it.
+          </p>
+        </Clause>
+        <Clause number={'7.2'} title={'How to withdraw'}>
+          <p>
+            Send us a clear statement of your decision, for example by email to{' '}
+            <a href={`mailto:${ENTITY.email}`}>{ENTITY.email}</a>. You may use the model form below, but you do not have
+            to. You meet the deadline if you send your statement before the withdrawal period ends.
+          </p>
+        </Clause>
+        <Clause number={'7.3'} title={'Starting during the withdrawal period'}>
+          <p>
+            By activating the paid plan, you ask us to start providing the Service during the withdrawal period. If you
+            withdraw, you pay for the emails sent up to the moment you told us, and we refund every other payment you
+            made, including the unused part of the card verification charge. We refund within 14 days of receiving your
+            statement, using the payment method you used, at no cost to you.
+          </p>
+        </Clause>
+        <Clause number={'7.4'} title={'Model withdrawal form'}>
+          <div className={'rounded-card border border-neutral-200 p-5 sm:p-6'}>
+            <p>
+              To {ENTITY.name}, trading as {ENTITY.tradeName}, {ENTITY.address}, {ENTITY.email}:
+            </p>
+            <p>
+              I hereby give notice that I withdraw from my contract for the provision of the following service: the
+              Plunk hosted email platform.
+            </p>
+            <p>
+              Account created on / paid plan activated on: [date]
+              <br />
+              Name: [name]
+              <br />
+              Email address of the account: [email]
+              <br />
+              Date: [date]
+            </p>
           </div>
-        </div>
-      </div>
+        </Clause>
+      </LegalSection>
 
-      <Footer />
-    </>
+      <LegalSection id={'your-data'} number={8} title={'Your data'}>
+        <Clause number={'8.1'} title={'You keep your data'}>
+          <p>
+            You keep all rights to the content and data you put into the Service (“Customer Data”). You give us the
+            right to host, copy, transmit and otherwise process Customer Data only as needed to provide and secure the
+            Service and to comply with the law.
+          </p>
+        </Clause>
+        <Clause number={'8.2'} title={'Personal data'}>
+          <p>
+            For personal data in Customer Data, such as your contacts, you are the controller and we act as your
+            processor under the <Link href={'/dpa'}>Data Processing Agreement</Link>. For personal data about you as a
+            customer, we are the controller, as described in the <Link href={'/privacy'}>Privacy Policy</Link>.
+          </p>
+        </Clause>
+        <Clause number={'8.3'} title={'Export and switching'}>
+          <p>
+            You can export your Customer Data at any time through our API, in a structured, machine-readable format
+            (JSON). This covers your contacts with their fields and subscription status, segments, templates, campaigns,
+            workflows, events, and emails with their delivery history and any content still stored. It does not cover
+            data we keep as controller, such as API request logs and security and abuse records.
+          </p>
+          <p>
+            If you want to move to another provider or to your own infrastructure, tell us. A transitional period of 30
+            days then starts, during which the Service keeps running and we give you reasonable help. After it, you have
+            at least 30 more days to retrieve your data, after which we erase all exportable data. We do not charge for
+            switching or exporting, and there is no notice period for ending the contract.
+          </p>
+        </Clause>
+        <Clause number={'8.4'} title={'Where your data is'}>
+          <p>
+            We run the Service on infrastructure in the European Union: Hetzner in Germany and Amazon Web Services in
+            Sweden. The Data Processing Agreement lists every provider that processes Customer Data and the safeguards
+            for any access from outside the EU. If an authority outside the EU asks us for Customer Data in a way that
+            conflicts with EU law, we challenge the request, disclose only what we are lawfully required to, and tell
+            you unless the law forbids it.
+          </p>
+        </Clause>
+        <Clause number={'8.5'} title={'Feedback'}>
+          <p>If you send us suggestions or feedback, we may use them without any obligation to you.</p>
+        </Clause>
+      </LegalSection>
+
+      <LegalSection id={'intellectual-property'} number={9} title={'Intellectual property'}>
+        <p>
+          We and our licensors own the Service and everything we provide as part of it, other than Customer Data. The
+          source code is licensed under the AGPL, and nothing in these Terms restricts your rights under that licence.
+          The Plunk name and logo are our trademarks. Do not use them in a way that suggests we endorse or are
+          affiliated with you.
+        </p>
+      </LegalSection>
+
+      <LegalSection id={'termination'} number={10} title={'Term, suspension and termination'}>
+        <Clause number={'10.1'} title={'Term'}>
+          <p>The contract starts when you create an account and runs until either of us ends it.</p>
+        </Clause>
+        <Clause number={'10.2'} title={'Ending the contract yourself'}>
+          <p>
+            You can end the contract at any time, without notice or cost, by deleting your projects and account in the
+            dashboard or by emailing us. If a project is paused and cannot be deleted in the dashboard, email us and we
+            will export or delete its data. You pay for usage up to the end of the contract.
+          </p>
+        </Clause>
+        <Clause number={'10.3'} title={'Ending or suspending by us'}>
+          <p>
+            We may end the contract with 30 days’ notice by email. We may suspend the Service or end the contract with
+            immediate effect if:
+          </p>
+          <ul>
+            <li>you seriously or repeatedly breach these Terms, in particular section 4;</li>
+            <li>you do not pay as described in section 6.5;</li>
+            <li>your use puts the Service, other customers, recipients or our sending reputation at risk; or</li>
+            <li>the law or an authority requires it.</li>
+          </ul>
+          <p>Section 5.3 applies to any such measure.</p>
+        </Clause>
+        <Clause number={'10.4'} title={'What happens at the end'}>
+          <p>
+            Your access ends and pending or scheduled sends are cancelled. On request, your Customer Data stays
+            available for export during the periods in section 8.3. We then delete it as described in the Data
+            Processing Agreement. Amounts owed become payable. Clauses that by their nature continue to apply, such as
+            those on payment, liability and disputes, survive the end of the contract.
+          </p>
+        </Clause>
+      </LegalSection>
+
+      <LegalSection id={'liability'} number={11} title={'Warranties and liability'}>
+        <Clause number={'11.1'} title={'Our commitment'}>
+          <p>
+            We provide the Service with reasonable care and skill. For business customers, the Service is otherwise
+            provided as is, and we exclude all implied warranties to the extent the law allows.
+          </p>
+        </Clause>
+        <Clause number={'11.2'} title={'Legal guarantee for consumers'}>
+          <p>
+            Consumers benefit from the legal guarantee of conformity for digital services: the Service must conform to
+            the contract for as long as we provide it. If it does not, you are entitled to have it brought into
+            conformity and, where the law allows, to a price reduction or to end the contract.
+          </p>
+        </Clause>
+        <Clause number={'11.3'} title={'Liability towards business customers'}>
+          <p>
+            We are not liable for indirect or consequential loss, loss of profit, revenue or goodwill, loss of data
+            unless caused by our breach of the security obligations in the Data Processing Agreement, or the results of
+            your email campaigns. Our total liability for all claims in any 12-month period is limited to the higher of
+            the amount you paid us in the 12 months before the event giving rise to the claim, or EUR 100.
+          </p>
+        </Clause>
+        <Clause number={'11.4'} title={'Liability towards consumers'}>
+          <p>
+            We are liable for damage caused by our failure to perform the contract or by our fault, but not for damage
+            that was not foreseeable when the contract was concluded or that results from your own breach of these
+            Terms.
+          </p>
+        </Clause>
+        <Clause number={'11.5'} title={'What we never limit'}>
+          <p>
+            Nothing in these Terms limits liability for fraud, intentional misconduct, gross negligence, death or
+            personal injury, or any other liability that cannot be limited by law.
+          </p>
+        </Clause>
+        <Clause number={'11.6'} title={'Indemnity by business customers'}>
+          <p>
+            Business customers will compensate us for third-party claims, fines and reasonable costs that result from
+            the content they send, their contact lists, or their breach of section 4 or of data protection law. We will
+            tell you promptly about such a claim and let you take charge of the defence.
+          </p>
+        </Clause>
+        <Clause number={'11.7'} title={'Force majeure'}>
+          <p>
+            Neither of us is liable for failing to perform because of events beyond our reasonable control, such as
+            outages of third-party networks, cyberattacks, natural disasters or government action. This does not affect
+            your obligation to pay for usage.
+          </p>
+        </Clause>
+      </LegalSection>
+
+      <LegalSection id={'changes'} number={12} title={'Changes to these terms'}>
+        <p>
+          We may change these Terms for a valid reason, such as a change in the law or in guidance from an authority, a
+          change to the Service, the need to prevent abuse or protect security, a change in our costs or providers, or
+          to make the Terms clearer.
+        </p>
+        <p>
+          We announce material changes by email at least 30 days before they take effect. If you do not agree, you may
+          end the contract free of charge before then. If you keep using the Service after that date, the new Terms
+          apply. Changes required by law, or that only benefit you, may take effect sooner. Previous versions are
+          available on request.
+        </p>
+      </LegalSection>
+
+      <LegalSection id={'disputes'} number={13} title={'Governing law and disputes'}>
+        <Clause number={'13.1'} title={'Talk to us first'}>
+          <p>
+            If you have a complaint, email us at <a href={`mailto:${ENTITY.email}`}>{ENTITY.email}</a>. We aim to
+            resolve it within 30 days.
+          </p>
+        </Clause>
+        <Clause number={'13.2'} title={'Governing law'}>
+          <p>
+            These Terms are governed by Belgian law. If you are a consumer, you also keep the protection of the
+            mandatory rules of the country where you live.
+          </p>
+        </Clause>
+        <Clause number={'13.3'} title={'Courts'}>
+          <p>
+            Disputes with business customers fall under the exclusive jurisdiction of the courts of Antwerp, division
+            Antwerp. Consumers may bring proceedings in the courts of Belgium or of the country where they live, and we
+            may only bring proceedings against a consumer in the country where the consumer lives.
+          </p>
+        </Clause>
+        <Clause number={'13.4'} title={'Out-of-court resolution for consumers'}>
+          <p>
+            Consumers can also contact the Belgian Consumer Ombudsman Service (Consumentenombudsdienst / Service de
+            Médiation pour le Consommateur) at{' '}
+            <a href={'https://www.consumentenombudsdienst.be'} target={'_blank'} rel={'noopener noreferrer'}>
+              consumentenombudsdienst.be
+            </a>
+            .
+          </p>
+        </Clause>
+      </LegalSection>
+
+      <LegalSection id={'general'} number={14} title={'General'}>
+        <GuideTable
+          stack
+          head={['Topic', 'Rule']}
+          rows={[
+            [
+              'Entire agreement',
+              'These Terms, the Data Processing Agreement and anything we agree in writing are the whole agreement between us. For consumers, this does not limit what our public descriptions of the Service say it does, which forms part of what the Service must conform to.',
+            ],
+            [
+              'Severability',
+              'If a clause is invalid, the rest stays in force and the invalid clause is replaced by a valid one that comes closest to its purpose.',
+            ],
+            ['No waiver', 'Not enforcing a right straight away does not mean we give it up.'],
+            [
+              'Transfer',
+              'We may transfer the contract to a company we control or to a successor of our business, after notifying you. For consumers this only happens if your rights are not reduced. You may not transfer the contract without our consent.',
+            ],
+            ['Notices', `We send notices to the email address of your account. Send notices to us at ${ENTITY.email}.`],
+            [
+              'Language and interpretation',
+              'These Terms are written in English. If a clause in a consumer contract is unclear, the interpretation most favourable to the consumer applies.',
+            ],
+          ]}
+        />
+      </LegalSection>
+    </LegalLayout>
   );
 }

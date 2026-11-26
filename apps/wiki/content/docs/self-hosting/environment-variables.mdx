@@ -124,6 +124,19 @@ Enables social login. Register an OAuth app with each provider and add the crede
 | `GOOGLE_OAUTH_CLIENT` | No       | Google OAuth app client ID.     |
 | `GOOGLE_OAUTH_SECRET` | No       | Google OAuth app client secret. |
 
+## Captcha
+
+Adds a [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) check to email and password login and signup. It turns on only when both keys are set. Create a widget in the Cloudflare dashboard and add your dashboard hostname to it. OAuth logins are not affected.
+
+| Variable               | Required | Description                                                   |
+| ---------------------- | -------- | ------------------------------------------------------------- |
+| `TURNSTILE_SITE_KEY`   | No       | Turnstile widget site key. Sent to the dashboard to render the widget. |
+| `TURNSTILE_SECRET_KEY` | No       | Turnstile widget secret key. Used by the API to verify tokens. |
+
+<Callout type="info">
+  When Turnstile is enabled, the API rejects logins and signups it cannot verify, including when Cloudflare's verification endpoint is unreachable.
+</Callout>
+
 ## Stripe
 
 Required if you want to enable billing features. All Stripe variables must be set together for billing to activate.

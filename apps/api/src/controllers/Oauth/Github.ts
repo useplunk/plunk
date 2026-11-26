@@ -100,6 +100,7 @@ export class Github {
           email,
           type: 'GITHUB_OAUTH',
           emailVerified: true,
+          ...UserService.termsAcceptance(),
         },
       });
       isNewUser = true;

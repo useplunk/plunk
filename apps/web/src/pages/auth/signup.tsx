@@ -18,16 +18,18 @@ import {NextSeo} from 'next-seo';
 import Image from 'next/image';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {useForm} from 'react-hook-form';
 import type {z} from 'zod';
 
+import {LegalConsent} from '../../components/LegalConsent';
+import type {TurnstileHandle} from '../../components/Turnstile';
+import {Turnstile} from '../../components/Turnstile';
 import {API_URI} from '../../lib/constants';
 import {useConfig} from '../../lib/hooks/useConfig';
 import {useProjects} from '../../lib/hooks/useProject';
 import {useUser} from '../../lib/hooks/useUser';
 import {network} from '../../lib/network';
-
 
 export default function Signup() {
   const {mutate: userMutate} = useUser();
@@ -49,8 +51,16 @@ export default function Signup() {
     google: config?.features.authProviders.google ?? false,
   };
   const signupsDisabled = config?.features.signup.signupsDisabled ?? false;
+  const turnstileSiteKey = config?.features.captcha.turnstileSiteKey ?? null;
+  const turnstileRef = useRef<TurnstileHandle>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   async function onSubmit(values: z.infer<typeof AuthenticationSchemas.signup>) {
+    if (turnstileSiteKey && !captchaToken) {
+      setErrorMessage('Please complete the captcha check');
+      return;
+    }
+
     try {
       const response = await network.fetch<
         {
@@ -58,11 +68,13 @@ export default function Signup() {
           data: {id: string; email: string} | string;
         },
         typeof AuthenticationSchemas.signup
-      >('POST', '/auth/signup', values);
+      >('POST', '/auth/signup', {...values, captchaToken: captchaToken ?? undefined});
 
       if (!response.success) {
         const errorData = typeof response.data === 'string' ? response.data : 'Something went wrong';
         setErrorMessage(errorData);
+        // The token was spent on this attempt, so the next one needs a fresh challenge
+        turnstileRef.current?.reset();
       } else {
         setErrorMessage(null);
 
@@ -73,6 +85,7 @@ export default function Signup() {
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Something went wrong');
+      turnstileRef.current?.reset();
     }
   }
 
@@ -216,6 +229,10 @@ export default function Signup() {
                         />
                       </div>
 
+                      {turnstileSiteKey && (
+                        <Turnstile ref={turnstileRef} siteKey={turnstileSiteKey} action="signup" onToken={setCaptchaToken} />
+                      )}
+
                       <AnimatePresence>
                         {errorMessage && (
                           <motion.p
@@ -253,6 +270,9 @@ export default function Signup() {
               )}
             </CardContent>
           </Card>
+
+          {/* Outside the form so it also covers the Google and GitHub buttons. */}
+          <LegalConsent lead="By creating an account," />
         </div>
       </div>
     </>

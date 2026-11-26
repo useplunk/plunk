@@ -24,10 +24,13 @@ import {NextSeo} from 'next-seo';
 import Image from 'next/image';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {useForm} from 'react-hook-form';
 import type {z} from 'zod';
 
+import {LegalConsent} from '../../components/LegalConsent';
+import type {TurnstileHandle} from '../../components/Turnstile';
+import {Turnstile} from '../../components/Turnstile';
 import {API_URI} from '../../lib/constants';
 import {useConfig} from '../../lib/hooks/useConfig';
 import {useProjects} from '../../lib/hooks/useProject';
@@ -64,19 +67,29 @@ export default function Login() {
     google: config?.features.authProviders.google ?? false,
   };
   const signupsDisabled = config?.features.signup.signupsDisabled ?? false;
+  const turnstileSiteKey = config?.features.captcha.turnstileSiteKey ?? null;
+  const turnstileRef = useRef<TurnstileHandle>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   async function onSubmit(values: z.infer<typeof AuthenticationSchemas.login>) {
+    if (turnstileSiteKey && !captchaToken) {
+      setErrorMessage('Please complete the captcha check');
+      return;
+    }
+
     try {
       const response = await network.fetch<
         {
           success: boolean;
-          data: {id: string; email: string};
+          data: {id: string; email: string} | string;
         },
         typeof AuthenticationSchemas.login
-      >('POST', '/auth/login', values);
+      >('POST', '/auth/login', {...values, captchaToken: captchaToken ?? undefined});
 
       if (!response.success) {
-        setErrorMessage('Email or password is incorrect');
+        setErrorMessage(typeof response.data === 'string' ? response.data : 'Email or password is incorrect');
+        // The token was spent on this attempt, so the next one needs a fresh challenge
+        turnstileRef.current?.reset();
       } else {
         setErrorMessage(null);
         localStorage.setItem('plunk_last_auth_method', 'email');
@@ -88,6 +101,7 @@ export default function Login() {
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Something went wrong');
+      turnstileRef.current?.reset();
     }
   }
 
@@ -271,6 +285,10 @@ export default function Login() {
                       />
                     </div>
 
+                    {turnstileSiteKey && (
+                      <Turnstile ref={turnstileRef} siteKey={turnstileSiteKey} action="login" onToken={setCaptchaToken} />
+                    )}
+
                     <AnimatePresence>
                       {errorMessage && (
                         <motion.p
@@ -309,6 +327,12 @@ export default function Login() {
               </Form>
             </CardContent>
           </Card>
+
+          {/* Continuing with Google or GitHub here creates an account for a new user, who never
+              sees the signup page. */}
+          {(oauthConfig.github || oauthConfig.google) && (
+            <LegalConsent lead="If you are new, continuing with Google or GitHub creates an account, and" />
+          )}
         </div>
 
         <Dialog

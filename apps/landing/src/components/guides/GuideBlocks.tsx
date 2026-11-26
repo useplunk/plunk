@@ -170,48 +170,69 @@ export function GuideCompare({
 
 /**
  * A reference table: hairline rows, no zebra, no boxed header. `mono` sets the
- * first column in code type, for record tags and mechanisms.
+ * first column in code type, for record tags and mechanisms. `stack` turns each
+ * row into a labelled block below `sm`, for tables whose cells are sentences and
+ * would otherwise scroll sideways on a phone.
  */
 export function GuideTable({
   head,
   rows,
   mono = false,
+  stack = false,
 }: {
   head: string[];
   rows: ReactNode[][];
   mono?: boolean;
+  stack?: boolean;
 }) {
   return (
-    <div className={'!my-10 overflow-x-auto'}>
-      <table className={'w-full min-w-[32rem] border-collapse text-left'}>
-        <thead>
-          <tr className={'border-b border-neutral-900'}>
-            {head.map(h => (
-              <th key={h} scope={'col'} className={'pb-3 pr-6 text-ui font-semibold text-neutral-900 last:pr-0'}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
+    <div className={'!my-10'}>
+      {stack && (
+        <dl className={'border-t border-neutral-900 sm:hidden'}>
           {rows.map((row, r) => (
-            <tr key={r} className={'border-b border-neutral-200'}>
-              {row.map((cell, c) => (
-                <td
-                  key={c}
-                  className={`py-3.5 pr-6 align-top text-ui last:pr-0 ${
-                    c === 0
-                      ? `font-medium text-neutral-900 ${mono ? 'whitespace-nowrap font-code' : ''}`
-                      : 'text-neutral-600'
-                  }`}
-                >
+            <div key={r} className={'border-b border-neutral-200 py-4'}>
+              <dt className={'text-ui font-medium text-neutral-900'}>{row[0]}</dt>
+              {row.slice(1).map((cell, c) => (
+                <dd key={c} className={'mt-1.5 text-ui text-neutral-600'}>
+                  {head.length > 2 && <span className={'text-neutral-500'}>{head[c + 1]}: </span>}
                   {cell}
-                </td>
+                </dd>
+              ))}
+            </div>
+          ))}
+        </dl>
+      )}
+      <div className={`overflow-x-auto ${stack ? 'hidden sm:block' : ''}`}>
+        <table className={'w-full min-w-[32rem] border-collapse text-left'}>
+          <thead>
+            <tr className={'border-b border-neutral-900'}>
+              {head.map(h => (
+                <th key={h} scope={'col'} className={'pb-3 pr-6 text-ui font-semibold text-neutral-900 last:pr-0'}>
+                  {h}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, r) => (
+              <tr key={r} className={'border-b border-neutral-200'}>
+                {row.map((cell, c) => (
+                  <td
+                    key={c}
+                    className={`py-3.5 pr-6 align-top text-ui last:pr-0 ${
+                      c === 0
+                        ? `font-medium text-neutral-900 ${mono ? 'whitespace-nowrap font-code' : ''}`
+                        : 'text-neutral-600'
+                    }`}
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
