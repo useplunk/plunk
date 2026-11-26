@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
-import {detectCustomHtmlPatterns} from '../emailStyles';
+
+import {detectCustomHtmlPatterns} from '../email-html.js';
 
 describe('detectCustomHtmlPatterns', () => {
   describe('empty / whitespace input', () => {
