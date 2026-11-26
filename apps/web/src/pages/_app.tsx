@@ -1,5 +1,6 @@
 import '../styles/globals.css';
 import type {AppProps} from 'next/app';
+import {Inter} from 'next/font/google';
 import {useRouter} from 'next/router';
 import React, {useEffect} from 'react';
 import {Toaster} from 'sonner';
@@ -17,6 +18,11 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import advancedFormat from 'dayjs/plugin/advancedFormat';
 import Script from 'next/script';
+
+// Self-hosted at build time by next/font, so visitors' browsers never contact Google.
+// Exposed as --font-inter on :root rather than a class, so portals (dialogs, toasts)
+// rendered outside the app tree get it too.
+const inter = Inter({subsets: ['latin'], display: 'swap'});
 
 // Configure dayjs plugins globally
 dayjs.extend(relativeTime);
@@ -40,6 +46,11 @@ const NO_PROJECT_ROUTES = ['/projects/create', '/account'];
 function App({Component, pageProps}: AppProps) {
   return (
     <>
+      <style jsx global>{`
+        :root {
+          --font-inter: ${inter.style.fontFamily};
+        }
+      `}</style>
       <Component {...pageProps} />
     </>
   );

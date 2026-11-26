@@ -3,11 +3,15 @@ import {DocsLayout} from 'fumadocs-ui/layouts/docs';
 import {RootProvider} from 'fumadocs-ui/provider/next';
 import Script from 'next/script';
 import type {Metadata} from 'next';
+import {Inter} from 'next/font/google';
 import type {ReactNode} from 'react';
 import React from 'react';
 
 import {baseOptions} from '@/app/layout.config';
 import {source} from '@/lib/source';
+
+// Self-hosted at build time by next/font, so visitors' browsers never contact Google
+const inter = Inter({subsets: ['latin'], display: 'swap', variable: '--font-inter'});
 
 const description =
   'Documentation for Plunk, the open-source email platform. Learn how to integrate Plunk into your application and manage your email communications.';
@@ -28,20 +32,11 @@ export const metadata: Metadata = {
 
 export default function Layout({children}: {children: ReactNode}) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
         {/* Runtime environment configuration - must load before any app code */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="/__env.js" />
-
-        {/* Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
-          rel="stylesheet"
-        />
 
         {/* Favicon */}
         <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
