@@ -59,7 +59,7 @@ const comparison: Comparison = {
   ],
   table: [
     {feature: 'Free tier', plunk: '1,000 emails/month', competitor: '3,000 emails/month'},
-    {feature: 'Paid pricing', plunk: '$0.001 per email', competitor: '$0.0004 transactional, $0.001 marketing'},
+    {feature: 'Paid pricing', plunk: '€0.001 per email', competitor: '$0.0004 transactional, $0.001 marketing'},
     {feature: 'Monthly minimum', plunk: 'None', competitor: '$10'},
     {feature: 'Open source', plunk: 'AGPL-3.0', competitor: 'AGPL-3.0'},
     {feature: 'Self-hostable', plunk: true, competitor: true},
@@ -79,7 +79,7 @@ const comparison: Comparison = {
     {
       question: 'Which one is cheaper?',
       answer:
-        'It depends on what you send. useSend charges $0.0004 per transactional email and $0.001 per marketing email, with a $10 monthly minimum on its paid plan. Plunk charges $0.001 for every email with no minimum. Mostly transactional senders at volume pay less on useSend; small senders and teams sending marketing and automated email often pay less on Plunk.',
+        'It depends on what you send. useSend charges $0.0004 per transactional email and $0.001 per marketing email, with a $10 monthly minimum on its paid plan. Plunk charges €0.001 for every email with no minimum. Mostly transactional senders at volume pay less on useSend; small senders and teams sending marketing and automated email often pay less on Plunk.',
     },
     {
       question: 'Can I self-host both?',

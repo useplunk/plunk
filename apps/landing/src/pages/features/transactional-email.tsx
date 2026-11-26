@@ -81,7 +81,7 @@ const extras: ChecklistItem[] = [
 
 /** The developer's real alternative is running SES directly; these are the differences. */
 const comparison: ComparisonRow[] = [
-  {feature: 'Price', plunk: '$0.001 per email', competitor: '$0.10 per 1,000 emails'},
+  {feature: 'Price', plunk: '€0.001 per email', competitor: '$0.10 per 1,000 emails'},
   {feature: 'Templates with variables', plunk: true, competitor: 'Via API only'},
   {feature: 'Per-email delivery log', plunk: true, competitor: false},
   {feature: 'Scheduled sending', plunk: 'Up to 30 days', competitor: false},
@@ -100,7 +100,7 @@ const faqs: FAQ[] = [
   {
     question: 'How much does transactional email cost on Plunk?',
     answer:
-      'The free plan covers 1,000 emails a month. On the paid plan every email is $0.001, with no monthly fee and unlimited contacts. Transactional, campaign and workflow emails all count the same way.',
+      'The free plan covers 1,000 emails a month. On the paid plan every email is €0.001, with no monthly fee and unlimited contacts. Transactional, campaign and workflow emails all count the same way.',
   },
   {
     question: 'Do transactional emails respect unsubscribes?',
@@ -142,12 +142,12 @@ export default function TransactionalEmailFeature() {
     <>
       <NextSeo
         title="Transactional Email API for Developers | Plunk"
-        description="Send password resets, receipts and notifications with one API call. Templates, webhooks, idempotent retries and SMTP, at $0.001 per email."
+        description="Send password resets, receipts and notifications with one API call. Templates, webhooks, idempotent retries and SMTP, at €0.001 per email."
         canonical="https://www.useplunk.com/features/transactional-email"
         openGraph={{
           title: 'Transactional Email API for Developers | Plunk',
           description:
-            'Send password resets, receipts and notifications with one API call. Templates, webhooks, idempotent retries and SMTP, at $0.001 per email.',
+            'Send password resets, receipts and notifications with one API call. Templates, webhooks, idempotent retries and SMTP, at €0.001 per email.',
           url: 'https://www.useplunk.com/features/transactional-email',
           images: [
             {
@@ -172,7 +172,7 @@ export default function TransactionalEmailFeature() {
             </>
           }
           subtitle={
-            'A transactional email API for password resets, receipts and notifications. Send with one call, see what happened to every message, pay $0.001 per email.'
+            'A transactional email API for password resets, receipts and notifications. Send with one call, see what happened to every message, pay €0.001 per email.'
           }
           docsHref={`${WIKI_URI}/concepts/transactional-emails`}
           docsLabel={'API docs'}

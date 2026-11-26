@@ -43,16 +43,16 @@ export default function Pricing() {
         canonical="https://www.useplunk.com/pricing"
         title={'Plunk Pricing | The Open-Source Email Platform'}
         description={
-          'Email pricing at $0.001 per email with unlimited contacts. The free plan includes 1,000 emails a month across transactional, workflow, and campaign email.'
+          'Email pricing at €0.001 per email with unlimited contacts. The free plan includes 1,000 emails a month across transactional, workflow, and campaign email.'
         }
         openGraph={{
           url: 'https://www.useplunk.com/pricing',
           title: 'Plunk Pricing | The Open-Source Email Platform',
           description:
-            'Transparent email pricing at $0.001 per email with no contact limits. Free plan includes 1,000 emails/month. No hidden fees.',
+            'Transparent email pricing at €0.001 per email with no contact limits. Free plan includes 1,000 emails/month. No hidden fees.',
           images: [
             {
-              url: 'https://www.useplunk.com/api/og?title=Simple%2C+Honest+Pricing&description=%240.001+per+email.+No+contact+limits.+Free+to+start.',
+              url: 'https://www.useplunk.com/api/og?title=Simple%2C+Honest+Pricing&description=%E2%82%AC0.001+per+email.+No+contact+limits.+Free+to+start.',
               width: 1200,
               height: 630,
               alt: 'Plunk Pricing',
@@ -76,7 +76,7 @@ export default function Pricing() {
                 Simple, transparent pricing
               </h1>
               <p className={'mx-auto mt-6 max-w-2xl text-lead text-neutral-600'}>
-                Free plan: 1,000 emails per month. Paid plan: $0.001 per email. Unlimited contacts, no hidden fees.
+                Free plan: 1,000 emails per month. Paid plan: €0.001 per email. Unlimited contacts, no hidden fees.
               </p>
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function Pricing() {
               <div className={'hero-enter flex flex-col bg-neutral-900 p-10 text-white'} style={{animationDelay: '0.2s'}}>
                 <p className={'text-label font-semibold text-neutral-400'}>Pay as you grow</p>
                 <div className={'mt-4 flex items-baseline gap-2'}>
-                  <span className={'font-display text-6xl font-extrabold tracking-[-0.03em] text-white'}>$0.001</span>
+                  <span className={'font-display text-6xl font-extrabold tracking-[-0.03em] text-white'}>€0.001</span>
                   <span className={'text-lg text-neutral-400'}>/ email</span>
                 </div>
                 <p className={'mt-2 text-ui'}>&nbsp;</p>

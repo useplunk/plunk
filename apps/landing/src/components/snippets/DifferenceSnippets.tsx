@@ -51,12 +51,12 @@ function PricingFragment() {
         </div>
         <div className={'flex items-baseline justify-between gap-4 px-4 py-2.5'}>
           <dt className={'text-ui text-neutral-700'}>10,000 emails sent</dt>
-          <dd className={'text-ui font-semibold text-neutral-900 tabular-nums'}>$10.00</dd>
+          <dd className={'text-ui font-semibold text-neutral-900 tabular-nums'}>€10.00</dd>
         </div>
       </dl>
       <div className={'flex items-baseline justify-between gap-4 border-t border-neutral-100 px-4 py-3'}>
         <span className={'text-ui font-semibold text-neutral-900'}>Total</span>
-        <span className={'font-display text-lead font-bold text-neutral-900 tabular-nums'}>$10.00</span>
+        <span className={'font-display text-lead font-bold text-neutral-900 tabular-nums'}>€10.00</span>
       </div>
     </UICard>
   );

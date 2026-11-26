@@ -9,7 +9,7 @@ const comparison: Comparison = {
   seo: {
     title: 'Buttondown Alternative: Newsletters + Transactional | Plunk',
     description:
-      'Buttondown is built for newsletters, with automation as a paid add-on. Plunk is open source at $0.001/email, with transactional email, campaigns, and workflows included.',
+      'Buttondown is built for newsletters, with automation as a paid add-on. Plunk is open source at €0.001/email, with transactional email, campaigns, and workflows included.',
     ogTitle: 'Buttondown Alternative: Newsletters + Transactional | Plunk',
     ogDescription:
       'Buttondown is built for newsletters. Plunk is open-source, pay-as-you-go, and includes transactional email, newsletters, and automation in one self-hostable platform.',
@@ -23,7 +23,7 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'Buttondown publishes newsletters and charges per subscriber. Plunk sends newsletters too, adds transactional email and workflows, and charges $0.001 per email whatever the size of your list.',
+    'Buttondown publishes newsletters and charges per subscriber. Plunk sends newsletters too, adds transactional email and workflows, and charges €0.001 per email whatever the size of your list.',
   differences: [
     {
       kind: 'transactional',
@@ -33,7 +33,7 @@ const comparison: Comparison = {
     {
       kind: 'pricing',
       title: 'Pay per email, not per subscriber',
-      copy: 'Plunk bills $0.001 per email sent. Buttondown prices by subscriber count, with features like automations sold as add-ons.',
+      copy: 'Plunk bills €0.001 per email sent. Buttondown prices by subscriber count, with features like automations sold as add-ons.',
     },
     {
       kind: 'workflows',
@@ -72,7 +72,7 @@ const comparison: Comparison = {
     {
       question: 'What is the pricing difference between Plunk and Buttondown?',
       answer:
-        "Plunk is pay-as-you-go at $0.001/email — you pay per email sent regardless of list size. Buttondown charges by subscriber count, and sells automations and segmentation as add-ons. If you have a large list but send infrequently, Plunk's model is significantly more cost-effective.",
+        "Plunk is pay-as-you-go at €0.001/email — you pay per email sent regardless of list size. Buttondown charges by subscriber count, and sells automations and segmentation as add-ons. If you have a large list but send infrequently, Plunk's model is significantly more cost-effective.",
     },
     {
       question: 'Can Plunk replace Buttondown for newsletter publishing?',

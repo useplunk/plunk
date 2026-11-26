@@ -42,7 +42,7 @@ const faqs: FAQ[] = [
   {
     question: 'Is pricing different after the move?',
     answer:
-      'Yes. Loops plans are sized by contacts. Plunk stores contacts for free and charges $0.001 per email sent, with a free plan for up to 1,000 emails a month.',
+      'Yes. Loops plans are sized by contacts. Plunk stores contacts for free and charges €0.001 per email sent, with a free plan for up to 1,000 emails a month.',
   },
 ];
 

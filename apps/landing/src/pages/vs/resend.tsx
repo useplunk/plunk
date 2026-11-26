@@ -7,12 +7,12 @@ const comparison: Comparison = {
   slug: 'resend',
   name: 'Resend',
   seo: {
-    title: 'Open-Source Resend Alternative at $0.001/Email | Plunk',
+    title: 'Open-Source Resend Alternative at €0.001/Email | Plunk',
     description:
-      'Resend bills transactional email by plan and marketing by contact. Plunk charges $0.001 per email for both, with unlimited contacts. Open source, hosted in the EU.',
-    ogTitle: 'Open-Source Resend Alternative at $0.001/Email | Plunk',
+      'Resend bills transactional email by plan and marketing by contact. Plunk charges €0.001 per email for both, with unlimited contacts. Open source, hosted in the EU.',
+    ogTitle: 'Open-Source Resend Alternative at €0.001/Email | Plunk',
     ogDescription:
-      'Resend bills transactional email by plan and marketing by contact. Plunk charges $0.001 per email for both, with unlimited contacts.',
+      'Resend bills transactional email by plan and marketing by contact. Plunk charges €0.001 per email for both, with unlimited contacts.',
     ogImageTitle: 'Open-Source Resend Alternative',
   },
   headline: (
@@ -23,7 +23,7 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'Resend sells transactional email and marketing email as separate plans, with marketing priced per contact. Plunk sends both, plus workflows, at $0.001 per email with unlimited contacts, and it is open source.',
+    'Resend sells transactional email and marketing email as separate plans, with marketing priced per contact. Plunk sends both, plus workflows, at €0.001 per email with unlimited contacts, and it is open source.',
   differences: [
     {
       kind: 'pricing',
@@ -53,8 +53,8 @@ const comparison: Comparison = {
   ],
   table: [
     {feature: 'Free tier', plunk: '1,000 emails/month', competitor: '3,000 emails/month'},
-    {feature: 'Transactional pricing', plunk: '$0.001 per email', competitor: 'Monthly plans from $20'},
-    {feature: 'Marketing pricing', plunk: '$0.001 per email', competitor: 'Per contact, from $40/month'},
+    {feature: 'Transactional pricing', plunk: '€0.001 per email', competitor: 'Monthly plans from $20'},
+    {feature: 'Marketing pricing', plunk: '€0.001 per email', competitor: 'Per contact, from $40/month'},
     {feature: 'Unlimited contacts', plunk: true, competitor: false},
     {feature: 'Open source', plunk: true, competitor: false},
     {feature: 'Self-hostable', plunk: true, competitor: false},
@@ -73,7 +73,7 @@ const comparison: Comparison = {
     {
       question: 'What is the pricing difference between Plunk and Resend?',
       answer:
-        'Resend has separate plans: transactional email by monthly volume, and marketing email by the number of contacts you store. Plunk charges $0.001 for every email, whatever kind, with unlimited contacts and no monthly plan. Pricing checked against resend.com in October 2026.',
+        'Resend has separate plans: transactional email by monthly volume, and marketing email by the number of contacts you store. Plunk charges €0.001 for every email, whatever kind, with unlimited contacts and no monthly plan. Pricing checked against resend.com in October 2026.',
     },
     {
       question: 'Is Resend open source? Can I self-host it?',

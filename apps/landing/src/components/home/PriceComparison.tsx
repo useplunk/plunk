@@ -18,21 +18,43 @@ import React from 'react';
 
 export interface PriceRow {
   name: string;
-  /** USD per email on the plan that matches Plunk's. */
+  /** Price per email on the plan that matches Plunk's, in `currency`. */
   price: number;
+  /** Plunk bills in EUR; competitors publish USD prices, shown as published. */
+  currency: 'EUR' | 'USD';
   logo?: React.ReactNode;
+}
+
+/**
+ * Bars and multiples compare in USD, so EUR rows are converted first. Deliberately above the
+ * market rate: it makes Plunk look a little more expensive, never cheaper than it is, so the
+ * stated multiples hold while the rate moves. Raise it if the euro ever trades above it.
+ */
+const USD_PER_EUR = 1.2;
+
+const SYMBOL = {EUR: '€', USD: '$'} as const;
+
+function inUsd(row: PriceRow): number {
+  return row.currency === 'EUR' ? row.price * USD_PER_EUR : row.price;
+}
+
+/** "2.5x", but "3x" rather than "3.0x". */
+function formatMultiple(multiple: number): string {
+  const rounded = Math.round(multiple * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)}x`;
 }
 
 export function PriceComparison({rows, note}: {rows: PriceRow[]; note: string}) {
   const still = useReducedMotion();
-  const max = Math.max(...rows.map(r => r.price));
-  const base = Math.min(...rows.map(r => r.price));
+  const max = Math.max(...rows.map(inUsd));
+  const base = Math.min(...rows.map(inUsd));
 
   return (
     <figure className={'flex flex-col gap-3'}>
       {rows.map((row, i) => {
-        const us = row.price === base;
-        const multiple = row.price / base;
+        const usd = inUsd(row);
+        const us = usd === base;
+        const multiple = usd / base;
         return (
           <motion.div
             key={row.name}
@@ -72,16 +94,17 @@ export function PriceComparison({rows, note}: {rows: PriceRow[]; note: string}) 
                 whileInView={still ? undefined : {scaleX: 1}}
                 viewport={{once: true, margin: '-15%'}}
                 transition={{duration: 0.75, delay: still ? 0 : 0.1 + i * 0.09, ease: [0.22, 1, 0.36, 1]}}
-                style={{width: `calc((100% - 7.5rem) * ${row.price / max})`}}
+                style={{width: `calc((100% - 7.5rem) * ${usd / max})`}}
                 className={`h-8 flex-shrink-0 origin-left rounded-md ${
                   us ? 'bg-neutral-900' : 'bg-neutral-200'
                 }`}
               />
               <div className={'flex min-w-0 items-baseline gap-2 tabular-nums'}>
                 <span className={`text-ui ${us ? 'font-semibold text-neutral-900' : 'text-neutral-600'}`}>
-                  ${row.price.toFixed(3)}
+                  {SYMBOL[row.currency]}
+                  {row.price.toFixed(3)}
                 </span>
-                <span className={'text-label text-neutral-500'}>{us ? 'base' : `${Math.round(multiple)}x`}</span>
+                <span className={'text-label text-neutral-500'}>{us ? 'base' : formatMultiple(multiple)}</span>
               </div>
             </div>
           </motion.div>

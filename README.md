@@ -1,4 +1,4 @@
-![card.png](https://www.useplunk.com/api/og?title=Open-Source%0AEmail%20Platform&description=%240.001+per+email.+No+contact+limits.+Free+to+self-host.)
+![card.png](https://www.useplunk.com/api/og?title=Open-Source%0AEmail%20Platform&description=%E2%82%AC0.001+per+email.+No+contact+limits.+Free+to+self-host.)
 
 <h1 align="center">Plunk</h1>
 
@@ -21,7 +21,7 @@
 
 ## Introduction
 
-Transactional emails, marketing campaigns, and workflow automation — in one platform. Self-hostable, $0.001 per email, no contact limits.
+Transactional emails, marketing campaigns, and workflow automation — in one platform. Self-hostable, €0.001 per email, no contact limits.
 
 An open-source, self-hosted alternative to tools [SendGrid](https://sendgrid.com/), [Resend](https://resend.com) or [Mailgun](https://www.mailgun.com/).
 

@@ -15,12 +15,12 @@ export default function CompetitorsIndex() {
     <>
       <NextSeo
         title="Resend, Mailgun & SendGrid Alternatives | Plunk"
-        description="Looking for a Resend, Mailgun, or SendGrid alternative? Plunk is open source with transactional email, campaigns, and automation at $0.001/email."
+        description="Looking for a Resend, Mailgun, or SendGrid alternative? Plunk is open source with transactional email, campaigns, and automation at €0.001/email."
         canonical="https://www.useplunk.com/vs"
         openGraph={{
           title: 'Resend, Mailgun & SendGrid Alternatives | Plunk',
           description:
-            'Open-source alternative to Resend, Mailgun, and SendGrid. Transactional + marketing emails in one self-hostable platform at $0.001/email.',
+            'Open-source alternative to Resend, Mailgun, and SendGrid. Transactional + marketing emails in one self-hostable platform at €0.001/email.',
           url: 'https://www.useplunk.com/vs',
           images: [
             {
@@ -45,7 +45,7 @@ export default function CompetitorsIndex() {
             </>
           }
           subtitle={
-            'Most email tools charge per contact, keep their code closed, and split transactional from marketing email. Plunk does all three in one open-source platform at $0.001 per email.'
+            'Most email tools charge per contact, keep their code closed, and split transactional from marketing email. Plunk does all three in one open-source platform at €0.001 per email.'
           }
           docsHref={WIKI_URI}
         />

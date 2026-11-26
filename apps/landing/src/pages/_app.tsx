@@ -84,13 +84,13 @@ export default function WithProviders(props: AppProps) {
         defaultTitle={'Plunk | The Open-Source Email Platform'}
         title={'Plunk | The Open-Source Email Platform'}
         description={
-          'Open-source email automation platform with workflows, segments, and developer API. Scale from 0 to millions of emails at $0.001 per email. Self-hostable and privacy-first.'
+          'Open-source email automation platform with workflows, segments, and developer API. Scale from 0 to millions of emails at €0.001 per email. Self-hostable and privacy-first.'
         }
         twitter={{cardType: 'summary_large_image', handle: '@useplunk', site: '@useplunk'}}
         openGraph={{
           title: 'Plunk | The Open-Source Email Platform',
           description:
-            'Open-source email automation platform with workflows, segments, and developer API. Scale from 0 to millions of emails at $0.001 per email. Self-hostable and privacy-first.',
+            'Open-source email automation platform with workflows, segments, and developer API. Scale from 0 to millions of emails at €0.001 per email. Self-hostable and privacy-first.',
           images: [
             {
               url: `https://www.useplunk.com/api/og?title=${encodeURIComponent('The Open-Source Email Platform')}`,

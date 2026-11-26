@@ -82,7 +82,7 @@ const faqs: FAQ[] = [
   {
     question: 'Should I self-host or use Plunk Cloud?',
     answer:
-      'Self-host if you must keep all data on your own infrastructure. Otherwise Plunk Cloud runs the same platform for you, hosted in Germany, at $0.001 per email with unlimited contacts, or on a free plan with 1,000 emails a month.',
+      'Self-host if you must keep all data on your own infrastructure. Otherwise Plunk Cloud runs the same platform for you, hosted in Germany, at €0.001 per email with unlimited contacts, or on a free plan with 1,000 emails a month.',
   },
   {
     question: 'How is Plunk different from listmonk or Mautic?',
@@ -96,12 +96,12 @@ export default function OpenSourceEmailPlatform() {
     <>
       <NextSeo
         title="Open-Source Email Marketing & Transactional Platform | Plunk"
-        description="Open-source email software for transactional email, campaigns and workflows. Self-host it with Docker, or use the managed EU cloud at $0.001 per email."
+        description="Open-source email software for transactional email, campaigns and workflows. Self-host it with Docker, or use the managed EU cloud at €0.001 per email."
         canonical="https://www.useplunk.com/open-source-email-platform"
         openGraph={{
           title: 'Open-Source Email Marketing & Transactional Platform | Plunk',
           description:
-            'Open-source email software for transactional email, campaigns and workflows. Self-host it with Docker, or use the managed EU cloud at $0.001 per email.',
+            'Open-source email software for transactional email, campaigns and workflows. Self-host it with Docker, or use the managed EU cloud at €0.001 per email.',
           url: 'https://www.useplunk.com/open-source-email-platform',
           images: [
             {

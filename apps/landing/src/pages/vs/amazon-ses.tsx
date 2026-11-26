@@ -72,7 +72,7 @@ const comparison: Comparison = {
     {
       question: 'Is Plunk more expensive than Amazon SES?',
       answer:
-        "SES charges $0.10 per 1,000 emails ($0.0001/email) on à la carte pricing, or $0.16 per 1,000 on the Essentials plan new accounts start on, for delivery alone. Plunk's managed service is $0.001/email — 10x more, but that includes contact management, campaigns, automation, segmentation, bounce/complaint handling, an admin dashboard, and unsubscribe management. If you self-host Plunk on your own infrastructure, you pay SES rates directly plus your hosting costs.",
+        "SES charges $0.10 per 1,000 emails ($0.0001/email) on à la carte pricing, or $0.16 per 1,000 on the Essentials plan new accounts start on, for delivery alone. Plunk's managed service is €0.001/email — 10x more, but that includes contact management, campaigns, automation, segmentation, bounce/complaint handling, an admin dashboard, and unsubscribe management. If you self-host Plunk on your own infrastructure, you pay SES rates directly plus your hosting costs.",
     },
     {
       question: 'Does Plunk use Amazon SES under the hood?',

@@ -170,10 +170,10 @@ const agentExchange: AgentExchangeCopy = {
 };
 
 const prices: PriceRow[] = [
-  {name: 'Plunk', price: 0.001, logo: <PlunkMark />},
-  {name: 'SendGrid', price: 0.002, logo: <SendGridMark />},
-  {name: 'Mailgun', price: 0.003, logo: <MailgunMark />},
-  {name: 'Mailchimp', price: 0.004, logo: <MailchimpMark />},
+  {name: 'Plunk', price: 0.001, currency: 'EUR', logo: <PlunkMark />},
+  {name: 'SendGrid', price: 0.002, currency: 'USD', logo: <SendGridMark />},
+  {name: 'Mailgun', price: 0.003, currency: 'USD', logo: <MailgunMark />},
+  {name: 'Mailchimp', price: 0.004, currency: 'USD', logo: <MailchimpMark />},
 ];
 
 /**
@@ -207,7 +207,7 @@ const faqs: FAQ[] = [
   {
     question: 'What does Plunk cost?',
     answer:
-      'There are two plans. The free one covers 1,000 emails a month and carries Plunk branding. The paid one is $0.001 per email with no branding and no feature tiers. Contacts are unlimited on both, so storing a million you never mail costs nothing.',
+      'There are two plans. The free one covers 1,000 emails a month and carries Plunk branding. The paid one is €0.001 per email with no branding and no feature tiers. Contacts are unlimited on both, so storing a million you never mail costs nothing.',
   },
 ];
 
@@ -217,12 +217,12 @@ export default function Index() {
       <NextSeo
         canonical="https://www.useplunk.com"
         title="Plunk — Open-Source Transactional Email Platform"
-        description="Send transactional emails, run marketing campaigns, and automate workflows. Open-source and self-hostable, $0.001 per email, no contact limits."
+        description="Send transactional emails, run marketing campaigns, and automate workflows. Open-source and self-hostable, €0.001 per email, no contact limits."
         openGraph={{
           url: 'https://www.useplunk.com',
           title: 'Plunk — Open-Source Transactional Email Platform',
           description:
-            'Send transactional emails, run marketing campaigns, and automate workflows. Open-source and self-hostable, $0.001 per email, no contact limits.',
+            'Send transactional emails, run marketing campaigns, and automate workflows. Open-source and self-hostable, €0.001 per email, no contact limits.',
           images: [
             {
               url: 'https://www.useplunk.com/api/og?title=The+Open-Source+Email+Platform',
@@ -282,11 +282,11 @@ export default function Index() {
             'offers': {
               '@type': 'Offer',
               'price': '0',
-              'priceCurrency': 'USD',
+              'priceCurrency': 'EUR',
               'priceSpecification': {
                 '@type': 'UnitPriceSpecification',
                 'price': '0.001',
-                'priceCurrency': 'USD',
+                'priceCurrency': 'EUR',
                 'unitText': 'email',
               },
             },
@@ -313,7 +313,7 @@ export default function Index() {
                   <br />
                   email platform
                 </h1>
-                {/* The stat strip directly below already says $0.001 and
+                {/* The stat strip directly below already says €0.001 and
                     "no contact limits", and the h1 already says "platform".
                     The one thing neither says is that all three kinds of email
                     run against a single contact list, so that is all this says
@@ -660,7 +660,7 @@ export default function Index() {
                   <span
                     className={'font-display text-7xl font-extrabold tracking-[-0.035em] sm:text-8xl'}
                   >
-                    $0.001
+                    €0.001
                   </span>
                   <span className={'text-xl text-neutral-500 sm:text-2xl'}>/email</span>
                 </div>
@@ -681,7 +681,9 @@ export default function Index() {
                   reads as evidence rather than as an assertion. */}
               <div className={'mx-auto mt-20 max-w-3xl text-left'}>
                 <p className={'mb-6 text-center text-ui text-neutral-500'}>For the same plan, others charge</p>
-                <PriceComparison rows={prices} note={'Based on plans matching Plunk at 10,000 emails per month.'} />
+                <PriceComparison rows={prices} note={
+                    'Based on plans matching Plunk at 10,000 emails per month. Others as published in USD; multiples compare at €1 = $1.20.'
+                  } />
               </div>
 
               <div className={'mt-16 flex flex-wrap justify-center gap-3'}>

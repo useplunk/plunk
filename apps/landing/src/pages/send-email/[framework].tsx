@@ -43,7 +43,7 @@ function ExampleSection({title, example}: {title: string; example: Example & {in
 export default function SendEmailWith({framework: f}: {framework: Framework}) {
   const url = `https://www.useplunk.com/send-email/${f.slug}`;
   const title = `How to Send Email with ${f.name} | Plunk`;
-  const description = `Send transactional email from ${f.name} with one API call or over SMTP. Copy-paste examples, no SDK to install, $0.001 per email.`;
+  const description = `Send transactional email from ${f.name} with one API call or over SMTP. Copy-paste examples, no SDK to install, €0.001 per email.`;
   const api = <ExampleSection title={'Send with the API'} example={f.api} />;
   const smtp = <ExampleSection title={`Send with ${f.name} over SMTP`} example={f.smtp} />;
   const others = FRAMEWORKS.filter(other => other.slug !== f.slug);

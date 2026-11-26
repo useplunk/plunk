@@ -24,7 +24,7 @@ import {DASHBOARD_URI} from '../../lib/constants';
  */
 export function FeatureCTA({
   title,
-  body = 'Start on the free plan with 1,000 emails a month, no credit card needed. When you need more, every email is $0.001, with unlimited contacts and every feature included.',
+  body = 'Start on the free plan with 1,000 emails a month, no credit card needed. When you need more, every email is €0.001, with unlimited contacts and every feature included.',
   secondary,
 }: {
   title: React.ReactNode;

@@ -9,10 +9,10 @@ const comparison: Comparison = {
   seo: {
     title: 'Brevo (Sendinblue) Alternative, Open Source | Plunk',
     description:
-      "Done with Brevo's monthly plans? Plunk is a developer-first, open-source alternative that bills $0.001 per email with no tier to commit to, and is self-hostable.",
+      "Done with Brevo's monthly plans? Plunk is a developer-first, open-source alternative that bills €0.001 per email with no tier to commit to, and is self-hostable.",
     ogTitle: 'Brevo (Sendinblue) Alternative, Open Source | Plunk',
     ogDescription:
-      "Done with Brevo's monthly plans? Plunk is open-source, self-hostable, and bills $0.001 per email with no tier to commit to.",
+      "Done with Brevo's monthly plans? Plunk is open-source, self-hostable, and bills €0.001 per email with no tier to commit to.",
     ogImageTitle: 'Brevo Alternative: Developer-First & Open Source',
   },
   headline: (
@@ -23,12 +23,12 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'Brevo is an all-in-one marketing suite with SMS, chat and CRM, priced in monthly tiers by email volume. Plunk focuses on email for products, stores unlimited contacts and charges $0.001 per email sent, with no tier to pick.',
+    'Brevo is an all-in-one marketing suite with SMS, chat and CRM, priced in monthly tiers by email volume. Plunk focuses on email for products, stores unlimited contacts and charges €0.001 per email sent, with no tier to pick.',
   differences: [
     {
       kind: 'pricing',
       title: 'No tier to commit to',
-      copy: 'Plunk charges $0.001 for each email you send, with no monthly plan. Brevo sells monthly volume tiers that you pick in advance.',
+      copy: 'Plunk charges €0.001 for each email you send, with no monthly plan. Brevo sells monthly volume tiers that you pick in advance.',
     },
     {
       kind: 'workflows',
@@ -69,7 +69,7 @@ const comparison: Comparison = {
     {
       question: 'Is Plunk cheaper than Brevo?',
       answer:
-        "It depends on your usage pattern. Plunk's pay-as-you-go model ($0.001 per email) with unlimited contacts is often more cost-effective for businesses with large contact lists but moderate email volume. Brevo sells monthly plans sized by email volume, so you pay for the tier you picked whether or not you use it.",
+        "It depends on your usage pattern. Plunk's pay-as-you-go model (€0.001 per email) with unlimited contacts is often more cost-effective for businesses with large contact lists but moderate email volume. Brevo sells monthly plans sized by email volume, so you pay for the tier you picked whether or not you use it.",
     },
     {
       question: 'Can I self-host Plunk unlike Brevo?',

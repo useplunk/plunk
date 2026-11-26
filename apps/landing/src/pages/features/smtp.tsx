@@ -45,7 +45,7 @@ const extras: ChecklistItem[] = [
   {title: 'Custom headers', description: 'Your own headers pass straight through.'},
   {title: 'Multiple recipients', description: 'Send to several people in one message.'},
   {title: 'Same verified domains', description: 'Send from the domains you already verified.'},
-  {title: 'Same price', description: '$0.001 per email, like the API.'},
+  {title: 'Same price', description: '€0.001 per email, like the API.'},
   {title: 'No SDK to adopt', description: 'Any language with an SMTP transport works.'},
 ];
 

@@ -20,7 +20,7 @@ Context: professional environment, desktop-first, task-focused. They are usually
 ## Product Purpose
 
 Plunk is an open-source email platform that unifies transactional sending, marketing campaigns,
-and automation. Self-hostable, $0.001 per email, no contact limits. Success looks like a
+and automation. Self-hostable, €0.001 per email, no contact limits. Success looks like a
 developer getting from signup to a first sent email without reading documentation, and never
 needing a support ticket to understand what a screen is asking of them.
 

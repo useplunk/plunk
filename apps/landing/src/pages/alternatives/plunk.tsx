@@ -116,7 +116,7 @@ export default function PlunkAlternatives() {
 
         <FeatureSection
           title={'When Plunk is the better fit'}
-          intro={'Transactional email, campaigns and workflows on one contact list, at $0.001 per email, open source and hosted in the EU.'}
+          intro={'Transactional email, campaigns and workflows on one contact list, at €0.001 per email, open source and hosted in the EU.'}
         >
           <DifferenceSnippets />
         </FeatureSection>

@@ -9,10 +9,10 @@ const comparison: Comparison = {
   seo: {
     title: 'Postmark Alternative: Pay-As-You-Go vs Fixed Pricing | Plunk',
     description:
-      'Postmark starts at $15/month for 10k emails. Plunk charges $0.001/email — no subscription, no minimums. Plus marketing campaigns, workflows, and open-source code.',
+      'Postmark starts at $15/month for 10k emails. Plunk charges €0.001/email — no subscription, no minimums. Plus marketing campaigns, workflows, and open-source code.',
     ogTitle: 'Postmark Alternative: Pay-As-You-Go vs Fixed Pricing | Plunk',
     ogDescription:
-      'Postmark starts at $15/month for 10k emails. Plunk charges $0.001/email — no subscription, no minimums. Plus marketing campaigns and open-source code.',
+      'Postmark starts at $15/month for 10k emails. Plunk charges €0.001/email — no subscription, no minimums. Plus marketing campaigns and open-source code.',
     ogImageTitle: 'Postmark Alternative: Pay-As-You-Go vs Fixed Pricing',
   },
   headline: (
@@ -23,7 +23,7 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'Postmark is built for transactional email, with broadcasts sent through a separate stream but no campaign builder. Plunk sends transactional email on AWS SES and adds campaigns, workflows and segments on the same account, at $0.001 per email.',
+    'Postmark is built for transactional email, with broadcasts sent through a separate stream but no campaign builder. Plunk sends transactional email on AWS SES and adds campaigns, workflows and segments on the same account, at €0.001 per email.',
   differences: [
     {
       kind: 'campaigns',
@@ -33,7 +33,7 @@ const comparison: Comparison = {
     {
       kind: 'pricing',
       title: 'No monthly minimum',
-      copy: 'Postmark’s paid plans start at $15 a month for 10,000 emails. Plunk charges $0.001 per email, with transactional and marketing at the same rate.',
+      copy: 'Postmark’s paid plans start at $15 a month for 10,000 emails. Plunk charges €0.001 per email, with transactional and marketing at the same rate.',
     },
     {
       kind: 'transactional',

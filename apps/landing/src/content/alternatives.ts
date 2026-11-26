@@ -40,7 +40,7 @@ export const TOOLS: Record<ToolKey, Tool> = {
     name: 'Plunk',
     category: 'Open-source email platform',
     bestFor: 'Transactional email, campaigns and workflows on one contact list, open source and hosted in the EU.',
-    pricing: '$0.001 per email, unlimited contacts',
+    pricing: '€0.001 per email, unlimited contacts',
     eu: true,
   },
   'resend': {
@@ -220,7 +220,7 @@ export const ALTERNATIVES: AlternativesPage[] = [
       {
         question: 'What is the best alternative to SendGrid?',
         answer:
-          'For transactional and marketing email together at $0.001 per email, Plunk. For transactional email only, Postmark or Resend. For high volume with validation tools, Mailgun. For the lowest raw price, Amazon SES.',
+          'For transactional and marketing email together at €0.001 per email, Plunk. For transactional email only, Postmark or Resend. For high volume with validation tools, Mailgun. For the lowest raw price, Amazon SES.',
       },
       {
         question: 'Is there a free alternative to SendGrid?',
@@ -249,7 +249,7 @@ export const ALTERNATIVES: AlternativesPage[] = [
       {
         question: 'What is the best alternative to Mailgun?',
         answer:
-          'For transactional and marketing email together at $0.001 per email, Plunk. For transactional email only, Postmark or Resend. For a similar volume-focused API, SendGrid. For the lowest raw price, Amazon SES.',
+          'For transactional and marketing email together at €0.001 per email, Plunk. For transactional email only, Postmark or Resend. For a similar volume-focused API, SendGrid. For the lowest raw price, Amazon SES.',
       },
       {
         question: 'Is there a free alternative to Mailgun?',
@@ -312,7 +312,7 @@ export const ALTERNATIVES: AlternativesPage[] = [
       {
         question: 'Is there a cheaper alternative to Loops?',
         answer:
-          'If you have a large list and send to it occasionally, per-email pricing usually costs less. Plunk charges $0.001 per email with unlimited contacts.',
+          'If you have a large list and send to it occasionally, per-email pricing usually costs less. Plunk charges €0.001 per email with unlimited contacts.',
       },
       {
         question: 'Is there an open-source alternative to Loops?',
@@ -340,7 +340,7 @@ export const ALTERNATIVES: AlternativesPage[] = [
       {
         question: 'Is there a cheaper alternative to Postmark?',
         answer:
-          'Plunk charges $0.001 per email with no monthly plan, so low and uneven volumes cost less. At very high volume, Amazon SES is cheapest if you build the rest yourself.',
+          'Plunk charges €0.001 per email with no monthly plan, so low and uneven volumes cost less. At very high volume, Amazon SES is cheapest if you build the rest yourself.',
       },
       {
         question: 'Is there an open-source alternative to Postmark?',
@@ -363,7 +363,7 @@ export const ALTERNATIVES: AlternativesPage[] = [
       {
         question: 'What is the best alternative to Customer.io?',
         answer:
-          'For event-triggered email workflows at $0.001 per email, Plunk. For SaaS marketing in a polished tool, Loops. For small teams, Bento. If you need a CRM, ActiveCampaign.',
+          'For event-triggered email workflows at €0.001 per email, Plunk. For SaaS marketing in a polished tool, Loops. For small teams, Bento. If you need a CRM, ActiveCampaign.',
       },
       {
         question: 'Is there a cheaper alternative to Customer.io?',

@@ -68,7 +68,7 @@ const faqs: FAQ[] = [
   {
     question: 'How much do campaigns cost?',
     answer:
-      'Every email is $0.001, the same as transactional and workflow email, and the free plan covers 1,000 a month. Contacts are unlimited and free to store, so a large list with a small send costs little.',
+      'Every email is €0.001, the same as transactional and workflow email, and the free plan covers 1,000 a month. Contacts are unlimited and free to store, so a large list with a small send costs little.',
   },
   {
     question: 'Are unsubscribed contacts skipped?',
@@ -92,12 +92,12 @@ export default function CampaignsFeature() {
     <>
       <NextSeo
         title="Email Campaigns & Newsletters for SaaS | Plunk"
-        description="Send newsletters and product updates to your list, a segment or a filter. Test, schedule and track every campaign at $0.001 per email, unlimited contacts."
+        description="Send newsletters and product updates to your list, a segment or a filter. Test, schedule and track every campaign at €0.001 per email, unlimited contacts."
         canonical="https://www.useplunk.com/features/campaigns"
         openGraph={{
           title: 'Email Campaigns & Newsletters for SaaS | Plunk',
           description:
-            'Send newsletters and product updates to your list, a segment or a filter. Test, schedule and track every campaign at $0.001 per email.',
+            'Send newsletters and product updates to your list, a segment or a filter. Test, schedule and track every campaign at €0.001 per email.',
           url: 'https://www.useplunk.com/features/campaigns',
           images: [
             {

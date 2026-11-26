@@ -9,10 +9,10 @@ const comparison: Comparison = {
   seo: {
     title: 'SendGrid Alternative: Pay-As-You-Go & Open Source | Plunk',
     description:
-      "Tired of SendGrid's pricing tiers and complexity? Plunk is an open-source alternative with pay-as-you-go pricing at $0.001/email, a modern API, and no lock-in.",
+      "Tired of SendGrid's pricing tiers and complexity? Plunk is an open-source alternative with pay-as-you-go pricing at €0.001/email, a modern API, and no lock-in.",
     ogTitle: 'SendGrid Alternative: Pay-As-You-Go & Open Source | Plunk',
     ogDescription:
-      "Tired of SendGrid's pricing tiers and complexity? Plunk is open-source with pay-as-you-go pricing at $0.001/email and no lock-in.",
+      "Tired of SendGrid's pricing tiers and complexity? Plunk is open-source with pay-as-you-go pricing at €0.001/email and no lock-in.",
     ogImageTitle: 'SendGrid Alternative: Open Source & Pay-As-You-Go',
   },
   headline: (
@@ -23,7 +23,7 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'SendGrid sells email on monthly tiers, with marketing as a separate product and automation on its Advanced marketing plan. Plunk includes all of it, bills $0.001 per email, and takes about five minutes to set up.',
+    'SendGrid sells email on monthly tiers, with marketing as a separate product and automation on its Advanced marketing plan. Plunk includes all of it, bills €0.001 per email, and takes about five minutes to set up.',
   differences: [
     {
       kind: 'setup',
@@ -33,7 +33,7 @@ const comparison: Comparison = {
     {
       kind: 'pricing',
       title: 'No monthly tier to pick',
-      copy: 'Plunk bills $0.001 per email with no monthly minimum. SendGrid charges a fixed monthly fee for a volume tier, whatever you send.',
+      copy: 'Plunk bills €0.001 per email with no monthly minimum. SendGrid charges a fixed monthly fee for a volume tier, whatever you send.',
     },
     {
       kind: 'campaigns',

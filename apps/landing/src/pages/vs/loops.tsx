@@ -23,7 +23,7 @@ const comparison: Comparison = {
     </>
   ),
   summary:
-    'Loops is a proprietary email platform with a free tier and monthly plans capped by contacts. Plunk covers the same ground (transactional email, campaigns, workflows, segments) but is open source, has no contact limits, and charges $0.001 per email.',
+    'Loops is a proprietary email platform with a free tier and monthly plans capped by contacts. Plunk covers the same ground (transactional email, campaigns, workflows, segments) but is open source, has no contact limits, and charges €0.001 per email.',
   differences: [
     {
       kind: 'ownership',
@@ -33,7 +33,7 @@ const comparison: Comparison = {
     {
       kind: 'pricing',
       title: 'No contact limits',
-      copy: 'Loops prices its tiers by contact count. Plunk stores unlimited contacts and charges $0.001 per email sent.',
+      copy: 'Loops prices its tiers by contact count. Plunk stores unlimited contacts and charges €0.001 per email sent.',
     },
     {
       kind: 'eu',
@@ -71,7 +71,7 @@ const comparison: Comparison = {
     {
       question: 'Is Plunk cheaper than Loops?',
       answer:
-        "It depends on your usage. Plunk's pay-as-you-go model ($0.001 per email) means you only pay for what you send. Loops charges monthly subscriptions based on contact count. For businesses with variable email volume or growing contact lists, Plunk is often more cost-effective.",
+        "It depends on your usage. Plunk's pay-as-you-go model (€0.001 per email) means you only pay for what you send. Loops charges monthly subscriptions based on contact count. For businesses with variable email volume or growing contact lists, Plunk is often more cost-effective.",
     },
     {
       question: 'Can I self-host Plunk unlike Loops?',

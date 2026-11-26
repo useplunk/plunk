@@ -4,7 +4,7 @@ export const MARKDOWN_PAGES: Record<string, string> = {
   index: `# Plunk — The Open-Source Email Platform
 
 Transactional emails, marketing campaigns, and workflow automation — in one platform.
-Self-hostable, $0.001 per email, no contact limits.
+Self-hostable, €0.001 per email, no contact limits.
 
 [Get started free](https://next-app.useplunk.com/auth/signup) | [Read the docs](https://docs.useplunk.com)
 
@@ -14,7 +14,7 @@ Self-hostable, $0.001 per email, no contact limits.
 
 | Metric | Value |
 |--------|-------|
-| Price | $0.001 / email |
+| Price | €0.001 / email |
 | GitHub stars | 5,000+ |
 | Contacts | Unlimited, always free |
 | Setup time | < 5 minutes |
@@ -92,16 +92,16 @@ Every interaction flows into a single contact record — transactional, campaign
 
 ## Pricing comparison
 
-**Plunk: $0.001 / email**
+**Plunk: €0.001 / email**
 
 | Provider | Price / email |
 |----------|--------------|
-| Plunk | $0.001 |
+| Plunk | €0.001 |
 | Mailgun | $0.003 |
 | SendGrid | $0.002 |
 | Mailchimp | $0.004 |
 
-*Based on plans matching Plunk at 10,000 emails per month.*
+*Based on plans matching Plunk at 10,000 emails per month. Other providers' prices are as published in USD.*
 
 [Full pricing details](/pricing)
 
@@ -144,7 +144,7 @@ Yes. Plunk lets you send newsletters and broadcast emails to your full list or a
 Any language capable of HTTP requests. Plunk provides a REST API that works with any HTTP client, plus SMTP for frameworks that already send mail.
 
 **How much does Plunk cost?**
-Free plan includes 1,000 emails/month. Paid plan is $0.001 per email with no contact limits.
+Free plan includes 1,000 emails/month. Paid plan is €0.001 per email with no contact limits.
 
 ---
 
@@ -155,7 +155,7 @@ Start sending in 5 minutes. Free plan available. No contact limits, no surprises
 
   pricing: `# Plunk Pricing — Simple, Transparent
 
-Free plan: 1,000 emails/month. Paid plan: $0.001/email. Unlimited contacts, no hidden fees.
+Free plan: 1,000 emails/month. Paid plan: €0.001/email. Unlimited contacts, no hidden fees.
 
 ---
 
@@ -182,7 +182,7 @@ Includes:
 
 ### Pay as you grow
 
-**$0.001 / email** — No base fee
+**€0.001 / email** — No base fee
 
 Includes everything in Free, plus:
 - No Plunk branding
