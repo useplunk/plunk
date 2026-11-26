@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
-import {detectCustomHtmlPatterns} from '../emailStyles';
+
+import {detectCustomHtmlPatterns} from '../email-html.js';
 
 describe('detectCustomHtmlPatterns', () => {
   describe('empty / whitespace input', () => {
@@ -65,6 +66,14 @@ describe('detectCustomHtmlPatterns', () => {
   });
 
   describe('content TipTap can NOT round-trip (should be flagged as custom)', () => {
+    it('returns true for <span> with a real background-color (TextStyle drops it)', () => {
+      expect(detectCustomHtmlPatterns('<span style="background-color: #ff0">hi</span>')).toBe(true);
+    });
+
+    it('returns true for <span> with font-size alongside color', () => {
+      expect(detectCustomHtmlPatterns('<p><span style="color: red; font-size: 20px">hi</span></p>')).toBe(true);
+    });
+
     it('returns true for <div>', () => {
       expect(detectCustomHtmlPatterns('<div>stuff</div>')).toBe(true);
     });

@@ -6,7 +6,7 @@ import signale from 'signale';
 import {DASHBOARD_URI, LANDING_URI, STRIPE_ENABLED} from '../app/constants.js';
 import {prisma} from '../database/prisma.js';
 import {ConflictError, ErrorCode, HttpException, NotFound} from '../exceptions/index.js';
-import {createTranslatorSync, renderTemplate} from '@plunk/shared';
+import {createTranslatorSync, detectCustomHtmlPatterns, renderTemplate} from '@plunk/shared';
 
 import {BillingLimitService} from './BillingLimitService.js';
 import {withSourceEmail} from './EmailHeaderService.js';
@@ -399,50 +399,6 @@ export class EmailService {
   }
 
   /**
-   * Detects if HTML contains custom patterns that indicate it was written in the HTML editor
-   * rather than the visual editor. Mirrors the same logic in apps/web/src/lib/emailStyles.ts.
-   *
-   * The TipTap editor loads StarterKit + TextAlign + Color + TextStyle + Link +
-   * ResizableImage + VariableMention. TextStyle/Color/Link round-trip <span style="..."> and
-   * <a style="..."> markup. This detection therefore PERMITS span + inline styles and only
-   * REJECTS markup TipTap cannot represent (tables, divs, forms, embeds, custom attrs,
-   * <style> blocks, etc).
-   */
-  private static detectCustomHtmlPatterns(html: string): boolean {
-    if (!html || html.trim() === '') return false;
-
-    const classMatches = html.matchAll(/class\s*=\s*["']([^"']*)["']/gi);
-    let hasCustomClasses = false;
-    for (const match of classMatches) {
-      const classValue = match[1];
-      if (!classValue) continue;
-      const classes = classValue.split(/\s+/).filter((c: string) => c.length > 0);
-      const allowedPrefixes = ['prose', 'variable-', 'email-image', 'ProseMirror', 'resizable-image', 'selected', 'resize-handle'];
-      const hasDisallowedClass = classes.some((cls: string) => !allowedPrefixes.some((prefix: string) => cls.startsWith(prefix)));
-      if (hasDisallowedClass) {
-        hasCustomClasses = true;
-        break;
-      }
-    }
-
-    // Element-attribute-scoped regex; the leading [\s"'] guard prevents `id=` inside
-    // href URLs (e.g. `?id=...`) from false-matching as an HTML id attribute.
-    const hasCustomAttributes = /<[a-z][^>]*?[\s"'](?:data-|aria-|role=|id=)/i.test(html);
-
-    // Elements TipTap cannot round-trip with the currently-loaded extension set.
-    // <span> is intentionally excluded -- TipTap's TextStyle extension handles it.
-    const hasCustomElements =
-      /<(?:div|section|article|header|footer|nav|aside|main|table|tr|td|th|tbody|thead|tfoot|colgroup|col|form|input|button|select|textarea|iframe|video|audio|svg|object|embed|details|summary|dialog)\b/i.test(
-        html,
-      );
-
-    const hasMediaQueries = /@media/i.test(html);
-    const hasStyleTags = /<style[^>]*>/i.test(html);
-
-    return hasCustomClasses || hasCustomAttributes || hasCustomElements || hasMediaQueries || hasStyleTags;
-  }
-
-  /**
    * Wraps visual editor content with a full HTML document and prose styles.
    * Mirrors wrapEmailWithStyles() in apps/web/src/lib/emailStyles.ts so sent emails
    * match the preview modal exactly.
@@ -797,7 +753,7 @@ export class EmailService {
   }): string {
     // Wrap visual editor content with prose styles so the sent email matches the preview modal.
     // Custom HTML (from the HTML editor) already carries its own styles and is used as-is.
-    let html = this.detectCustomHtmlPatterns(content) ? content : this.wrapWithEmailStyles(content);
+    let html = detectCustomHtmlPatterns(content) ? content : this.wrapWithEmailStyles(content);
 
     const unsubscribeHtml = includeUnsubscribe
       ? (() => {
