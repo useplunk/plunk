@@ -65,6 +65,18 @@ A workflow always begins with a single auto-created `TRIGGER` step. You build th
 | `WEBHOOK`         | Calls an external HTTPS endpoint with contact + execution context as the JSON body. `url`, header values, and `body` support `{{variables}}`. | `url`, optional `method`, `headers`, `body`            |
 | `UPDATE_CONTACT`  | Patches contact data — useful for tagging contacts as they progress (`{ stage: "activated" }`).        | `data` object                                                    |
 | `EXIT`            | Terminates the execution. Optionally records an `exitReason` for analytics.                            | optional `reason`                                                |
+| `HOLD`            | Ends the workflow without completing it. Contacts wait here with no time limit, and receive steps you later add above it. See [Hold steps](#hold-steps). | none                                     |
+
+## Hold steps
+
+A `HOLD` step is the end of a workflow that keeps growing. Instead of completing, a contact that reaches it waits there, and when you add steps above it later, the contacts already waiting go through them too. It is how you run an "infinite" nurture sequence: write the next email whenever you like, and everyone who reached the end receives it.
+
+- **Optional and repeatable.** Add as many as you need, for example one at the end of each branch of a condition. Nothing can be connected after a hold.
+- **Adding steps.** Insert steps on a connection into the hold (the **+** on the connection in the builder, or `POST /workflows/:id/transitions/:transitionId/insert-step`). Contacts who arrived through that connection run the new steps and then wait on the hold again. Contacts who arrived through another branch are not affected.
+- **When they move.** Right away, as with any edit to a workflow. A step that is not configured yet (an email with no template, say) is skipped until you save its configuration, and then the contacts move into it. A condition also waits until every one of its branches is connected, so nobody takes a branch that leads nowhere and drops out of the workflow. A disabled workflow moves nobody; enabling it does.
+- **Delays above a hold.** A delay looks up the step after it when the wait ends, so contacts waiting in a delay also pick up a step inserted right after it.
+- **Deleting a hold.** Contacts waiting on it are marked `COMPLETED` (`exitReason: "Hold step removed"`) in the background before the step is removed. They will not receive steps you add later. The connection that waiting contacts arrived through cannot be deleted while they are there; insert steps on it instead.
+- **Re-entry.** With re-entry allowed, a contact keeps one run waiting on a hold: when a newer run of theirs reaches a hold, the older one is completed (`exitReason: "Superseded by a newer run"`), so a step added later reaches them once.
 
 ## Transitions
 
@@ -80,6 +92,7 @@ Each contact entering the workflow creates a `WorkflowExecution`. Executions mov
 | ----------- | --------------------------------------------------------------------------------------------- |
 | `RUNNING`   | Currently processing a step (or about to).                                                    |
 | `WAITING`   | Paused inside a `DELAY` or `WAIT_FOR_EVENT` step.                                             |
+| `HELD`      | Waiting on a `HOLD` step for steps to be added above it. Does not lock the workflow, and `cancel-all` leaves it alone; cancel it individually or delete the hold. |
 | `COMPLETED` | Reached the end of the graph successfully.                                                    |
 | `EXITED`    | Hit an `EXIT` step. `exitReason` records why.                                                 |
 | `FAILED`    | An unrecoverable error occurred (e.g. webhook returned non-2xx after retries, template not found). |
@@ -94,13 +107,14 @@ A workflow is **locked** for structural edits while it has active (`RUNNING` or 
 - Disable the workflow and wait for active executions to complete (an execution waiting on a `WAIT_FOR_EVENT` step with no timeout only completes when its event arrives), or
 - `POST /workflows/:id/executions/cancel-all` to cancel everything in flight.
 
-Cosmetic changes (renaming, editing template content referenced by steps) don't require this.
+Cosmetic changes (renaming, editing template content referenced by steps) don't require this. A step's configuration can also be changed while the workflow runs, as long as no execution is currently on that step: a step reads its configuration when an execution reaches it. Executions `HELD` on a hold never lock the workflow.
 
 ## Common patterns
 
 - **Welcome series** — `EVENT` trigger on `signed_up`, send welcome email, delay 2 days, send tips email, delay 5 days, send upgrade nudge.
 - **Inbound auto-reply** — `EVENT` trigger on `email.received`, `CONDITION` on `event.spamVerdict == "PASS"`, then `SEND_EMAIL` with an auto-reply template. See [Receiving emails](/guides/receiving-emails).
 - **Re-engagement** — Triggered by a segment exit (`segment.active-users.exit`), send a "we miss you" email, then wait up to 7 days for an `email.open` event (an open of any email counts) before continuing.
+- **Infinite nurture** — `EVENT` trigger on `subscribed`, a few emails with delays between them, ending in a `HOLD`. Whenever you write a new email, insert it (and a delay) above the hold; everyone who reached the end receives it.
 - **Webhook fan-out** — `EVENT` trigger on `purchase.completed`, `WEBHOOK` step to your CRM, `UPDATE_CONTACT` to tag `{ tier: "customer" }`, `SEND_EMAIL` with the receipt.
 
 ## API reference

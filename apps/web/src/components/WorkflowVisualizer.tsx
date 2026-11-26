@@ -15,7 +15,21 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type {WorkflowStep} from '@plunk/db';
-import {AlertTriangle, Clock, GitBranch, Hourglass, Link, LogOut, Mail, Maximize2, Minimize2, Timer, UserCog, Webhook} from 'lucide-react';
+import {
+  AlertTriangle,
+  CirclePause,
+  Clock,
+  GitBranch,
+  Hourglass,
+  Link,
+  LogOut,
+  Mail,
+  Maximize2,
+  Minimize2,
+  Timer,
+  UserCog,
+  Webhook,
+} from 'lucide-react';
 import {useEffect, useMemo, useState} from 'react';
 import dagre from 'dagre';
 
@@ -46,6 +60,7 @@ const STEP_TYPE_LABELS: Record<string, string> = {
   EXIT: 'Exit',
   WEBHOOK: 'Webhook',
   UPDATE_CONTACT: 'Update Contact',
+  HOLD: 'Hold',
 };
 
 const STEP_TYPE_ICONS = {
@@ -57,6 +72,7 @@ const STEP_TYPE_ICONS = {
   EXIT: LogOut,
   WEBHOOK: Webhook,
   UPDATE_CONTACT: UserCog,
+  HOLD: CirclePause,
 };
 
 const STEP_TYPE_COLORS = {
@@ -68,6 +84,7 @@ const STEP_TYPE_COLORS = {
   EXIT: '#dc2626', // red-600
   WEBHOOK: '#16a34a', // green-600
   UPDATE_CONTACT: '#4f46e5', // indigo-600
+  HOLD: '#0d9488', // teal-600
 };
 
 const STEP_TYPE_BG = {
@@ -79,6 +96,7 @@ const STEP_TYPE_BG = {
   EXIT: '#fee2e2', // red-50
   WEBHOOK: '#dcfce7', // green-50
   UPDATE_CONTACT: '#e0e7ff', // indigo-50
+  HOLD: '#ccfbf1', // teal-50
 };
 
 // Dagre layout function
