@@ -294,6 +294,46 @@ describe('ActivityService - workflow activity', () => {
 
     expect(seen).toEqual(started.map(execution => `${execution.id}_started`));
   });
+
+  it('keeps an explicit startDate on every cursor page', async () => {
+    const workflow = await factories.createWorkflow({projectId});
+    const recent = [await startExecution(workflow.id, 1), await startExecution(workflow.id, 2)];
+    await startExecution(workflow.id, 5);
+    const startDate = new Date(Date.now() - 3 * DAY);
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await ActivityService.getActivities(
+        projectId,
+        1,
+        cursor,
+        [ActivityType.WORKFLOW_STARTED],
+        undefined,
+        startDate,
+      );
+      seen.push(...page.data.map(activity => activity.id));
+      cursor = page.cursor;
+    } while (cursor);
+
+    expect(seen).toEqual(recent.map(execution => `${execution.id}_started`));
+  });
+
+  it('lets cursor pages reach past the default 30-day window when no startDate is given', async () => {
+    const workflow = await factories.createWorkflow({projectId});
+    const recent = await startExecution(workflow.id, 1);
+    const old = await startExecution(workflow.id, 45);
+
+    const first = await ActivityService.getActivities(projectId, 50, undefined, [ActivityType.WORKFLOW_STARTED]);
+    expect(first.data.map(activity => activity.id)).toEqual([`${recent.id}_started`]);
+
+    // The dashboard continues from a cursor at its window's start, without a startDate
+    const windowStart = Date.now() - 30 * DAY;
+    const next = await ActivityService.getActivities(projectId, 50, `${windowStart}_`, [
+      ActivityType.WORKFLOW_STARTED,
+    ]);
+    expect(next.data.map(activity => activity.id)).toEqual([`${old.id}_started`]);
+  });
 });
 
 describe('delivered filter with newer inbound rows', () => {

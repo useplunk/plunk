@@ -16,7 +16,8 @@ export class Activity {
    * - cursor: string (pagination cursor: timestamp_id)
    * - types: ActivityType[] (filter by activity types)
    * - contactId: string (filter by contact)
-   * - startDate: ISO date string
+   * - startDate: ISO date string (bounds every page; without it, only the first page
+   *   defaults to the last 30 days, or no floor when contactId is set)
    * - endDate: ISO date string
    */
   @Get('')
