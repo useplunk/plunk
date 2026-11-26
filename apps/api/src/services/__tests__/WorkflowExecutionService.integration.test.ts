@@ -5,10 +5,10 @@ import {QueueService} from '../QueueService';
 import {WorkflowExecutionService} from '../WorkflowExecutionService';
 import {factories, getPrismaClient} from '../../../../../test/helpers';
 
-vi.mock('node:dns/promises', () => ({
-  default: {
-    lookup: vi.fn(async () => ({address: '1.2.3.4', family: 4})),
-  },
+// Webhooks go through undici's fetch; route it to the global fetch the webhook test mocks
+vi.mock('undici', async importOriginal => ({
+  ...(await importOriginal<typeof import('undici')>()),
+  fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args),
 }));
 
 /**

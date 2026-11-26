@@ -8273,6 +8273,7 @@ __metadata:
     stripe: "npm:^20.0.0"
     tldts: "npm:^7.4.16"
     tsx: "npm:^4.20.6"
+    undici: "npm:^6.19.5"
     zod: "npm:^3.23.8"
   languageName: unknown
   linkType: soft

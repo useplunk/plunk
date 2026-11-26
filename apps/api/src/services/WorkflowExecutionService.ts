@@ -13,6 +13,8 @@ import {renderTemplate, WorkflowStepConfigSchemas} from '@plunk/shared';
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import signale from 'signale';
+import {Agent, fetch} from 'undici';
+import type {RequestInit, Response} from 'undici';
 
 import {prisma} from '../database/prisma.js';
 import {HttpException} from '../exceptions/index.js';
@@ -26,6 +28,12 @@ import {QueueService} from './QueueService.js';
 // A step's error is rethrown through the catch of every step before it in the same run, which
 // had completed; the step it came from has handled it, so those pass it up untouched.
 const handledFailures = new WeakSet<object>();
+
+class BlockedAddressError extends Error {
+  constructor(address: string) {
+    super(`Webhook URL resolves to a private/internal IP address: ${address}`);
+  }
+}
 
 type StepConfig = Prisma.JsonValue;
 type StepResult = Record<string, unknown>;
@@ -1036,8 +1044,42 @@ export class WorkflowExecutionService {
   }
 
   /**
-   * SSRF-safe fetch. Resolves the hostname, validates the IP is not internal,
-   * and manually follows redirects re-validating each hop.
+   * Every webhook connection resolves its hostname through this lookup, so the
+   * address that passes the private-IP check is the address the socket connects
+   * to. Validating with a separate lookup before fetch() let a DNS server answer
+   * public to the check and internal to the connection (DNS rebinding).
+   * All addresses are checked, so a name with one public and one internal
+   * record is rejected rather than relying on which one gets tried first.
+   */
+  private static readonly webhookAgent = new Agent({
+    connect: {
+      lookup(hostname, options, callback) {
+        dns
+          .lookup(hostname, {all: true})
+          .then(addresses => {
+            if (addresses.length === 0) {
+              throw new Error(`Webhook URL hostname did not resolve: ${hostname}`);
+            }
+            const blocked = addresses.find(a => WorkflowExecutionService.isPrivateIp(a.address));
+            if (blocked) {
+              throw new BlockedAddressError(blocked.address);
+            }
+            return addresses;
+          })
+          .then(
+            addresses =>
+              options.all
+                ? callback(null, addresses)
+                : callback(null, addresses[0]!.address, addresses[0]!.family),
+            (err: Error) => callback(err, ''),
+          );
+      },
+    },
+  });
+
+  /**
+   * SSRF-safe fetch. Connects only to non-internal addresses (see webhookAgent)
+   * and manually follows redirects so each hop goes through the same check.
    */
   private static async safeFetch(url: string, options: RequestInit): Promise<Response> {
     const MAX_REDIRECTS = 5;
@@ -1056,18 +1098,26 @@ export class WorkflowExecutionService {
           ? parsed.hostname.slice(1, -1)
           : parsed.hostname;
 
-      // An IP literal needs no resolution — validate it directly
-      const address = net.isIP(hostname) ? hostname : (await dns.lookup(hostname)).address;
-
-      if (WorkflowExecutionService.isPrivateIp(address)) {
-        throw new Error(`Webhook URL resolves to a private/internal IP address: ${address}`);
+      // IP literals never reach the agent's lookup, so they are checked here
+      if (net.isIP(hostname) && WorkflowExecutionService.isPrivateIp(hostname)) {
+        throw new BlockedAddressError(hostname);
       }
 
-      const response = await fetch(currentUrl, {
-        ...options,
-        redirect: 'manual',
-        signal: AbortSignal.timeout(10_000),
-      });
+      let response: Response;
+      try {
+        response = await fetch(currentUrl, {
+          ...options,
+          dispatcher: WorkflowExecutionService.webhookAgent,
+          redirect: 'manual',
+          signal: AbortSignal.timeout(10_000),
+        });
+      } catch (error) {
+        // fetch wraps connection errors as "fetch failed"; surface the real reason
+        if (error instanceof TypeError && error.cause instanceof BlockedAddressError) {
+          throw error.cause;
+        }
+        throw error;
+      }
 
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get('location');
