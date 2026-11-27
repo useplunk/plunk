@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * stdio entry point for the Plunk MCP server.
+ * Entry point for the Plunk MCP server: stdio by default, Streamable HTTP with
+ * `--http` (see `http.ts`).
  *
  * `serveStdio` owns the protocol-era decision: the same factory serves both the
  * 2026-07-28 revision and older 2025-era clients, so one binary works across the
@@ -14,9 +15,25 @@
 import {serveStdio} from '@modelcontextprotocol/server/stdio';
 
 import {ConfigError, loadConfig} from './config.js';
+import {loadHttpOptions, serveHttp} from './http.js';
 import {buildServer, SERVER_VERSION} from './server.js';
 
 function main(): void {
+  if (process.argv.slice(2).includes('--http')) {
+    try {
+      serveHttp(loadHttpOptions());
+    } catch (error) {
+      if (error instanceof ConfigError) {
+        console.error(`[plunk-mcp] ${error.message}`);
+        process.exit(1);
+      }
+
+      throw error;
+    }
+
+    return;
+  }
+
   let config;
 
   try {

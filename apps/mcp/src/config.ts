@@ -59,14 +59,8 @@ export class ConfigError extends Error {}
  * Recognised flags: `--read-only`, `--api-url=<url>`.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] = process.argv.slice(2)): PlunkMcpConfig {
-  const urlFlag = argv.find((a) => a.startsWith('--api-url='))?.slice('--api-url='.length);
-  const apiUrl = stripTrailingSlash(urlFlag ?? (env.PLUNK_MCP_API_URL ?? env.PLUNK_API_URL)?.trim() ?? DEFAULT_API_URL);
-
-  if (!/^https?:\/\//.test(apiUrl)) {
-    throw new ConfigError(`PLUNK_API_URL must be an absolute http(s) URL, received "${apiUrl}".`);
-  }
-
-  const readOnly = argv.includes('--read-only') || isTruthy(env.PLUNK_READ_ONLY);
+  const apiUrl = resolveApiUrl(env, argv);
+  const readOnly = isReadOnly(env, argv);
 
   const projects = loadProjects(env);
 
@@ -105,6 +99,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] 
   }
 
   return {apiKey, publicKey, apiUrl, readOnly};
+}
+
+/** The API base URL from `--api-url=` or the environment, validated. */
+export function resolveApiUrl(env: NodeJS.ProcessEnv, argv: string[]): string {
+  const urlFlag = argv.find((a) => a.startsWith('--api-url='))?.slice('--api-url='.length);
+  const apiUrl = stripTrailingSlash(urlFlag ?? (env.PLUNK_MCP_API_URL ?? env.PLUNK_API_URL)?.trim() ?? DEFAULT_API_URL);
+
+  if (!/^https?:\/\//.test(apiUrl)) {
+    throw new ConfigError(`PLUNK_API_URL must be an absolute http(s) URL, received "${apiUrl}".`);
+  }
+
+  return apiUrl;
+}
+
+/** Whether `--read-only` or `PLUNK_READ_ONLY` asks for the read-only tool set. */
+export function isReadOnly(env: NodeJS.ProcessEnv, argv: string[]): boolean {
+  return argv.includes('--read-only') || isTruthy(env.PLUNK_READ_ONLY);
 }
 
 /**
