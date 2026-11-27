@@ -11,6 +11,12 @@
  * endpoint can serve any number of projects and a leaked process environment
  * holds no key. The endpoint is stateless (no session ids).
  *
+ * Send confirmations need a client on the 2026-07-28 revision: it answers the
+ * `input_required` prompt and retries, which works without a session. A
+ * 2025-era client cannot be asked anything over stateless HTTP, so gated tools
+ * (campaign sends, multi-recipient email, enabling sending workflows) return an
+ * error to it and never send.
+ *
  * Serve it behind TLS (a reverse proxy) when it is reachable from outside the
  * machine: a bearer key must not cross the network in clear text. It binds to
  * 127.0.0.1 unless told otherwise.
@@ -63,12 +69,22 @@ export function loadHttpOptions(
     throw new ConfigError(`PLUNK_MCP_PORT must be a port number between 0 and 65535, received "${rawPort}".`);
   }
 
+  // The escape hatch is read process-wide, so on a shared endpoint it removes
+  // the send confirmation for every caller and every project at once. Over
+  // stdio it is one user's choice; here it needs a second, explicit opt-in.
+  if (env.PLUNK_ALLOW_UNCONFIRMED_SENDS === 'true' && !argv.includes('--allow-unconfirmed-sends')) {
+    throw new ConfigError(
+      'PLUNK_ALLOW_UNCONFIRMED_SENDS=true skips the send confirmation for every client of this HTTP endpoint. ' +
+        'Pass --allow-unconfirmed-sends as well if that is intended, or unset it.',
+    );
+  }
+
   const origins = flag('allowed-origins') ?? env.PLUNK_MCP_ALLOWED_ORIGINS ?? '';
 
   return {
     apiUrl: resolveApiUrl(env, argv),
     readOnly: isReadOnly(env, argv),
-    host: flag('host') ?? (env.PLUNK_MCP_HOST?.trim() || DEFAULT_HTTP_HOST),
+    host: flag('host')?.trim() || env.PLUNK_MCP_HOST?.trim() || DEFAULT_HTTP_HOST,
     port,
     allowedOrigins: origins
       .split(',')
@@ -150,6 +166,8 @@ export function createPlunkHttpHandler(options: HttpServerOptions): PlunkHttpHan
         return jsonResponse(404, {error: `Not found. The MCP endpoint is ${MCP_PATH}.`});
       }
 
+      // Exact origin match rather than the SDK's `originValidationResponse`,
+      // which compares hostnames only and so lets http:// and any port through.
       const origin = request.headers.get('origin');
 
       if (origin && !allowedOrigins.includes(origin.replace(/\/$/, ''))) {
@@ -213,7 +231,22 @@ async function sendWebResponse(response: Response, res: ServerResponse): Promise
       }
 
       if (!res.write(value)) {
-        await new Promise<void>((resolve) => res.once('drain', resolve));
+        // A client that disconnects while the buffer is full never emits
+        // 'drain', so wait for whichever of the two comes first.
+        await new Promise<void>((resolve) => {
+          const settle = () => {
+            res.off('drain', settle);
+            res.off('close', settle);
+            resolve();
+          };
+          res.once('drain', settle);
+          res.once('close', settle);
+        });
+      }
+
+      if (res.destroyed) {
+        await reader.cancel().catch(() => undefined);
+        break;
       }
     }
   } finally {

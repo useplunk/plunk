@@ -127,11 +127,20 @@ key, for container health checks.
 | `--port=<n>` / `PLUNK_MCP_PORT`                  | `3000`      | Port to listen on.                                                                                  |
 | `--host=<addr>` / `PLUNK_MCP_HOST`               | `127.0.0.1` | Address to bind. Use `0.0.0.0` inside a container.                                                  |
 | `--allowed-origins=<list>` / `PLUNK_MCP_ALLOWED_ORIGINS` | none | Comma-separated browser origins allowed to call the endpoint. A request with any other `Origin` is refused. |
+| `--allow-unconfirmed-sends`                      | off         | Required alongside `PLUNK_ALLOW_UNCONFIRMED_SENDS=true`, which the server otherwise refuses to start with. |
 
 `--api-url` and `--read-only` work as before. The endpoint speaks plain HTTP: put it behind a TLS reverse
 proxy before exposing it beyond the machine, because the bearer key is sent on every request. Named
 projects (`PLUNK_API_KEY_<NAME>`) and `PLUNK_PUBLIC_KEY` apply to stdio only. Over HTTP, send the key of
 the project you want.
+
+**Send confirmations need a 2026-07-28 client.** Over HTTP the server can only ask for confirmation by
+answering the call with a prompt that the client shows and then retries, which is how the 2026-07-28
+revision of MCP works. A client on an earlier revision cannot be prompted over stateless HTTP, so the
+gated tools (`plunk_send_campaign`, `plunk_send_email` with several recipients, and the workflow tools
+that ask before sending) return an error to it and send nothing. Every other tool works on both.
+`PLUNK_ALLOW_UNCONFIRMED_SENDS=true` lifts the gate for every client of the endpoint at once, not just
+yours, so the server starts with it only when `--allow-unconfirmed-sends` is passed too.
 
 ## Tools
 

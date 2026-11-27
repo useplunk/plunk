@@ -61,8 +61,8 @@ function mockPlunkApi(respond: (url: string, init?: RequestInit) => Response) {
   return seen;
 }
 
-async function connect(base: string, key: string) {
-  const client = new Client({name: 'http-test', version: '1.0.0'});
+async function connect(base: string, key: string, options?: ConstructorParameters<typeof Client>[1]) {
+  const client = new Client({name: 'http-test', version: '1.0.0'}, options);
   const transport = new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
     requestInit: {headers: {Authorization: `Bearer ${key}`}},
   });
@@ -169,8 +169,6 @@ describe('plunk-mcp --http', () => {
   });
 
   it('stays stateless: a request without a key never inherits an earlier one', async () => {
-    // The handler is stateless: a request without a key never inherits one
-    // from an earlier request.
     const handler = createPlunkHttpHandler({apiUrl: API, readOnly: false});
     closers.push(() => handler.close());
 
@@ -187,6 +185,66 @@ describe('plunk-mcp --http', () => {
       new Request('http://x.test/mcp', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}),
     );
     expect(missing.status).toBe(401);
+  });
+});
+
+describe('send confirmation over HTTP', () => {
+  /** A campaign with an audience, and a send endpoint that records every hit. */
+  function mockCampaign() {
+    return mockPlunkApi((url) =>
+      url.endsWith('/send')
+        ? new Response(JSON.stringify({status: 'SENDING'}), {status: 200})
+        : new Response(
+            JSON.stringify({success: true, data: {id: 'camp-1', name: 'March newsletter', totalRecipients: 43812}}),
+            {status: 200, headers: {'Content-Type': 'application/json'}},
+          ),
+    );
+  }
+
+  const sends = (seen: ReturnType<typeof mockPlunkApi>) =>seen.filter((s) => s.url.endsWith('/send'));
+
+  /** A 2026-07-28 client whose user answers the confirmation prompt with `answer`. */
+  async function modernClient(base: string, answer: {action: 'accept' | 'decline'; content?: {confirm: boolean}}) {
+    const client = await connect(base, 'sk_one', {
+      capabilities: {elicitation: {}},
+      versionNegotiation: {mode: {pin: '2026-07-28'}},
+    });
+    client.setRequestHandler('elicitation/create', async () => answer);
+    return client;
+  }
+
+  it('refuses a gated send from a 2025-era client, which cannot be prompted, and sends nothing', async () => {
+    const seen = mockCampaign();
+    const base = await listen();
+    const client = await connect(base, 'sk_one');
+
+    const result = await client.callTool({name: 'plunk_send_campaign', arguments: {id: 'camp-1'}});
+
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toMatch(/server-to-client requests/);
+    expect(sends(seen)).toHaveLength(0);
+  });
+
+  it('sends once a 2026-07-28 client confirms, with the key from the request', async () => {
+    const seen = mockCampaign();
+    const base = await listen();
+    const client = await modernClient(base, {action: 'accept', content: {confirm: true}});
+
+    const result = await client.callTool({name: 'plunk_send_campaign', arguments: {id: 'camp-1'}});
+
+    expect(result.isError).toBeFalsy();
+    expect(sends(seen)).toHaveLength(1);
+    expect(sends(seen)[0]?.authorization).toBe('Bearer sk_one');
+  });
+
+  it('does not send when the user declines', async () => {
+    const seen = mockCampaign();
+    const base = await listen();
+    const client = await modernClient(base, {action: 'decline'});
+
+    await client.callTool({name: 'plunk_send_campaign', arguments: {id: 'camp-1'}}).catch(() => undefined);
+
+    expect(sends(seen)).toHaveLength(0);
   });
 });
 
@@ -234,5 +292,16 @@ describe('loadHttpOptions', () => {
 
   it('does not need a PLUNK_API_KEY', () => {
     expect(() => loadHttpOptions({}, [])).not.toThrow();
+  });
+
+  it('refuses PLUNK_ALLOW_UNCONFIRMED_SENDS unless --allow-unconfirmed-sends confirms it', () => {
+    const env = {PLUNK_ALLOW_UNCONFIRMED_SENDS: 'true'};
+
+    expect(() => loadHttpOptions(env, ['--http'])).toThrow(/every client/);
+    expect(() => loadHttpOptions(env, ['--http', '--allow-unconfirmed-sends'])).not.toThrow();
+  });
+
+  it('trims the host flag', () => {
+    expect(loadHttpOptions({}, ['--host= 0.0.0.0 ']).host).toBe('0.0.0.0');
   });
 });
