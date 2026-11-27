@@ -95,6 +95,44 @@ prompts name the project too.
   combined with named keys.
 - All projects share one API URL and one read-only setting.
 
+## Running over HTTP
+
+Remote MCP clients (browser-based assistants, shared team setups) connect to a URL instead of spawning a
+process. `--http` serves the same tools over the Streamable HTTP transport:
+
+```bash
+npx -y @plunk/mcp --http --port=3000
+# listening on http://127.0.0.1:3000/mcp
+```
+
+Each request carries the project's secret key as `Authorization: Bearer sk_…`; the server reads it per
+request and stores nothing, so one endpoint can serve any number of projects and needs no
+`PLUNK_API_KEY` of its own. A request without a secret key gets `401`. `GET /health` answers `200` without a
+key, for container health checks.
+
+```json
+{
+  "mcpServers": {
+    "plunk": {
+      "type": "http",
+      "url": "https://mcp.your-domain.com/mcp",
+      "headers": { "Authorization": "Bearer sk_your_key" }
+    }
+  }
+}
+```
+
+| Flag / variable                                  | Default     | Description                                                                                         |
+| ------------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------- |
+| `--port=<n>` / `PLUNK_MCP_PORT`                  | `3000`      | Port to listen on.                                                                                  |
+| `--host=<addr>` / `PLUNK_MCP_HOST`               | `127.0.0.1` | Address to bind. Use `0.0.0.0` inside a container.                                                  |
+| `--allowed-origins=<list>` / `PLUNK_MCP_ALLOWED_ORIGINS` | none | Comma-separated browser origins allowed to call the endpoint. A request with any other `Origin` is refused. |
+
+`--api-url` and `--read-only` work as before. The endpoint speaks plain HTTP: put it behind a TLS reverse
+proxy before exposing it beyond the machine, because the bearer key is sent on every request. Named
+projects (`PLUNK_API_KEY_<NAME>`) and `PLUNK_PUBLIC_KEY` apply to stdio only. Over HTTP, send the key of
+the project you want.
+
 ## Tools
 
 Read-only tools (the only ones registered when `PLUNK_READ_ONLY=true`):
