@@ -330,6 +330,40 @@ describe('Workflow CONDITION Step - Comprehensive Operator Tests', () => {
         expect(branch).toBe('no');
       });
     });
+
+    describe('contact.email (case-insensitive, consistent with SegmentService)', () => {
+      async function branchForEmail(operator: string, toValue: (email: string) => string) {
+        const {execution, triggerStep, conditionStep, contact} = await createConditionalWorkflow(
+          {},
+          {field: 'contact.email', operator, value: ''},
+        );
+        await prisma.workflowStep.update({
+          where: {id: conditionStep.id},
+          data: {config: {field: 'contact.email', operator, value: toValue(contact.email)}},
+        });
+
+        await WorkflowExecutionService.processStepExecution(execution.id, triggerStep.id);
+        await WorkflowExecutionService.processStepExecution(execution.id, conditionStep.id);
+
+        return getConditionBranch(execution.id, conditionStep.id);
+      }
+
+      it('should match equals regardless of case', async () => {
+        expect(await branchForEmail('equals', email => email.toUpperCase())).toBe('yes');
+      });
+
+      it('should not match notEquals for the same address in another case', async () => {
+        expect(await branchForEmail('notEquals', email => email.toUpperCase())).toBe('no');
+      });
+
+      it('should match contains regardless of case', async () => {
+        expect(await branchForEmail('contains', () => '@TEST.COM')).toBe('yes');
+      });
+
+      it('should not match notContains when the substring differs only in case', async () => {
+        expect(await branchForEmail('notContains', () => '@TEST.COM')).toBe('no');
+      });
+    });
   });
 
   // ========================================
