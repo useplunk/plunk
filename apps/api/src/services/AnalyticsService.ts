@@ -21,6 +21,8 @@ import type {
 
 import {prisma} from '../database/prisma.js';
 import {redis} from '../database/redis.js';
+
+import {CampaignService} from './CampaignService.js';
 import {Keys} from './keys.js';
 
 /**
@@ -294,7 +296,7 @@ export class AnalyticsService {
    * belongs to the period it started sending in.
    */
   private static async campaignLeaderboard(query: AnalyticsQuery): Promise<AnalyticsLeaderboardRow[]> {
-    const campaigns = await prisma.campaign.findMany({
+    const rows = await prisma.campaign.findMany({
       where: {
         projectId: query.projectId,
         status: {in: ['SENDING', 'SENT']},
@@ -303,6 +305,7 @@ export class AnalyticsService {
       select: {
         id: true,
         name: true,
+        status: true,
         sentAt: true,
         sentCount: true,
         deliveredCount: true,
@@ -315,6 +318,10 @@ export class AnalyticsService {
       orderBy: {sentAt: 'desc'},
       take: this.LEADERBOARD_LIMIT,
     });
+
+    // A SENDING campaign's `sentCount` column stays 0 until it finalizes; the progress so far
+    // lives in Redis, and the campaign page already reads it from there.
+    const campaigns = await CampaignService.withLiveSentCount(rows);
 
     return campaigns.map(c => ({
       id: c.id,
