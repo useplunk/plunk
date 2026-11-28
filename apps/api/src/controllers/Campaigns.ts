@@ -10,7 +10,7 @@ import {CampaignService} from '../services/CampaignService.js';
 import {DomainService} from '../services/DomainService.js';
 import {CatchAsync} from '../utils/asyncHandler.js';
 import {parseListSort} from '../utils/listSort.js';
-import {assertValidTemplateSyntax} from '../utils/templateValidation.js';
+import {assertValidReplyTo, assertValidTemplateSyntax} from '../utils/templateValidation.js';
 
 @Controller('campaigns')
 export class Campaigns {
@@ -180,6 +180,7 @@ export class Campaigns {
     if (from) {
       await DomainService.verifyEmailDomain(from, auth.projectId);
     }
+    assertValidReplyTo(replyTo);
 
     const campaign = await CampaignService.update(auth.projectId, id!, {
       name,
