@@ -65,9 +65,9 @@ For `email` and any `data.<key>` that holds a string.
 | Operator      | What it does                                              |
 | ------------- | --------------------------------------------------------- |
 | `equals`      | Exact match. Case-insensitive on `email`, exact on `data.*`. |
-| `notEquals`   | Negation of `equals`.                                     |
+| `notEquals`   | Has a value, and it's a different one.                    |
 | `contains`    | Case-insensitive substring match.                         |
-| `notContains` | Negation of `contains`.                                   |
+| `notContains` | Has a value that doesn't include this text.               |
 
 ### Yes/no fields
 
@@ -76,7 +76,7 @@ For `subscribed` and any `data.<key>` that holds `true` or `false`.
 | Operator    | What it does                |
 | ----------- | --------------------------- |
 | `equals`    | Match true or false.        |
-| `notEquals` | Negation.                   |
+| `notEquals` | Has the other value.        |
 
 ### Dates and timestamps
 
@@ -95,6 +95,10 @@ For custom date fields (`data.<key>`), `within` and `olderThan` only work when t
 ### Numbers
 
 For any `data.<key>` that holds a number: `equals`, `notEquals`, `greaterThan`, `lessThan`, `greaterThanOrEqual`, `lessThanOrEqual`. No `unit` is needed.
+
+### Contacts without the field
+
+Every comparison on a `data.<key>` matches only contacts that have that key (except `equals` / `notEquals` with a `null` value, which compare against an explicit `null`). `notEquals` and `notContains` too: `plan notEquals "pro"` leaves out contacts with no `plan`, and `vip notEquals true` leaves out contacts with no `vip`. To include them, combine the filter in a nested `OR` condition with `notExists` on the same key. Filters in a group are always combined with `AND`, so the `OR` has to be nested in that group; a separate `OR` group at the top would also let in contacts the group's other filters leave out.
 
 ### Field existence
 
@@ -124,7 +128,7 @@ For `segment.<segmentId>`, where `<segmentId>` is the ID of another segment in y
 | Operator              | What it does                                              |
 | --------------------- | --------------------------------------------------------- |
 | `memberOfSegment`     | Contact is currently in the referenced segment.           |
-| `notMemberOfSegment`  | Contact is not in the referenced segment.                 |
+| `notMemberOfSegment`  | Contact is not in the referenced segment. A contact without a field doesn't match that segment's comparisons on it. |
 
 ## Quick reference: what to pass with each operator
 
