@@ -1121,6 +1121,8 @@ export class WorkflowExecutionService {
 
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get('location');
+        // Release the redirect's body so its socket goes back to the keep-alive pool
+        await response.body?.cancel();
         if (!location) {
           throw new Error('Redirect with no Location header');
         }
