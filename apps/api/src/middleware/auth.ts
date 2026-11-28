@@ -136,6 +136,17 @@ export const requirePublicKey = async (req: Request, res: Response, next: NextFu
       throw new HttpException(401, 'API key is required in Authorization header', ErrorCode.MISSING_AUTH);
     }
 
+    // Public-key routes are called from browser code. Rejecting secret keys by name makes a key
+    // pasted into a website fail on the first request instead of working while it sits exposed,
+    // where anyone could lift it and send email from the project.
+    if (apiKey.startsWith('sk_')) {
+      throw new HttpException(
+        401,
+        'Secret keys (sk_*) cannot be used on this endpoint: it is meant for browser code, where a secret key would be exposed. Use your public key (pk_*) instead, and rotate the secret key if it was ever shipped to a browser.',
+        ErrorCode.INVALID_API_KEY,
+      );
+    }
+
     // Look up project by public key only
     const project = await ProjectService.public(apiKey);
 

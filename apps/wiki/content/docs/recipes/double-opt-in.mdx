@@ -37,7 +37,7 @@ import {Step, Steps} from 'fumadocs-ui/components/steps';
 
 ### Trigger the signup from your backend
 
-Two calls with your secret key (`sk_*`): create the contact unsubscribed, then track the event that fires the confirmation workflow.
+Two calls: create the contact unsubscribed with your secret key (`sk_*`), then track the event that fires the confirmation workflow with your public key (`pk_*`). `/v1/track` only accepts public keys.
 
 ```bash
 curl https://next-api.useplunk.com/contacts \
@@ -45,7 +45,7 @@ curl https://next-api.useplunk.com/contacts \
   -d '{ "email": "ada@example.com", "subscribed": false, "data": { "firstName": "Ada" } }'
 
 curl https://next-api.useplunk.com/v1/track \
-  -H "Authorization: Bearer sk_your_secret_key" \
+  -H "Authorization: Bearer pk_your_public_key" \
   -d '{ "event": "signup.pending", "email": "ada@example.com", "subscribed": false }'
 ```
 

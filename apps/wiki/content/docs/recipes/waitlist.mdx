@@ -31,11 +31,11 @@ We'll let you know as soon as your spot opens up.
 
 ### Track the signup from your backend
 
-Call `POST /v1/track` when a user submits the form. Use a secret key (`sk_*`) — never call this from the browser.
+Call `POST /v1/track` when a user submits the form. It takes your public key (`pk_*`), which is safe to use from your backend and the browser alike. Secret keys are rejected on this endpoint.
 
 ```bash
 curl https://next-api.useplunk.com/v1/track \
-  -H "Authorization: Bearer sk_your_secret_key" \
+  -H "Authorization: Bearer pk_your_public_key" \
   -H "Content-Type: application/json" \
   -d '{
     "event": "waitlist.joined",
