@@ -897,7 +897,8 @@ export class WorkflowService {
    *
    * Purely additive — no step is removed and nothing becomes unreachable — so
    * unlike splice/delete this does not need to guard against in-flight executions.
-   * An execution parked on A simply picks up the new step on its next hop.
+   * An execution parked on A simply picks up the new step on its next hop, a DELAY
+   * included, since it looks up its next step when the delay ends.
    */
   public static async insertStepOnTransition(
     projectId: string,
