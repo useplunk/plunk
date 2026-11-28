@@ -205,7 +205,7 @@ The `/v1/*` endpoints are designed for use from your applications and accept sim
 | Method | Path         | Description                                                                                  | Key      |
 | ------ | ------------ | -------------------------------------------------------------------------------------------- | -------- |
 | POST   | `/v1/send`   | Send a transactional email. Single or multiple recipients, template or inline content, attachments, headers, custom data. | `sk_*` |
-| POST   | `/v1/track`  | Track an event for a contact. Auto-creates or upserts the contact. Triggers workflows.       | `pk_*` or `sk_*` |
+| POST   | `/v1/track`  | Track an event for a contact. Auto-creates or upserts the contact. Triggers workflows.       | `pk_*`   |
 | POST   | `/v1/verify` | Validate an email address — format, MX records, disposable domains, typo detection.          | `sk_*`   |
 
 ### Contacts
