@@ -99,6 +99,12 @@ yarn workspace web dev
 - **Generate client**: `yarn workspace @plunk/db db:generate`
 - **Run migrations (dev)**: `yarn workspace @plunk/db migrate:dev`
 
+### Tests
+
+- **Web component interactions**: `yarn test:run --project web` runs the `.test.tsx` files in the web app's
+  `__tests__` directories with jsdom, without requiring the database or other services.
+- **All tests**: `yarn test:run` also runs the platform integration tests and requires the test infrastructure.
+
 ## Code Standards
 
 ### Import Organization
