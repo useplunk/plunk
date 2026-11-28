@@ -75,17 +75,28 @@ SET "contactId" = m.survivor_id
 FROM _contact_merge_map m
 WHERE ev."contactId" = m.dup_id;
 
--- segment_memberships has a composite PK (contactId, segmentId). Drop any
--- duplicate membership the survivor already holds for the same segment, then
--- reassign the rest.
-DELETE FROM segment_memberships dsm
-USING _contact_merge_map m
-WHERE dsm."contactId" = m.dup_id
-  AND EXISTS (
-    SELECT 1 FROM segment_memberships ssm
-    WHERE ssm."contactId" = m.survivor_id
-      AND ssm."segmentId" = dsm."segmentId"
-  );
+-- segment_memberships has a composite PK (contactId, segmentId). Collapse the
+-- memberships of the whole merge group (survivor included) down to one row per
+-- (survivor, segment) so the reassignment below cannot collide. An active
+-- membership (exitedAt IS NULL) wins, mirroring "a single unsubscribe wins"
+-- above: if any source contact is still in the segment, the merged contact
+-- stays in it.
+WITH grp AS (
+  SELECT sm.ctid AS row_id,
+         ROW_NUMBER() OVER (
+           PARTITION BY m.survivor_id, sm."segmentId"
+           ORDER BY (sm."exitedAt" IS NOT NULL), sm."enteredAt", sm."contactId"
+         ) AS rn
+  FROM segment_memberships sm
+  JOIN (
+    SELECT dup_id AS cid, survivor_id FROM _contact_merge_map
+    UNION
+    SELECT survivor_id, survivor_id FROM _contact_merge_map
+  ) m ON m.cid = sm."contactId"
+)
+DELETE FROM segment_memberships sm
+USING grp
+WHERE sm.ctid = grp.row_id AND grp.rn > 1;
 
 UPDATE segment_memberships dsm
 SET "contactId" = m.survivor_id
