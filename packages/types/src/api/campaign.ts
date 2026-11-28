@@ -21,6 +21,8 @@ export interface CreateCampaignData {
   fromName?: string | null;
   replyTo?: string | null;
   type?: TemplateType;
+  /** Open and click tracking: true/false overrides the project's TrackingMode, null/omitted follows it */
+  tracking?: boolean | null;
   audienceType: CampaignAudienceType;
   audienceCondition?: FilterCondition;
   segmentId?: string;
@@ -38,6 +40,8 @@ export interface UpdateCampaignData {
   fromName?: string | null;
   replyTo?: string | null;
   type?: TemplateType;
+  /** true/false overrides the project's TrackingMode, null goes back to following it, omitted leaves it unchanged */
+  tracking?: boolean | null;
   audienceType?: CampaignAudienceType;
   audienceCondition?: FilterCondition;
   segmentId?: string;
