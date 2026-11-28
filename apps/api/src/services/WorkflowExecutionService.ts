@@ -1050,30 +1050,32 @@ export class WorkflowExecutionService {
    * public to the check and internal to the connection (DNS rebinding).
    * All addresses are checked, so a name with one public and one internal
    * record is rejected rather than relying on which one gets tried first.
+   * The caller's family and hints are passed through, so a socket that asks for
+   * IPv4 is never handed an IPv6 address (or the other way round).
    */
+  private static webhookLookup(...[hostname, options, callback]: Parameters<net.LookupFunction>): void {
+    dns
+      .lookup(hostname, {all: true, family: options.family, hints: options.hints})
+      .then(addresses => {
+        if (addresses.length === 0) {
+          throw new Error(`Webhook URL hostname did not resolve: ${hostname}`);
+        }
+        const blocked = addresses.find(a => WorkflowExecutionService.isPrivateIp(a.address));
+        if (blocked) {
+          throw new BlockedAddressError(blocked.address);
+        }
+        return addresses;
+      })
+      .then(
+        addresses =>
+          options.all ? callback(null, addresses) : callback(null, addresses[0]!.address, addresses[0]!.family),
+        (err: Error) => callback(err, ''),
+      );
+  }
+
   private static readonly webhookAgent = new Agent({
     connect: {
-      lookup(hostname, options, callback) {
-        dns
-          .lookup(hostname, {all: true})
-          .then(addresses => {
-            if (addresses.length === 0) {
-              throw new Error(`Webhook URL hostname did not resolve: ${hostname}`);
-            }
-            const blocked = addresses.find(a => WorkflowExecutionService.isPrivateIp(a.address));
-            if (blocked) {
-              throw new BlockedAddressError(blocked.address);
-            }
-            return addresses;
-          })
-          .then(
-            addresses =>
-              options.all
-                ? callback(null, addresses)
-                : callback(null, addresses[0]!.address, addresses[0]!.family),
-            (err: Error) => callback(err, ''),
-          );
-      },
+      lookup: (...args) => WorkflowExecutionService.webhookLookup(...args),
     },
   });
 
