@@ -99,4 +99,20 @@ describe('WorkflowExecutionService webhook DNS rebinding', () => {
     expect(lookup).not.toHaveBeenCalled();
     expect(requests).toBe(0);
   });
+
+  it('resolves only the address family the socket asked for', async () => {
+    treatLoopbackAsPublic();
+    const lookup = answer([{address: '127.0.0.1', family: 4}]);
+
+    const result = await new Promise<{address: unknown; family: unknown}>((resolve, reject) =>
+      service.webhookLookup(
+        'dual-stack.test',
+        {family: 4, hints: 0},
+        (err: Error | null, address: unknown, family: unknown) => (err ? reject(err) : resolve({address, family})),
+      ),
+    );
+
+    expect(lookup).toHaveBeenCalledWith('dual-stack.test', {all: true, family: 4, hints: 0});
+    expect(result).toEqual({address: '127.0.0.1', family: 4});
+  });
 });
